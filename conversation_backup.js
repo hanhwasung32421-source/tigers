@@ -326,6 +326,24 @@ export const conversationBackup = {
         closeCardNoDuplicate: true,
         version: 't20260720-163538'
       }
+    },
+    {
+      timestamp: '2026-07-20T16:46:25+09:00',
+      type: 'conversation',
+      userMessage: '수정: 1) 포지션 목록 숏 글자 1.5배 2) 반대 포지션 잡으면 기존 포지션 청산 후 반대 포지션 오픈 3) 같은 방향 추가진입은 기존 포지션에 합산(가중평균 평단) 처리',
+      assistantWorkSummary: [
+        '포지션 목록에서 숏 텍스트를 1.5배 크게 보이도록 스타일 수정함',
+        '프론트: 기존 포지션이 있는 상태에서 반대 방향으로 오픈하면 클릭 순간 가격으로 기존 포지션을 즉시 정산하고 제거한 뒤 새 포지션을 오픈하도록 낙관적 처리함',
+        '프론트: 같은 방향으로 추가 오픈하면 새 포지션을 만들지 않고 기존 포지션에 qty/margin을 합산하고 entry_price는 가중평균으로 재계산함',
+        '서버: /api/trade/open 에서도 동일한 정책을 적용(반대 방향이면 먼저 청산 기록+잔고 반영 후 오픈, 같은 방향이면 포지션 합산)하여 Supabase에도 일관되게 저장되도록 수정함',
+        '버전을 t20260720-164625 로 갱신함'
+      ],
+      positionNetting: {
+        flipClosesOld: true,
+        sameSideMerges: true,
+        averagePrice: 'weighted',
+        version: 't20260720-164625'
+      }
     }
   ]
 }

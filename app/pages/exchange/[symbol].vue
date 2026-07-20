@@ -447,8 +447,16 @@
                 </div>
               </td>
               <td class="py-2" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
-                <span class="rounded px-2 py-1 text-[10px] ring-1"
-                  :class="p.side === 'long' ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-[#34181d] text-[#f23645] ring-[#f23645]/30'">
+                <span
+                  class="rounded px-2 py-1 ring-1"
+                  :class="[
+                    p.side === 'long'
+                      ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30'
+                      : 'bg-[#34181d] text-[#f23645] ring-[#f23645]/30',
+                    // 요구사항: 포지션 목록에서 숏 글자를 1.5배 크게
+                    p.side === 'short' ? 'text-[15px]' : 'text-[10px]'
+                  ]"
+                >
                   {{ p.side === 'long' ? '롱' : '숏' }}
                 </span>
               </td>
@@ -1819,9 +1827,32 @@ async function openPosition() {
   error.value = null
   tradeMsg.value = null
   const round2 = (n: number) => Math.floor(n * 100) / 100
-  // 수수료 4%:
-  // - 잔고가 충분하면: 마진=요청값, 잔고차감=마진+수수료
-  // - 잔고가 부족하면: (마진+수수료=잔고) 되도록 마진을 줄여서 체결
+  // 요구사항:
+  // 1) 반대 포지션을 잡으면 기존 포지션은 "팔리고" 새 포지션으로 전환
+  // 2) 같은 방향으로 추가 진입하면 새 포지션이 아니라 기존 포지션에 합산(가중평균 평단)
+  const prevBalance = Number(balance.value || 0)
+  const prevPositions = positions.value.map((p: any) => ({ ...p }))
+
+  // 현재 심볼에서 기존 포지션(1개 기준)
+  const existingIdx = positions.value.findIndex((p: any) => String(p.symbol) === String(symbol.value))
+  const existing = existingIdx >= 0 ? positions.value[existingIdx] : null
+
+  // 2) 반대 포지션이면, 클릭 순간 가격으로 기존 포지션을 즉시 정산하고 제거(내부적으로는 서버가 최종 확정)
+  if (existing && String(existing.side) !== String(side.value)) {
+    const entry0 = Number(existing.entry_price || 0)
+    const qty0 = Number(existing.qty || 0)
+    const margin0 = Number(existing.margin || 0)
+    const raw = (price - entry0) * qty0
+    const pnl0 = existing.side === 'short' ? -raw : raw
+    const pnlClamped = Number.isFinite(margin0) && margin0 > 0 ? Math.max(-margin0, pnl0) : pnl0
+    const { settlementAfterFee } = calcSettlementAfterFee(margin0, pnlClamped)
+
+    // 기존 포지션 제거 + 잔고 반영(정산금 기준)
+    positions.value.splice(existingIdx, 1)
+    balance.value = Math.max(0, Number(balance.value || 0) + settlementAfterFee)
+  }
+
+  // 3) 가용 잔고 기준으로 신규 진입 마진 계산 (수수료 포함)
   const usdtNow = Number(balance.value || 0)
   let usedMargin = wantMargin
   let openFee = usedMargin * TRADE_FEE_RATE
@@ -1832,32 +1863,49 @@ async function openPosition() {
     totalDeduct = usedMargin + openFee
   }
   if (!Number.isFinite(usedMargin) || usedMargin <= 0) {
+    // 롤백
+    positions.value = prevPositions
+    balance.value = prevBalance
     error.value = '잔고가 부족합니다.'
     return
   }
 
-  // UX: 서버 왕복 전에 즉시 화면에 반영(낙관적 업데이트)
-  // - 차트 진입 라인 즉시 표시
-  // - 하단 포지션 목록 즉시 표시
-  const prevBalance = Number(balance.value || 0)
-  const tempId = -Date.now()
-  const qty = (usedMargin * Number(leverage.value || 1)) / price
-  const tempPos = {
-    id: tempId,
-    symbol: symbol.value,
-    side: side.value,
-    qty,
-    entry_price: price,
-    leverage: Number(leverage.value || 1),
-    margin: usedMargin,
-    created_at: new Date().toISOString(),
-    _optimistic: true
+  // 4) 같은 방향이면 합산(가중평균), 아니면 새 포지션 생성
+  const mergeTarget = positions.value.find((p: any) => String(p.symbol) === String(symbol.value) && String(p.side) === String(side.value))
+  const leverageForQty = mergeTarget ? Number(mergeTarget.leverage || 1) : Number(leverage.value || 1)
+  const qtyNew = (usedMargin * leverageForQty) / price
+
+  let tempId: number | null = null
+  if (mergeTarget) {
+    const oldQty = Number(mergeTarget.qty || 0)
+    const oldEntry = Number(mergeTarget.entry_price || 0)
+    const newQtyTotal = oldQty + qtyNew
+    const newEntry = newQtyTotal > 0 ? (oldEntry * oldQty + price * qtyNew) / newQtyTotal : price
+    mergeTarget.qty = newQtyTotal
+    mergeTarget.entry_price = newEntry
+    mergeTarget.margin = Number(mergeTarget.margin || 0) + usedMargin
+    mergeTarget._optimistic = true
+  } else {
+    tempId = -Date.now()
+    positions.value = [
+      {
+        id: tempId,
+        symbol: symbol.value,
+        side: side.value,
+        qty: qtyNew,
+        entry_price: price,
+        leverage: Number(leverage.value || 1),
+        margin: usedMargin,
+        created_at: new Date().toISOString(),
+        _optimistic: true
+      },
+      ...positions.value
+    ]
   }
-  positions.value = [tempPos, ...positions.value]
-  balance.value = Math.max(0, prevBalance - totalDeduct)
-  if (chartMode.value === 'built') {
-    renderEntryLines()
-  }
+
+  // 잔고 차감(마진+수수료)
+  balance.value = Math.max(0, Number(balance.value || 0) - totalDeduct)
+  if (chartMode.value === 'built') renderEntryLines()
 
   loading.value = true
   try {
@@ -1882,11 +1930,9 @@ async function openPosition() {
     }
   } catch (e: any) {
     // 실패 시 낙관적 업데이트 롤백
-    positions.value = positions.value.filter((p: any) => p.id !== tempId)
+    positions.value = prevPositions
     balance.value = prevBalance
-    if (chartMode.value === 'built') {
-      renderEntryLines()
-    }
+    if (chartMode.value === 'built') renderEntryLines()
     error.value = e?.data?.statusMessage || '오픈 실패'
   } finally {
     loading.value = false
