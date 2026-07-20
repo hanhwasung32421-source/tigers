@@ -440,10 +440,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="positions.length === 0" class="border-t border-cyan-500/10">
+            <tr v-if="currentPositions.length === 0" class="border-t border-cyan-500/10">
               <td colspan="9" class="py-3 text-slate-400">데이터가 없습니다.</td>
             </tr>
-            <tr v-for="p in positions" :key="p.id" class="border-t border-cyan-500/10">
+            <!-- 안전: 현재 차트 심볼의 포지션만 표시/청산 (다른 심볼은 현재가(lastPrice)가 달라 ROE가 비정상적으로 튈 수 있음) -->
+            <tr v-for="p in currentPositions" :key="p.id" class="border-t border-cyan-500/10">
               <td class="py-2">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] ring-1 ring-amber-400/40">
@@ -1053,7 +1054,8 @@ function openProfitCardFromTrade(t: any) {
   const qty = Number(t.qty || 0)
   const lev = Number(t.leverage || 1)
   const marginApprox = lev > 0 ? (entryPrice * qty) / lev : 0
-  const roe = marginApprox > 0 ? (pnl / marginApprox) * 100 : 0
+  const roeRaw = marginApprox > 0 ? (pnl / marginApprox) * 100 : 0
+  const roe = Math.max(-100, roeRaw)
 
   closeSummary.value = {
     symbol: String(t.symbol),
@@ -1081,11 +1083,19 @@ function unrealized(p: any) {
   const entry = Number(p.entry_price)
   const qty = Number(p.qty)
   const margin = Number(p.margin || 0)
-  if (![mark, entry, qty].every(Number.isFinite)) return { pnl: 0, roe: 0 }
+  // 방어 로직:
+  // - lastPrice가 0/비정상(WS 끊김/심볼 불일치 등)일 때 ROE가 ±수백만%까지 튈 수 있음
+  // - 강제청산은 -100%에서 끝나야 하므로 UI 표시용 ROE는 -100% 아래로 내려가지 않게 제한
+  if (![mark, entry, qty, margin].every(Number.isFinite)) return { pnl: 0, roe: 0 }
+  if (mark <= 0 || entry <= 0 || qty <= 0 || margin <= 0) return { pnl: 0, roe: 0 }
   const raw = (mark - entry) * qty
   const pnl = p.side === 'short' ? -raw : raw
-  const roe = margin > 0 ? (pnl / margin) * 100 : 0
-  return { pnl, roe }
+  const roeRaw = (pnl / margin) * 100
+  // UI 표시용 클램프(강제청산 -100% 하한)
+  const roe = Math.max(-100, roeRaw)
+  // PnL도 강제청산 하한에 맞춰(최대 손실 = 증거금) UI 표시용으로 제한
+  const pnlClamped = Math.max(-margin, pnl)
+  return { pnl: pnlClamped, roe }
 }
 
 const maxVolumeText = computed(() => {
@@ -1761,7 +1771,7 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         entryPrice: entry,
         exitPrice: exitClickPrice,
         pnl: pnlCalc,
-        roe: roeCalc,
+        roe: Math.max(-100, roeCalc),
         wonText: Math.round(pnlCalc * 1350).toLocaleString()
       }
     }
@@ -1806,7 +1816,7 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         entryPrice: Number(pos.entry_price || 0),
         exitPrice: Number(res.exitPrice || 0),
         pnl,
-        roe,
+        roe: Math.max(-100, roe),
         wonText: Math.round(pnl * 1350).toLocaleString()
       }
     }

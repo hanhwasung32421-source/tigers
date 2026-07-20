@@ -18,6 +18,20 @@ export default defineEventHandler(async (event) => {
   const body = BodySchema.parse(await readBody(event))
   const useSupa = supabaseAppDbEnabled()
 
+  const clampPnlToLiquidation = (pnl: number, margin: number) => {
+    if (!Number.isFinite(pnl) || !Number.isFinite(margin) || margin <= 0) return 0
+    return Math.max(-margin, pnl)
+  }
+  const calcSettlementAfterFee = (margin: number, pnl: number) => {
+    const settlementBeforeFee = Math.max(0, Number(margin) + Number(pnl))
+    const fee = settlementBeforeFee > 0 ? settlementBeforeFee * FEE_RATE : 0
+    return {
+      settlementBeforeFee,
+      fee,
+      settlementAfterFee: Math.max(0, settlementBeforeFee - fee)
+    }
+  }
+
   if (useSupa) {
     const pos = await supaSelectOne<any>('trae_positions', { id: body.positionId, user_id: user.id })
     if (!pos) throw createError({ statusCode: 404, statusMessage: '포지션을 찾을 수 없습니다.' })
@@ -25,13 +39,15 @@ export default defineEventHandler(async (event) => {
     const exit = body.exitPrice ?? (await getOkxLastPrice(pos.symbol)).last
 
     const pnlRaw = (exit - Number(pos.entry_price)) * Number(pos.qty)
-    const pnl = pos.side === 'long' ? pnlRaw : -pnlRaw
-    // 수수료 4%: 수익/손실 금액에 대해 4%를 추가 차감(카드/체결내역에는 표시하지 않음)
-    const fee = Math.abs(Number(pnl)) * FEE_RATE
+    const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
+    // 강제청산 하한: 최대 손실은 증거금 100%
+    const pnl = clampPnlToLiquidation(pnlUnclamped, Number(pos.margin))
 
     const balRow = await supaSelectOne<{ usdt: number }>('trae_balances', { user_id: user.id })
     const usdt = Number(balRow?.usdt ?? 0)
-    const newUsdt = usdt + Number(pos.margin) + pnl - fee
+    // 매도 수수료는 최종 정산금에만 적용. 정산금이 0이면 추가 차감 없음.
+    const { settlementAfterFee } = calcSettlementAfterFee(Number(pos.margin), pnl)
+    const newUsdt = usdt + settlementAfterFee
 
     // 포지션 제거
     const supa = getSupabaseAdminClient()
@@ -76,12 +92,13 @@ export default defineEventHandler(async (event) => {
   const exit = body.exitPrice ?? last
 
   const pnlRaw = (exit - pos.entry_price) * pos.qty
-  const pnl = pos.side === 'long' ? pnlRaw : -pnlRaw
-  const fee = Math.abs(Number(pnl)) * FEE_RATE
+  const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
+  const pnl = clampPnlToLiquidation(pnlUnclamped, Number(pos.margin))
+  const { settlementAfterFee } = calcSettlementAfterFee(Number(pos.margin), pnl)
 
   // 잔고: 증거금 반환 + 손익 반영
   db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(user.id, 0)
-  db.prepare('UPDATE balances SET usdt = usdt + ? WHERE user_id = ?').run(pos.margin + pnl - fee, user.id)
+  db.prepare('UPDATE balances SET usdt = usdt + ? WHERE user_id = ?').run(settlementAfterFee, user.id)
 
   db.prepare('DELETE FROM positions WHERE id = ? AND user_id = ?').run(pos.id, user.id)
 

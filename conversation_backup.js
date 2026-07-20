@@ -256,6 +256,25 @@ export const conversationBackup = {
         okxApiVerified: true,
         version: 't20260720-152539'
       }
+    },
+    {
+      timestamp: '2026-07-20T15:49:29+09:00',
+      type: 'conversation',
+      userMessage: '매수/매도 후 수익률이 432043290432% 처럼 비정상적으로 나오고, 손실도 -400% 같은 값이 나올 수 있는지 확인 및 로직 파악 요청',
+      assistantWorkSummary: [
+        '미실현손익(ROE) 계산이 모든 포지션에 대해 현재 화면의 lastPrice(현재 심볼 가격)를 공통으로 사용하고 있음을 확인함',
+        '이 때문에 다른 심볼 포지션을 들고 있는 상태에서 다른 심볼 차트를 보고 있으면 ROE가 비정상적으로 크게 튈 수 있음을 확인함',
+        'lastPrice가 0/비정상일 때도 ROE 계산이 진행되어 -100% 이하(예: -400%, -10000%)로 내려갈 수 있음을 확인함',
+        'UI에서 현재 심볼의 포지션만 표시/청산하도록 변경해 심볼 불일치로 인한 ROE 폭주를 차단함',
+        'UI 표시용 ROE는 -100% 아래로 내려가지 않도록 클램프하고, 표시용 PnL도 -증거금 이하로 내려가지 않게 제한함',
+        '서버 청산 로직에서도 PnL을 -증거금 하한으로 클램프하여 잔고 반영이 -100% 이하로 내려가지 않도록 수정함',
+        '버전을 t20260720-154929 로 갱신함'
+      ],
+      roeBugRootCause: {
+        type: 'symbol_price_mismatch_and_missing_liquidation_clamp',
+        fix: 'filter_current_positions + clamp_roe_pnl_ui + clamp_pnl_server_close',
+        version: 't20260720-154929'
+      }
     }
   ]
 }
