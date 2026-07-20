@@ -672,7 +672,9 @@ const symbolSelect = ref(symbol.value)
 const symbolOptions = [
   { value: 'BTCUSDT', label: 'BTCUSDT' },
   { value: 'DOGEUSDT', label: 'DOGEUSDT' },
-  { value: 'ETHUSDT', label: 'ETHUSDT' }
+  { value: 'ETHUSDT', label: 'ETHUSDT' },
+  { value: 'SAMSUNGUSDT', label: 'SAMSUNGUSDT' },
+  { value: 'SKHYNIXUSDT', label: 'SKHYNIXUSDT' }
 ]
 
 watch(
@@ -1117,7 +1119,7 @@ function applyLeverageDraft() {
   leverageModalOpen.value = false
 }
 
-const coinUnit = computed(() => (symbol.value.startsWith('DOGE') ? 'DOGE' : symbol.value.startsWith('ETH') ? 'ETH' : 'BTC'))
+const coinUnit = computed(() => baseCoin(symbol.value))
 
 const entryCalcPrice = computed(() => {
   if (orderType.value === 'limit' && Number.isFinite(limitPrice.value) && limitPrice.value > 0) return limitPrice.value
@@ -1138,12 +1140,9 @@ const qtyText = computed(() => {
   return qty.toFixed(coinUnit.value === 'DOGE' ? 2 : 6)
 })
 
-function toInstId(sym: string) {
-  const s = sym.toUpperCase().replace('-', '').replace('/', '')
-  if (s === 'BTCUSDT') return 'BTC-USDT-SWAP'
-  if (s === 'ETHUSDT') return 'ETH-USDT-SWAP'
-  if (s === 'DOGEUSDT') return 'DOGE-USDT-SWAP'
-  return 'BTC-USDT-SWAP'
+function toMarketSymbol(sym: string) {
+  const s = String(sym || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+  return s || 'BTCUSDT'
 }
 
 function applyPriceFormatForSymbol(sym: string) {
@@ -1437,17 +1436,13 @@ function renderEntryLines() {
 }
 
 async function fetchCandles() {
-  const instId = toInstId(symbol.value)
-  const bar = timeframe.value
-  // OKX REST는 브라우저 CORS 이슈가 있을 수 있어 서버 프록시를 사용
-  const res = await $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: 120 } })
-  const rows = (res?.data || []) as string[][]
+  const marketSymbol = toMarketSymbol(symbol.value)
+  const interval = timeframe.value
+  const res = await $fetch<any>('/api/binance/candles', { query: { symbol: marketSymbol, interval, limit: 120 } })
+  const rows = (res?.data || []) as any[][]
   const candles: CandlestickData[] = []
   const vols: HistogramData[] = []
-  // OKX는 최신이 앞에 오므로 reverse
   rows
-    .slice()
-    .reverse()
     .forEach((r) => {
       const ts = Number(r[0])
       const o = Number(r[1])
@@ -1498,21 +1493,12 @@ function connectWs() {
   resetOrderbook()
   wsStatus.value = 'connecting'
 
-  const instId = toInstId(symbol.value)
-  ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public')
+  const marketSymbol = toMarketSymbol(symbol.value)
+  const streamSymbol = marketSymbol.toLowerCase()
+  ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streamSymbol}@ticker/${streamSymbol}@depth20@100ms`)
 
   ws.onopen = () => {
     wsStatus.value = 'open'
-    ws?.send(
-      JSON.stringify({
-        op: 'subscribe',
-        args: [
-          { channel: 'tickers', instId },
-          // 첨부처럼 더 많은 레벨이 필요해서 books 사용
-          { channel: 'books', instId }
-        ]
-      })
-    )
   }
   ws.onclose = () => (wsStatus.value = 'closed')
   ws.onerror = () => (wsStatus.value = 'error')
@@ -1520,36 +1506,26 @@ function connectWs() {
   ws.onmessage = (ev) => {
     try {
       const msg = JSON.parse(ev.data)
-      const arg = msg?.arg
-      const data = msg?.data?.[0]
-      if (!arg || !data) return
+      const stream = String(msg?.stream || '')
+      const data = msg?.data
+      if (!stream || !data) return
 
-      if (arg.channel === 'tickers') {
-        const p = Number(data.last)
+      if (stream.endsWith('@ticker')) {
+        const p = Number(data.c)
         if (Number.isFinite(p)) {
           lastPrice.value = p
-          // 호가처럼 차트도 실시간으로 마지막 캔들 갱신
-          updateLiveCandle(p, Number(data.ts ?? Date.now()))
+          updateLiveCandle(p, Number(data.E ?? Date.now()))
         }
-        high24.value = Number(data.high24h ?? data.high24) || high24.value
-        low24.value = Number(data.low24h ?? data.low24) || low24.value
-        vol24.value = Number(data.vol24h ?? data.vol24) || vol24.value
+        high24.value = Number(data.h) || high24.value
+        low24.value = Number(data.l) || low24.value
+        vol24.value = Number(data.v) || vol24.value
       }
 
-      if (arg.channel === 'books') {
-        // snapshot/update 모두 처리 (수량 0은 제거)
-        if (msg?.action === 'snapshot') {
-          resetOrderbook()
-        }
-
+      if (stream.includes('@depth20')) {
+        resetOrderbook()
         applyOrderbookUpdate(data.asks, 'ask')
         applyOrderbookUpdate(data.bids, 'bid')
-
-        if (msg?.action === 'snapshot') {
-          initDisplayFromMaps()
-        } else {
-          refreshDisplayIfNeeded()
-        }
+        initDisplayFromMaps()
       }
     } catch {
       // ignore

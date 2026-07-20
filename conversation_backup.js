@@ -203,6 +203,26 @@ export const conversationBackup = {
         removedTarget: 'C:\\trae\\거래소\\참고',
         newVersion: 't20260720-101100'
       }
+    },
+    {
+      timestamp: '2026-07-20T10:35:25+09:00',
+      type: 'conversation',
+      userMessage: '선물거래 > 차트에 현재 BTCUSDT, DOGEUSDT, ETHUSDT 3가지가 매매할수있게 되어있는데 SAMSUNGUSDT, SKHYNIXUSDT 도 추가해줘. 현재 OKX 기반으로 트레이딩뷰 차트를 가져오고있는데 이건 BINANCE 기준으로 바꿔줘. 삼성과 하이닉스는 바이넨스에만 있어.',
+      assistantWorkSummary: [
+        '선물거래 심볼 목록에 SAMSUNGUSDT, SKHYNIXUSDT를 추가함',
+        '거래 화면의 캔들 조회 API를 OKX 프록시에서 BINANCE 캔들 API로 전환함',
+        '실시간 가격 및 오더북 WebSocket을 OKX에서 BINANCE 스트림으로 전환함',
+        '서버의 포지션 오픈/클로즈 기준 가격 조회도 BINANCE 시세를 사용하도록 변경함',
+        'TradingView 위젯 예시 심볼 설명도 BINANCE 기준으로 정리함',
+        '버전을 t20260720-103525 로 갱신함',
+        '로컬 빌드 검증을 시도했지만 현재 환경에 nuxt 실행 파일이 없어 npm run build는 수행되지 않았음'
+      ],
+      marketDataMigration: {
+        addedSymbols: ['SAMSUNGUSDT', 'SKHYNIXUSDT'],
+        oldProvider: 'OKX',
+        newProvider: 'BINANCE',
+        newVersion: 't20260720-103525'
+      }
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { requireUser } from '../../utils/auth'
 import { getDb } from '../../utils/db'
-import { getOkxLastPrice } from '../../utils/okx'
+import { getBinanceLastPrice } from '../../utils/binance'
 import { logBuy } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase } from '../../utils/supa-appdb'
 import { supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: '잔고가 부족합니다.' })
     }
 
-    const entry = body.price ?? (await getOkxLastPrice(body.symbol)).last
+    const entry = body.price ?? (await getBinanceLastPrice(body.symbol)).last
     const qty = (usedMargin * body.leverage) / entry
     const newUsdt = usdt - total
 
@@ -99,7 +99,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '잔고가 부족합니다.' })
   }
 
-  const entry = body.price ?? (await getOkxLastPrice(body.symbol)).last
+  const entry = body.price ?? (await getBinanceLastPrice(body.symbol)).last
   const qty = (usedMargin * body.leverage) / entry
 
   db.prepare('UPDATE balances SET usdt = usdt - ? WHERE user_id = ?').run(total, user.id)
