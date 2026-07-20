@@ -11,7 +11,16 @@
           <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white">내 지갑</NuxtLink>
           <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white">투자내역</NuxtLink>
           <NuxtLink to="/support" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white">고객센터</NuxtLink>
-          <NuxtLink v-if="isAdmin" to="/admin" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white">관리자</NuxtLink>
+          <div v-if="isAdmin" class="group relative">
+            <NuxtLink to="/admin" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white">관리자</NuxtLink>
+            <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
+              <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
+                <NuxtLink to="/admin/positions" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white">
+                  포지션 목록
+                </NuxtLink>
+              </div>
+            </div>
+          </div>
         </nav>
 
         <div class="flex items-center gap-2 text-sm">
