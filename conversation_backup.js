@@ -292,6 +292,25 @@ export const conversationBackup = {
         overlayText: ['접속 중입니다...', '인증 확인 중입니다...', '거래소로 이동 중입니다...'],
         version: 't20260720-155508'
       }
+    },
+    {
+      timestamp: '2026-07-20T16:09:05+09:00',
+      type: 'conversation',
+      userMessage: '청산 버튼 누르면 server error가 떠도 수익카드는 뜨고 아래 포지션은 남아있는 문제. 클릭 즉시 포지션에서 사라지게 하고, 표시 지연 없이 내부 재시도/동기화로 처리. 오더북/포지션 새로고침 버튼 제거 및 1초 무응답 자동 재연결 요청.',
+      assistantWorkSummary: [
+        '클릭 즉시 포지션을 UI에서 제거하고(절대 롤백하지 않음) 청산 처리는 내부 재시도 큐로 전환함',
+        '청산 요청은 클릭 순간의 exitPrice를 고정 저장하고, 성공할 때까지 백오프 재시도함(사용자에게 지연/에러 노출 없음)',
+        '페이지 새로고침/재접속 상황에서도 이어서 처리되도록 pending job을 localStorage에 저장함',
+        '서버에서도 후속 동기화 실패로 전체 청산이 500이 되지 않도록 안전 실행(safeRun)으로 보호함',
+        '오더북: 1초 이상 books 업데이트가 없으면 자동 재연결되도록 감시 타이머 추가, 재연결 버튼 제거함',
+        '포지션: 우측 새로고침 버튼 제거 후, 포지션/펜딩 청산이 있는 동안 1초 무응답이면 자동 loadAccount()로 재동기화함',
+        '버전을 t20260720-160905 로 갱신함'
+      ],
+      reliability: {
+        closeFlow: 'optimistic_remove + background_retry_queue + fixed_exit_price',
+        orderbook: '1s_silence_auto_reconnect',
+        version: 't20260720-160905'
+      }
     }
   ]
 }

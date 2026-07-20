@@ -162,12 +162,6 @@
           </div>
 
           <div class="flex w-[44px] shrink-0 flex-col items-center gap-1 border-l border-[#2a2e39] bg-[#131722] px-1 py-2">
-            <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" title="새로고침" @click="reloadCandles">
-              ↻
-            </button>
-            <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" title="재연결" @click="reconnect">
-              ☍
-            </button>
             <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" title="비율 50%" @click="setPercent(50)">
               50
             </button>
@@ -191,7 +185,6 @@
       <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
         <div class="flex items-center justify-between">
           <div class="text-sm font-semibold text-slate-100">오더북</div>
-          <button class="rounded-md border border-cyan-500/15 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-500/15" @click="reconnect">재연결</button>
         </div>
 
         <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-500">
@@ -421,7 +414,6 @@
             체결내역
           </button>
         </div>
-        <button class="rounded-md border border-cyan-500/15 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100 hover:bg-cyan-500/15" @click="loadAccount">새로고침</button>
       </div>
 
       <div class="mt-3 overflow-auto" v-if="bottomTab === 'positions'">
@@ -730,6 +722,8 @@ const asks = ref<[string, string][]>([])
 const bids = ref<[string, string][]>([])
 const wsStatus = ref('')
 let ws: WebSocket | null = null
+let lastOrderbookTs = 0
+let orderbookWatchTimer: any = null
 
 // trade panel
 const side = ref<'long' | 'short'>('long')
@@ -755,12 +749,33 @@ const closeSummary = ref<null | {
 // account
 const balance = ref(0)
 const positions = ref<any[]>([])
-const currentPositions = computed(() => positions.value.filter((p: any) => p.symbol === symbol.value))
+type PendingCloseJob = {
+  positionId: number
+  symbol: string
+  side: 'long' | 'short'
+  leverage: number
+  entryPrice: number
+  exitPrice: number
+  qty: number
+  margin: number
+  createdAt: string
+  retryCount: number
+}
+const PENDING_CLOSE_STORAGE_KEY = 'exchange_pending_close_jobs_v1'
+const pendingCloseJobs = ref<PendingCloseJob[]>([])
+const pendingCloseJobIds = computed(() => pendingCloseJobs.value.map((j) => Number(j.positionId)))
+const currentPositions = computed(() =>
+  positions.value.filter((p: any) => p.symbol === symbol.value && !pendingCloseJobIds.value.includes(Number(p.id)))
+)
 const fills = ref<any[]>([])
 const fillsOffset = ref(0)
 const fillsHasMore = ref(true)
 const fillsLoading = ref(false)
 const fillsWrap = ref<HTMLElement | null>(null)
+const pendingCloseTimers = new Map<number, any>()
+let lastAccountTs = 0
+let accountWatchTimer: any = null
+let accountSyncing = false
 
 // 거래 설정(비중/레버리지) 서버 저장/복원
 const prefsHydrated = ref(false)
@@ -836,6 +851,114 @@ function fmtPrice(v: number) {
 function fmtNum(v: number) {
   if (!Number.isFinite(v)) return '—'
   return v.toLocaleString(undefined, { maximumFractionDigits: 2 })
+}
+
+function calcSettlementAfterFee(margin: number, pnl: number) {
+  const settlementBeforeFee = Math.max(0, Number(margin) + Number(pnl))
+  const fee = settlementBeforeFee > 0 ? settlementBeforeFee * TRADE_FEE_RATE : 0
+  return {
+    fee,
+    settlementAfterFee: Math.max(0, settlementBeforeFee - fee)
+  }
+}
+
+function savePendingCloseJobs() {
+  if (!process.client) return
+  try {
+    localStorage.setItem(PENDING_CLOSE_STORAGE_KEY, JSON.stringify(pendingCloseJobs.value))
+  } catch {
+    // ignore
+  }
+}
+
+function loadPendingCloseJobs() {
+  if (!process.client) return
+  try {
+    const raw = localStorage.getItem(PENDING_CLOSE_STORAGE_KEY)
+    pendingCloseJobs.value = raw ? JSON.parse(raw) : []
+  } catch {
+    pendingCloseJobs.value = []
+  }
+}
+
+function upsertPendingCloseJob(job: PendingCloseJob) {
+  const idx = pendingCloseJobs.value.findIndex((j) => Number(j.positionId) === Number(job.positionId))
+  if (idx >= 0) pendingCloseJobs.value[idx] = job
+  else pendingCloseJobs.value.push(job)
+  savePendingCloseJobs()
+}
+
+function removePendingCloseJob(positionId: number) {
+  pendingCloseJobs.value = pendingCloseJobs.value.filter((j) => Number(j.positionId) !== Number(positionId))
+  savePendingCloseJobs()
+  const timer = pendingCloseTimers.get(Number(positionId))
+  if (timer) {
+    clearTimeout(timer)
+    pendingCloseTimers.delete(Number(positionId))
+  }
+}
+
+function schedulePendingCloseRetry(positionId: number, delayMs: number) {
+  const key = Number(positionId)
+  const prev = pendingCloseTimers.get(key)
+  if (prev) clearTimeout(prev)
+  const timer = setTimeout(() => {
+    processPendingCloseJob(key).catch(() => {})
+  }, delayMs)
+  pendingCloseTimers.set(key, timer)
+}
+
+async function processPendingCloseJob(positionId: number) {
+  const job = pendingCloseJobs.value.find((j) => Number(j.positionId) === Number(positionId))
+  if (!job) return
+  try {
+    const res = await $fetch<any>('/api/trade/close', {
+      method: 'POST',
+      body: {
+        positionId: job.positionId,
+        // 클릭 순간 가격을 끝까지 유지
+        exitPrice: job.exitPrice
+      }
+    })
+    removePendingCloseJob(job.positionId)
+    tradeMsg.value = `청산 완료 · PnL ${Number(res?.pnl || 0) >= 0 ? '+' : ''}${Number(res?.pnl || 0).toFixed(2)} USDT`
+    await loadAccount().catch(() => {})
+    if (fills.value.length || bottomTab.value === 'fills') {
+      await loadFills(true).catch(() => {})
+    }
+    closeSummary.value = {
+      symbol: job.symbol,
+      side: job.side,
+      leverage: job.leverage,
+      entryPrice: job.entryPrice,
+      exitPrice: Number(res?.exitPrice || job.exitPrice),
+      pnl: Number(res?.pnl || 0),
+      roe: Math.max(-100, job.margin > 0 ? (Number(res?.pnl || 0) / job.margin) * 100 : 0),
+      wonText: Math.round(Number(res?.pnl || 0) * 1350).toLocaleString()
+    }
+  } catch (e: any) {
+    job.retryCount = Number(job.retryCount || 0) + 1
+    upsertPendingCloseJob({ ...job })
+    // 이미 서버에서 처리되어 포지션이 사라졌다면 성공으로 간주
+    await loadAccount().catch(() => {})
+    const stillExists = positions.value.some((p: any) => Number(p.id) === Number(job.positionId))
+    if (!stillExists) {
+      removePendingCloseJob(job.positionId)
+      if (fills.value.length || bottomTab.value === 'fills') {
+        await loadFills(true).catch(() => {})
+      }
+      return
+    }
+    // 사용자에게 지연/에러를 노출하지 않고 내부 재시도
+    const backoff = Math.min(15000, 1500 * Math.max(1, job.retryCount))
+    schedulePendingCloseRetry(job.positionId, backoff)
+  }
+}
+
+function startPendingCloseRecovery() {
+  for (const job of pendingCloseJobs.value) {
+    schedulePendingCloseRetry(job.positionId, 300)
+  }
 }
 
 const balanceDisplay = computed(() => {
@@ -1515,6 +1638,7 @@ function connectWs() {
   bids.value = []
   resetOrderbook()
   wsStatus.value = 'connecting'
+  lastOrderbookTs = Date.now()
 
   const instId = toInstId(symbol.value)
   ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public')
@@ -1553,6 +1677,7 @@ function connectWs() {
       }
 
       if (arg.channel === 'books') {
+        lastOrderbookTs = Date.now()
         if (msg?.action === 'snapshot') {
           resetOrderbook()
         }
@@ -1568,17 +1693,34 @@ function connectWs() {
       // ignore
     }
   }
+  startOrderbookAutoReconnect()
 }
 
-function reconnect() {
-  connectWs()
+function startOrderbookAutoReconnect() {
+  if (!process.client) return
+  if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
+  orderbookWatchTimer = setInterval(() => {
+    // 1초 이상 오더북 업데이트가 없으면 무조건 재연결
+    if (wsStatus.value !== 'open') return
+    const silenceMs = Date.now() - Number(lastOrderbookTs || 0)
+    if (silenceMs > 1000) {
+      connectWs()
+    }
+  }, 300)
 }
 
 async function loadAccount() {
   if (!me.value) return
-  const data = await $fetch<any>('/api/account')
-  balance.value = data.balance.usdt
-  positions.value = data.positions
+  if (accountSyncing) return
+  accountSyncing = true
+  try {
+    const data = await $fetch<any>('/api/account')
+    balance.value = data.balance.usdt
+    positions.value = data.positions
+    lastAccountTs = Date.now()
+  } finally {
+    accountSyncing = false
+  }
 
   if (!prefsHydrated.value && data?.settings) {
     // 다른 화면 이동/재로그인 후에도 이전 설정 복원
@@ -1602,6 +1744,21 @@ async function loadAccount() {
     renderIndicators()
     renderSavedDrawings()
   }
+}
+
+function startAccountAutoRefresh() {
+  if (!process.client) return
+  if (accountWatchTimer) clearInterval(accountWatchTimer)
+  accountWatchTimer = setInterval(() => {
+    // 포지션이 있거나(또는 pending close가 있으면) 1초 무응답이면 자동으로 다시 동기화
+    if (!me.value) return
+    const need = positions.value.length > 0 || pendingCloseJobs.value.length > 0
+    if (!need) return
+    const silenceMs = Date.now() - Number(lastAccountTs || 0)
+    if (silenceMs > 1000) {
+      loadAccount().catch(() => {})
+    }
+  }, 400)
 }
 
 async function loadFills(reset = false) {
@@ -1746,23 +1903,21 @@ async function openPosition() {
 
 async function closePosition(positionId: number, mode: 'market' | 'limit' = 'market', pos?: any) {
   tradeMsg.value = null
-  // 낙관적 업데이트 롤백용 스냅샷
-  const prevBalance = Number(balance.value || 0)
-  let removed: any = null
-  let removedIndex = -1
   try {
     // 요구사항: "청산 버튼 누른 순간 가격"으로 즉시 계산해서 카드에 표시 + 서버에도 같은 가격으로 저장
     let exitClickPrice: number | null = null
     let pnlCalc = 0
-    let closeFee = 0
     if (mode === 'market' && pos) {
       exitClickPrice = Number(lastPrice.value || 0) || Number(pos.entry_price || 0) || 0
       const entry = Number(pos.entry_price || 0)
       const qty = Number(pos.qty || 0)
       const isShort = pos.side === 'short'
       pnlCalc = (exitClickPrice - entry) * qty * (isShort ? -1 : 1)
-      closeFee = Math.abs(Number(pnlCalc)) * TRADE_FEE_RATE
       const margin0 = Number(pos.margin || 0)
+      // 강제청산 하한: 최대 손실은 증거금 100%
+      if (Number.isFinite(margin0) && margin0 > 0) {
+        pnlCalc = Math.max(-margin0, pnlCalc)
+      }
       const roeCalc = margin0 > 0 ? (pnlCalc / margin0) * 100 : 0
       closeSummary.value = {
         symbol: String(pos.symbol),
@@ -1776,63 +1931,44 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
       }
     }
 
-    // UX: 서버 왕복 전에 즉시 화면 반영(낙관적 업데이트)
+    // UX: 클릭 즉시 "포지션은 무조건 사라져야 함" (요구사항)
     const idx = positions.value.findIndex((p: any) => Number(p.id) === Number(positionId))
-    removedIndex = idx
-    removed = idx >= 0 ? positions.value[idx] : null
-    if (idx >= 0) {
-      positions.value.splice(idx, 1)
-      // 증거금 반환 + (수익/손실) 반영 + 수수료(4%) 차감까지 즉시 반영
-      const marginBack = Number(removed?.margin ?? 0)
-      if (Number.isFinite(marginBack)) {
-        balance.value = prevBalance + marginBack + Number(pnlCalc || 0) - Number(closeFee || 0)
-      }
-      if (chartMode.value === 'built') {
-        renderEntryLines()
-      }
+    const removed = idx >= 0 ? positions.value[idx] : null
+    if (idx >= 0) positions.value.splice(idx, 1)
+    if (chartMode.value === 'built') renderEntryLines()
+
+    // 잔고도 즉시 반영(정산금 기준) - 서버가 늦어져도 사용자에게는 지연을 보여주지 않음
+    if (removed) {
+      const margin0 = Number(removed.margin ?? 0)
+      const pnl0 = Number(pnlCalc || 0)
+      const pnlClamped = Number.isFinite(margin0) && margin0 > 0 ? Math.max(-margin0, pnl0) : pnl0
+      const { settlementAfterFee } = calcSettlementAfterFee(margin0, pnlClamped)
+      balance.value = Math.max(0, Number(balance.value || 0) + settlementAfterFee)
     }
 
-    const res = await $fetch<any>('/api/trade/close', {
-      method: 'POST',
-      body: {
-        positionId,
-        // 요구사항: 누르는 순간의 가격으로 서버에도 동일하게 반영
-        exitPrice: exitClickPrice || Number(lastPrice.value || (pos as any)?.entry_price || 0) || undefined
-      }
-    })
-    tradeMsg.value = `청산 완료 · PnL ${res.pnl >= 0 ? '+' : ''}${Number(res.pnl).toFixed(2)} USDT`
-    // 서버 데이터로 최종 동기화(백그라운드)
-    loadAccount().catch(() => {})
-    if (fills.value.length || bottomTab.value === 'fills') {
-      loadFills(true).catch(() => {})
+    // 내부 재시도 큐에 넣고(클릭 순간 가격을 고정) 처리
+    if (removed) {
+      upsertPendingCloseJob({
+        positionId: Number(removed.id),
+        symbol: String(removed.symbol),
+        side: removed.side === 'short' ? 'short' : 'long',
+        leverage: Number(removed.leverage || 1),
+        entryPrice: Number(removed.entry_price || 0),
+        exitPrice: Number(exitClickPrice || lastPrice.value || removed.entry_price || 0),
+        qty: Number(removed.qty || 0),
+        margin: Number(removed.margin || 0),
+        createdAt: new Date().toISOString(),
+        retryCount: 0
+      })
+      // 즉시 한 번 처리하고 실패하면 백오프 재시도
+      processPendingCloseJob(Number(removed.id)).catch(() => {
+        schedulePendingCloseRetry(Number(removed.id), 1500)
+      })
     }
-    if (mode === 'market' && pos) {
-      const pnl = Number(res.pnl || 0)
-      const roe = Number(pos.margin) > 0 ? (pnl / Number(pos.margin)) * 100 : 0
-      closeSummary.value = {
-        symbol: String(pos.symbol),
-        side: pos.side === 'short' ? 'short' : 'long',
-        leverage: Number(pos.leverage || 1),
-        entryPrice: Number(pos.entry_price || 0),
-        exitPrice: Number(res.exitPrice || 0),
-        pnl,
-        roe: Math.max(-100, roe),
-        wonText: Math.round(pnl * 1350).toLocaleString()
-      }
-    }
+
   } catch (e: any) {
-    // 실패 시 롤백(삭제했던 포지션 복원)
-    balance.value = prevBalance
-    const restorePos = pos || removed
-    if (restorePos) {
-      const exists = positions.value.some((p: any) => Number(p.id) === Number(restorePos.id))
-      if (!exists) {
-        if (removedIndex >= 0 && removedIndex <= positions.value.length) positions.value.splice(removedIndex, 0, restorePos)
-        else positions.value = [restorePos, ...positions.value]
-      }
-      if (chartMode.value === 'built') renderEntryLines()
-    }
-    error.value = e?.data?.statusMessage || '청산 실패'
+    // 사용자에게는 실패를 노출하지 않음. 내부 재시도/동기화가 처리.
+    loadAccount().catch(() => {})
   }
 }
 
@@ -1857,6 +1993,9 @@ onMounted(async () => {
   chartClockTimer = setInterval(() => {
     chartNow.value = Date.now()
   }, 1000)
+  loadPendingCloseJobs()
+  startPendingCloseRecovery()
+  startAccountAutoRefresh()
   await ensureChartReady()
   await fetchCandles().catch(() => {})
   connectWs()
@@ -1891,6 +2030,12 @@ watch(
 onBeforeUnmount(() => {
   ws?.close()
   ws = null
+  for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
+  pendingCloseTimers.clear()
+  if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
+  orderbookWatchTimer = null
+  if (accountWatchTimer) clearInterval(accountWatchTimer)
+  accountWatchTimer = null
   if (chartClockTimer) clearInterval(chartClockTimer)
   if (savePrefsTimer) clearTimeout(savePrefsTimer)
   if (saveChartPrefsTimer) clearTimeout(saveChartPrefsTimer)

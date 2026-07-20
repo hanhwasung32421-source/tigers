@@ -31,6 +31,13 @@ export default defineEventHandler(async (event) => {
       settlementAfterFee: Math.max(0, settlementBeforeFee - fee)
     }
   }
+  const safeRun = async (fn: () => Promise<any>) => {
+    try {
+      await fn()
+    } catch {
+      // 청산 본처리는 끝났다면 후속 동기화 실패로 전체를 실패시키지 않음
+    }
+  }
 
   if (useSupa) {
     const pos = await supaSelectOne<any>('trae_positions', { id: body.positionId, user_id: user.id })
@@ -73,7 +80,7 @@ export default defineEventHandler(async (event) => {
     )
 
     await supaUpsert('trae_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'])
-    await supaUpdate('trae_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() })
+    await safeRun(() => supaUpdate('trae_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() }))
 
     return { ok: true, exitPrice: exit, pnl }
   }
@@ -118,8 +125,8 @@ export default defineEventHandler(async (event) => {
 
   const newTrade = db.prepare('SELECT * FROM trades WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(user.id) as any
   const bal = db.prepare('SELECT usdt FROM balances WHERE user_id = ?').get(user.id) as any
-  await syncTradeToSupabase(newTrade)
-  await syncBalanceToSupabase(user.id, Number(bal?.usdt ?? 0))
+  await safeRun(() => syncTradeToSupabase(newTrade))
+  await safeRun(() => syncBalanceToSupabase(user.id, Number(bal?.usdt ?? 0)))
 
   return { ok: true, exitPrice: exit, pnl }
 })
