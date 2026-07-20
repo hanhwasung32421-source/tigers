@@ -377,11 +377,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="currentPositions.length === 0" class="border-t border-cyan-500/10">
+            <tr v-if="visiblePositions.length === 0" class="border-t border-cyan-500/10">
               <td colspan="9" class="py-3 text-slate-400">데이터가 없습니다.</td>
             </tr>
-            <!-- 안전: 현재 차트 심볼의 포지션만 표시/청산 (다른 심볼은 현재가(lastPrice)가 달라 ROE가 비정상적으로 튈 수 있음) -->
-            <tr v-for="p in currentPositions" :key="p.id" class="border-t border-cyan-500/10">
+            <!-- 포지션 테이블은 통합: 어떤 차트로 이동해도 전체 포지션이 유지되어야 함 -->
+            <tr v-for="p in visiblePositions" :key="p.id" class="border-t border-cyan-500/10">
               <td class="py-2">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] ring-1 ring-amber-400/40">
@@ -407,7 +407,7 @@
               </td>
               <td class="py-2 font-mono">{{ fmtQty(p.symbol, p.qty) }}</td>
               <td class="py-2 font-mono">{{ fmtPrice(Number(p.entry_price)) }}</td>
-              <td class="py-2 font-mono">{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</td>
+              <td class="py-2 font-mono">{{ markOf(p.symbol) ? fmtPrice(markOf(p.symbol)) : '—' }}</td>
               <td class="py-2 font-mono">{{ fmtPrice(calcLiqPrice(p)) }}</td>
               <td class="py-2 font-mono">{{ Number(p.margin).toFixed(5) }}</td>
               <td class="py-2">
@@ -726,6 +726,13 @@ const pendingCloseJobIds = computed(() => pendingCloseJobs.value.map((j) => Numb
 const currentPositions = computed(() =>
   positions.value.filter((p: any) => p.symbol === symbol.value && !pendingCloseJobIds.value.includes(Number(p.id)))
 )
+// 포지션 테이블은 통합(모든 심볼) 표시
+const visiblePositions = computed(() => positions.value.filter((p: any) => !pendingCloseJobIds.value.includes(Number(p.id))))
+
+// 통합 포지션 테이블용: 심볼별 시장가(1초 갱신)
+const markPrices = ref<Record<string, number>>({})
+let markPollTimer: any = null
+let markPolling = false
 const fills = ref<any[]>([])
 const fillsOffset = ref(0)
 const fillsHasMore = ref(true)
@@ -810,6 +817,37 @@ function fmtPrice(v: number) {
 function fmtNum(v: number) {
   if (!Number.isFinite(v)) return '—'
   return v.toLocaleString(undefined, { maximumFractionDigits: 2 })
+}
+
+function markOf(sym: string) {
+  const s = String(sym || '').toUpperCase()
+  if (!s) return Number(lastPrice.value || 0)
+  // 현재 보고 있는 차트 심볼은 WS 가격을 최우선 사용
+  if (s === String(symbol.value || '').toUpperCase() && Number(lastPrice.value || 0) > 0) return Number(lastPrice.value || 0)
+  return Number(markPrices.value[s] || 0)
+}
+
+async function refreshMarks() {
+  if (!process.client) return
+  if (markPolling) return
+  const syms = Array.from(new Set(visiblePositions.value.map((p: any) => String(p.symbol || '').toUpperCase()).filter(Boolean)))
+  if (!syms.length) return
+  markPolling = true
+  try {
+    const res = await $fetch<any>('/api/okx/marks', { method: 'POST', body: { symbols: syms } })
+    markPrices.value = { ...(markPrices.value || {}), ...(res?.prices || {}) }
+  } finally {
+    markPolling = false
+  }
+}
+
+function startMarksPolling() {
+  if (!process.client) return
+  if (markPollTimer) clearInterval(markPollTimer)
+  markPollTimer = setInterval(() => {
+    refreshMarks().catch(() => {})
+  }, 1000)
+  refreshMarks().catch(() => {})
 }
 
 function netMarginFromGross(grossMargin: number) {
@@ -1181,7 +1219,7 @@ function calcLiqPrice(p: any) {
 }
 
 function unrealized(p: any) {
-  const mark = Number(lastPrice.value ?? 0)
+  const mark = Number(markOf(p.symbol) ?? 0)
   const entry = Number(p.entry_price)
   const qty = Number(p.qty)
   const grossMargin = Number(p.margin || 0)
@@ -1951,7 +1989,8 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
     let exitClickPrice: number | null = null
     let pnlCalc = 0
     if (mode === 'market' && pos) {
-      exitClickPrice = Number(lastPrice.value || 0) || Number(pos.entry_price || 0) || 0
+      const mark = Number(markOf(pos.symbol) || 0)
+      exitClickPrice = mark || Number(pos.entry_price || 0) || 0
       const entry = Number(pos.entry_price || 0)
       const qty = Number(pos.qty || 0)
       const isShort = pos.side === 'short'
@@ -1999,7 +2038,8 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         side: removed.side === 'short' ? 'short' : 'long',
         leverage: Number(removed.leverage || 1),
         entryPrice: Number(removed.entry_price || 0),
-        exitPrice: Number(exitClickPrice || lastPrice.value || removed.entry_price || 0),
+        // 통합 테이블에서도 해당 심볼 시장가로 고정
+        exitPrice: Number(exitClickPrice || markOf(removed.symbol) || removed.entry_price || 0),
         qty: Number(removed.qty || 0),
         margin: Number(removed.margin || 0),
         createdAt: new Date().toISOString(),
@@ -2041,6 +2081,7 @@ onMounted(async () => {
   loadPendingCloseJobs()
   startPendingCloseRecovery()
   startAccountAutoRefresh()
+  startMarksPolling()
   await ensureChartReady()
   await fetchCandles().catch(() => {})
   connectWs()
@@ -2077,6 +2118,8 @@ onBeforeUnmount(() => {
   ws = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
   pendingCloseTimers.clear()
+  if (markPollTimer) clearInterval(markPollTimer)
+  markPollTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
   if (accountWatchTimer) clearInterval(accountWatchTimer)

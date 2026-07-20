@@ -7,7 +7,9 @@ function toInstId(symbol: string) {
   if (s === 'DOGEUSDT') return 'DOGE-USDT-SWAP'
   if (s === 'SAMSUNGUSDT') return 'SAMSUNG-USDT-SWAP'
   if (s === 'SKHYNIXUSDT') return 'SKHYNIX-USDT-SWAP'
-  // fallback
+  // fallback: {BASE}USDT => {BASE}-USDT-SWAP
+  const m = s.match(/^([A-Z0-9]+)USDT$/)
+  if (m?.[1]) return `${m[1]}-USDT-SWAP`
   return 'BTC-USDT-SWAP'
 }
 

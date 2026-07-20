@@ -405,6 +405,24 @@ export const conversationBackup = {
         memberFeeVisibleOnlyInTradesTable: true,
         version: 't20260720-173845'
       }
+    },
+    {
+      timestamp: '2026-07-20T17:47:21+09:00',
+      type: 'conversation',
+      userMessage: '아래 포지션 테이블은 통합(모든 코인). 차트를 옮겨도 전체 포지션이 떠야 함. 다른 코인 반대포지션은 청산이 아니라 신규. 연산/추가매수/청산/전환은 해당 차트(해당 심볼)끼리만 연결되게.',
+      assistantWorkSummary: [
+        '하단 포지션 테이블을 현재 심볼 필터링에서 전체 포지션 통합 표시로 변경함',
+        '심볼별 시장가를 1초마다 /api/okx/marks 로 갱신하는 가격 맵을 추가해, 각 포지션의 ROE/PNL이 해당 심볼 가격 기준으로 계산되게 함(차트 심볼 lastPrice 공통 사용으로 인한 폭주 방지)',
+        '청산 클릭 시에도 해당 포지션의 심볼 시장가로 exitPrice를 고정해서 서버에 전달하도록 수정함',
+        '서버 OKX 심볼 변환(toInstId)의 fallback을 {BASE}USDT → {BASE}-USDT-SWAP 형태로 개선하여 여러 코인에 대해 가격 조회가 가능하게 함',
+        '버전을 t20260720-174721 로 갱신함'
+      ],
+      unifiedPositions: {
+        tableShowsAllSymbols: true,
+        perSymbolMarkPollingMs: 1000,
+        operationsArePerSymbol: true,
+        version: 't20260720-174721'
+      }
     }
   ]
 }
