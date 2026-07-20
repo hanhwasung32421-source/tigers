@@ -344,6 +344,25 @@ export const conversationBackup = {
         averagePrice: 'weighted',
         version: 't20260720-164625'
       }
+    },
+    {
+      timestamp: '2026-07-20T16:52:01+09:00',
+      type: 'conversation',
+      userMessage: 'UI 수정: 1) 보유자산 섹션 제목을 주문하기로 변경, 불필요한 내 자산 문구 제거 2) 수량 슬라이더 아래 % 글자 제거 3) 사용가능 금액 바를 첨부 디자인처럼 추가(원화 삭제, 보유자산 표시). 추가: 오더북→호가, 총량→총금액, 호가가 멈춘 것처럼 보이면 1초 무응답 시 실제 호가 REST로 갱신하고 실패 시 표시용으로 흔들림 처리',
+      assistantWorkSummary: [
+        '주문 섹션 제목을 주문하기로 변경하고 상단 보유자산 표시는 사용가능 금액 바 형태로 교체함(원화 표기 없음)',
+        '수량 슬라이더 아래의 0%~100% 눈금 글자를 제거함',
+        '호가 섹션 텍스트를 오더북→호가로 변경하고 헤더 총량→총금액으로 변경함',
+        'OKX WS 호가가 멈추는 경우를 대비해 1초 무응답이면 /api/okx/books REST 스냅샷으로 갱신하고, REST도 실패하면 표시용 흔들림+재연결로 계속 움직이게 보이도록 함',
+        '버전을 t20260720-165201 로 갱신함'
+      ],
+      ui: {
+        orderTitle: '주문하기',
+        availableBar: true,
+        removePercentTicks: true,
+        orderbookRenamed: true,
+        version: 't20260720-165201'
+      }
     }
   ]
 }

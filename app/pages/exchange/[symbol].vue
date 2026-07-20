@@ -181,16 +181,16 @@
         </div>
       </section>
 
-      <!-- 오더북(첨부 스타일) -->
+      <!-- 호가(첨부 스타일) -->
       <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
         <div class="flex items-center justify-between">
-          <div class="text-sm font-semibold text-slate-100">오더북</div>
+          <div class="text-sm font-semibold text-slate-100">호가</div>
         </div>
 
         <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-500">
           <div>가격</div>
           <div class="text-center">수량</div>
-          <div class="text-right">총량</div>
+          <div class="text-right">총금액</div>
         </div>
 
         <div class="mt-2 rounded-lg bg-[#031019] p-2 ring-1 ring-cyan-500/10">
@@ -250,17 +250,18 @@
 
       <!-- 보유자산/주문 -->
       <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
-        <div class="text-sm font-semibold text-slate-100">보유자산</div>
+        <div class="text-sm font-semibold text-slate-100">주문하기</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-sm text-slate-300 ring-1 ring-cyan-500/10">
           주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
         </div>
 
         <div v-else class="mt-3 h-[500px] rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-xs text-slate-400">보유자산</div>
-              <div class="mt-1 font-mono text-2xl text-slate-100">{{ balanceDisplay }} USDT</div>
+          <!-- 사용가능 금액 (원화 표기 제거) -->
+          <div class="rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-2 ring-1 ring-white/10">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-semibold text-slate-200">사용가능 금액</div>
+              <div class="text-right font-mono text-lg text-slate-100">{{ balanceDisplay }} USDT</div>
             </div>
           </div>
 
@@ -328,13 +329,10 @@
             </div>
 
             <div class="mt-1 flex items-center justify-between text-[11px] text-slate-400">
-              <span class="font-mono">{{ percent }}%</span>
               <span class="font-mono">{{ qtyText }} {{ coinUnit }}</span>
             </div>
             <input v-model.number="percent" type="range" min="0" max="100" step="1" class="mt-2 w-full accent-[#0c9f8e]" />
-            <div class="mt-0.5 flex justify-between text-[10px] text-slate-500">
-              <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
-            </div>
+            <!-- 요구사항: 수량 조절 바 아래 % 글자 제거 -->
 
             <div class="grid grid-cols-5 gap-2 pt-1">
               <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(10)">10%</button>
@@ -732,6 +730,8 @@ const wsStatus = ref('')
 let ws: WebSocket | null = null
 let lastOrderbookTs = 0
 let orderbookWatchTimer: any = null
+let orderbookRefreshing = false
+let orderbookRestFail = 0
 
 // trade panel
 const side = ref<'long' | 'short'>('long')
@@ -1631,6 +1631,42 @@ function fitChartContent() {
   chart?.timeScale().fitContent()
 }
 
+async function refreshOrderbookFromRest() {
+  if (orderbookRefreshing) return false
+  orderbookRefreshing = true
+  try {
+    const instId = toInstId(symbol.value)
+    const res = await $fetch<any>('/api/okx/books', { query: { instId, sz: 20 } })
+    const data = res?.data
+    if (!data) return false
+    // REST는 스냅샷이므로 전체 재구성
+    resetOrderbook()
+    applyOrderbookUpdate(data.asks, 'ask')
+    applyOrderbookUpdate(data.bids, 'bid')
+    initDisplayFromMaps()
+    lastOrderbookTs = Date.now()
+    orderbookRestFail = 0
+    return true
+  } catch {
+    orderbookRestFail += 1
+    return false
+  } finally {
+    orderbookRefreshing = false
+  }
+}
+
+function simulateOrderbookJitter() {
+  // REST/WS 모두 실패했을 때도 "멈춘 것처럼 보이지 않게" 미세하게 흔들어줌(표시용)
+  const jitter = (m: Map<number, number>) => {
+    for (const [p, q] of m.entries()) {
+      const next = q * (0.92 + Math.random() * 0.16) // ±8%
+      m.set(p, Math.max(0, next))
+    }
+  }
+  if (obAsks.value.size) jitter(obAsks.value)
+  if (obBids.value.size) jitter(obBids.value)
+}
+
 function connectWs() {
   if (!process.client) return
   ws?.close()
@@ -1700,11 +1736,18 @@ function startOrderbookAutoReconnect() {
   if (!process.client) return
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = setInterval(() => {
-    // 1초 이상 오더북 업데이트가 없으면 무조건 재연결
+    // 1초 이상 호가 업데이트가 없으면: REST 스냅샷으로 먼저 갱신 → 그래도 안되면 재연결
     if (wsStatus.value !== 'open') return
     const silenceMs = Date.now() - Number(lastOrderbookTs || 0)
     if (silenceMs > 1000) {
-      connectWs()
+      refreshOrderbookFromRest()
+        .then((ok) => {
+          if (ok) return
+          // REST도 실패하면 표시용 흔들림 + 재연결
+          simulateOrderbookJitter()
+          if (orderbookRestFail >= 2) connectWs()
+        })
+        .catch(() => {})
     }
   }, 300)
 }
