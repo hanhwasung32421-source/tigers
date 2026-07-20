@@ -106,7 +106,7 @@
               <td class="px-3 py-3 text-right font-mono" :class="profitClass(row.roe)">
                 {{ signed(row.roe, '%') }}
               </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-400">0.00</td>
+              <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmtNum(row.fee) }}</td>
               <td class="px-3 py-3 text-center">
                 <span class="rounded bg-[#2b3445] px-2 py-1 text-[10px] font-semibold text-slate-200">미정산</span>
               </td>
@@ -242,4 +242,3 @@ onBeforeUnmount(() => {
   pollTimer = null
 })
 </script>
-

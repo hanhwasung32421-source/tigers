@@ -284,44 +284,7 @@
             </button>
           </div>
 
-          <!-- 탭 -->
-          <div class="mt-3 grid grid-cols-3 gap-1 rounded-md bg-[#20262f] p-1 text-xs ring-1 ring-white/10">
-            <button
-              type="button"
-              class="rounded px-3 py-2"
-              :class="orderType === 'market' ? 'bg-[#2c323b] text-white' : 'text-slate-400 hover:bg-white/5'"
-              @click="selectOrderType('market')"
-            >
-              시장가
-            </button>
-            <button
-              type="button"
-              class="rounded px-3 py-2"
-              :class="orderType === 'limit' ? 'bg-[#0c9f8e] text-white' : 'text-slate-400 hover:bg-white/5'"
-              @click="selectOrderType('limit')"
-            >
-              지정가
-            </button>
-            <button type="button" class="rounded px-3 py-2 text-slate-400 hover:bg-white/5">
-              StopLimit
-            </button>
-          </div>
-
           <form class="mt-4 space-y-3" @submit.prevent>
-            <!-- 지정가일 때만 가격 -->
-            <div v-if="orderType === 'limit'">
-              <div class="flex items-center justify-between text-xs text-slate-300">
-                <span class="font-medium">가격</span>
-                <span class="font-mono text-slate-400">USDT</span>
-              </div>
-              <input
-                v-model.number="limitPrice"
-                type="number"
-                step="0.000001"
-                class="mt-1 w-full rounded-md bg-[#071722] px-3 py-2 font-mono text-sm ring-1 ring-cyan-500/10 focus:ring-[#0c9f8e]"
-              />
-            </div>
-
             <!-- 수량/비중 -->
             <div class="flex items-center justify-between text-xs text-slate-300">
               <span class="font-medium whitespace-nowrap">수량</span>
@@ -347,7 +310,7 @@
                 <button
                   type="button"
                   class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-sm font-semibold text-white hover:bg-[#0cb88f]"
-                  :disabled="loading || orderType === 'trigger'"
+                  :disabled="loading"
                   @click="onOpen('long')"
                 >
                   구매 / 롱
@@ -358,7 +321,7 @@
                 <button
                   type="button"
                   class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-sm font-semibold text-white hover:bg-[#d41821]"
-                  :disabled="loading || orderType === 'trigger'"
+                  :disabled="loading"
                   @click="onOpen('short')"
                 >
                   판매 / 숏
@@ -390,26 +353,10 @@
           <button
             type="button"
             class="rounded-md px-4 py-2 text-xs ring-1"
-            :class="bottomTab === 'limit' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
-            @click="bottomTab = 'limit'"
-          >
-            지정가 (0)
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-4 py-2 text-xs ring-1"
-            :class="bottomTab === 'trigger' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
-            @click="bottomTab = 'trigger'"
-          >
-            예약 (0)
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-4 py-2 text-xs ring-1"
             :class="bottomTab === 'fills' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
             @click="bottomTab = 'fills'"
           >
-            체결내역
+            거래내역
           </button>
         </div>
       </div>
@@ -491,12 +438,13 @@
               <th class="px-3 py-2">방향</th>
               <th class="px-3 py-2">체결가</th>
               <th class="px-3 py-2">수량</th>
+              <th class="px-3 py-2">수수료</th>
               <th class="px-3 py-2">실현손익</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="fills.length === 0 && !fillsLoading" class="border-t border-white/10">
-              <td colspan="7" class="px-3 py-4 text-slate-400">체결내역이 없습니다.</td>
+              <td colspan="7" class="px-3 py-4 text-slate-400">거래내역이 없습니다.</td>
             </tr>
             <tr v-for="t in fills" :key="`fill-${t.id}`" class="border-t border-white/10">
               <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(t.created_at) }}</td>
@@ -506,6 +454,7 @@
               </td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice(Number(t.exit_price)) }}</td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty(t.symbol, Number(t.qty)) }} {{ baseCoin(t.symbol) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-300">{{ calcTradeFeeText(t) }}</td>
               <td class="px-3 py-3">
                 <div class="flex items-center justify-between gap-2">
                   <div class="font-mono" :class="Number(t.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
@@ -694,12 +643,14 @@ const timeframeOptions = [
   { value: '15m', label: '15분' }
 ] as const
 const chartMode = ref<'built'>('built')
-const orderType = ref<'market' | 'limit' | 'trigger'>('market')
-const bottomTab = ref<'positions' | 'limit' | 'trigger' | 'fills'>('positions')
+// 요구사항: 주문 UI는 시장가만 사용(지정가/예약 삭제)
+const orderType = ref<'market'>('market')
+// 요구사항: 포지션테이블에서 지정가/예약 탭 삭제
+const bottomTab = ref<'positions' | 'fills'>('positions')
 
 // 주문 UI 상태(첨부 스타일)
 const percent = ref<number>(50)
-const limitPrice = ref<number>(0)
+// 지정가 입력 제거
 
 const { me, refresh: refreshMe } = useMe()
 await refreshMe()
@@ -861,12 +812,25 @@ function fmtNum(v: number) {
   return v.toLocaleString(undefined, { maximumFractionDigits: 2 })
 }
 
-function calcSettlementAfterFee(margin: number, pnl: number) {
-  const settlementBeforeFee = Math.max(0, Number(margin) + Number(pnl))
-  const fee = settlementBeforeFee > 0 ? settlementBeforeFee * TRADE_FEE_RATE : 0
+function netMarginFromGross(grossMargin: number) {
+  const g = Number(grossMargin)
+  if (!Number.isFinite(g) || g <= 0) return 0
+  return g * (1 - TRADE_FEE_RATE)
+}
+
+// 수수료 정책(요구사항):
+// - 매수: 사용자가 입력한 금액(gross)에서 4%를 떼고 나머지(net)로 포지션이 시작(ROE 0% 시작)
+// - 매도: gross의 4%를 한 번 더 떼고 정산
+// - ROE/손익 계산에는 수수료를 포함하지 않음(표시/계산 기준은 net 기준)
+function calcSettlementAfterFee(grossMargin: number, pnl: number) {
+  const gross = Number(grossMargin)
+  const net = netMarginFromGross(gross)
+  const settlementBeforeSellFee = Math.max(0, net + Number(pnl))
+  const sellFee = gross > 0 ? gross * TRADE_FEE_RATE : 0
   return {
-    fee,
-    settlementAfterFee: Math.max(0, settlementBeforeFee - fee)
+    sellFee,
+    settlementBeforeSellFee,
+    settlementAfterFee: Math.max(0, settlementBeforeSellFee - sellFee)
   }
 }
 
@@ -1156,7 +1120,9 @@ function fillDirection(t: any) {
   return t.side === 'short' ? 'BUY' : 'SELL'
 }
 
-// 수수료는 UI(체결내역/수익카드)에서 표시하지 않음
+// 수수료 노출 정책(요구사항):
+// - 회원이 수수료를 볼 수 있는 곳은 "거래내역" 테이블만
+// - 수익카드/기타 UI에는 수수료를 표시하지 않음
 
 function formatTradeTime(v: string) {
   const d = new Date(v)
@@ -1168,6 +1134,19 @@ function formatTradeTime(v: string) {
   const mi = String(d.getMinutes()).padStart(2, '0')
   const ss = String(d.getSeconds()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`
+}
+
+function calcTradeFeeText(t: any) {
+  // 거래내역에서만 수수료를 보여줌.
+  // qty = netMargin * leverage / entryPrice  => netMargin = qty*entryPrice/leverage
+  const entryPrice = Number(t?.entry_price ?? 0)
+  const qty = Number(t?.qty ?? 0)
+  const lev = Number(t?.leverage ?? 1)
+  if (![entryPrice, qty, lev].every(Number.isFinite) || entryPrice <= 0 || qty <= 0 || lev <= 0) return '—'
+  const net = (entryPrice * qty) / lev
+  const gross = net / (1 - TRADE_FEE_RATE)
+  const totalFee = gross * TRADE_FEE_RATE * 2
+  return `${totalFee.toFixed(2)} USDT`
 }
 
 function openProfitCardFromTrade(t: any) {
@@ -1205,7 +1184,8 @@ function unrealized(p: any) {
   const mark = Number(lastPrice.value ?? 0)
   const entry = Number(p.entry_price)
   const qty = Number(p.qty)
-  const margin = Number(p.margin || 0)
+  const grossMargin = Number(p.margin || 0)
+  const margin = netMarginFromGross(grossMargin)
   // 방어 로직:
   // - lastPrice가 0/비정상(WS 끊김/심볼 불일치 등)일 때 ROE가 ±수백만%까지 튈 수 있음
   // - 강제청산은 -100%에서 끝나야 하므로 UI 표시용 ROE는 -100% 아래로 내려가지 않게 제한
@@ -1261,7 +1241,6 @@ const coinUnit = computed(() => {
 })
 
 const entryCalcPrice = computed(() => {
-  if (orderType.value === 'limit' && Number.isFinite(limitPrice.value) && limitPrice.value > 0) return limitPrice.value
   return lastPrice.value ?? 0
 })
 
@@ -1275,7 +1254,9 @@ const qtyText = computed(() => {
   const m = Number(marginUsdt.value || 0)
   const lev = Number(leverage.value || 1)
   if (!price || !m) return '0.0000'
-  const qty = (m * lev) / price
+  // 수수료 정책: 입력 금액(gross)에서 4%를 뗀 net 기준으로 수량 계산
+  const net = m * (1 - TRADE_FEE_RATE)
+  const qty = (net * lev) / price
   return qty.toFixed(coinUnit.value === 'DOGE' ? 2 : 6)
 })
 
@@ -1830,21 +1811,7 @@ function onFillsScroll(e: Event) {
   }
 }
 
-function selectOrderType(t: 'market' | 'limit' | 'trigger') {
-  orderType.value = t
-  tradeMsg.value = null
-  error.value = null
-  // 요구사항:
-  // - 시장가: 누르면 바로 정리(입력값 초기화)
-  // - 지정가: 가격 기본값=현재가, 비중 기본값=50%
-  if (t === 'market') {
-    percent.value = 50
-    if (lastPrice.value) limitPrice.value = lastPrice.value
-  } else if (t === 'limit') {
-    percent.value = 50
-    if (lastPrice.value) limitPrice.value = lastPrice.value
-  }
-}
+// 지정가/예약 삭제: 주문 타입 전환 기능 제거
 
 async function onOpen(s: 'long' | 'short') {
   side.value = s
@@ -1853,7 +1820,6 @@ async function onOpen(s: 'long' | 'short') {
 
 async function openPosition() {
   if (!me.value) return
-  if (orderType.value === 'trigger') return
 
   const wantMargin = Number(marginUsdt.value)
   if (!Number.isFinite(wantMargin) || wantMargin <= 0) {
@@ -1884,28 +1850,26 @@ async function openPosition() {
   if (existing && String(existing.side) !== String(side.value)) {
     const entry0 = Number(existing.entry_price || 0)
     const qty0 = Number(existing.qty || 0)
-    const margin0 = Number(existing.margin || 0)
+    const gross0 = Number(existing.margin || 0)
+    const net0 = netMarginFromGross(gross0)
     const raw = (price - entry0) * qty0
     const pnl0 = existing.side === 'short' ? -raw : raw
-    const pnlClamped = Number.isFinite(margin0) && margin0 > 0 ? Math.max(-margin0, pnl0) : pnl0
-    const { settlementAfterFee } = calcSettlementAfterFee(margin0, pnlClamped)
+    const pnlClamped = Number.isFinite(net0) && net0 > 0 ? Math.max(-net0, pnl0) : pnl0
+    const { settlementAfterFee } = calcSettlementAfterFee(gross0, pnlClamped)
 
     // 기존 포지션 제거 + 잔고 반영(정산금 기준)
     positions.value.splice(existingIdx, 1)
     balance.value = Math.max(0, Number(balance.value || 0) + settlementAfterFee)
   }
 
-  // 3) 가용 잔고 기준으로 신규 진입 마진 계산 (수수료 포함)
+  // 3) 가용 잔고 기준으로 신규 진입 금액(gross) 계산 (수수료 포함된 금액에서 4%를 떼고 net로 포지션 시작)
   const usdtNow = Number(balance.value || 0)
-  let usedMargin = wantMargin
-  let openFee = usedMargin * TRADE_FEE_RATE
-  let totalDeduct = usedMargin + openFee
-  if (usdtNow < totalDeduct) {
-    usedMargin = round2(usdtNow / (1 + TRADE_FEE_RATE))
-    openFee = usedMargin * TRADE_FEE_RATE
-    totalDeduct = usedMargin + openFee
-  }
-  if (!Number.isFinite(usedMargin) || usedMargin <= 0) {
+  let usedGross = Math.min(wantMargin, usdtNow)
+  usedGross = round2(usedGross)
+  const openFee = usedGross * TRADE_FEE_RATE
+  const usedNet = round2(usedGross - openFee)
+  const totalDeduct = usedGross
+  if (!Number.isFinite(usedGross) || usedGross <= 0 || !Number.isFinite(usedNet) || usedNet <= 0) {
     // 롤백
     positions.value = prevPositions
     balance.value = prevBalance
@@ -1916,7 +1880,7 @@ async function openPosition() {
   // 4) 같은 방향이면 합산(가중평균), 아니면 새 포지션 생성
   const mergeTarget = positions.value.find((p: any) => String(p.symbol) === String(symbol.value) && String(p.side) === String(side.value))
   const leverageForQty = mergeTarget ? Number(mergeTarget.leverage || 1) : Number(leverage.value || 1)
-  const qtyNew = (usedMargin * leverageForQty) / price
+  const qtyNew = (usedNet * leverageForQty) / price
 
   let tempId: number | null = null
   if (mergeTarget) {
@@ -1926,7 +1890,8 @@ async function openPosition() {
     const newEntry = newQtyTotal > 0 ? (oldEntry * oldQty + price * qtyNew) / newQtyTotal : price
     mergeTarget.qty = newQtyTotal
     mergeTarget.entry_price = newEntry
-    mergeTarget.margin = Number(mergeTarget.margin || 0) + usedMargin
+    // margin은 "사용자가 투입한 금액(gross)"을 누적해서 저장
+    mergeTarget.margin = Number(mergeTarget.margin || 0) + usedGross
     mergeTarget._optimistic = true
   } else {
     tempId = -Date.now()
@@ -1938,7 +1903,7 @@ async function openPosition() {
         qty: qtyNew,
         entry_price: price,
         leverage: Number(leverage.value || 1),
-        margin: usedMargin,
+        margin: usedGross,
         created_at: new Date().toISOString(),
         _optimistic: true
       },
@@ -1946,7 +1911,7 @@ async function openPosition() {
     ]
   }
 
-  // 잔고 차감(마진+수수료)
+  // 잔고 차감(입력한 금액(gross)만큼만 차감)
   balance.value = Math.max(0, Number(balance.value || 0) - totalDeduct)
   if (chartMode.value === 'built') renderEntryLines()
 
@@ -1957,7 +1922,8 @@ async function openPosition() {
       body: {
         symbol: symbol.value,
         side: side.value,
-        margin: usedMargin,
+        // 서버도 동일 정책 적용: margin은 사용자가 투입한 금액(gross)
+        margin: usedGross,
         leverage: leverage.value,
         // 요구사항: 누르는 순간의 가격으로 서버에도 동일하게 반영
         price
@@ -1966,11 +1932,7 @@ async function openPosition() {
     tradeMsg.value = '포지션이 오픈되었습니다.'
     // 서버 데이터로 최종 동기화(백그라운드)
     loadAccount().catch(() => {})
-
-    // 시장가 탭은 오픈 후 다시 "정리" 상태로
-    if (orderType.value === 'market') {
-      percent.value = 50
-    }
+    percent.value = 50
   } catch (e: any) {
     // 실패 시 낙관적 업데이트 롤백
     positions.value = prevPositions
@@ -1994,12 +1956,13 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
       const qty = Number(pos.qty || 0)
       const isShort = pos.side === 'short'
       pnlCalc = (exitClickPrice - entry) * qty * (isShort ? -1 : 1)
-      const margin0 = Number(pos.margin || 0)
-      // 강제청산 하한: 최대 손실은 증거금 100%
-      if (Number.isFinite(margin0) && margin0 > 0) {
-        pnlCalc = Math.max(-margin0, pnlCalc)
+      const gross0 = Number(pos.margin || 0)
+      const net0 = netMarginFromGross(gross0)
+      // 강제청산 하한: 최대 손실은 net(매수 수수료 제외 후 실제 진입금) 100%
+      if (Number.isFinite(net0) && net0 > 0) {
+        pnlCalc = Math.max(-net0, pnlCalc)
       }
-      const roeCalc = margin0 > 0 ? (pnlCalc / margin0) * 100 : 0
+      const roeCalc = net0 > 0 ? (pnlCalc / net0) * 100 : 0
       closeSummary.value = {
         symbol: String(pos.symbol),
         side: isShort ? 'short' : 'long',
@@ -2020,10 +1983,11 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
 
     // 잔고도 즉시 반영(정산금 기준) - 서버가 늦어져도 사용자에게는 지연을 보여주지 않음
     if (removed) {
-      const margin0 = Number(removed.margin ?? 0)
+      const gross0 = Number(removed.margin ?? 0)
       const pnl0 = Number(pnlCalc || 0)
-      const pnlClamped = Number.isFinite(margin0) && margin0 > 0 ? Math.max(-margin0, pnl0) : pnl0
-      const { settlementAfterFee } = calcSettlementAfterFee(margin0, pnlClamped)
+      const net0 = netMarginFromGross(gross0)
+      const pnlClamped = Number.isFinite(net0) && net0 > 0 ? Math.max(-net0, pnl0) : pnl0
+      const { settlementAfterFee } = calcSettlementAfterFee(gross0, pnlClamped)
       balance.value = Math.max(0, Number(balance.value || 0) + settlementAfterFee)
     }
 

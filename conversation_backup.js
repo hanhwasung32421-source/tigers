@@ -383,6 +383,28 @@ export const conversationBackup = {
         feeExcluded: true,
         version: 't20260720-170003'
       }
+    },
+    {
+      timestamp: '2026-07-20T17:38:45+09:00',
+      type: 'conversation',
+      userMessage: '수수료 4% 적용: 매수 시 4% 떼고 net로 포지션 시작(ROE 0%), 매도 시 4% 또 차감. 수수료는 수익률에 포함하지 않고, 수익카드에는 수수료 표시 금지. 회원이 수수료를 볼 수 있는 곳은 포지션테이블의 거래내역만. 추가로 주문/포지션 탭에서 지정가/예약 삭제, 체결내역→거래내역으로 변경.',
+      assistantWorkSummary: [
+        '서버 /api/trade/open, /api/trade/close 에 수수료 4% 정책을 반영함: 매수는 gross에서 4%를 떼고 net로 진입(ROE 0% 시작), 매도는 gross의 4%를 추가 차감하여 정산함',
+        'pnl/roe 계산에는 수수료를 포함하지 않도록 유지함(수익률 기준은 net 기준)',
+        '회원 UI에서는 수수료를 거래내역 테이블에서만 보이도록 하고, 수익카드/기타 화면에서는 수수료를 표시하지 않도록 정리함',
+        '거래내역 테이블에 수수료 컬럼을 추가(거래 1건 기준 매수+매도 총 수수료)하고, 체결내역 라벨을 거래내역으로 변경함',
+        '주문 영역과 하단 포지션 탭에서 지정가/예약을 제거하고 시장가만 남김',
+        '관리자 포지션 목록에도 수수료(매수 4%) 표시가 가능하도록 API/화면을 업데이트함',
+        '버전을 t20260720-173845 로 갱신함'
+      ],
+      feePolicy: {
+        rate: 0.04,
+        buyFeeInGross: true,
+        sellFeeInGross: true,
+        feeExcludedFromRoe: true,
+        memberFeeVisibleOnlyInTradesTable: true,
+        version: 't20260720-173845'
+      }
     }
   ]
 }

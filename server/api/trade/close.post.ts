@@ -18,17 +18,28 @@ export default defineEventHandler(async (event) => {
   const body = BodySchema.parse(await readBody(event))
   const useSupa = supabaseAppDbEnabled()
 
-  const clampPnlToLiquidation = (pnl: number, margin: number) => {
-    if (!Number.isFinite(pnl) || !Number.isFinite(margin) || margin <= 0) return 0
-    return Math.max(-margin, pnl)
+  const netMarginFromGross = (gross: number) => {
+    const g = Number(gross)
+    if (!Number.isFinite(g) || g <= 0) return 0
+    return g * (1 - FEE_RATE)
   }
-  const calcSettlementAfterFee = (margin: number, pnl: number) => {
-    const settlementBeforeFee = Math.max(0, Number(margin) + Number(pnl))
-    const fee = settlementBeforeFee > 0 ? settlementBeforeFee * FEE_RATE : 0
+  const clampPnlToLiquidation = (pnl: number, netMargin: number) => {
+    if (!Number.isFinite(pnl) || !Number.isFinite(netMargin) || netMargin <= 0) return 0
+    return Math.max(-netMargin, pnl)
+  }
+  // 수수료 정책:
+  // - 매수 수수료는 이미 진입 시점에 빠져서 "netMargin"으로 포지션이 시작
+  // - 매도 시점에 gross의 4%를 한 번 더 떼고 정산
+  // - 수수료는 ROE 계산에 포함하지 않음(pnl은 수수료 제외)
+  const calcSettlementAfterFee = (grossMargin: number, pnl: number) => {
+    const gross = Number(grossMargin)
+    const net = netMarginFromGross(gross)
+    const settlementBeforeSellFee = Math.max(0, net + Number(pnl))
+    const sellFee = gross > 0 ? gross * FEE_RATE : 0
     return {
-      settlementBeforeFee,
-      fee,
-      settlementAfterFee: Math.max(0, settlementBeforeFee - fee)
+      settlementBeforeSellFee,
+      sellFee,
+      settlementAfterFee: Math.max(0, settlementBeforeSellFee - sellFee)
     }
   }
   const safeRun = async (fn: () => Promise<any>) => {
@@ -47,13 +58,14 @@ export default defineEventHandler(async (event) => {
 
     const pnlRaw = (exit - Number(pos.entry_price)) * Number(pos.qty)
     const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
-    // 강제청산 하한: 최대 손실은 증거금 100%
-    const pnl = clampPnlToLiquidation(pnlUnclamped, Number(pos.margin))
+    const gross = Number(pos.margin)
+    const net = netMarginFromGross(gross)
+    // 강제청산 하한: 최대 손실은 net(매수 수수료 제외 후 실제 진입금) 100%
+    const pnl = clampPnlToLiquidation(pnlUnclamped, net)
 
     const balRow = await supaSelectOne<{ usdt: number }>('trae_balances', { user_id: user.id })
     const usdt = Number(balRow?.usdt ?? 0)
-    // 매도 수수료는 최종 정산금에만 적용. 정산금이 0이면 추가 차감 없음.
-    const { settlementAfterFee } = calcSettlementAfterFee(Number(pos.margin), pnl)
+    const { settlementAfterFee } = calcSettlementAfterFee(gross, pnl)
     const newUsdt = usdt + settlementAfterFee
 
     // 포지션 제거
@@ -100,8 +112,10 @@ export default defineEventHandler(async (event) => {
 
   const pnlRaw = (exit - pos.entry_price) * pos.qty
   const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
-  const pnl = clampPnlToLiquidation(pnlUnclamped, Number(pos.margin))
-  const { settlementAfterFee } = calcSettlementAfterFee(Number(pos.margin), pnl)
+  const gross = Number(pos.margin)
+  const net = netMarginFromGross(gross)
+  const pnl = clampPnlToLiquidation(pnlUnclamped, net)
+  const { settlementAfterFee } = calcSettlementAfterFee(gross, pnl)
 
   // 잔고: 증거금 반환 + 손익 반영
   db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(user.id, 0)

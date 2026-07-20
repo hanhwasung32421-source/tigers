@@ -79,6 +79,7 @@ export default defineEventHandler(async (event) => {
     const margin = Number(p.margin || 0)
     const mark = Number(priceMap.get(symbol) || 0)
     const { pnl, roe } = calcPnlRoe(String(p.side || 'long'), entry, mark, qty, margin)
+    const fee = Number.isFinite(margin) && margin > 0 ? margin * 0.04 : 0
     return {
       id: Number(p.id),
       user_id: uid,
@@ -94,7 +95,8 @@ export default defineEventHandler(async (event) => {
       liqPrice: calcLiqPrice(String(p.side || 'long'), entry, lev),
       pnl,
       roe,
-      fee: 0,
+      // 현재는 매수 수수료(4%)만 표시. (정산 수수료는 청산 시에만 발생)
+      fee,
       settled: false,
       created_at: String(p.created_at || '')
     }
@@ -105,4 +107,3 @@ export default defineEventHandler(async (event) => {
     serverTime: new Date().toISOString()
   }
 })
-
