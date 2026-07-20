@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  symbol: string // 예: BINANCE:BTCUSDT
+  symbol: string // 예: OKX:SAMSUNGUSDT.P
   interval?: string // 예: 1, 5, 15
   entryLines?: Array<{ price: number; side: 'long' | 'short' }>
 }>()

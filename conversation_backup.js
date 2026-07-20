@@ -223,6 +223,39 @@ export const conversationBackup = {
         newProvider: 'BINANCE',
         newVersion: 't20260720-103525'
       }
+    },
+    {
+      timestamp: '2026-07-20T10:41:04+09:00',
+      type: 'conversation',
+      userMessage: '차트가 보이지 않아. 다시 전으로 OKX로 돌려줘. 그리고 OKX에도 보니까 https://www.tradingview.com/chart/HDdCnSb0/?symbol=OKX%3ASAMSUNGUSDT.P 여기보면 SAMSUNGUSDT 가 있어. OKX 기준으로 다시 만들어줘',
+      assistantWorkSummary: [
+        '현재 차트 화면이 TradingView 위젯이 아니라 커스텀 차트 + REST/WebSocket 구조임을 재확인함',
+        '공식 OKX 공지에서 SAMSUNG/USDT, SKHYNIX/USDT 영구선물이 웹·앱·API에 상장되었음을 확인함',
+        '거래 화면의 캔들 로딩과 실시간 WebSocket을 BINANCE에서 OKX 기준으로 되돌림',
+        '서버의 포지션 오픈/종료 가격 조회도 OKX 기준으로 되돌림',
+        'SAMSUNGUSDT, SKHYNIXUSDT 의 OKX instId 를 각각 SAMSUNG-USDT-SWAP, SKHYNIX-USDT-SWAP 으로 추가함',
+        '불필요해진 BINANCE 전용 유틸과 API 파일을 제거함',
+        '버전을 t20260720-104104 로 갱신함'
+      ],
+      providerRollback: {
+        provider: 'OKX',
+        addedSymbols: ['SAMSUNGUSDT', 'SKHYNIXUSDT'],
+        newVersion: 't20260720-104104'
+      }
+    },
+    {
+      timestamp: '2026-07-20T15:25:39+09:00',
+      type: 'conversation',
+      userMessage: '다시 푸시해줘. 지금 차트는 뜨는데 안에 내용이 안떠.',
+      assistantWorkSummary: [
+        'OKX 쪽 ticker/candles API에서 SAMSUNG-USDT-SWAP 데이터가 실제로 내려오는 것을 확인함',
+        '로컬 변경사항을 다시 커밋/푸시하여 배포에 반영할 준비를 함',
+        '버전을 t20260720-152539 로 갱신함'
+      ],
+      note: {
+        okxApiVerified: true,
+        version: 't20260720-152539'
+      }
     }
   ]
 }

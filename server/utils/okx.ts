@@ -5,6 +5,8 @@ function toInstId(symbol: string) {
   if (s === 'BTCUSDT') return 'BTC-USDT-SWAP'
   if (s === 'ETHUSDT') return 'ETH-USDT-SWAP'
   if (s === 'DOGEUSDT') return 'DOGE-USDT-SWAP'
+  if (s === 'SAMSUNGUSDT') return 'SAMSUNG-USDT-SWAP'
+  if (s === 'SKHYNIXUSDT') return 'SKHYNIX-USDT-SWAP'
   // fallback
   return 'BTC-USDT-SWAP'
 }

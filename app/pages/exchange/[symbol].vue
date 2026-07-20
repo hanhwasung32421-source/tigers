@@ -1119,7 +1119,13 @@ function applyLeverageDraft() {
   leverageModalOpen.value = false
 }
 
-const coinUnit = computed(() => baseCoin(symbol.value))
+const coinUnit = computed(() => {
+  if (symbol.value.startsWith('DOGE')) return 'DOGE'
+  if (symbol.value.startsWith('ETH')) return 'ETH'
+  if (symbol.value.startsWith('SAMSUNG')) return 'SAMSUNG'
+  if (symbol.value.startsWith('SKHYNIX')) return 'SKHYNIX'
+  return 'BTC'
+})
 
 const entryCalcPrice = computed(() => {
   if (orderType.value === 'limit' && Number.isFinite(limitPrice.value) && limitPrice.value > 0) return limitPrice.value
@@ -1140,9 +1146,14 @@ const qtyText = computed(() => {
   return qty.toFixed(coinUnit.value === 'DOGE' ? 2 : 6)
 })
 
-function toMarketSymbol(sym: string) {
-  const s = String(sym || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
-  return s || 'BTCUSDT'
+function toInstId(sym: string) {
+  const s = sym.toUpperCase().replace('-', '').replace('/', '')
+  if (s === 'BTCUSDT') return 'BTC-USDT-SWAP'
+  if (s === 'ETHUSDT') return 'ETH-USDT-SWAP'
+  if (s === 'DOGEUSDT') return 'DOGE-USDT-SWAP'
+  if (s === 'SAMSUNGUSDT') return 'SAMSUNG-USDT-SWAP'
+  if (s === 'SKHYNIXUSDT') return 'SKHYNIX-USDT-SWAP'
+  return 'BTC-USDT-SWAP'
 }
 
 function applyPriceFormatForSymbol(sym: string) {
@@ -1436,13 +1447,15 @@ function renderEntryLines() {
 }
 
 async function fetchCandles() {
-  const marketSymbol = toMarketSymbol(symbol.value)
-  const interval = timeframe.value
-  const res = await $fetch<any>('/api/binance/candles', { query: { symbol: marketSymbol, interval, limit: 120 } })
-  const rows = (res?.data || []) as any[][]
+  const instId = toInstId(symbol.value)
+  const bar = timeframe.value
+  const res = await $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: 120 } })
+  const rows = (res?.data || []) as string[][]
   const candles: CandlestickData[] = []
   const vols: HistogramData[] = []
   rows
+    .slice()
+    .reverse()
     .forEach((r) => {
       const ts = Number(r[0])
       const o = Number(r[1])
@@ -1493,12 +1506,20 @@ function connectWs() {
   resetOrderbook()
   wsStatus.value = 'connecting'
 
-  const marketSymbol = toMarketSymbol(symbol.value)
-  const streamSymbol = marketSymbol.toLowerCase()
-  ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streamSymbol}@ticker/${streamSymbol}@depth20@100ms`)
+  const instId = toInstId(symbol.value)
+  ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public')
 
   ws.onopen = () => {
     wsStatus.value = 'open'
+    ws?.send(
+      JSON.stringify({
+        op: 'subscribe',
+        args: [
+          { channel: 'tickers', instId },
+          { channel: 'books', instId }
+        ]
+      })
+    )
   }
   ws.onclose = () => (wsStatus.value = 'closed')
   ws.onerror = () => (wsStatus.value = 'error')
@@ -1506,26 +1527,32 @@ function connectWs() {
   ws.onmessage = (ev) => {
     try {
       const msg = JSON.parse(ev.data)
-      const stream = String(msg?.stream || '')
-      const data = msg?.data
-      if (!stream || !data) return
+      const arg = msg?.arg
+      const data = msg?.data?.[0]
+      if (!arg || !data) return
 
-      if (stream.endsWith('@ticker')) {
-        const p = Number(data.c)
+      if (arg.channel === 'tickers') {
+        const p = Number(data.last)
         if (Number.isFinite(p)) {
           lastPrice.value = p
-          updateLiveCandle(p, Number(data.E ?? Date.now()))
+          updateLiveCandle(p, Number(data.ts ?? Date.now()))
         }
-        high24.value = Number(data.h) || high24.value
-        low24.value = Number(data.l) || low24.value
-        vol24.value = Number(data.v) || vol24.value
+        high24.value = Number(data.high24h ?? data.high24) || high24.value
+        low24.value = Number(data.low24h ?? data.low24) || low24.value
+        vol24.value = Number(data.vol24h ?? data.vol24) || vol24.value
       }
 
-      if (stream.includes('@depth20')) {
-        resetOrderbook()
+      if (arg.channel === 'books') {
+        if (msg?.action === 'snapshot') {
+          resetOrderbook()
+        }
         applyOrderbookUpdate(data.asks, 'ask')
         applyOrderbookUpdate(data.bids, 'bid')
-        initDisplayFromMaps()
+        if (msg?.action === 'snapshot') {
+          initDisplayFromMaps()
+        } else {
+          refreshDisplayIfNeeded()
+        }
       }
     } catch {
       // ignore
