@@ -104,6 +104,105 @@ export const conversationBackup = {
         format: 'tYYYYMMDD-HHMMSS',
         fixedTextRequired: true
       }
+    },
+    {
+      timestamp: '2026-07-20T10:05:00+09:00',
+      type: 'conversation',
+      userMessage: '예전에도 너로 만들었었는데 파일을 분실해서 깃에서 다시 받아서 새로 대화를 연거야. 베트남 폴더안에 거래소가 원래 만들던 곳인데 거기서 만들어서 푸쉬할때는 initial이런거 없이 그냥 바로 적용됐었어. 확인해봐. 예전 폴더는 내용이 많이 삭제됐어. 거기 대화내용을 읽어봐 베트남 > 거래소',
+      assistantWorkSummary: [
+        '베트남 폴더 아래 예전 작업 경로 흔적을 확인함',
+        'C:\\trae\\베트남 아래에는 exchange-demo, 거래소, 거래소2 등이 남아 있음을 확인함',
+        '예전 거래소 폴더는 현재 일부가 삭제되어 직접 읽기 어려운 상태였음',
+        '예전 거래소2에는 루트 핵심 파일이 대부분 사라져 완전한 프로젝트 루트로 남아 있지 않음을 확인함',
+        '예전 폴더에는 독립 .git 저장소가 남아 있지 않았음',
+        '대신 scripts/apply_vercel_env.md 에서 vercel link 후 Redeploy 를 전제로 한 운영 흔적을 확인함'
+      ],
+      findings: {
+        oldFolderState: '부분 삭제 및 루트 파일 유실',
+        oldGitState: '독립 저장소 흔적 없음',
+        oldVercelFlow: [
+          'vercel link 사용 흔적 존재',
+          '환경변수 업로드 후 Vercel 대시보드에서 Redeploy 하는 흐름 문서 존재'
+        ],
+        implication: '예전에는 단순 git push 자체보다 기존 Vercel 프로젝트 연결이 이미 안정적으로 잡혀 있었을 가능성이 큼'
+      }
+    },
+    {
+      timestamp: '2026-07-20T10:12:00+09:00',
+      type: 'conversation',
+      userMessage: '자 폴더내용보다 베트남 > 거래소 대화내역을 읽어봐',
+      assistantWorkSummary: [
+        '베트남 폴더에서 conversation_backup.js, chat, backup, history 패턴 파일을 우선 탐색함',
+        'C:\\trae\\베트남\\거래소 경로는 목록에는 보이지만 실제 접근은 실패하는 비정상 항목임을 확인함',
+        'PowerShell Get-Item 기준으로는 디렉터리처럼 보이나 실제 엔트리 열기와 나열은 실패했음',
+        'Python 기준으로는 해당 항목이 실재하지 않거나 끊어진 항목처럼 동작했음',
+        '따라서 베트남 > 거래소 내부의 대화내역은 현재 환경에서 직접 읽을 수 없다고 판단함',
+        'c:\\trae 전체에서 대화 백업 파일을 재탐색했지만 거래소 관련으로 접근 가능한 백업은 현재 작업 폴더의 conversation_backup.js만 확인됨'
+      ],
+      findings: {
+        oldConversationReadable: false,
+        reason: '베트남 > 거래소 항목 자체가 접근 불가한 유실/깨진 경로처럼 동작함',
+        accessibleConversationBackups: [
+          'C:\\trae\\거래소\\conversation_backup.js'
+        ]
+      }
+    },
+    {
+      timestamp: '2026-07-20T10:18:00+09:00',
+      type: 'conversation',
+      userMessage: '대화백업_2026-07-20.md 이 파일이 너랑 나의 다른 task 대화내용이야. 이걸 읽고 푸쉬 디플로이 관련 생각해',
+      assistantWorkSummary: [
+        'C:\\trae\\베트남\\대화백업_2026-07-20.md 파일을 읽음',
+        '예전 작업 흐름에서 여러 차례 공통적으로 GitHub 푸시 후 Vercel 자동배포 대기를 안내한 점을 확인함',
+        '필요 시 Supabase SQL 반영이나 Vercel Redeploy 를 후속 단계로 안내한 기록을 확인함',
+        '예전 흐름에서는 저장소 구조 재초기화나 강제 푸시보다 기존 연결된 배포 파이프라인을 신뢰하는 패턴이 강했음을 확인함',
+        '지금 Initializing 문제는 예전의 일반 수정 푸시 상황과 달리 저장소/연결 상태가 새로 정리된 현재 상황 차이에서 생겼을 가능성이 높다고 판단함'
+      ],
+      deploymentInference: {
+        oldPattern: [
+          '수정',
+          'GitHub 푸시',
+          'Vercel 자동배포 대기',
+          '필요 시 Redeploy 또는 SQL 반영'
+        ],
+        currentDifference: '이번에는 파일 유실 후 새 폴더에서 저장소와 원격 연결을 다시 맞춘 상태라 예전과 동일한 연속성이 없음',
+        conclusion: '지금 Initializing 은 단순 코드 내용보다 현재 Vercel 프로젝트 연결/배포 큐/루트 설정 이슈일 가능성이 더 큼'
+      }
+    },
+    {
+      timestamp: '2026-07-20T10:24:00+09:00',
+      type: 'conversation',
+      userMessage: '그래 이제 할걸 생각해봐.',
+      assistantWorkSummary: [
+        '현재 저장소의 .gitignore와 추적 파일 수를 확인함',
+        'node_modules 는 .gitignore 에 의해 제외되고 있음을 확인함',
+        '하지만 참고 폴더와 그 안의 anti, lightweight-charts-5.2.0 이 Git에 실제로 추적되고 있음을 확인함',
+        '현재 저장소 추적 파일 수는 1663개이며, 이 중 상당수가 배포에 불필요한 참고 자료임을 확인함',
+        'Vercel Initializing 장기화 원인으로 저장소 비대화와 불필요한 대용량 참조 폴더 포함 가능성이 높다고 판단함'
+      ],
+      nextActionPlan: {
+        highestPriority: '참고 폴더를 Git 추적 대상에서 제거하고 저장소를 슬림화한 뒤 새 커밋으로 재배포 트리거',
+        secondary: [
+          'Vercel Root Directory 확인',
+          'Redeploy 실행'
+        ]
+      }
+    },
+    {
+      timestamp: '2026-07-20T10:11:00+09:00',
+      type: 'conversation',
+      userMessage: '해줘. 근데 삭제하는건 따로 백업은 해줘.',
+      assistantWorkSummary: [
+        '참고 폴더 전체를 backup 폴더 안 zip 파일로 먼저 백업함',
+        '.gitignore 에 backup 과 참고 경로를 추가해 재추적을 막음',
+        '버전을 t20260720-101100 으로 갱신함',
+        '다음 단계로 참고 폴더를 Git 추적 및 로컬에서 정리하고 재푸시하도록 준비함'
+      ],
+      cleanupPlan: {
+        backupPath: 'C:\\trae\\거래소\\backup\\reference_backup_t20260720-101048.zip',
+        removedTarget: 'C:\\trae\\거래소\\참고',
+        newVersion: 't20260720-101100'
+      }
     }
   ]
 }

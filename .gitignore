@@ -18,6 +18,8 @@ logs
 .DS_Store
 .fleet
 .idea
+backup/
+참고/
 
 # Local env files
 .env
