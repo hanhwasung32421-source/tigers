@@ -311,6 +311,21 @@ export const conversationBackup = {
         orderbook: '1s_silence_auto_reconnect',
         version: 't20260720-160905'
       }
+    },
+    {
+      timestamp: '2026-07-20T16:35:38+09:00',
+      type: 'conversation',
+      userMessage: '청산 시 "청산 완료 · PnL ..." 문구가 뜨고 수익카드가 한번 더 뜨는 문제 수정 요청',
+      assistantWorkSummary: [
+        '내부 재시도 성공 시 tradeMsg로 "청산 완료" 문구를 띄우던 동작을 제거함',
+        '내부 재시도 성공 시 closeSummary(청산 카드)를 다시 세팅하던 동작을 제거해 카드가 2번 뜨지 않게 함',
+        '버전을 t20260720-163538 로 갱신함'
+      ],
+      fix: {
+        closeMessageHidden: true,
+        closeCardNoDuplicate: true,
+        version: 't20260720-163538'
+      }
     }
   ]
 }

@@ -921,21 +921,13 @@ async function processPendingCloseJob(positionId: number) {
       }
     })
     removePendingCloseJob(job.positionId)
-    tradeMsg.value = `청산 완료 · PnL ${Number(res?.pnl || 0) >= 0 ? '+' : ''}${Number(res?.pnl || 0).toFixed(2)} USDT`
+    // 요구사항: 내부 처리. 사용자에게 "청산 완료" 같은 토스트/문구를 추가로 노출하지 않음.
     await loadAccount().catch(() => {})
     if (fills.value.length || bottomTab.value === 'fills') {
       await loadFills(true).catch(() => {})
     }
-    closeSummary.value = {
-      symbol: job.symbol,
-      side: job.side,
-      leverage: job.leverage,
-      entryPrice: job.entryPrice,
-      exitPrice: Number(res?.exitPrice || job.exitPrice),
-      pnl: Number(res?.pnl || 0),
-      roe: Math.max(-100, job.margin > 0 ? (Number(res?.pnl || 0) / job.margin) * 100 : 0),
-      wonText: Math.round(Number(res?.pnl || 0) * 1350).toLocaleString()
-    }
+    // 요구사항: 수익카드(청산카드)도 "한 번만" 뜨게. (이미 closePosition에서 즉시 띄움)
+    // 따라서 서버 성공 시에는 closeSummary를 다시 세팅하지 않음.
   } catch (e: any) {
     job.retryCount = Number(job.retryCount || 0) + 1
     upsertPendingCloseJob({ ...job })
