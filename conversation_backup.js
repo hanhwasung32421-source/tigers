@@ -275,6 +275,23 @@ export const conversationBackup = {
         fix: 'filter_current_positions + clamp_roe_pnl_ui + clamp_pnl_server_close',
         version: 't20260720-154929'
       }
+    },
+    {
+      timestamp: '2026-07-20T15:55:08+09:00',
+      type: 'conversation',
+      userMessage: '로그인 눌렀을때 들어가는게 많이 느려. 로그인 누르면 접속중입니다 또는 인증 확인 중입니다 같은데 뜨면서 로딩 스피너를 보여주고 싶음',
+      assistantWorkSummary: [
+        '로그인 페이지에서 로그인/세션갱신/페이지이동 단계별로 로딩 문구를 갱신하도록 구현함',
+        '로그인 버튼에 스피너와 상태 텍스트(로그인 중...)를 추가함',
+        '전체 화면 오버레이(배경 dim + 스피너 + 진행 바)를 추가해 사용자가 “로딩 중”임을 확실히 인지하도록 개선함',
+        '회원가입 페이지에도 동일한 로딩 UX를 적용해 일관성 있게 맞춤',
+        '버전을 t20260720-155508 로 갱신함'
+      ],
+      uxChange: {
+        pages: ['/auth/login', '/auth/register'],
+        overlayText: ['접속 중입니다...', '인증 확인 중입니다...', '거래소로 이동 중입니다...'],
+        version: 't20260720-155508'
+      }
     }
   ]
 }
