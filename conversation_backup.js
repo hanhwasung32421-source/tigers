@@ -614,6 +614,22 @@ export const conversationBackup = {
         pagination: true,
         version: 't20260721-105515'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:58:04+09:00',
+      type: 'conversation',
+      userMessage: '차트 화면 가로 30% 확대, 호가/주문하기 가로 축소. 상단 메뉴 클릭 시 뜰 때까지 짧은 로딩창 표시 요청',
+      assistantWorkSummary: [
+        '거래 화면 메인 3단 그리드 비율을 조정해 차트 폭을 더 넓히고, 호가/주문하기 패널 폭을 줄임',
+        'default/trading 레이아웃 상단 메뉴 링크들에 공통 로딩 오버레이를 추가해, 메뉴 클릭 시 페이지 전환 완료 전까지 짧게 로딩이 보이도록 함',
+        '버전을 t20260721-105804 로 갱신함'
+      ],
+      tradingLayoutUi: {
+        chartWider: true,
+        orderbookAndOrderNarrower: true,
+        topMenuLoadingOverlay: true,
+        version: 't20260721-105804'
+      }
     }
   ]
 }

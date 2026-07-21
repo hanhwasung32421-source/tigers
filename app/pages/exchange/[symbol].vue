@@ -3,8 +3,8 @@
     <!-- 메인 영역 (차트 / 호가 / 주문하기) -->
     <!-- 좁아져도 패널이 '줄어들어 깨지는' 대신, 최소폭 이하에서는 가로 스크롤 -->
     <div class="overflow-x-auto">
-      <!-- 첨부 화면 비율: 차트 크게 + 호가/주문하기 작게 -->
-      <div class="grid min-w-[1280px] grid-cols-[minmax(720px,1fr)_320px_360px] gap-3">
+      <!-- 차트는 더 넓게, 호가/주문은 조금 더 슬림하게 -->
+      <div class="grid min-w-[1360px] grid-cols-[minmax(940px,1.3fr)_280px_300px] gap-3">
       <!-- 차트 -->
       <section class="overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)]">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
