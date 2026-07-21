@@ -1,4 +1,3 @@
 <script setup lang="ts">
-await navigateTo('/exchange/DOGEUSDT')
+await navigateTo('/exchange/SAMSUNGUSDT')
 </script>
-

@@ -17,7 +17,7 @@
           Experience institutional-grade liquidity, lightning-fast execution, and robust risk control frameworks on the world’s premier derivatives exchange.
         </p>
         <div class="mt-10 flex flex-wrap gap-4">
-          <NuxtLink to="/exchange/DOGEUSDT" class="rounded-2xl bg-[#07b88e] px-6 py-3 text-base font-semibold text-white hover:bg-[#0bc69a]">
+          <NuxtLink to="/exchange/SAMSUNGUSDT" class="rounded-2xl bg-[#07b88e] px-6 py-3 text-base font-semibold text-white hover:bg-[#0bc69a]">
             Start Trading Now
           </NuxtLink>
           <NuxtLink to="/wallet" class="rounded-2xl border border-cyan-500/10 bg-[#04111c] px-6 py-3 text-base font-semibold text-slate-100 hover:bg-[#081827]">

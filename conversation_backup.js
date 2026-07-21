@@ -826,6 +826,24 @@ export const conversationBackup = {
         enabled: true,
         version: '2026년 7월 21일 (화) - 8'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:55:01+09:00',
+      type: 'conversation',
+      userMessage: '선물거래 기본 진입 차트를 SAMSUNGUSDT로, 기본 기준봉을 1분봉으로 변경하고 차트 하단 시간을 대한민국 시간으로 변경 요청',
+      assistantWorkSummary: [
+        '선물거래 기본 진입 경로를 홈/내계정/로그인 후 이동/회원가입 후 이동/레이아웃 메뉴/교환 인덱스까지 모두 SAMSUNGUSDT로 통일함',
+        '교환 화면의 기본 심볼 fallback 을 SAMSUNGUSDT로 변경함',
+        '차트 기본 기준봉을 5분봉에서 1분봉으로 변경함',
+        '차트 하단 시간축을 Asia/Seoul 기준으로 포맷팅해 대한민국 시간으로 표시되게 수정함',
+        '버전을 2026년 7월 21일 (화) - 9 로 갱신함'
+      ],
+      defaultTradingChart: {
+        symbol: 'SAMSUNGUSDT',
+        timeframe: '1m',
+        timezone: 'Asia/Seoul',
+        version: '2026년 7월 21일 (화) - 9'
+      }
     }
   ]
 }

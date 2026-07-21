@@ -24,7 +24,7 @@
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="flex items-end justify-between">
           <h2 class="font-semibold">오픈 포지션</h2>
-          <NuxtLink to="/exchange/DOGEUSDT" class="text-sm text-indigo-300 hover:underline">거래로 이동</NuxtLink>
+          <NuxtLink to="/exchange/SAMSUNGUSDT" class="text-sm text-indigo-300 hover:underline">거래로 이동</NuxtLink>
         </div>
         <div class="mt-3 space-y-2">
           <div v-if="positions.length === 0" class="text-sm text-slate-400">오픈 포지션이 없습니다.</div>

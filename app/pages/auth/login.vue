@@ -81,7 +81,7 @@ async function onSubmit() {
     // 3) 이동
     loadingTitle.value = '거래소로 이동 중입니다...'
     loadingDesc.value = '잠시만 기다려주세요.'
-    await navigateTo('/exchange/DOGEUSDT')
+    await navigateTo('/exchange/SAMSUNGUSDT')
   } catch (e: any) {
     error.value = e?.data?.statusMessage || '로그인에 실패했습니다.'
   } finally {

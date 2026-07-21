@@ -675,7 +675,7 @@ definePageMeta({ middleware: ['auth'], layout: 'trading' })
 
 const route = useRoute()
 const router = useRouter()
-const symbol = computed(() => String(route.params.symbol || 'DOGEUSDT').toUpperCase())
+const symbol = computed(() => String(route.params.symbol || 'SAMSUNGUSDT').toUpperCase())
 const symbolSelect = ref(symbol.value)
 const symbolOptions = [
   { value: 'BTCUSDT', label: 'BTCUSDT' },
@@ -696,7 +696,7 @@ function onChangeSymbol() {
   router.push(`/exchange/${symbolSelect.value}`)
 }
 
-const timeframe = ref<'1m' | '5m' | '15m'>('5m')
+const timeframe = ref<'1m' | '5m' | '15m'>('1m')
 const timeframeOptions = [
   { value: '1m', label: '1분' },
   { value: '5m', label: '5분' },
@@ -1688,13 +1688,35 @@ function onCrosshairMove(param: any) {
 function initChart() {
   if (!chartEl.value || chart) return
   const rect = chartEl.value.getBoundingClientRect()
+  const kstTickFormatter = (time: any) => {
+    const sec = typeof time === 'object' && time !== null
+      ? Date.UTC(Number((time as any).year), Number((time as any).month) - 1, Number((time as any).day))
+      : Number(time) * 1000
+    return new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(sec)
+  }
   chart = createChart(chartEl.value, {
     width: Math.max(300, Math.floor(rect.width)),
     height: Math.max(400, Math.floor(rect.height)),
     layout: { background: { color: 'transparent' }, textColor: '#cbd5e1' },
+    localization: {
+      locale: 'ko-KR',
+      timeFormatter: (businessDayOrTimestamp: any) => kstTickFormatter(businessDayOrTimestamp)
+    },
     grid: { vertLines: { color: 'rgba(255,255,255,0.06)' }, horzLines: { color: 'rgba(255,255,255,0.06)' } },
     rightPriceScale: { borderColor: 'rgba(255,255,255,0.12)', scaleMargins: { top: 0.1, bottom: 0.2 } },
-    timeScale: { borderColor: 'rgba(255,255,255,0.12)', timeVisible: true, secondsVisible: false },
+    timeScale: {
+      borderColor: 'rgba(255,255,255,0.12)',
+      timeVisible: true,
+      secondsVisible: false,
+      tickMarkFormatter: (time: any) => kstTickFormatter(time)
+    },
     crosshair: {
       mode: CrosshairMode.Normal,
       vertLine: {
