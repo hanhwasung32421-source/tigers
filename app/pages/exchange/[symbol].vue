@@ -545,53 +545,55 @@
       </div>
     </div>
 
-    <div
-      v-if="closeSummary"
-      class="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 px-4"
-      @click.self="closeSummary = null"
-    >
+    <Transition name="close-card-pop">
       <div
-        class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.35),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(34,197,94,0.25),_transparent_35%),linear-gradient(180deg,_#062a22,_#041813)] p-6 shadow-2xl"
+        v-if="closeSummary"
+        class="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 px-4"
+        @click.self="closeSummary = null"
       >
-        <button
-          type="button"
-          class="absolute right-3 top-3 rounded-full bg-white/10 px-2 py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-white/15"
-          @click="closeSummary = null"
+        <div
+          class="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.35),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(34,197,94,0.25),_transparent_35%),linear-gradient(180deg,_#062a22,_#041813)] p-6 shadow-2xl"
         >
-          ✕
-        </button>
-        <div class="text-4xl font-bold tracking-tight" :class="closeSummary.roe >= 0 ? 'text-emerald-300' : 'text-rose-300'">
-          {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }}%
-        </div>
-        <div class="mt-2 text-2xl font-semibold" :class="closeSummary.pnl >= 0 ? 'text-emerald-200' : 'text-rose-200'">
-          {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} WON
-        </div>
-        <div class="mt-6 space-y-5 text-slate-200">
-          <div>
-            <div class="text-sm text-slate-400">코인</div>
-            <div class="mt-1 text-3xl font-semibold">{{ shortSymbol(closeSummary.symbol) }}/USDT {{ closeSummary.side === 'long' ? 'LONG' : 'SHORT' }}</div>
+          <button
+            type="button"
+            class="absolute right-3 top-3 rounded-full bg-white/10 px-2 py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-white/15"
+            @click="closeSummary = null"
+          >
+            ✕
+          </button>
+          <div class="text-4xl font-bold tracking-tight" :class="closeSummary.roe >= 0 ? 'text-emerald-300' : 'text-rose-300'">
+            {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }}%
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="mt-2 text-2xl font-semibold" :class="closeSummary.pnl >= 0 ? 'text-emerald-200' : 'text-rose-200'">
+            {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} WON
+          </div>
+          <div class="mt-6 space-y-5 text-slate-200">
             <div>
-              <div class="text-sm text-slate-400">레버리지</div>
-              <div class="mt-1 text-2xl font-semibold">{{ closeSummary.leverage }}x</div>
+              <div class="text-sm text-slate-400">코인</div>
+              <div class="mt-1 text-3xl font-semibold">{{ shortSymbol(closeSummary.symbol) }}/USDT {{ closeSummary.side === 'long' ? 'LONG' : 'SHORT' }}</div>
             </div>
-            <div>
-              <div class="text-sm text-slate-400">진입가격</div>
-              <div class="mt-1 text-2xl font-semibold">{{ fmtPrice(closeSummary.entryPrice) }}</div>
-            </div>
-            <div>
-              <div class="text-sm text-slate-400">종료가격</div>
-              <div class="mt-1 text-2xl font-semibold">{{ fmtPrice(closeSummary.exitPrice) }}</div>
-            </div>
-            <div>
-              <div class="text-sm text-slate-400">손익</div>
-              <div class="mt-1 text-2xl font-semibold">{{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(6) }} USDT</div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <div class="text-sm text-slate-400">레버리지</div>
+                <div class="mt-1 text-2xl font-semibold">{{ closeSummary.leverage }}x</div>
+              </div>
+              <div>
+                <div class="text-sm text-slate-400">진입가격</div>
+                <div class="mt-1 text-2xl font-semibold">{{ fmtPrice(closeSummary.entryPrice) }}</div>
+              </div>
+              <div>
+                <div class="text-sm text-slate-400">종료가격</div>
+                <div class="mt-1 text-2xl font-semibold">{{ fmtPrice(closeSummary.exitPrice) }}</div>
+              </div>
+              <div>
+                <div class="text-sm text-slate-400">손익</div>
+                <div class="mt-1 text-2xl font-semibold">{{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(6) }} USDT</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -723,11 +725,21 @@ type PendingCloseJob = {
 const PENDING_CLOSE_STORAGE_KEY = 'exchange_pending_close_jobs_v1'
 const pendingCloseJobs = ref<PendingCloseJob[]>([])
 const pendingCloseJobIds = computed(() => pendingCloseJobs.value.map((j) => Number(j.positionId)))
+const hiddenClosingPositionIds = ref<number[]>([])
 const currentPositions = computed(() =>
-  positions.value.filter((p: any) => p.symbol === symbol.value && !pendingCloseJobIds.value.includes(Number(p.id)))
+  positions.value.filter(
+    (p: any) =>
+      p.symbol === symbol.value &&
+      !pendingCloseJobIds.value.includes(Number(p.id)) &&
+      !hiddenClosingPositionIds.value.includes(Number(p.id))
+  )
 )
 // 포지션 테이블은 통합(모든 심볼) 표시
-const visiblePositions = computed(() => positions.value.filter((p: any) => !pendingCloseJobIds.value.includes(Number(p.id))))
+const visiblePositions = computed(() =>
+  positions.value.filter(
+    (p: any) => !pendingCloseJobIds.value.includes(Number(p.id)) && !hiddenClosingPositionIds.value.includes(Number(p.id))
+  )
+)
 
 // 통합 포지션 테이블용: 심볼별 시장가(1초 갱신)
 const markPrices = ref<Record<string, number>>({})
@@ -739,6 +751,7 @@ const fillsHasMore = ref(true)
 const fillsLoading = ref(false)
 const fillsWrap = ref<HTMLElement | null>(null)
 const pendingCloseTimers = new Map<number, any>()
+let closeSummaryTimer: any = null
 let lastAccountTs = 0
 let accountWatchTimer: any = null
 let accountSyncing = false
@@ -886,8 +899,10 @@ function loadPendingCloseJobs() {
   try {
     const raw = localStorage.getItem(PENDING_CLOSE_STORAGE_KEY)
     pendingCloseJobs.value = raw ? JSON.parse(raw) : []
+    hiddenClosingPositionIds.value = pendingCloseJobs.value.map((j) => Number(j.positionId))
   } catch {
     pendingCloseJobs.value = []
+    hiddenClosingPositionIds.value = []
   }
 }
 
@@ -908,6 +923,30 @@ function removePendingCloseJob(positionId: number) {
   }
 }
 
+function hideClosingPosition(positionId: number) {
+  const id = Number(positionId)
+  if (!hiddenClosingPositionIds.value.includes(id)) {
+    hiddenClosingPositionIds.value = hiddenClosingPositionIds.value.concat([id])
+  }
+}
+
+function unhideClosingPosition(positionId: number) {
+  hiddenClosingPositionIds.value = hiddenClosingPositionIds.value.filter((id) => Number(id) !== Number(positionId))
+}
+
+function pruneHiddenClosingPositions(serverPositions: any[]) {
+  const serverIds = new Set((serverPositions || []).map((p: any) => Number(p.id)))
+  hiddenClosingPositionIds.value = hiddenClosingPositionIds.value.filter((id) => serverIds.has(Number(id)))
+}
+
+function showCloseSummaryDelayed(payload: NonNullable<typeof closeSummary.value>) {
+  if (closeSummaryTimer) clearTimeout(closeSummaryTimer)
+  closeSummary.value = null
+  closeSummaryTimer = setTimeout(() => {
+    closeSummary.value = payload
+  }, 500)
+}
+
 function schedulePendingCloseRetry(positionId: number, delayMs: number) {
   const key = Number(positionId)
   const prev = pendingCloseTimers.get(key)
@@ -922,7 +961,7 @@ async function processPendingCloseJob(positionId: number) {
   const job = pendingCloseJobs.value.find((j) => Number(j.positionId) === Number(positionId))
   if (!job) return
   try {
-    const res = await $fetch<any>('/api/trade/close', {
+    await $fetch<any>('/api/trade/close', {
       method: 'POST',
       body: {
         positionId: job.positionId,
@@ -930,9 +969,9 @@ async function processPendingCloseJob(positionId: number) {
         exitPrice: job.exitPrice
       }
     })
-    removePendingCloseJob(job.positionId)
     // 요구사항: 내부 처리. 사용자에게 "청산 완료" 같은 토스트/문구를 추가로 노출하지 않음.
     await loadAccount().catch(() => {})
+    removePendingCloseJob(job.positionId)
     if (fills.value.length || bottomTab.value === 'fills') {
       await loadFills(true).catch(() => {})
     }
@@ -946,6 +985,7 @@ async function processPendingCloseJob(positionId: number) {
     const stillExists = positions.value.some((p: any) => Number(p.id) === Number(job.positionId))
     if (!stillExists) {
       removePendingCloseJob(job.positionId)
+      unhideClosingPosition(job.positionId)
       if (fills.value.length || bottomTab.value === 'fills') {
         await loadFills(true).catch(() => {})
       }
@@ -1779,6 +1819,7 @@ async function loadAccount() {
     const data = await $fetch<any>('/api/account')
     balance.value = data.balance.usdt
     positions.value = data.positions
+    pruneHiddenClosingPositions(data.positions || [])
     lastAccountTs = Date.now()
   } finally {
     accountSyncing = false
@@ -2002,7 +2043,7 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         pnlCalc = Math.max(-net0, pnlCalc)
       }
       const roeCalc = net0 > 0 ? (pnlCalc / net0) * 100 : 0
-      closeSummary.value = {
+      showCloseSummaryDelayed({
         symbol: String(pos.symbol),
         side: isShort ? 'short' : 'long',
         leverage: Number(pos.leverage || 1),
@@ -2011,12 +2052,13 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         pnl: pnlCalc,
         roe: Math.max(-100, roeCalc),
         wonText: Math.round(pnlCalc * 1350).toLocaleString()
-      }
+      })
     }
 
     // UX: 클릭 즉시 "포지션은 무조건 사라져야 함" (요구사항)
     const idx = positions.value.findIndex((p: any) => Number(p.id) === Number(positionId))
     const removed = idx >= 0 ? positions.value[idx] : null
+    hideClosingPosition(positionId)
     if (idx >= 0) positions.value.splice(idx, 1)
     if (chartMode.value === 'built') renderEntryLines()
 
@@ -2118,6 +2160,8 @@ onBeforeUnmount(() => {
   ws = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
   pendingCloseTimers.clear()
+  if (closeSummaryTimer) clearTimeout(closeSummaryTimer)
+  closeSummaryTimer = null
   if (markPollTimer) clearInterval(markPollTimer)
   markPollTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
@@ -2135,3 +2179,18 @@ onBeforeUnmount(() => {
   }
 })
 </script>
+
+<style scoped>
+.close-card-pop-enter-active,
+.close-card-pop-leave-active {
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.close-card-pop-enter-from,
+.close-card-pop-leave-to {
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+}
+</style>

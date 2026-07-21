@@ -445,6 +445,22 @@ export const conversationBackup = {
         positions: '/admin/positions',
         version: 't20260720-181545'
       }
+    },
+    {
+      timestamp: '2026-07-21T09:58:53+09:00',
+      type: 'conversation',
+      userMessage: '청산 후 포지션이 잠깐 다시 나타났다가 사라지는 현상 제거 요청, 청산 카드 0.5초 애니메이션 효과 요청',
+      assistantWorkSummary: [
+        '청산 중인 포지션 id를 별도 hiddenClosingPositionIds로 관리해 내부 loadAccount/재시도 중에도 포지션 테이블에 다시 렌더되지 않게 함',
+        'pending 청산 복구(localStorage 로드) 시에도 동일 id를 즉시 숨기도록 연동함',
+        '청산 카드 노출을 즉시 표시에서 0.5초 지연 후 표시로 바꾸고, fade/scale 애니메이션을 추가함',
+        '버전을 t20260721-095853 로 갱신함'
+      ],
+      closeUi: {
+        noFlashbackAfterClose: true,
+        delayedCardMs: 500,
+        version: 't20260721-095853'
+      }
     }
   ]
 }
