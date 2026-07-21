@@ -1,5 +1,11 @@
 function toBinanceSymbol(symbol: string) {
-  const s = String(symbol || '').toUpperCase().replace(/[-/]/g, '').replace(/SWAP$/i, '')
+  // TradingView/기타 표기 호환:
+  // - SAMSUNGUSDT.P (perpetual) 같이 점 접미사가 붙는 경우가 있어 제거
+  const s = String(symbol || '')
+    .toUpperCase()
+    .replace(/[-/]/g, '')
+    .replace(/SWAP$/i, '')
+    .replace(/\.P$/i, '')
   if (!s) return 'BTCUSDT'
   if (s.endsWith('USDT')) return s
   const m = s.match(/^([A-Z0-9]+)$/)

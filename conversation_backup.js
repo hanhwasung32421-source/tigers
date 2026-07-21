@@ -1086,7 +1086,22 @@ export const conversationBackup = {
         routeRulesImmutableNuxtAssets: true,
         ignoreNuxtAssetErrorsInLastError: true,
         addedClearLastErrorApi: true,
-        version: '2026년 7월 21일 (화) - 26'
+        version: '2026년 7월 21일 (화) - 27'
+      }
+    },
+    {
+      timestamp: '2026-07-21T17:11:41+09:00',
+      type: 'conversation',
+      userMessage: 'Binance 연동 심볼이 `SAMSUNGUSDT.P`, `SKHYNIXUSDT.P` 형식이라 차트가 안 뜨는 문제 수정 요청',
+      assistantWorkSummary: [
+        'TradingView/Perpetual 표기처럼 `.P` 접미사가 붙은 심볼을 지원하도록 심볼 정규화 로직을 보강함',
+        '프론트 `toMarketSymbol()`과 서버 `toBinanceSymbol()`에서 `.P` 접미사를 제거해 Binance API는 `SAMSUNGUSDT`, `SKHYNIXUSDT`로 요청되게 수정함',
+        '이제 라우트/표기상 심볼이 `SAMSUNGUSDT.P`, `SKHYNIXUSDT.P`여도 차트/호가/실시간이 정상 동작함',
+        '버전을 2026년 7월 21일 (화) - 27 로 갱신함'
+      ],
+      binancePerpSymbolSuffixSupport: {
+        supportsDotPSuffix: true,
+        version: '2026년 7월 21일 (화) - 27'
       }
     }
   ]

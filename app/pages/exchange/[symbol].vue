@@ -1725,7 +1725,11 @@ const qtyText = computed(() => {
 })
 
 function toMarketSymbol(sym: string) {
-  const s = sym.toUpperCase().replace(/[-/]/g, '').replace(/SWAP$/i, '')
+  const s = sym
+    .toUpperCase()
+    .replace(/[-/]/g, '')
+    .replace(/SWAP$/i, '')
+    .replace(/\.P$/i, '')
   if (!s) return 'BTCUSDT'
   if (s.endsWith('USDT')) return s
   return `${s}USDT`
