@@ -20,7 +20,7 @@
                   type="button"
                   class="rounded px-2 py-1 text-[11px] transition"
                   :class="timeframe === opt.value ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-                  @click="timeframe = opt.value as '1m' | '5m' | '15m'"
+                  @click="timeframe = opt.value as TimeframeValue"
                 >
                   {{ opt.label }}
                 </button>
@@ -717,11 +717,18 @@ function onChangeSymbol() {
   router.push(`/exchange/${symbolSelect.value}`)
 }
 
-const timeframe = ref<'1m' | '5m' | '15m'>('1m')
+type TimeframeValue = '1m' | '5m' | '15m' | '30m' | '1H' | '1D' | '1W' | '1M'
+
+const timeframe = ref<TimeframeValue>('1m')
 const timeframeOptions = [
   { value: '1m', label: '1분' },
   { value: '5m', label: '5분' },
-  { value: '15m', label: '15분' }
+  { value: '15m', label: '15분' },
+  { value: '30m', label: '30분' },
+  { value: '1H', label: '1시간' },
+  { value: '1D', label: '1일' },
+  { value: '1W', label: '1주' },
+  { value: '1M', label: '월' }
 ] as const
 const chartMode = ref<'built'>('built')
 // 요구사항: 주문 UI는 시장가만 사용(지정가/예약 삭제)
@@ -893,6 +900,11 @@ const chartPrefs = reactive<{
   indicators: { sma7: false, sma25: false },
   drawings: []
 })
+
+function chartDrawingStorageKey(sym = symbol.value) {
+  const uid = Number((me.value as any)?.id || 0)
+  return `trae:chart-drawings:${uid || 'guest'}:${String(sym || '').toUpperCase()}`
+}
 
 const currentCandleMeta = computed(() => {
   const candle = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
@@ -1188,10 +1200,15 @@ function fmtDepth(v: number) {
   return Number(v).toFixed(5)
 }
 
-function barSeconds(tf: '1m' | '5m' | '15m') {
+function barSeconds(tf: TimeframeValue) {
   if (tf === '1m') return 60
   if (tf === '5m') return 300
-  return 900
+  if (tf === '15m') return 900
+  if (tf === '30m') return 1800
+  if (tf === '1H') return 3600
+  if (tf === '1D') return 86400
+  if (tf === '1W') return 604800
+  return 2592000
 }
 
 function updateLiveCandle(price: number, tsMs: number) {
@@ -1546,6 +1563,11 @@ function applyPriceFormatForSymbol(sym: string) {
 
 function scheduleSaveChartPrefs() {
   if (!chartPrefsHydrated.value || !me.value) return
+  if (process.client) {
+    try {
+      localStorage.setItem(chartDrawingStorageKey(), JSON.stringify(chartPrefs.drawings || []))
+    } catch {}
+  }
   if (saveChartPrefsTimer) clearTimeout(saveChartPrefsTimer)
   saveChartPrefsTimer = setTimeout(async () => {
     await $fetch('/api/settings/chart', {
@@ -1556,6 +1578,18 @@ function scheduleSaveChartPrefs() {
       }
     }).catch(() => {})
   }, 400)
+}
+
+function loadLocalChartDrawings(sym = symbol.value) {
+  if (!process.client) return null
+  try {
+    const raw = localStorage.getItem(chartDrawingStorageKey(sym))
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
 }
 
 function clearIndicatorSeries() {
@@ -1852,11 +1886,30 @@ function renderEntryLines() {
 async function fetchCandles() {
   const instId = toInstId(symbol.value)
   const bar = timeframe.value
-  const res = await $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: 120 } })
-  const rows = (res?.data || []) as string[][]
+  const neededBars = Math.max(120, Math.ceil((7 * 24 * 60 * 60) / barSeconds(timeframe.value)) + 60)
+  const rows: string[][] = []
+  let afterCursor: string | undefined
+  let loops = 0
+  while (rows.length < neededBars && loops < 20) {
+    const batchSize = Math.min(300, neededBars - rows.length)
+    const res = await $fetch<any>('/api/okx/candles', {
+      query: { instId, bar, limit: batchSize, ...(afterCursor ? { after: afterCursor } : {}) }
+    })
+    const batch = (res?.data || []) as string[][]
+    if (!batch.length) break
+    rows.push(...batch)
+    const last = batch[batch.length - 1]
+    const nextAfter = last?.[0] ? String(last[0]) : undefined
+    if (!nextAfter || nextAfter === afterCursor) break
+    afterCursor = nextAfter
+    if (batch.length < batchSize) break
+    loops += 1
+  }
+
+  const dedupedRows = Array.from(new Map(rows.map((r) => [String(r[0]), r])).values())
   const candles: CandlestickData[] = []
   const vols: HistogramData[] = []
-  rows
+  dedupedRows
     .slice()
     .reverse()
     .forEach((r) => {
@@ -2091,7 +2144,7 @@ async function loadAccount() {
     const cp = data.settings.chartPrefs || {}
     chartPrefs.indicators.sma7 = !!cp?.indicators?.sma7
     chartPrefs.indicators.sma25 = !!cp?.indicators?.sma25
-    chartPrefs.drawings = Array.isArray(cp?.drawings) ? cp.drawings : []
+    chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? (Array.isArray(cp?.drawings) ? cp.drawings : [])
     chartPrefsHydrated.value = true
   }
 
@@ -2408,6 +2461,7 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
 
 watch([() => symbol.value, timeframe], async () => {
   // 심볼/타임프레임 변경 시 차트/WS 재연결
+  chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? []
   applyPriceFormatForSymbol(symbol.value)
   await fetchCandles().catch(() => {})
   connectWs()

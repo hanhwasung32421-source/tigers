@@ -878,7 +878,25 @@ export const conversationBackup = {
         sliderTooltip: true,
         liquidationRoe: -50,
         sideFlipCodeIssueFound: false,
-        version: '2026년 7월 21일 (화) - 13'
+        version: '2026년 7월 21일 (화) - 14'
+      }
+    },
+    {
+      timestamp: '2026-07-21T15:17:26+09:00',
+      type: 'conversation',
+      userMessage: '선물거래 차트 과거 7일 이상 표시, 그린 도구 각 컴퓨터 저장, 30분봉/1시간봉/1일봉/1주봉/월봉 추가 요청',
+      assistantWorkSummary: [
+        'OKX 캔들 API에 after/before 파라미터 전달을 추가해 다중 페이지 로딩이 가능하게 확장함',
+        '차트 캔들 로딩을 단일 120개에서 최소 7일 이상을 채우는 다중 after 페이징 방식으로 변경해 왼쪽 과거 구간을 더 볼 수 있게 함',
+        '차트 드로잉은 서버 저장과 별개로 심볼별 브라우저 localStorage에도 저장해 같은 컴퓨터에서 다시 접속해도 유지되게 함',
+        '기준봉 옵션에 30분봉, 1시간봉, 1일봉, 1주봉, 월봉을 추가함',
+        '버전을 2026년 7월 21일 (화) - 14 로 갱신함'
+      ],
+      chartHistoryAndDrawingPersistence: {
+        historyRangeDays: 7,
+        localDrawingPersistence: true,
+        addedTimeframes: ['30m', '1H', '1D', '1W', '1M'],
+        version: '2026년 7월 21일 (화) - 14'
       }
     }
   ]
