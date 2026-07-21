@@ -913,7 +913,23 @@ export const conversationBackup = {
         removedBottomStatusBar: true,
         axisShowsTimeOnly: true,
         dateOnlyAtMidnight: true,
-        version: '2026년 7월 21일 (화) - 15'
+        version: '2026년 7월 21일 (화) - 16'
+      }
+    },
+    {
+      timestamp: '2026-07-21T15:44:20+09:00',
+      type: 'conversation',
+      userMessage: '주문하기 명칭을 주문으로 변경하고, 청산 후 사용가능 금액이 올라갔다 내려갔다 다시 올라가는 현상을 보유자산처럼 흔들리지 않게 수정 요청',
+      assistantWorkSummary: [
+        '주문 패널 제목을 `주문하기`에서 `주문`으로 변경함',
+        'loadAccount 에서 pending close 상태일 때는 현재 UI 잔고보다 더 작은 늦은 서버 잔고값으로 다시 내리지 않도록 보호 로직을 추가함',
+        '이제 청산 직후 수익카드가 뜬 뒤 `사용가능 금액`이 잠깐 내려갔다가 다시 올라가는 현상을 방지함',
+        '버전을 2026년 7월 21일 (화) - 16 로 갱신함'
+      ],
+      orderPanelAndAvailableBalanceFix: {
+        orderLabelChanged: true,
+        pendingCloseProtected: true,
+        version: '2026년 7월 21일 (화) - 16'
       }
     }
   ]

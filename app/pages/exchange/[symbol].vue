@@ -240,7 +240,7 @@
 
       <!-- 보유자산/주문 -->
       <section class="min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
-        <div class="text-sm font-semibold text-slate-100">주문하기</div>
+        <div class="text-sm font-semibold text-slate-100">주문</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-sm text-slate-300 ring-1 ring-cyan-500/10">
           주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
@@ -2148,12 +2148,18 @@ async function loadAccount() {
   try {
     const data = await $fetch<any>('/api/account')
     const hadPendingOpen = pendingOpenJobs.value.length > 0
+    const hadPendingClose = pendingCloseJobs.value.length > 0
     const serverBalance = Number(data?.balance?.usdt || 0)
+    const currentBalance = Number(balance.value || 0)
     positions.value = reconcilePendingOpenPositions(data.positions || [])
-    if (hadPendingOpen && serverBalance > Number(balance.value || 0)) {
+    if (hadPendingOpen && serverBalance > currentBalance) {
       // 주문 직후에는 서버의 늦은 이전 잔고 응답으로 UI가 다시 올라가지 않게 함.
       // pending open 이 남아있는 동안에는 더 큰 서버 잔고로 덮어쓰지 않는다.
-      balance.value = Number(balance.value || 0)
+      balance.value = currentBalance
+    } else if (hadPendingClose && serverBalance < currentBalance) {
+      // 청산 직후에는 서버의 늦은 이전 잔고 응답으로 UI가 다시 내려가지 않게 함.
+      // pending close 가 남아있는 동안에는 더 작은 서버 잔고로 덮어쓰지 않는다.
+      balance.value = currentBalance
     } else {
       balance.value = serverBalance
     }
