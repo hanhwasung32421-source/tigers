@@ -73,7 +73,23 @@
       <div class="mt-4 flex items-center justify-center gap-2" v-if="totalPages > 1">
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page--">‹</button>
-        <span class="min-w-9 rounded bg-white/10 px-3 py-1.5 text-center text-sm">{{ page }}</span>
+        <button
+          v-for="p in pageNumbers"
+          :key="`transfers-page-${p}`"
+          class="min-w-9 rounded px-3 py-1.5 text-center text-sm"
+          :class="p === page ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+          @click="page = p"
+        >
+          {{ p }}
+        </button>
+        <span v-if="showPageTail" class="px-1 text-sm text-slate-500">~</span>
+        <button
+          v-if="showPageTail"
+          class="min-w-9 rounded bg-white/5 px-3 py-1.5 text-center text-sm text-slate-300 hover:bg-white/10"
+          @click="page = totalPages"
+        >
+          {{ totalPages }}
+        </button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page++">›</button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page = totalPages">»</button>
       </div>
@@ -150,6 +166,16 @@ const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / 
 const paged = computed(() => {
   const start = (page.value - 1) * pageSize
   return filtered.value.slice(start, start + pageSize)
+})
+const pageNumbers = computed(() => {
+  const total = totalPages.value
+  const start = Math.floor((page.value - 1) / 5) * 5 + 1
+  const end = Math.min(total, start + 4)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+const showPageTail = computed(() => {
+  const nums = pageNumbers.value
+  return nums.length > 0 && nums[nums.length - 1] < totalPages.value
 })
 
 watch(filtered, () => {

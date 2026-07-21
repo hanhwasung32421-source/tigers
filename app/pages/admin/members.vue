@@ -124,6 +124,14 @@
         >
           {{ p }}
         </button>
+        <span v-if="showPageTail" class="px-1 text-sm text-slate-500">~</span>
+        <button
+          v-if="showPageTail"
+          class="min-w-9 rounded bg-white/5 px-3 py-1.5 text-center text-sm text-slate-300 hover:bg-white/10"
+          @click="page = totalPages"
+        >
+          {{ totalPages }}
+        </button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page++">›</button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page = totalPages">»</button>
       </div>
@@ -210,6 +218,14 @@
               @click="memberTradePage = p"
             >
               {{ p }}
+            </button>
+            <span v-if="showMemberTradeTail" class="px-1 text-sm text-slate-500">~</span>
+            <button
+              v-if="showMemberTradeTail"
+              class="min-w-9 rounded bg-white/5 px-3 py-1.5 text-center text-sm text-slate-300 hover:bg-white/10"
+              @click="memberTradePage = memberTradeTotalPages"
+            >
+              {{ memberTradeTotalPages }}
             </button>
             <button
               class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30"
@@ -401,9 +417,13 @@ const paged = computed(() => {
 })
 const pageNumbers = computed(() => {
   const total = totalPages.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const start = Math.max(1, Math.min(page.value - 3, total - 6))
-  return Array.from({ length: 7 }, (_, i) => start + i)
+  const start = Math.floor((page.value - 1) / 5) * 5 + 1
+  const end = Math.min(total, start + 4)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+const showPageTail = computed(() => {
+  const nums = pageNumbers.value
+  return nums.length > 0 && nums[nums.length - 1] < totalPages.value
 })
 const memberTradeTotalPages = computed(() => Math.max(1, Math.ceil(memberTrades.value.length / memberTradePageSize)))
 const pagedMemberTrades = computed(() => {
@@ -412,9 +432,13 @@ const pagedMemberTrades = computed(() => {
 })
 const memberTradePageNumbers = computed(() => {
   const total = memberTradeTotalPages.value
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-  const start = Math.max(1, Math.min(memberTradePage.value - 2, total - 4))
-  return Array.from({ length: 5 }, (_, i) => start + i)
+  const start = Math.floor((memberTradePage.value - 1) / 5) * 5 + 1
+  const end = Math.min(total, start + 4)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+const showMemberTradeTail = computed(() => {
+  const nums = memberTradePageNumbers.value
+  return nums.length > 0 && nums[nums.length - 1] < memberTradeTotalPages.value
 })
 
 watch(filtered, () => {

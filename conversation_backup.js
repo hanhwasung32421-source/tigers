@@ -749,6 +749,23 @@ export const conversationBackup = {
         buySellRange: '40-60',
         version: '2026년 7월 21일 (화) - 3'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:11:52+09:00',
+      type: 'conversation',
+      userMessage: '페이지 표시되는 모든 창의 페이지 번호를 5개씩 + 마지막 페이지 형식으로 통일 요청',
+      assistantWorkSummary: [
+        '회원 목록 페이지네이션을 5개 단위 번호 + 마지막 페이지 표시 형식으로 변경함',
+        '회원 거래내역 팝업 페이지네이션도 동일하게 5개 단위 + 마지막 페이지 형식으로 변경함',
+        '포지션 목록, 입출금 내역, 거래 내역 페이지네이션도 모두 같은 형식으로 통일함',
+        '예: 총 40페이지일 때 1 2 3 4 5 ~ 40, 다음 묶음은 6 7 8 9 10 ~ 40 식으로 표시됨',
+        '버전을 2026년 7월 21일 (화) - 4 로 갱신함'
+      ],
+      paginationFormat: {
+        chunkSize: 5,
+        showLastPageTail: true,
+        version: '2026년 7월 21일 (화) - 4'
+      }
     }
   ]
 }
