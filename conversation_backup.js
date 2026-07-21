@@ -711,6 +711,25 @@ export const conversationBackup = {
         format: 'YYYY년 M월 D일 (요일) - N',
         current: '2026년 7월 21일 (화) - 1'
       }
+    },
+    {
+      timestamp: '2026-07-21T13:46:18+09:00',
+      type: 'conversation',
+      userMessage: '회원목록 팝업 시 1초 새로고침 일시중지/재개, 기본 20명, 최대 500명 표시수 입력, 페이지 번호 표시, 자동새로고침 시 현재 페이지 유지 요청',
+      assistantWorkSummary: [
+        '회원 거래내역/보유금액 팝업이 열려 있는 동안 회원 목록 1초 자동 새로고침을 일시중지하고, 팝업이 닫히면 다시 1초 주기로 재개되도록 수정함',
+        '회원 목록 기본 표시 수를 20명으로 변경하고, 필터 영역에 한 화면 표시 수 입력칸을 추가해 최대 500명까지 볼 수 있게 함',
+        '회원 목록 하단에 현재 페이지/총 페이지/총 회원 수와 페이지 번호 버튼들을 표시함',
+        '자동 새로고침이나 데이터 갱신 후에도 현재 페이지가 유지되고 1페이지로 되돌아가지 않게 수정함',
+        '버전을 2026년 7월 21일 (화) - 2 로 갱신함'
+      ],
+      memberListPagingRefresh: {
+        pauseRefreshWhileModalOpen: true,
+        defaultPageSize: 20,
+        maxPageSize: 500,
+        keepCurrentPageOnRefresh: true,
+        version: '2026년 7월 21일 (화) - 2'
+      }
     }
   ]
 }

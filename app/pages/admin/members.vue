@@ -6,7 +6,7 @@
     </div>
 
     <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
-      <div class="grid gap-2 md:grid-cols-[360px_160px_minmax(240px,1fr)_120px]">
+      <div class="grid gap-2 md:grid-cols-[360px_160px_minmax(220px,1fr)_120px_160px]">
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
           <input v-model="fromDate" type="date" class="date-input w-full bg-transparent outline-none" />
           <span class="text-slate-500">~</span>
@@ -28,6 +28,16 @@
           <option value="접속">접속</option>
           <option value="미접속">미접속</option>
         </select>
+        <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
+          <span class="whitespace-nowrap text-slate-400">표시수</span>
+          <input
+            v-model.number="pageSizeInput"
+            type="number"
+            min="1"
+            max="500"
+            class="w-full bg-transparent text-right outline-none"
+          />
+        </div>
       </div>
 
       <div class="mt-4 overflow-auto">
@@ -100,12 +110,23 @@
         </table>
       </div>
 
-      <div class="mt-4 flex items-center justify-center gap-2" v-if="totalPages > 1">
+      <div class="mt-4 flex items-center justify-between gap-3">
+        <div class="text-sm text-slate-400">페이지 {{ page }} / {{ totalPages }} · 총 {{ filtered.length }}명</div>
+        <div class="flex items-center justify-center gap-2" v-if="totalPages > 1">
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page--">‹</button>
-        <span class="min-w-9 rounded bg-white/10 px-3 py-1.5 text-center text-sm">{{ page }}</span>
+        <button
+          v-for="p in pageNumbers"
+          :key="`member-page-${p}`"
+          class="min-w-9 rounded px-3 py-1.5 text-center text-sm"
+          :class="p === page ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+          @click="page = p"
+        >
+          {{ p }}
+        </button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page++">›</button>
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page = totalPages">»</button>
+      </div>
       </div>
 
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
@@ -300,7 +321,7 @@ const DEFAULT_TO_DATE = new Date().toISOString().slice(0, 10)
 const fromDate = ref(DEFAULT_FROM_DATE)
 const toDate = ref(DEFAULT_TO_DATE)
 const page = ref(1)
-const pageSize = 10
+const pageSizeInput = ref(20)
 const tradeModalOpen = ref(false)
 const balanceModalOpen = ref(false)
 const selectedMember = ref<MemberRow | null>(null)
@@ -315,6 +336,11 @@ const balanceError = ref<string | null>(null)
 let pollTimer: any = null
 let loadingNow = false
 const canEditBalance = computed(() => me.value?.role === 'super_admin' || (me.value as any)?.permissions?.canCredit)
+const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpen.value)
+const pageSize = computed(() => {
+  const n = Number(pageSizeInput.value || 20)
+  return Math.max(1, Math.min(500, Number.isFinite(n) ? Math.floor(n) : 20))
+})
 
 function dateOnly(v: string) {
   const s = String(v || '')
@@ -368,10 +394,16 @@ const filtered = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize)))
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
 const paged = computed(() => {
-  const start = (page.value - 1) * pageSize
-  return filtered.value.slice(start, start + pageSize)
+  const start = (page.value - 1) * pageSize.value
+  return filtered.value.slice(start, start + pageSize.value)
+})
+const pageNumbers = computed(() => {
+  const total = totalPages.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const start = Math.max(1, Math.min(page.value - 3, total - 6))
+  return Array.from({ length: 7 }, (_, i) => start + i)
 })
 const memberTradeTotalPages = computed(() => Math.max(1, Math.ceil(memberTrades.value.length / memberTradePageSize)))
 const pagedMemberTrades = computed(() => {
@@ -386,6 +418,12 @@ const memberTradePageNumbers = computed(() => {
 })
 
 watch(filtered, () => {
+  if (page.value > totalPages.value) page.value = totalPages.value
+})
+
+watch(pageSizeInput, (v) => {
+  const next = Math.max(1, Math.min(500, Number.isFinite(Number(v)) ? Math.floor(Number(v)) : 20))
+  if (next !== Number(v)) pageSizeInput.value = next
   if (page.value > totalPages.value) page.value = totalPages.value
 })
 
@@ -484,10 +522,8 @@ async function saveBalance() {
 onMounted(async () => {
   await load()
   pollTimer = setInterval(() => {
+    if (autoRefreshPaused.value) return
     load(true).catch(() => {})
-    if (tradeModalOpen.value && selectedMember.value) {
-      loadMemberTrades(true).catch(() => {})
-    }
   }, 1000)
 })
 
