@@ -2537,7 +2537,7 @@ async function checkAutoLiquidations() {
     const id = Number(p.id)
     autoLiquidatingIds.value = autoLiquidatingIds.value.concat([id])
     try {
-      await closePosition(id, 'market', p)
+      await closePosition(id, 'market', p, true)
     } catch {
       autoLiquidatingIds.value = autoLiquidatingIds.value.filter((v) => v !== id)
     }
@@ -2710,7 +2710,7 @@ async function openPosition() {
   }
 }
 
-async function closePosition(positionId: number, mode: 'market' | 'limit' = 'market', pos?: any) {
+async function closePosition(positionId: number, mode: 'market' | 'limit' = 'market', pos?: any, suppressSummary = false) {
   tradeMsg.value = null
   try {
     // 요구사항: "청산 버튼 누른 순간 가격"으로 즉시 계산해서 카드에 표시 + 서버에도 같은 가격으로 저장
@@ -2730,16 +2730,18 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         pnlCalc = Math.max(-net0, pnlCalc)
       }
       const roeCalc = net0 > 0 ? (pnlCalc / net0) * 100 : 0
-      showCloseSummaryDelayed({
-        symbol: String(pos.symbol),
-        side: isShort ? 'short' : 'long',
-        leverage: Number(pos.leverage || 1),
-        entryPrice: entry,
-        exitPrice: exitClickPrice,
-        pnl: pnlCalc,
-        roe: Math.max(LIQUIDATION_TRIGGER_ROE, roeCalc),
-        wonText: Math.round(pnlCalc * 1350).toLocaleString()
-      })
+      if (!suppressSummary) {
+        showCloseSummaryDelayed({
+          symbol: String(pos.symbol),
+          side: isShort ? 'short' : 'long',
+          leverage: Number(pos.leverage || 1),
+          entryPrice: entry,
+          exitPrice: exitClickPrice,
+          pnl: pnlCalc,
+          roe: Math.max(LIQUIDATION_TRIGGER_ROE, roeCalc),
+          wonText: Math.round(pnlCalc * 1350).toLocaleString()
+        })
+      }
     }
 
     // UX: 클릭 즉시 "포지션은 무조건 사라져야 함" (요구사항)

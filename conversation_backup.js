@@ -1101,7 +1101,23 @@ export const conversationBackup = {
       chartDrawingPreviewUpdate: {
         trendPreviewFollowMouse: true,
         hlinePreviewFollowMouse: true,
-        version: '2026년 7월 21일 (화) - 29'
+        version: '2026년 7월 22일 (수) - 30'
+      }
+    },
+    {
+      timestamp: '2026-07-22T08:38:59+09:00',
+      type: 'conversation',
+      userMessage: '포지션이 -50% 강제청산될 때 수익 카드 미표시 요청',
+      assistantWorkSummary: [
+        '자동 강제청산 경로에서만 청산 결과 카드 표시를 억제하도록 `closePosition` 함수에 전용 플래그를 추가함',
+        '강제청산 체크 로직(`checkAutoLiquidations`)은 이 플래그를 사용해 -50% 자동청산 시 카드가 뜨지 않게 조정함',
+        '사용자가 직접 누르는 일반 청산/수동 청산의 결과 카드는 기존처럼 계속 표시되도록 유지함',
+        '버전을 2026년 7월 22일 (수) - 30 으로 갱신함'
+      ],
+      liquidationCloseCardSuppressed: {
+        autoLiquidationNoSummaryCard: true,
+        manualCloseSummaryCardKept: true,
+        version: '2026년 7월 22일 (수) - 30'
       }
     }
   ]
