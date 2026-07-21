@@ -196,13 +196,13 @@
 
         <div class="mt-2 rounded-lg bg-[#031019] p-2 ring-1 ring-cyan-500/10">
           <!-- 매도(위) -->
-          <div class="space-y-1">
-            <div v-for="(r, idx) in askRows" :key="'a' + idx" class="grid h-7 grid-cols-3 items-center gap-2 font-mono text-xs">
+          <div class="space-y-0.5">
+            <div v-for="(r, idx) in askRows" :key="'a' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[11px]">
               <div class="text-[#f23645]">{{ r ? fmtPrice(r.price) : '—' }}</div>
-              <div class="relative overflow-hidden rounded-sm bg-[#3a1015] px-2 py-1 text-center text-slate-100">
+              <div class="relative overflow-hidden rounded-sm bg-[#3a1015] px-1.5 py-0.5 text-center text-slate-100">
                 {{ r ? r.qtyText : '—' }}
               </div>
-              <div class="relative overflow-hidden rounded-sm px-2 py-1 text-right text-slate-100">
+              <div class="relative overflow-hidden rounded-sm px-1.5 py-0.5 text-right text-slate-100">
                 <div v-if="r" class="absolute inset-y-0 right-0 bg-[#7a1d25]/45" :style="{ width: r.depthPct + '%' }" />
                 <span class="relative">{{ r ? r.totalText : '—' }}</span>
               </div>
@@ -210,19 +210,19 @@
           </div>
 
           <!-- 현재가 -->
-          <div class="my-3 flex items-center justify-end font-mono text-lg text-[#36f2c6]">
+          <div class="my-2 flex items-center justify-end font-mono text-base text-[#36f2c6]">
             <span>{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</span>
             <span class="ml-1 text-sm text-slate-300">USDT</span>
           </div>
 
           <!-- 매수(아래) -->
-          <div class="space-y-1">
-            <div v-for="(r, idx) in bidRows" :key="'b' + idx" class="grid h-7 grid-cols-3 items-center gap-2 font-mono text-xs">
+          <div class="space-y-0.5">
+            <div v-for="(r, idx) in bidRows" :key="'b' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[11px]">
               <div class="text-[#22ab94]">{{ r ? fmtPrice(r.price) : '—' }}</div>
-              <div class="relative overflow-hidden rounded-sm bg-[#062a22] px-2 py-1 text-center text-slate-100">
+              <div class="relative overflow-hidden rounded-sm bg-[#062a22] px-1.5 py-0.5 text-center text-slate-100">
                 {{ r ? r.qtyText : '—' }}
               </div>
-              <div class="relative overflow-hidden rounded-sm px-2 py-1 text-right text-slate-100">
+              <div class="relative overflow-hidden rounded-sm px-1.5 py-0.5 text-right text-slate-100">
                 <div v-if="r" class="absolute inset-y-0 right-0 bg-[#0b6b59]/45" :style="{ width: r.depthPct + '%' }" />
                 <span class="relative">{{ r ? r.totalText : '—' }}</span>
               </div>
@@ -743,6 +743,7 @@ let lastOrderbookTs = 0
 let orderbookWatchTimer: any = null
 let orderbookRefreshing = false
 let orderbookRestFail = 0
+let orderbookJitterTimer: any = null
 
 // trade panel
 const side = ref<'long' | 'short'>('long')
@@ -1319,7 +1320,7 @@ const buyPct = computed(() => {
   const sell = askRows.value.reduce((s, r) => s + (r?.qty ?? 0), 0)
   const sum = buy + sell
   if (!sum) return 50
-  return (buy / sum) * 100
+  return Math.max(40, Math.min(60, (buy / sum) * 100))
 })
 
 function fmtQty(sym: string, qty: number) {
@@ -1855,10 +1856,10 @@ async function refreshOrderbookFromRest() {
 }
 
 function simulateOrderbookJitter() {
-  // REST/WS 모두 실패했을 때도 "멈춘 것처럼 보이지 않게" 미세하게 흔들어줌(표시용)
+  // 현재가는 차트(lastPrice)만 따르고, 호가 수량만 표시용으로 미세하게 흔들어줌
   const jitter = (m: Map<number, number>) => {
     for (const [p, q] of m.entries()) {
-      const next = q * (0.92 + Math.random() * 0.16) // ±8%
+      const next = q * (0.9 + Math.random() * 0.2) // ±10%
       m.set(p, Math.max(0, next))
     }
   }
@@ -1949,6 +1950,16 @@ function startOrderbookAutoReconnect() {
         .catch(() => {})
     }
   }, 300)
+}
+
+function startOrderbookJitter() {
+  if (!process.client) return
+  if (orderbookJitterTimer) clearInterval(orderbookJitterTimer)
+  orderbookJitterTimer = setInterval(() => {
+    if (!obAsks.value.size && !obBids.value.size) return
+    simulateOrderbookJitter()
+    refreshDisplayIfNeeded()
+  }, 500)
 }
 
 async function loadAccount() {
@@ -2285,6 +2296,7 @@ onMounted(async () => {
   startPendingCloseRecovery()
   startAccountAutoRefresh()
   startMarksPolling()
+  startOrderbookJitter()
   await ensureChartReady()
   await fetchCandles().catch(() => {})
   connectWs()
@@ -2327,6 +2339,8 @@ onBeforeUnmount(() => {
   markPollTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
+  if (orderbookJitterTimer) clearInterval(orderbookJitterTimer)
+  orderbookJitterTimer = null
   if (accountWatchTimer) clearInterval(accountWatchTimer)
   accountWatchTimer = null
   if (chartClockTimer) clearInterval(chartClockTimer)

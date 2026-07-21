@@ -680,6 +680,24 @@ export const conversationBackup = {
         removedTableInnerScroll: true,
         version: 't20260721-113327'
       }
+    },
+    {
+      timestamp: '2026-07-21T13:29:35+09:00',
+      type: 'conversation',
+      userMessage: '호가 테이블 셀 축소, BUY/SELL 간격 40~60 유지, 0.5초마다 더 자주 움직이게 수정. 중간 현재가격은 차트 기준 유지',
+      assistantWorkSummary: [
+        '호가 테이블 셀 높이와 패딩을 줄여 전체 셀 크기를 더 촘촘하게 조정함',
+        'BUY/SELL 비율은 항상 40~60 범위 안에 들도록 제한함',
+        '중간 현재가격은 기존처럼 차트 lastPrice만 따르게 유지함',
+        '호가 수량 표시는 0.5초마다 미세하게 흔들리는 표시용 jitter 타이머를 추가해 체감 움직임을 강화함',
+        '버전을 t20260721-132935 로 갱신함'
+      ],
+      orderbookUi: {
+        tighterCells: true,
+        buySellBand: '40-60',
+        jitter500ms: true,
+        version: 't20260721-132935'
+      }
     }
   ]
 }
