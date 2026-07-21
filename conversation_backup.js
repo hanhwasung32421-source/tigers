@@ -782,6 +782,21 @@ export const conversationBackup = {
         buySellRange: '500ms-1000ms',
         version: '2026년 7월 21일 (화) - 5'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:45:47+09:00',
+      type: 'conversation',
+      userMessage: '수익 카드 수익퍼센트 글씨 30% 축소, 포지션 글씨 2포인트 확대 요청',
+      assistantWorkSummary: [
+        '수익 카드의 수익률 퍼센트 메인 숫자 크기를 52px에서 36px로 줄임',
+        '포지션 테이블의 기본 글씨를 14px로 키우고, 헤더/배지/ROE 보조 텍스트/청산 버튼 글씨도 전반적으로 2포인트 정도 확대함',
+        '버전을 2026년 7월 21일 (화) - 6 으로 갱신함'
+      ],
+      fontTune: {
+        profitCardPercentReduced: true,
+        positionTextIncreased: true,
+        version: '2026년 7월 21일 (화) - 6'
+      }
     }
   ]
 }

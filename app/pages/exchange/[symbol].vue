@@ -399,8 +399,8 @@
       </div>
 
       <div class="mt-3" v-if="bottomTab === 'positions'">
-        <table class="w-full text-xs">
-          <thead class="text-slate-500">
+        <table class="w-full text-[14px]">
+          <thead class="text-[13px] text-slate-500">
             <tr class="text-left">
               <th class="py-2">코인</th>
               <th class="py-2">포지션</th>
@@ -421,11 +421,11 @@
             <tr v-for="p in visiblePositions" :key="p.id" class="border-t border-cyan-500/10">
               <td class="py-2">
                 <div class="flex items-center gap-2">
-                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] ring-1 ring-amber-400/40">
+                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[12px] ring-1 ring-amber-400/40">
                     {{ p.symbol?.slice(0, 1) }}
                   </span>
                   <span class="font-mono">{{ p.symbol }}</span>
-                  <span class="rounded bg-white/10 px-2 py-0.5 font-mono text-[10px] ring-1 ring-white/10">x{{ p.leverage }}</span>
+                  <span class="rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10">x{{ p.leverage }}</span>
                 </div>
               </td>
               <td class="py-2" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
@@ -436,7 +436,7 @@
                       ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30'
                       : 'bg-[#34181d] text-[#f23645] ring-[#f23645]/30',
                     // 요구사항: 포지션 목록에서 숏 글자를 1.5배 크게
-                    p.side === 'short' ? 'text-[15px]' : 'text-[10px]'
+                    p.side === 'short' ? 'text-[17px]' : 'text-[12px]'
                   ]"
                 >
                   {{ p.side === 'long' ? '롱' : '숏' }}
@@ -451,13 +451,13 @@
                 <div class="font-mono" :class="unrealized(p).pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'">
                   {{ unrealized(p).pnl >= 0 ? '+' : '' }}{{ unrealized(p).pnl.toFixed(5) }}
                 </div>
-                <div class="text-[10px] text-slate-400">
+                <div class="text-[12px] text-slate-400">
                   {{ unrealized(p).roe >= 0 ? '+' : '' }}{{ unrealized(p).roe.toFixed(2) }}%
                 </div>
               </td>
               <td class="py-2">
                 <div class="flex items-center gap-2">
-                  <button class="rounded-md bg-[#20262f] px-2 py-1 text-white ring-1 ring-white/10 hover:bg-[#2a313b]" @click="closePosition(p.id, 'market', p)">
+                  <button class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b]" @click="closePosition(p.id, 'market', p)">
                     청산
                   </button>
                 </div>
@@ -610,7 +610,7 @@
           </button>
           <div class="relative z-10">
             <div class="text-[16px] font-semibold tracking-tight text-white/90">futureusdt</div>
-            <div class="mt-5 text-[52px] font-black leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-emerald-400' : 'text-sky-400'">
+            <div class="mt-5 text-[36px] font-black leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-emerald-400' : 'text-sky-400'">
               {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }} %
             </div>
             <div class="mt-2 text-[19px] font-semibold tracking-tight text-slate-100">
