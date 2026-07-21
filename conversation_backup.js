@@ -1048,7 +1048,26 @@ export const conversationBackup = {
       adminPositionsTableNoWrapUpdate: {
         scaleApprox: 1.2,
         noWrap: true,
-        version: '2026년 7월 21일 (화) - 24'
+        version: '2026년 7월 21일 (화) - 25'
+      }
+    },
+    {
+      timestamp: '2026-07-21T16:52:29+09:00',
+      type: 'conversation',
+      userMessage: '차트를 Binance로 변경 요청',
+      assistantWorkSummary: [
+        '캔들, 호가, 마크가격 API의 서버 구현을 Binance 선물 REST(`fapi.binance.com`) 기반으로 교체함',
+        'exchange 화면의 실시간 차트/호가 웹소켓을 Binance Futures stream(`fstream.binance.com`) 기준으로 변경함',
+        '주문 오픈/청산, 관리자 포지션 목록 평가가격도 Binance 가격 유틸을 사용하도록 교체함',
+        'BTCUSDT 캔들/호가, SAMSUNGUSDT 가격 응답을 실제 Binance API로 확인해 현재 종목들이 정상 조회되는 것도 검증함',
+        '버전을 2026년 7월 21일 (화) - 25 로 갱신함'
+      ],
+      binanceChartMigration: {
+        candlesFromBinance: true,
+        orderbookFromBinance: true,
+        websocketFromBinance: true,
+        serverPricingFromBinance: true,
+        version: '2026년 7월 21일 (화) - 25'
       }
     }
   ]

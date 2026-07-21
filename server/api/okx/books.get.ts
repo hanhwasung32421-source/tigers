@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { toBinanceSymbol } from '../../utils/binance'
 
 const QuerySchema = z.object({
   instId: z.string().min(1),
@@ -7,12 +8,11 @@ const QuerySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const q = QuerySchema.parse(getQuery(event))
-  const res = await $fetch<any>('https://www.okx.com/api/v5/market/books', {
+  const res = await $fetch<any>('https://fapi.binance.com/fapi/v1/depth', {
     query: {
-      instId: q.instId,
-      sz: q.sz ?? 20
+      symbol: toBinanceSymbol(q.instId),
+      limit: q.sz ?? 20
     }
   })
-  return { data: res?.data?.[0] ?? null }
+  return { data: { asks: res?.asks ?? [], bids: res?.bids ?? [] } }
 })
-

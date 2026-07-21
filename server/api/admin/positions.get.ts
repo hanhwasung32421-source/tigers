@@ -2,7 +2,7 @@ import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
-import { getOkxLastPrice } from '../../utils/okx'
+import { getBinanceLastPrice } from '../../utils/binance'
 
 function calcLiqPrice(side: string, entry: number, lev: number) {
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
   const priceEntries = await Promise.all(
     symbols.map(async (symbol) => {
       try {
-        const { last } = await getOkxLastPrice(symbol)
+        const { last } = await getBinanceLastPrice(symbol)
         return [symbol, Number(last)] as const
       } catch {
         return [symbol, 0] as const

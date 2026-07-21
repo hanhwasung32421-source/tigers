@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { requireUser } from '../../utils/auth'
 import { getDb } from '../../utils/db'
-import { getOkxLastPrice } from '../../utils/okx'
+import { getBinanceLastPrice } from '../../utils/binance'
 import { logBuy } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   const symbol = body.symbol.toUpperCase()
-  const entry = body.price ?? (await getOkxLastPrice(symbol)).last
+  const entry = body.price ?? (await getBinanceLastPrice(symbol)).last
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()
