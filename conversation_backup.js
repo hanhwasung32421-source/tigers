@@ -766,6 +766,22 @@ export const conversationBackup = {
         showLastPageTail: true,
         version: '2026년 7월 21일 (화) - 4'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:29:18+09:00',
+      type: 'conversation',
+      userMessage: '세력구도는 0.5~1초 랜덤, 위 매수/매도 호가는 둘 다 0.3~1초 랜덤으로 각각 한 번씩 움직이게 분리 요청',
+      assistantWorkSummary: [
+        '호가 레벨(위 매도/아래 매수) 랜덤 움직임 타이머를 별도로 분리함',
+        '호가 물량은 0.3초~1초 사이 랜덤 주기로 새 Map 재할당 방식으로 확실히 갱신되게 수정함',
+        '하단 세력구도(BUY/SELL)는 별도 타이머로 분리해 0.5초~1초 사이 랜덤 주기로만 변경되게 조정함',
+        '버전을 2026년 7월 21일 (화) - 5 로 갱신함'
+      ],
+      orderbookTimerSplit: {
+        orderbookRange: '300ms-1000ms',
+        buySellRange: '500ms-1000ms',
+        version: '2026년 7월 21일 (화) - 5'
+      }
     }
   ]
 }

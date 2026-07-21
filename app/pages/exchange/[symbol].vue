@@ -743,7 +743,8 @@ let lastOrderbookTs = 0
 let orderbookWatchTimer: any = null
 let orderbookRefreshing = false
 let orderbookRestFail = 0
-let orderbookJitterTimer: any = null
+let orderbookLevelTimer: any = null
+let buySellBandTimer: any = null
 
 // trade panel
 const side = ref<'long' | 'short'>('long')
@@ -1874,19 +1875,25 @@ async function refreshOrderbookFromRest() {
   }
 }
 
-function simulateOrderbookJitter() {
-  // 현재가는 차트(lastPrice)만 따르고, 호가 수량은 강제로 계속 움직이게 함
-  ensureSyntheticOrderbook()
-  const jitter = (m: Map<number, number>) => {
-    for (const [p, q] of m.entries()) {
-      const swingPct = 0.05 + Math.random() * 0.25 // 5% ~ 30%
-      const direction = Math.random() > 0.5 ? 1 : -1
-      const next = q * (1 + swingPct * direction)
-      m.set(p, Math.max(0.00001, next))
-    }
+function jitterOrderbookMap(source: Map<number, number>) {
+  const next = new Map<number, number>()
+  for (const [p, q] of source.entries()) {
+    const swingPct = 0.05 + Math.random() * 0.25 // 5% ~ 30%
+    const direction = Math.random() > 0.5 ? 1 : -1
+    const moved = q * (1 + swingPct * direction)
+    next.set(p, Math.max(0.00001, moved))
   }
-  if (obAsks.value.size) jitter(obAsks.value)
-  if (obBids.value.size) jitter(obBids.value)
+  return next
+}
+
+function simulateOrderbookLevels() {
+  // 현재가는 차트(lastPrice)만 따르고, 위/아래 호가 물량만 강제로 계속 움직이게 함
+  ensureSyntheticOrderbook()
+  if (obAsks.value.size) obAsks.value = jitterOrderbookMap(obAsks.value)
+  if (obBids.value.size) obBids.value = jitterOrderbookMap(obBids.value)
+}
+
+function simulateBuySellBand() {
   forcedBuyPct.value = 40 + Math.random() * 20
 }
 
@@ -1967,7 +1974,8 @@ function startOrderbookAutoReconnect() {
         .then((ok) => {
           if (ok) return
           // REST도 실패하면 표시용 흔들림 + 재연결
-          simulateOrderbookJitter()
+          simulateOrderbookLevels()
+          simulateBuySellBand()
           if (orderbookRestFail >= 2) connectWs()
         })
         .catch(() => {})
@@ -1975,14 +1983,25 @@ function startOrderbookAutoReconnect() {
   }, 300)
 }
 
-function startOrderbookJitter() {
+function startOrderbookLevelMotion() {
   if (!process.client) return
-  if (orderbookJitterTimer) clearTimeout(orderbookJitterTimer)
+  if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)
   const tick = () => {
-    simulateOrderbookJitter()
+    simulateOrderbookLevels()
     refreshDisplayIfNeeded()
-    const nextDelay = 100 + Math.floor(Math.random() * 401) // 0.1초 ~ 0.5초
-    orderbookJitterTimer = setTimeout(tick, nextDelay)
+    const nextDelay = 300 + Math.floor(Math.random() * 701) // 0.3초 ~ 1초
+    orderbookLevelTimer = setTimeout(tick, nextDelay)
+  }
+  tick()
+}
+
+function startBuySellBandMotion() {
+  if (!process.client) return
+  if (buySellBandTimer) clearTimeout(buySellBandTimer)
+  const tick = () => {
+    simulateBuySellBand()
+    const nextDelay = 500 + Math.floor(Math.random() * 501) // 0.5초 ~ 1초
+    buySellBandTimer = setTimeout(tick, nextDelay)
   }
   tick()
 }
@@ -2321,7 +2340,8 @@ onMounted(async () => {
   startPendingCloseRecovery()
   startAccountAutoRefresh()
   startMarksPolling()
-  startOrderbookJitter()
+  startOrderbookLevelMotion()
+  startBuySellBandMotion()
   await ensureChartReady()
   await fetchCandles().catch(() => {})
   connectWs()
@@ -2364,8 +2384,10 @@ onBeforeUnmount(() => {
   markPollTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
-  if (orderbookJitterTimer) clearInterval(orderbookJitterTimer)
-  orderbookJitterTimer = null
+  if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)
+  orderbookLevelTimer = null
+  if (buySellBandTimer) clearTimeout(buySellBandTimer)
+  buySellBandTimer = null
   if (accountWatchTimer) clearInterval(accountWatchTimer)
   accountWatchTimer = null
   if (chartClockTimer) clearInterval(chartClockTimer)
