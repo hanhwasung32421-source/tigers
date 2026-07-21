@@ -1724,15 +1724,14 @@ const qtyText = computed(() => {
   return qty.toFixed(coinUnit.value === 'DOGE' ? 2 : 6)
 })
 
-function toMarketSymbol(sym: string) {
-  const s = sym
-    .toUpperCase()
-    .replace(/[-/]/g, '')
-    .replace(/SWAP$/i, '')
-    .replace(/\.P$/i, '')
-  if (!s) return 'BTCUSDT'
-  if (s.endsWith('USDT')) return s
-  return `${s}USDT`
+function toInstId(sym: string) {
+  const s = sym.toUpperCase().replace('-', '').replace('/', '')
+  if (s === 'BTCUSDT') return 'BTC-USDT-SWAP'
+  if (s === 'ETHUSDT') return 'ETH-USDT-SWAP'
+  if (s === 'DOGEUSDT') return 'DOGE-USDT-SWAP'
+  if (s === 'SAMSUNGUSDT') return 'SAMSUNG-USDT-SWAP'
+  if (s === 'SKHYNIXUSDT') return 'SKHYNIX-USDT-SWAP'
+  return 'BTC-USDT-SWAP'
 }
 
 function applyPriceFormatForSymbol(sym: string) {
@@ -2108,7 +2107,7 @@ function renderEntryLines() {
 }
 
 async function fetchCandles() {
-  const instId = toMarketSymbol(symbol.value)
+  const instId = toInstId(symbol.value)
   const bar = timeframe.value
   const neededBars = Math.max(120, Math.ceil((7 * 24 * 60 * 60) / barSeconds(timeframe.value)) + 60)
   const rows: string[][] = []
@@ -2182,7 +2181,7 @@ async function refreshOrderbookFromRest() {
   if (orderbookRefreshing) return false
   orderbookRefreshing = true
   try {
-    const instId = toMarketSymbol(symbol.value)
+    const instId = toInstId(symbol.value)
     const res = await $fetch<any>('/api/okx/books', { query: { instId, sz: 20 } })
     const data = res?.data
     if (!data) return false
@@ -2233,12 +2232,20 @@ function connectWs() {
   wsStatus.value = 'connecting'
   lastOrderbookTs = Date.now()
 
-  const instId = toMarketSymbol(symbol.value)
-  const streamSymbol = instId.toLowerCase()
-  ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streamSymbol}@ticker/${streamSymbol}@depth20@100ms`)
+  const instId = toInstId(symbol.value)
+  ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public')
 
   ws.onopen = () => {
     wsStatus.value = 'open'
+    ws?.send(
+      JSON.stringify({
+        op: 'subscribe',
+        args: [
+          { channel: 'tickers', instId },
+          { channel: 'books', instId }
+        ]
+      })
+    )
   }
   ws.onclose = () => (wsStatus.value = 'closed')
   ws.onerror = () => (wsStatus.value = 'error')
@@ -2246,27 +2253,33 @@ function connectWs() {
   ws.onmessage = (ev) => {
     try {
       const msg = JSON.parse(ev.data)
-      const stream = String(msg?.stream || '')
-      const data = msg?.data
-      if (!stream || !data) return
+      const arg = msg?.arg
+      const data = msg?.data?.[0]
+      if (!arg || !data) return
 
-      if (stream.endsWith('@ticker')) {
-        const p = Number(data.c)
+      if (arg.channel === 'tickers') {
+        const p = Number(data.last)
         if (Number.isFinite(p)) {
           lastPrice.value = p
-          updateLiveCandle(p, Number(data.E ?? Date.now()))
+          updateLiveCandle(p, Number(data.ts ?? Date.now()))
         }
-        high24.value = Number(data.h) || high24.value
-        low24.value = Number(data.l) || low24.value
-        vol24.value = Number(data.v) || vol24.value
+        high24.value = Number(data.high24h ?? data.high24) || high24.value
+        low24.value = Number(data.low24h ?? data.low24) || low24.value
+        vol24.value = Number(data.vol24h ?? data.vol24) || vol24.value
       }
 
-      if (stream.includes('@depth')) {
+      if (arg.channel === 'books') {
         lastOrderbookTs = Date.now()
-        resetOrderbook()
+        if (msg?.action === 'snapshot') {
+          resetOrderbook()
+        }
         applyOrderbookUpdate(data.asks, 'ask')
         applyOrderbookUpdate(data.bids, 'bid')
-        initDisplayFromMaps()
+        if (msg?.action === 'snapshot') {
+          initDisplayFromMaps()
+        } else {
+          refreshDisplayIfNeeded()
+        }
       }
     } catch {
       // ignore

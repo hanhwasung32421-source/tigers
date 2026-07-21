@@ -1048,26 +1048,7 @@ export const conversationBackup = {
       adminPositionsTableNoWrapUpdate: {
         scaleApprox: 1.2,
         noWrap: true,
-        version: '2026년 7월 21일 (화) - 25'
-      }
-    },
-    {
-      timestamp: '2026-07-21T16:52:29+09:00',
-      type: 'conversation',
-      userMessage: '차트를 Binance로 변경 요청',
-      assistantWorkSummary: [
-        '캔들, 호가, 마크가격 API의 서버 구현을 Binance 선물 REST(`fapi.binance.com`) 기반으로 교체함',
-        'exchange 화면의 실시간 차트/호가 웹소켓을 Binance Futures stream(`fstream.binance.com`) 기준으로 변경함',
-        '주문 오픈/청산, 관리자 포지션 목록 평가가격도 Binance 가격 유틸을 사용하도록 교체함',
-        'BTCUSDT 캔들/호가, SAMSUNGUSDT 가격 응답을 실제 Binance API로 확인해 현재 종목들이 정상 조회되는 것도 검증함',
-        '버전을 2026년 7월 21일 (화) - 25 로 갱신함'
-      ],
-      binanceChartMigration: {
-        candlesFromBinance: true,
-        orderbookFromBinance: true,
-        websocketFromBinance: true,
-        serverPricingFromBinance: true,
-        version: '2026년 7월 21일 (화) - 26'
+        version: '2026년 7월 21일 (화) - 24'
       }
     },
     {
@@ -1086,22 +1067,24 @@ export const conversationBackup = {
         routeRulesImmutableNuxtAssets: true,
         ignoreNuxtAssetErrorsInLastError: true,
         addedClearLastErrorApi: true,
-        version: '2026년 7월 21일 (화) - 27'
+        version: '2026년 7월 21일 (화) - 26'
       }
     },
     {
-      timestamp: '2026-07-21T17:11:41+09:00',
+      timestamp: '2026-07-21T17:18:10+09:00',
       type: 'conversation',
-      userMessage: 'Binance 연동 심볼이 `SAMSUNGUSDT.P`, `SKHYNIXUSDT.P` 형식이라 차트가 안 뜨는 문제 수정 요청',
+      userMessage: 'Binance 전환을 취소하고 예전 OKX 방식으로 전체 롤백 요청',
       assistantWorkSummary: [
-        'TradingView/Perpetual 표기처럼 `.P` 접미사가 붙은 심볼을 지원하도록 심볼 정규화 로직을 보강함',
-        '프론트 `toMarketSymbol()`과 서버 `toBinanceSymbol()`에서 `.P` 접미사를 제거해 Binance API는 `SAMSUNGUSDT`, `SKHYNIXUSDT`로 요청되게 수정함',
-        '이제 라우트/표기상 심볼이 `SAMSUNGUSDT.P`, `SKHYNIXUSDT.P`여도 차트/호가/실시간이 정상 동작함',
-        '버전을 2026년 7월 21일 (화) - 27 로 갱신함'
+        'Binance 전환 관련 커밋을 되돌려 차트, 호가, 실시간 가격, 주문/청산 가격 참조를 예전 OKX 방식으로 복귀함',
+        '`.P` 접미사 기반 Binance 심볼 호환 처리도 함께 제거해 OKX instId 흐름으로 되돌림',
+        '최근 적용했던 Vercel 캐시 오류 완화 수정은 유지함',
+        '버전을 2026년 7월 21일 (화) - 28 로 갱신함'
       ],
-      binancePerpSymbolSuffixSupport: {
-        supportsDotPSuffix: true,
-        version: '2026년 7월 21일 (화) - 27'
+      okxRollbackAfterBinanceAttempt: {
+        provider: 'OKX',
+        revertedBinanceMigration: true,
+        keptVercelChunkMitigation: true,
+        version: '2026년 7월 21일 (화) - 28'
       }
     }
   ]

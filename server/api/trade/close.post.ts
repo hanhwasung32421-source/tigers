@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { requireUser } from '../../utils/auth'
 import { getDb } from '../../utils/db'
-import { getBinanceLastPrice } from '../../utils/binance'
+import { getOkxLastPrice } from '../../utils/okx'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
     const pos = await supaSelectOne<any>('trae_positions', { id: body.positionId, user_id: user.id })
     if (!pos) throw createError({ statusCode: 404, statusMessage: '포지션을 찾을 수 없습니다.' })
 
-    const exit = body.exitPrice ?? (await getBinanceLastPrice(pos.symbol)).last
+    const exit = body.exitPrice ?? (await getOkxLastPrice(pos.symbol)).last
 
     const pnlRaw = (exit - Number(pos.entry_price)) * Number(pos.qty)
     const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
@@ -110,7 +110,7 @@ export default defineEventHandler(async (event) => {
 
   if (!pos) throw createError({ statusCode: 404, statusMessage: '포지션을 찾을 수 없습니다.' })
 
-  const { last } = await getBinanceLastPrice(pos.symbol)
+  const { last } = await getOkxLastPrice(pos.symbol)
   const exit = body.exitPrice ?? last
 
   const pnlRaw = (exit - pos.entry_price) * pos.qty

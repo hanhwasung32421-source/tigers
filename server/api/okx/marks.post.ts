@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getBinanceLastPrice } from '../../utils/binance'
+import { getOkxLastPrice } from '../../utils/okx'
 
 const BodySchema = z.object({
   symbols: z.array(z.string().min(1)).max(30)
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const entries = await Promise.all(
     uniq.map(async (symbol) => {
       try {
-        const { last } = await getBinanceLastPrice(symbol)
+        const { last } = await getOkxLastPrice(symbol)
         return [symbol, Number(last)] as const
       } catch {
         return [symbol, 0] as const
@@ -22,3 +22,4 @@ export default defineEventHandler(async (event) => {
 
   return { prices: Object.fromEntries(entries) }
 })
+
