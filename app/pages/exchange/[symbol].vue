@@ -72,7 +72,7 @@
           </div>
         </div>
 
-        <div class="flex h-[560px] bg-[#131722]">
+        <div class="flex h-[600px] bg-[#131722]">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2">
             <button
               type="button"
@@ -169,17 +169,6 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-between border-t border-[#2a2e39] bg-[#131722] px-3 py-1.5 text-[11px] text-[#868993]">
-          <div class="flex items-center gap-3">
-            <span>도구: {{ activeTool === 'cursor' ? '커서' : activeTool === 'trend' ? '추세선' : '수평선' }}</span>
-            <span>SMA7 {{ chartPrefs.indicators.sma7 ? 'ON' : 'OFF' }}</span>
-            <span>SMA25 {{ chartPrefs.indicators.sma25 ? 'ON' : 'OFF' }}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span>비중 {{ percent }}%</span>
-            <span>레버리지 x{{ leverage }}</span>
-          </div>
-        </div>
       </section>
 
       <!-- 호가(첨부 스타일) -->
@@ -1750,18 +1739,61 @@ function onCrosshairMove(param: any) {
 function initChart() {
   if (!chartEl.value || chart) return
   const rect = chartEl.value.getBoundingClientRect()
-  const kstTickFormatter = (time: any) => {
-    const sec = typeof time === 'object' && time !== null
-      ? Date.UTC(Number((time as any).year), Number((time as any).month) - 1, Number((time as any).day))
-      : Number(time) * 1000
-    return new Intl.DateTimeFormat('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(sec)
+  const kstFormatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
+
+  const getKstParts = (ms: number) => {
+    const parts = kstFormatter.formatToParts(ms)
+    const map: Record<string, string> = {}
+    for (const p of parts) map[p.type] = p.value
+    return map
+  }
+
+  const formatAxisTick = (t: any) => {
+    // BusinessDay(일/주/월 봉에서 주로 사용 가능): 날짜만 표시
+    if (typeof t === 'object' && t !== null && 'year' in t) {
+      const mm = String((t as any).month).padStart(2, '0')
+      const dd = String((t as any).day).padStart(2, '0')
+      return `${mm}/${dd}`
+    }
+
+    const ms = Number(t) * 1000
+    const p = getKstParts(ms)
+    const mm = p.month || '00'
+    const dd = p.day || '00'
+    const hh = p.hour || '00'
+    const mi = p.minute || '00'
+
+    // 일/주/월 봉에서는 날짜만
+    if (timeframe.value === '1D' || timeframe.value === '1W' || timeframe.value === '1M') return `${mm}/${dd}`
+
+    // 분/시간 봉에서는 시간만, 날짜는 00:00에만 표시
+    if (hh === '00' && mi === '00') return `${mm}/${dd}`
+    return `${hh}:${mi}`
+  }
+
+  const formatCrosshairTime = (t: any) => {
+    if (typeof t === 'object' && t !== null && 'year' in t) {
+      const yyyy = String((t as any).year)
+      const mm = String((t as any).month).padStart(2, '0')
+      const dd = String((t as any).day).padStart(2, '0')
+      return `${yyyy}-${mm}-${dd}`
+    }
+    const ms = Number(t) * 1000
+    const p = getKstParts(ms)
+    const yyyy = p.year || ''
+    const mm = p.month || ''
+    const dd = p.day || ''
+    const hh = p.hour || ''
+    const mi = p.minute || ''
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi}`
   }
   chart = createChart(chartEl.value, {
     width: Math.max(300, Math.floor(rect.width)),
@@ -1769,7 +1801,7 @@ function initChart() {
     layout: { background: { color: 'transparent' }, textColor: '#cbd5e1' },
     localization: {
       locale: 'ko-KR',
-      timeFormatter: (businessDayOrTimestamp: any) => kstTickFormatter(businessDayOrTimestamp)
+      timeFormatter: (businessDayOrTimestamp: any) => formatCrosshairTime(businessDayOrTimestamp)
     },
     grid: { vertLines: { color: 'rgba(255,255,255,0.06)' }, horzLines: { color: 'rgba(255,255,255,0.06)' } },
     rightPriceScale: { borderColor: 'rgba(255,255,255,0.12)', scaleMargins: { top: 0.1, bottom: 0.2 } },
@@ -1777,7 +1809,7 @@ function initChart() {
       borderColor: 'rgba(255,255,255,0.12)',
       timeVisible: true,
       secondsVisible: false,
-      tickMarkFormatter: (time: any) => kstTickFormatter(time)
+      tickMarkFormatter: (time: any) => formatAxisTick(time)
     },
     crosshair: {
       mode: CrosshairMode.Normal,

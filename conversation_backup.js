@@ -896,7 +896,24 @@ export const conversationBackup = {
         historyRangeDays: 7,
         localDrawingPersistence: true,
         addedTimeframes: ['30m', '1H', '1D', '1W', '1M'],
-        version: '2026년 7월 21일 (화) - 14'
+        version: '2026년 7월 21일 (화) - 15'
+      }
+    },
+    {
+      timestamp: '2026-07-21T15:24:10+09:00',
+      type: 'conversation',
+      userMessage: '차트 아래 상태바 삭제, 차트 시간축은 시간만 표시하고 날짜는 00:00에만 표시 요청',
+      assistantWorkSummary: [
+        '차트 하단 상태바(도구/지표 상태, 비중, 레버리지 표시)를 삭제함',
+        '상태바가 사라진 만큼 차트 본문 높이를 올려 화면을 꽉 채우게 조정함',
+        '시간축 라벨 포맷을 변경해 기본은 HH:mm만 표시하고, 날짜는 00:00 구간에서만 MM/DD로 표시되게 수정함',
+        '버전을 2026년 7월 21일 (화) - 15 로 갱신함'
+      ],
+      chartAxisFormatUpdate: {
+        removedBottomStatusBar: true,
+        axisShowsTimeOnly: true,
+        dateOnlyAtMidnight: true,
+        version: '2026년 7월 21일 (화) - 15'
       }
     }
   ]
