@@ -29,6 +29,23 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
+  nitro: {
+    routeRules: {
+      // 배포 후에도 오래된 HTML이 캐시되어 "없는 _nuxt 청크"를 요청하는 문제를 줄입니다.
+      // - HTML/페이지 응답: 캐시 금지(항상 최신 배포를 받게)
+      // - _nuxt 정적 자산: 장기 캐시(파일명 해시로 안전)
+      '/**': {
+        headers: {
+          'cache-control': 'no-store'
+        }
+      },
+      '/_nuxt/**': {
+        headers: {
+          'cache-control': 'public, max-age=31536000, immutable'
+        }
+      }
+    }
+  },
   runtimeConfig: {
     // 서버 전용
     sessionSecret: process.env.SESSION_SECRET || 'dev-secret-change-me',

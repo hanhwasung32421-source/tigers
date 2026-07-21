@@ -19,6 +19,11 @@ export default defineNitroPlugin((nitroApp) => {
     const url = event?.path || event?.node?.req?.url
     const method = event?.method || event?.node?.req?.method
 
+    // 정적 자산(_nuxt) 요청은 배포/캐시 타이밍에 따라 일시적으로 실패할 수 있어
+    // "최근 서버 오류"를 오염시키는 경우가 많습니다. (실제 API/DB 오류를 보기 힘들어짐)
+    // 필요하면 Vercel 로그/네트워크 탭으로 별도 확인 가능합니다.
+    if (typeof url === 'string' && url.startsWith('/_nuxt/')) return
+
     globalThis.__LAST_ERROR__ = {
       at: new Date().toISOString(),
       requestId,
@@ -33,4 +38,3 @@ export default defineNitroPlugin((nitroApp) => {
     console.error('[APP_ERROR]', globalThis.__LAST_ERROR__)
   })
 })
-

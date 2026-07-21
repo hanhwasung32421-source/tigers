@@ -1067,7 +1067,26 @@ export const conversationBackup = {
         orderbookFromBinance: true,
         websocketFromBinance: true,
         serverPricingFromBinance: true,
-        version: '2026년 7월 21일 (화) - 25'
+        version: '2026년 7월 21일 (화) - 26'
+      }
+    },
+    {
+      timestamp: '2026-07-21T17:05:12+09:00',
+      type: 'conversation',
+      userMessage: 'Vercel 배포에서 `Failed to fetch dynamically imported module: https://usdetrade.vercel.app/_nuxt/...js` 오류 발생',
+      assistantWorkSummary: [
+        '배포 후 캐시된 오래된 HTML이 존재하지 않는 `_nuxt` 청크 파일을 요청해 dynamic import 에러가 나는 상황을 완화하기 위해 캐시 헤더를 조정함',
+        'Nitro routeRules로 HTML/페이지 응답은 `no-store`, `/_nuxt/**` 정적 자산은 장기 캐시(`immutable`)로 설정함',
+        '`/_nuxt/*` 자산 요청 실패가 `/api/debug/last-error`를 계속 덮어써서 실제 서버 오류 확인이 어려운 문제를 막기 위해 error-store에서 `/_nuxt/` 경로는 기록 제외 처리함',
+        '`/api/debug/clear-last-error` 엔드포인트를 추가해 마지막 오류를 초기화할 수 있게 함',
+        '버전을 2026년 7월 21일 (화) - 26 으로 갱신함'
+      ],
+      vercelChunkFetchMitigation: {
+        routeRulesNoStoreHtml: true,
+        routeRulesImmutableNuxtAssets: true,
+        ignoreNuxtAssetErrorsInLastError: true,
+        addedClearLastErrorApi: true,
+        version: '2026년 7월 21일 (화) - 26'
       }
     }
   ]
