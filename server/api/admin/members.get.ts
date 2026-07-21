@@ -3,10 +3,19 @@ import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 
+const FEE_RATE = 0.04
+
 function roleText(role: string) {
   if (role === 'super_admin') return '관리자'
   if (role === 'branch_admin') return '총판'
   return '회원'
+}
+
+function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
+  if (![entryPrice, qty, leverage].every(Number.isFinite) || entryPrice <= 0 || qty <= 0 || leverage <= 0) return 0
+  const net = (entryPrice * qty) / leverage
+  const gross = net / (1 - FEE_RATE)
+  return gross * FEE_RATE * 2
 }
 
 export default defineEventHandler(async (event) => {
@@ -52,10 +61,10 @@ export default defineEventHandler(async (event) => {
       if (ip) ipMap.set(uid, ip)
     }
 
-    // 누적수익(손실은 음수, 수익은 양수)
+    // 누적수익(실현손익 - 총수수료)
     const { data: trades, error: e4 } = await supa
       .from('trae_trades')
-      .select('user_id, pnl')
+      .select('user_id, pnl, entry_price, qty, leverage')
       .in('user_id', ids)
       .limit(5000)
     if (e4) throw e4
@@ -63,8 +72,12 @@ export default defineEventHandler(async (event) => {
     for (const t of trades || []) {
       const uid = Number((t as any).user_id)
       const pnl = Number((t as any).pnl ?? 0)
+      const entry = Number((t as any).entry_price ?? 0)
+      const qty = Number((t as any).qty ?? 0)
+      const lev = Number((t as any).leverage ?? 1)
+      const fee = calcTotalFee(entry, qty, lev)
       if (!uid || !Number.isFinite(pnl)) continue
-      profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl)
+      profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl - fee)
     }
 
     const rows = (users || []).map((u: any) => {
@@ -92,14 +105,18 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
   const users = db.prepare('SELECT id, username, role, created_at FROM users ORDER BY id DESC').all() as any[]
   const balances = db.prepare('SELECT user_id, usdt FROM balances').all() as any[]
-  const trades = db.prepare('SELECT user_id, pnl FROM trades').all() as any[]
+  const trades = db.prepare('SELECT user_id, pnl, entry_price, qty, leverage FROM trades').all() as any[]
   const balanceMap = new Map(balances.map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
   const profitMap = new Map<number, number>()
   for (const t of trades) {
     const uid = Number(t.user_id)
     const pnl = Number(t.pnl ?? 0)
+    const entry = Number(t.entry_price ?? 0)
+    const qty = Number(t.qty ?? 0)
+    const lev = Number(t.leverage ?? 1)
+    const fee = calcTotalFee(entry, qty, lev)
     if (!uid || !Number.isFinite(pnl)) continue
-    profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl)
+    profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl - fee)
   }
   const rows = users.map((u) => ({
     id: Number(u.id),

@@ -583,6 +583,20 @@ export const conversationBackup = {
         balanceClickEditsAmount: true,
         version: 't20260721-105057'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:53:19+09:00',
+      type: 'conversation',
+      userMessage: '누적수익에는 수수료도 포함되어야 함. 예: 1% 수익이어도 사고팔 때 4%씩 총 8% 수수료면 실제로 손실',
+      assistantWorkSummary: [
+        '회원 목록 누적수익 계산식을 실현손익 합계가 아니라 거래별 총수수료까지 포함한 값으로 변경함',
+        '계산식은 거래별 (pnl - totalFee) 누적으로 반영되며, totalFee는 매수/매도 4%씩 총 8% 기준으로 계산함',
+        '버전을 t20260721-105319 로 갱신함'
+      ],
+      cumulativeProfitFeeIncluded: {
+        feeIncluded: true,
+        version: 't20260721-105319'
+      }
     }
   ]
 }
