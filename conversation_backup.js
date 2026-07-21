@@ -461,6 +461,22 @@ export const conversationBackup = {
         delayedCardMs: 500,
         version: 't20260721-095853'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:20:57+09:00',
+      type: 'conversation',
+      userMessage: '처음 포지션 진입(구매롱/판매숏) 시에도 아래 포지션이 잠깐 사라졌다가 다시 뜨는 현상 제거 요청',
+      assistantWorkSummary: [
+        '오픈 중인 포지션을 pendingOpenJobs로 별도 관리하도록 추가함',
+        'loadAccount 시 서버 포지션과 낙관적 오픈 포지션을 reconcile하여, Supabase 반영이 늦어도 화면에서는 기존 낙관적 포지션을 유지하도록 수정함',
+        '같은 심볼 반대방향 전환 중에는 서버가 이전 반대 포지션을 잠깐 내려줘도 화면에서 숨기도록 처리함',
+        '버전을 t20260721-102057 로 갱신함'
+      ],
+      openUi: {
+        noFlashbackAfterOpen: true,
+        pendingOpenMerge: true,
+        version: 't20260721-102057'
+      }
     }
   ]
 }

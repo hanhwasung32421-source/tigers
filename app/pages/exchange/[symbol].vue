@@ -710,6 +710,13 @@ const closeSummary = ref<null | {
 // account
 const balance = ref(0)
 const positions = ref<any[]>([])
+type PendingOpenJob = {
+  key: string
+  symbol: string
+  side: 'long' | 'short'
+  optimisticPosition: any
+  createdAt: string
+}
 type PendingCloseJob = {
   positionId: number
   symbol: string
@@ -723,6 +730,7 @@ type PendingCloseJob = {
   retryCount: number
 }
 const PENDING_CLOSE_STORAGE_KEY = 'exchange_pending_close_jobs_v1'
+const pendingOpenJobs = ref<PendingOpenJob[]>([])
 const pendingCloseJobs = ref<PendingCloseJob[]>([])
 const pendingCloseJobIds = computed(() => pendingCloseJobs.value.map((j) => Number(j.positionId)))
 const hiddenClosingPositionIds = ref<number[]>([])
@@ -892,6 +900,57 @@ function savePendingCloseJobs() {
   } catch {
     // ignore
   }
+}
+
+function pendingOpenKey(symbol0: string, side0: 'long' | 'short') {
+  return `${String(symbol0).toUpperCase()}:${String(side0)}`
+}
+
+function upsertPendingOpenJob(job: PendingOpenJob) {
+  const idx = pendingOpenJobs.value.findIndex((j) => String(j.key) === String(job.key))
+  if (idx >= 0) pendingOpenJobs.value[idx] = job
+  else pendingOpenJobs.value.push(job)
+}
+
+function removePendingOpenJob(key: string) {
+  pendingOpenJobs.value = pendingOpenJobs.value.filter((j) => String(j.key) !== String(key))
+}
+
+function isServerCaughtUp(serverPos: any, optimisticPos: any) {
+  const qtyDiff = Math.abs(Number(serverPos?.qty || 0) - Number(optimisticPos?.qty || 0))
+  const entryDiff = Math.abs(Number(serverPos?.entry_price || 0) - Number(optimisticPos?.entry_price || 0))
+  const marginDiff = Math.abs(Number(serverPos?.margin || 0) - Number(optimisticPos?.margin || 0))
+  return qtyDiff <= 0.000001 && entryDiff <= 0.000001 && marginDiff <= 0.01
+}
+
+function reconcilePendingOpenPositions(serverPositions: any[]) {
+  let next = Array.isArray(serverPositions) ? serverPositions.map((p: any) => ({ ...p })) : []
+
+  for (const job of pendingOpenJobs.value) {
+    const sym = String(job.symbol).toUpperCase()
+    const sameSideIdx = next.findIndex(
+      (p: any) => String(p.symbol || '').toUpperCase() === sym && String(p.side || '') === String(job.side)
+    )
+
+    // 같은 심볼 반대 포지션은 전환 중 잠깐 서버에서 와도 숨김
+    next = next.filter(
+      (p: any) => !(String(p.symbol || '').toUpperCase() === sym && String(p.side || '') !== String(job.side))
+    )
+
+    if (sameSideIdx >= 0) {
+      const serverPos = next[sameSideIdx]
+      if (isServerCaughtUp(serverPos, job.optimisticPosition)) {
+        removePendingOpenJob(job.key)
+      } else {
+        next[sameSideIdx] = { ...serverPos, ...job.optimisticPosition, id: serverPos.id, _optimistic: true }
+      }
+      continue
+    }
+
+    next = [{ ...job.optimisticPosition, _optimistic: true }, ...next]
+  }
+
+  return next
 }
 
 function loadPendingCloseJobs() {
@@ -1818,7 +1877,7 @@ async function loadAccount() {
   try {
     const data = await $fetch<any>('/api/account')
     balance.value = data.balance.usdt
-    positions.value = data.positions
+    positions.value = reconcilePendingOpenPositions(data.positions || [])
     pruneHiddenClosingPositions(data.positions || [])
     lastAccountTs = Date.now()
   } finally {
@@ -1920,6 +1979,7 @@ async function openPosition() {
   // 2) 같은 방향으로 추가 진입하면 새 포지션이 아니라 기존 포지션에 합산(가중평균 평단)
   const prevBalance = Number(balance.value || 0)
   const prevPositions = positions.value.map((p: any) => ({ ...p }))
+  const openKey = pendingOpenKey(String(symbol.value), side.value)
 
   // 현재 심볼에서 기존 포지션(1개 기준)
   const existingIdx = positions.value.findIndex((p: any) => String(p.symbol) === String(symbol.value))
@@ -1962,6 +2022,7 @@ async function openPosition() {
   const qtyNew = (usedNet * leverageForQty) / price
 
   let tempId: number | null = null
+  let optimisticPositionSnapshot: any = null
   if (mergeTarget) {
     const oldQty = Number(mergeTarget.qty || 0)
     const oldEntry = Number(mergeTarget.entry_price || 0)
@@ -1972,22 +2033,31 @@ async function openPosition() {
     // margin은 "사용자가 투입한 금액(gross)"을 누적해서 저장
     mergeTarget.margin = Number(mergeTarget.margin || 0) + usedGross
     mergeTarget._optimistic = true
+    optimisticPositionSnapshot = { ...mergeTarget }
   } else {
     tempId = -Date.now()
-    positions.value = [
-      {
-        id: tempId,
-        symbol: symbol.value,
-        side: side.value,
-        qty: qtyNew,
-        entry_price: price,
-        leverage: Number(leverage.value || 1),
-        margin: usedGross,
-        created_at: new Date().toISOString(),
-        _optimistic: true
-      },
-      ...positions.value
-    ]
+    optimisticPositionSnapshot = {
+      id: tempId,
+      symbol: symbol.value,
+      side: side.value,
+      qty: qtyNew,
+      entry_price: price,
+      leverage: Number(leverage.value || 1),
+      margin: usedGross,
+      created_at: new Date().toISOString(),
+      _optimistic: true
+    }
+    positions.value = [optimisticPositionSnapshot, ...positions.value]
+  }
+
+  if (optimisticPositionSnapshot) {
+    upsertPendingOpenJob({
+      key: openKey,
+      symbol: String(symbol.value),
+      side: side.value,
+      optimisticPosition: { ...optimisticPositionSnapshot },
+      createdAt: new Date().toISOString()
+    })
   }
 
   // 잔고 차감(입력한 금액(gross)만큼만 차감)
@@ -2010,10 +2080,20 @@ async function openPosition() {
     })
     tradeMsg.value = '포지션이 오픈되었습니다.'
     // 서버 데이터로 최종 동기화(백그라운드)
-    loadAccount().catch(() => {})
+    loadAccount()
+      .then(() => {
+        const stillPending = pendingOpenJobs.value.some((j) => String(j.key) === String(openKey))
+        if (stillPending) {
+          setTimeout(() => {
+            loadAccount().catch(() => {})
+          }, 600)
+        }
+      })
+      .catch(() => {})
     percent.value = 50
   } catch (e: any) {
     // 실패 시 낙관적 업데이트 롤백
+    removePendingOpenJob(openKey)
     positions.value = prevPositions
     balance.value = prevBalance
     if (chartMode.value === 'built') renderEntryLines()
