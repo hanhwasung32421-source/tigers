@@ -597,6 +597,23 @@ export const conversationBackup = {
         feeIncluded: true,
         version: 't20260721-105319'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:55:15+09:00',
+      type: 'conversation',
+      userMessage: '누적수익 내역 클릭 시 뜨는 거래내역 팝업이 많으면 화면을 벗어나므로, 화면 안에 고정하고 아래에 1 2 페이지 추가 요청',
+      assistantWorkSummary: [
+        '회원 거래내역 팝업 컨테이너에 max-height를 적용해 화면을 벗어나지 않도록 수정함',
+        '팝업 테이블 영역은 내부 스크롤로 처리하도록 변경함',
+        '팝업 하단에 페이지네이션을 추가해 10건 단위로 1, 2, 3 ... 페이지 이동이 가능하도록 구현함',
+        '버전을 t20260721-105515 로 갱신함'
+      ],
+      memberTradeModalPaging: {
+        constrainedHeight: true,
+        internalScroll: true,
+        pagination: true,
+        version: 't20260721-105515'
+      }
     }
   ]
 }

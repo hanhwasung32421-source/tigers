@@ -113,7 +113,7 @@
 
     <Transition name="member-modal">
       <div v-if="tradeModalOpen && selectedMember" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4" @click.self="closeTradeModal">
-        <div class="w-full max-w-6xl rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+        <div class="flex max-h-[88vh] w-full max-w-6xl flex-col rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <div class="flex items-start justify-between gap-3">
             <div>
               <h2 class="text-lg font-semibold text-slate-100">{{ selectedMember.name }} 거래내역</h2>
@@ -124,7 +124,7 @@
             <button type="button" class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-100 hover:bg-white/15" @click="closeTradeModal">닫기</button>
           </div>
 
-          <div class="mt-4 overflow-auto">
+          <div class="mt-4 min-h-0 flex-1 overflow-auto">
             <table class="min-w-full text-xs text-slate-200">
               <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
                 <tr>
@@ -140,10 +140,10 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="!tradeLoading && memberTrades.length === 0" class="border-b border-[#0d2438]">
+                <tr v-if="!tradeLoading && pagedMemberTrades.length === 0" class="border-b border-[#0d2438]">
                   <td colspan="9" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
                 </tr>
-                <tr v-for="t in memberTrades" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
+                <tr v-for="t in pagedMemberTrades" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
                   <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(t.created_at) }}</td>
                   <td class="px-3 py-3 font-semibold text-slate-100">{{ t.symbol }}</td>
                   <td class="px-3 py-3 text-slate-200">{{ t.orderType }}</td>
@@ -165,6 +165,45 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div class="mt-4 flex items-center justify-center gap-2" v-if="memberTradeTotalPages > 1">
+            <button
+              class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30"
+              :disabled="memberTradePage <= 1"
+              @click="memberTradePage = 1"
+            >
+              «
+            </button>
+            <button
+              class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30"
+              :disabled="memberTradePage <= 1"
+              @click="memberTradePage--"
+            >
+              ‹
+            </button>
+            <button
+              v-for="p in memberTradePageNumbers"
+              :key="`member-trade-page-${p}`"
+              class="min-w-9 rounded px-3 py-1.5 text-center text-sm"
+              :class="p === memberTradePage ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+              @click="memberTradePage = p"
+            >
+              {{ p }}
+            </button>
+            <button
+              class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30"
+              :disabled="memberTradePage >= memberTradeTotalPages"
+              @click="memberTradePage++"
+            >
+              ›
+            </button>
+            <button
+              class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30"
+              :disabled="memberTradePage >= memberTradeTotalPages"
+              @click="memberTradePage = memberTradeTotalPages"
+            >
+              »
+            </button>
           </div>
           <p v-if="tradeError" class="mt-3 text-sm text-rose-300">{{ tradeError }}</p>
         </div>
@@ -268,6 +307,8 @@ const selectedMember = ref<MemberRow | null>(null)
 const memberTrades = ref<MemberTradeRow[]>([])
 const tradeLoading = ref(false)
 const tradeError = ref<string | null>(null)
+const memberTradePage = ref(1)
+const memberTradePageSize = 10
 const balanceDraft = ref(0)
 const balanceSaving = ref(false)
 const balanceError = ref<string | null>(null)
@@ -332,9 +373,24 @@ const paged = computed(() => {
   const start = (page.value - 1) * pageSize
   return filtered.value.slice(start, start + pageSize)
 })
+const memberTradeTotalPages = computed(() => Math.max(1, Math.ceil(memberTrades.value.length / memberTradePageSize)))
+const pagedMemberTrades = computed(() => {
+  const start = (memberTradePage.value - 1) * memberTradePageSize
+  return memberTrades.value.slice(start, start + memberTradePageSize)
+})
+const memberTradePageNumbers = computed(() => {
+  const total = memberTradeTotalPages.value
+  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
+  const start = Math.max(1, Math.min(memberTradePage.value - 2, total - 4))
+  return Array.from({ length: 5 }, (_, i) => start + i)
+})
 
 watch(filtered, () => {
   if (page.value > totalPages.value) page.value = totalPages.value
+})
+
+watch(memberTrades, () => {
+  if (memberTradePage.value > memberTradeTotalPages.value) memberTradePage.value = memberTradeTotalPages.value
 })
 
 async function load(silent = false) {
@@ -365,6 +421,7 @@ async function loadMemberTrades(silent = false) {
       query: { limit: 200, offset: 0, userId: selectedMember.value.id }
     })
     memberTrades.value = res.items || []
+    memberTradePage.value = 1
     tradeError.value = null
   } catch (e: any) {
     tradeError.value = e?.data?.statusMessage || '거래 내역을 불러오지 못했습니다.'
@@ -376,12 +433,14 @@ async function loadMemberTrades(silent = false) {
 async function openTradeModal(member: MemberRow) {
   selectedMember.value = member
   tradeModalOpen.value = true
+  memberTradePage.value = 1
   await loadMemberTrades()
 }
 
 function closeTradeModal() {
   tradeModalOpen.value = false
   memberTrades.value = []
+  memberTradePage.value = 1
   tradeError.value = null
   if (!balanceModalOpen.value) selectedMember.value = null
 }
