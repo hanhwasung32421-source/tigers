@@ -516,6 +516,22 @@ export const conversationBackup = {
         widened: true,
         version: 't20260721-102812'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:31:01+09:00',
+      type: 'conversation',
+      userMessage: '수익카드 레이아웃/디자인을 첨부 참고 형태로 고급스럽게 수정 요청',
+      assistantWorkSummary: [
+        '청산 수익카드를 첨부 참고형 세로 레이아웃으로 변경함',
+        '수익률/원화손익/코인/레버리지/진입가/종료가 정보의 글씨 크기와 시각적 계층을 재조정함',
+        '배경을 더 어둡고 고급스럽게 보이도록 다층 그라데이션, 원형 라인, 미세 격자, 워터마크 비트코인 심볼을 사용해 재구성함',
+        '버전을 t20260721-103101 로 갱신함'
+      ],
+      profitCardDesign: {
+        layoutUpdated: true,
+        luxuryDarkBackground: true,
+        version: 't20260721-103101'
+      }
     }
   ]
 }
