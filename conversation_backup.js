@@ -630,6 +630,23 @@ export const conversationBackup = {
         topMenuLoadingOverlay: true,
         version: 't20260721-105804'
       }
+    },
+    {
+      timestamp: '2026-07-21T11:06:10+09:00',
+      type: 'conversation',
+      userMessage: '주문하기 수정: 수량 위 구매가격(실시간 현재가), 레버리지 아래 첨부2 내용+%바, 하단 보유자산/사용가능금액/미실현총손익 표시',
+      assistantWorkSummary: [
+        '주문하기 패널에 구매가격(차트 현재가)을 추가해 실시간으로 표시되게 함',
+        '레버리지 영역을 첨부2 형태로 재구성하고, 레버리지 배율 바와 % 버튼(10/25/50/75/100)으로 빠른 설정이 가능하게 함(기본 100)',
+        '패널 하단에 보유자산(증거금 포함), 사용가능 금액(USDT+원), 미실현 총 손익(USDT+원) 요약을 추가함',
+        '버전을 t20260721-110610 로 갱신함'
+      ],
+      orderPanelUi: {
+        buyPriceLive: true,
+        leverageDetail: true,
+        assetsSummary: true,
+        version: 't20260721-110610'
+      }
     }
   ]
 }

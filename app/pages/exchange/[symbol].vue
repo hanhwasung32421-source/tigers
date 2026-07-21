@@ -256,35 +256,53 @@
           주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
         </div>
 
-        <div v-else class="mt-3 h-[500px] rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
-          <!-- 사용가능 금액 (원화 표기 제거) -->
-          <div class="rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-2 ring-1 ring-white/10">
-            <div class="flex items-center justify-between">
-              <div class="text-sm font-semibold text-slate-200">사용가능 금액</div>
-              <div class="text-right font-mono text-lg text-slate-100">{{ balanceDisplay }} USDT</div>
+        <div v-else class="mt-3 flex h-[500px] flex-col rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
+          <div class="flex-1">
+            <!-- 레버리지 (첨부2 스타일) -->
+            <div class="rounded-lg border border-white/10 bg-[#071722] p-3">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-semibold text-slate-100">레버리지</div>
+                <button type="button" class="font-mono text-sm text-slate-200 hover:text-white" @click="openLeverageModal">{{ leverage }}x ▸</button>
+              </div>
+              <div class="mt-3 flex items-center justify-between text-xs text-slate-300">
+                <span class="text-slate-400">레버리지 배율</span>
+                <div class="flex items-center gap-2">
+                  <div class="h-2 w-36 overflow-hidden rounded bg-black/30 ring-1 ring-white/10">
+                    <div class="h-full bg-cyan-400/60" :style="{ width: leveragePct + '%' }" />
+                  </div>
+                  <span class="font-mono text-slate-200">x{{ leverage }}</span>
+                </div>
+              </div>
+              <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                <span>최대 레버리지</span>
+                <span class="font-mono text-slate-200">x100</span>
+              </div>
+
+              <div class="mt-3">
+                <input v-model.number="leverage" type="range" min="1" max="100" step="1" class="w-full accent-[#0c9f8e]" />
+                <div class="mt-2 grid grid-cols-5 gap-2">
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(10)">10%</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(25)">25%</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(50)">50%</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(75)">75%</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(100)">100%</button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div class="mt-4 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              class="flex items-center justify-between rounded-lg border border-white/10 bg-[#071722] px-3 py-3 text-left hover:bg-[#0a1a27]"
-              @click="openLeverageModal"
-            >
-              <span class="text-xs text-slate-400">레버리지</span>
-              <span class="font-mono text-[#d1d4dc]">{{ leverage }}x ▸</span>
-            </button>
-            <button
-              type="button"
-              class="flex items-center justify-between rounded-lg border border-[#0aa37f]/70 bg-[#062018] px-3 py-3 text-left hover:bg-[#08281f]"
-              @click="openLeverageModal"
-            >
-              <span class="text-sm font-medium text-[#36f2c6]">Isolated</span>
-              <span class="text-[#36f2c6]">▸</span>
-            </button>
-          </div>
+            <form class="mt-4 space-y-3" @submit.prevent>
+              <!-- 구매가격 -->
+              <div>
+                <div class="flex items-center justify-between text-xs text-slate-300">
+                  <span class="font-medium whitespace-nowrap">구매가격</span>
+                  <span class="font-mono text-slate-400">USDT</span>
+                </div>
+                <div class="mt-2 flex items-center justify-between rounded-md border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-slate-100">
+                  <span>{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</span>
+                  <span class="text-slate-400">USDT</span>
+                </div>
+              </div>
 
-          <form class="mt-4 space-y-3" @submit.prevent>
             <!-- 수량/비중 -->
             <div class="flex items-center justify-between text-xs text-slate-300">
               <span class="font-medium whitespace-nowrap">수량</span>
@@ -333,6 +351,36 @@
             <p v-if="error" class="text-sm text-rose-300">{{ error }}</p>
             <p v-if="tradeMsg" class="text-sm text-emerald-300">{{ tradeMsg }}</p>
           </form>
+          </div>
+
+          <!-- 하단: 보유자산/사용가능/미실현 총 손익 -->
+          <div class="mt-4 rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-3 ring-1 ring-white/10">
+            <div class="text-sm font-semibold text-slate-100">보유자산</div>
+            <div class="mt-3 flex items-center justify-between">
+              <div class="text-xs text-slate-400">보유자산(증거금포함)</div>
+              <div class="font-mono text-sm text-slate-100">{{ totalAssetsDisplay }} USDT</div>
+            </div>
+
+            <div class="mt-4 flex items-start justify-between">
+              <div class="text-sm font-semibold text-slate-200">사용가능 금액</div>
+              <div class="text-right">
+                <div class="font-mono text-sm text-slate-100">{{ balanceDisplay }} USDT</div>
+                <div class="mt-0.5 font-mono text-xs text-slate-500">{{ availableWonText }} 원</div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex items-start justify-between">
+              <div class="text-sm font-semibold text-slate-200">미실현 총 손익</div>
+              <div class="text-right">
+                <div class="font-mono text-sm" :class="totalUnrealizedPnl >= 0 ? 'text-rose-300' : 'text-sky-300'">
+                  {{ totalUnrealizedPnl >= 0 ? '+' : '' }}{{ totalUnrealizedPnl.toFixed(4) }} USDT
+                </div>
+                <div class="mt-0.5 font-mono text-xs text-slate-500">
+                  {{ totalUnrealizedPnl >= 0 ? '+' : '' }}{{ totalUnrealizedWonText }} 원
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       </div>
@@ -1087,6 +1135,39 @@ const balanceDisplay = computed(() => {
   const v = Number(balance.value || 0)
   return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 5 })
 })
+
+const KRW_RATE = 1350
+const leveragePct = computed(() => {
+  const v = Math.max(0, Math.min(100, Number(leverage.value || 0)))
+  return v
+})
+
+function setLeverage(v: number) {
+  leverage.value = Math.max(1, Math.min(100, Math.round(Number(v) || 1)))
+  leverageDraft.value = leverage.value
+  scheduleSavePrefs()
+}
+
+const totalAssetsUsdt = computed(() => {
+  const marginNet = positions.value.reduce((s: number, p: any) => s + Math.max(0, netMarginFromGross(Number(p?.margin || 0))), 0)
+  return Number(balance.value || 0) + marginNet
+})
+
+const totalAssetsDisplay = computed(() =>
+  Number(totalAssetsUsdt.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+)
+
+const availableWonText = computed(() => Math.round(Number(balance.value || 0) * KRW_RATE).toLocaleString())
+
+const totalUnrealizedPnl = computed(() => {
+  return visiblePositions.value.reduce((s: number, p: any) => {
+    const u = unrealized(p)
+    const pnl = Number(u?.pnl ?? 0)
+    return s + (Number.isFinite(pnl) ? pnl : 0)
+  }, 0)
+})
+
+const totalUnrealizedWonText = computed(() => Math.round(Number(totalUnrealizedPnl.value || 0) * KRW_RATE).toLocaleString())
 
 function setPercent(v: number) {
   percent.value = Math.max(0, Math.min(100, Math.round(v)))
