@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-2">
     <!-- 메인 영역 (차트 / 호가 / 주문하기) -->
     <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
     <div class="overflow-x-hidden">
@@ -72,7 +72,7 @@
           </div>
         </div>
 
-        <div class="flex h-[600px] bg-[#131722]">
+        <div class="flex h-[560px] bg-[#131722]">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2">
             <button
               type="button"
@@ -246,8 +246,8 @@
           주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
         </div>
 
-        <div v-else class="mt-3 flex min-h-[500px] flex-col rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
-          <div class="flex-1">
+        <div v-else class="mt-3 flex flex-col rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
+          <div>
             <!-- 레버리지 (첨부2 스타일) -->
             <div class="rounded-lg border border-white/10 bg-[#071722] p-3">
               <div class="flex items-center justify-between">
@@ -269,7 +269,28 @@
               </div>
 
               <div class="mt-3">
-                <input v-model.number="leverage" type="range" min="1" max="100" step="1" class="w-full accent-[#0c9f8e]" />
+                <div class="relative">
+                  <div
+                    v-if="showLeverageTooltip"
+                    class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[11px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
+                    :style="leverageTooltipStyle"
+                  >
+                    x{{ leverage }}
+                  </div>
+                  <input
+                    v-model.number="leverage"
+                    type="range"
+                    min="1"
+                    max="100"
+                    step="1"
+                    class="w-full accent-[#0c9f8e]"
+                    @pointerdown="showLeverageTooltip = true"
+                    @input="showLeverageTooltip = true"
+                    @change="showLeverageTooltip = false"
+                    @pointerup="showLeverageTooltip = false"
+                    @pointercancel="showLeverageTooltip = false"
+                  />
+                </div>
                 <div class="mt-2 grid grid-cols-5 gap-2">
                   <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(10)">x10</button>
                   <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(25)">x25</button>
@@ -338,8 +359,8 @@
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-sm font-semibold text-white hover:bg-[#0cb88f]"
-                  :disabled="loading"
+                  class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-sm font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="isTradeSyncing"
                   @click="onOpen('long')"
                 >
                   구매 / 롱
@@ -349,8 +370,8 @@
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-sm font-semibold text-white hover:bg-[#d41821]"
-                  :disabled="loading"
+                  class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-sm font-semibold text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="isTradeSyncing"
                   @click="onOpen('short')"
                 >
                   판매 / 숏
@@ -365,7 +386,7 @@
           </div>
 
           <!-- 하단: 보유자산/사용가능 -->
-          <div class="mt-4 rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-3 ring-1 ring-white/10">
+          <div class="mt-2 rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-3 ring-1 ring-white/10">
             <div class="text-sm font-semibold text-slate-100">보유자산</div>
             <div class="mt-3 flex items-center justify-between">
               <div class="text-xs text-slate-400">보유자산(증거금포함)</div>
@@ -387,32 +408,46 @@
 
     <!-- 하단: 포지션 테이블 -->
       <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 text-sm font-semibold">
-          <button
-            type="button"
-            class="rounded-md px-4 py-2 ring-1"
-            :class="bottomTab === 'positions' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
-            @click="bottomTab = 'positions'"
-          >
-            포지션
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-4 py-2 text-xs ring-1"
-            :class="bottomTab === 'fills' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
-            @click="bottomTab = 'fills'"
-          >
-            거래내역
-          </button>
-        </div>
-      </div>
+      <div class="grid grid-cols-1 gap-3 lg:grid-cols-[0.3fr_0.7fr]">
+        <aside class="rounded-lg border border-cyan-500/10 bg-[#031019] p-3">
+          <div class="flex items-center gap-2 text-sm font-semibold">
+            <button
+              type="button"
+              class="rounded-md px-3 py-2 ring-1"
+              :class="bottomTab === 'positions' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
+              @click="bottomTab = 'positions'"
+            >
+              포지션
+            </button>
+            <button
+              type="button"
+              class="rounded-md px-3 py-2 text-xs ring-1"
+              :class="bottomTab === 'fills' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
+              @click="bottomTab = 'fills'"
+            >
+              거래내역
+            </button>
+          </div>
 
-      <div class="mt-3" v-if="bottomTab === 'positions'">
+          <div class="mt-3 space-y-1 text-xs text-slate-300">
+            <div v-if="fills.length === 0" class="rounded bg-black/20 px-2 py-2 text-slate-500">거래내역 없음</div>
+            <div v-for="t in fills.slice(0, 10)" :key="`left-fill-${t.id}`" class="rounded bg-black/20 px-2 py-1.5 font-mono">
+              <div class="flex items-center justify-between gap-2">
+                <span class="truncate text-slate-200">{{ shortSymbol(t.symbol) }}</span>
+                <span :class="Number(t.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
+                  {{ Number(t.pnl) >= 0 ? '+' : '' }}{{ Number(t.pnl).toFixed(3) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div>
+      <div v-if="bottomTab === 'positions'">
         <table class="w-full text-[14px]">
           <thead class="text-[13px] text-slate-500">
             <tr class="text-left">
-              <th class="py-2">코인</th>
+              <th class="py-2">종목</th>
               <th class="py-2">포지션</th>
               <th class="py-2">수량</th>
               <th class="py-2">진입가격</th>
@@ -435,7 +470,15 @@
                     {{ p.symbol?.slice(0, 1) }}
                   </span>
                   <span class="font-mono">{{ p.symbol }}</span>
-                  <span class="rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10">x{{ p.leverage }}</span>
+                  <button
+                    type="button"
+                    class="rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10"
+                    :class="isAdminUser ? 'cursor-pointer hover:bg-white/15' : 'cursor-default'"
+                    :disabled="!isAdminUser"
+                    @click="openPositionEditModal(p, 'leverage')"
+                  >
+                    x{{ p.leverage }}
+                  </button>
                 </div>
               </td>
               <td class="py-2" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
@@ -452,11 +495,41 @@
                   {{ p.side === 'long' ? '롱' : '숏' }}
                 </span>
               </td>
-              <td class="py-2 font-mono">{{ fmtQty(p.symbol, p.qty) }}</td>
-              <td class="py-2 font-mono">{{ fmtPrice(Number(p.entry_price)) }}</td>
+              <td class="py-2 font-mono">
+                <button
+                  type="button"
+                  class="font-mono"
+                  :class="isAdminUser ? 'cursor-pointer hover:text-cyan-300' : 'cursor-default'"
+                  :disabled="!isAdminUser"
+                  @click="openPositionEditModal(p, 'qty')"
+                >
+                  {{ fmtQty(p.symbol, p.qty) }}
+                </button>
+              </td>
+              <td class="py-2 font-mono">
+                <button
+                  type="button"
+                  class="font-mono"
+                  :class="isAdminUser ? 'cursor-pointer hover:text-cyan-300' : 'cursor-default'"
+                  :disabled="!isAdminUser"
+                  @click="openPositionEditModal(p, 'entry_price')"
+                >
+                  {{ fmtPrice(Number(p.entry_price)) }}
+                </button>
+              </td>
               <td class="py-2 font-mono">{{ markOf(p.symbol) ? fmtPrice(markOf(p.symbol)) : '—' }}</td>
               <td class="py-2 font-mono">{{ fmtPrice(calcLiqPrice(p)) }}</td>
-              <td class="py-2 font-mono">{{ Number(p.margin).toFixed(5) }}</td>
+              <td class="py-2 font-mono">
+                <button
+                  type="button"
+                  class="font-mono"
+                  :class="isAdminUser ? 'cursor-pointer hover:text-cyan-300' : 'cursor-default'"
+                  :disabled="!isAdminUser"
+                  @click="openPositionEditModal(p, 'margin')"
+                >
+                  {{ Number(p.margin).toFixed(5) }}
+                </button>
+              </td>
               <td class="py-2">
                 <div class="font-mono" :class="unrealized(p).pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'">
                   {{ unrealized(p).pnl >= 0 ? '+' : '' }}{{ unrealized(p).pnl.toFixed(5) }}
@@ -467,7 +540,11 @@
               </td>
               <td class="py-2">
                 <div class="flex items-center gap-2">
-                  <button class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b]" @click="closePosition(p.id, 'market', p)">
+                  <button
+                    class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="isTradeSyncing"
+                    @click="closePosition(p.id, 'market', p)"
+                  >
                     청산
                   </button>
                 </div>
@@ -476,7 +553,7 @@
           </tbody>
         </table>
       </div>
-      <div v-else-if="bottomTab === 'fills'" ref="fillsWrap" class="mt-3 max-h-[360px] overflow-auto rounded-lg bg-black/10" @scroll="onFillsScroll">
+      <div v-else-if="bottomTab === 'fills'" ref="fillsWrap" class="max-h-[360px] overflow-auto rounded-lg bg-black/10" @scroll="onFillsScroll">
         <table class="w-full text-xs">
           <thead class="sticky top-0 bg-slate-950/95 text-slate-400">
             <tr class="text-left">
@@ -523,8 +600,10 @@
           </tbody>
         </table>
       </div>
-      <div v-else class="mt-3 rounded-lg bg-black/20 p-4 text-sm text-slate-400">
+      <div v-else class="rounded-lg bg-black/20 p-4 text-sm text-slate-400">
         준비중입니다.
+      </div>
+        </div>
       </div>
     </section>
 
@@ -662,6 +741,47 @@
         </div>
       </div>
     </Transition>
+
+    <div
+      v-if="positionEditModal.open"
+      class="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 px-4"
+      @click.self="closePositionEditModal"
+    >
+      <div class="w-full max-w-xs rounded-2xl border border-white/10 bg-[#111923] p-4 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold text-slate-100">포지션 수정</div>
+            <div class="mt-1 text-xs text-slate-400">{{ positionEditModal.label }}</div>
+          </div>
+          <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closePositionEditModal">✕</button>
+        </div>
+
+        <div class="mt-4">
+          <input
+            v-model="positionEditModal.value"
+            type="number"
+            step="any"
+            min="0"
+            class="w-full rounded-lg border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-sm text-slate-100 outline-none focus:border-cyan-500/50"
+            @keydown.enter.prevent="submitPositionEdit"
+          />
+        </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+          <button type="button" class="rounded-lg bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="closePositionEditModal">
+            취소
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-[#0aa37f] px-3 py-2 text-sm font-semibold text-white hover:bg-[#0cb88f] disabled:opacity-60"
+            :disabled="positionEditModal.saving"
+            @click="submitPositionEdit"
+          >
+            {{ positionEditModal.saving ? '저장중…' : '저장' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -731,6 +851,10 @@ const showPercentTooltip = ref(false)
 const percentTooltipStyle = computed(() => ({
   left: `calc(${percent.value}% - ${(percent.value / 100) * 16}px)`
 }))
+const showLeverageTooltip = ref(false)
+const leverageTooltipStyle = computed(() => ({
+  left: `calc(${Math.max(0, Number(leverage.value || 0))}% - ${(Math.max(0, Number(leverage.value || 0)) / 100) * 16}px)`
+}))
 // 지정가 입력 제거
 
 const { me, refresh: refreshMe } = useMe()
@@ -779,6 +903,28 @@ const tradeMsg = ref<string | null>(null)
 const TRADE_FEE_RATE = 0.04
 const LIQUIDATION_TRIGGER_ROE = -50
 const LIQUIDATION_TRIGGER_FRACTION = 0.5
+const isAdminUser = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+const positionEditModal = reactive<{
+  open: boolean
+  positionId: number
+  key: 'qty' | 'entry_price' | 'margin' | 'leverage' | ''
+  label: string
+  value: string
+  saving: boolean
+}>({
+  open: false,
+  positionId: 0,
+  key: '',
+  label: '',
+  value: '',
+  saving: false
+})
+const isTradeSyncing = computed(() =>
+  loading.value ||
+  accountSyncing ||
+  pendingOpenJobs.value.length > 0 ||
+  pendingCloseJobs.value.length > 0
+)
 const closeSummary = ref<null | {
   symbol: string
   side: 'long' | 'short'
@@ -1494,6 +1640,59 @@ function openLeverageModal() {
 
 function closeLeverageModal() {
   leverageModalOpen.value = false
+}
+
+function openPositionEditModal(pos: any, key: 'qty' | 'entry_price' | 'margin' | 'leverage') {
+  if (!isAdminUser.value) return
+  const labels: Record<string, string> = {
+    qty: '수량',
+    entry_price: '진입가격',
+    margin: '증거금',
+    leverage: '레버리지'
+  }
+  positionEditModal.open = true
+  positionEditModal.positionId = Number(pos.id)
+  positionEditModal.key = key
+  positionEditModal.label = labels[key] || key
+  positionEditModal.value = String(Number(pos?.[key] ?? 0))
+  positionEditModal.saving = false
+}
+
+function closePositionEditModal() {
+  positionEditModal.open = false
+  positionEditModal.positionId = 0
+  positionEditModal.key = ''
+  positionEditModal.label = ''
+  positionEditModal.value = ''
+  positionEditModal.saving = false
+}
+
+async function submitPositionEdit() {
+  if (!isAdminUser.value || !positionEditModal.open || !positionEditModal.key) return
+  const numericValue = Number(positionEditModal.value)
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    error.value = '수정값은 0보다 커야 합니다.'
+    return
+  }
+
+  positionEditModal.saving = true
+  error.value = null
+  try {
+    await $fetch('/api/admin/positions/update', {
+      method: 'POST',
+      body: {
+        positionId: positionEditModal.positionId,
+        field: positionEditModal.key,
+        value: numericValue
+      }
+    })
+    await loadAccount()
+    closePositionEditModal()
+  } catch (e: any) {
+    error.value = e?.data?.statusMessage || '포지션 수정에 실패했습니다.'
+  } finally {
+    positionEditModal.saving = false
+  }
 }
 
 function setLeverageDraft(v: number) {
@@ -2396,7 +2595,7 @@ async function openPosition() {
         price
       }
     })
-    tradeMsg.value = '포지션이 오픈되었습니다.'
+    tradeMsg.value = null
     // 서버 데이터로 최종 동기화(백그라운드)
     loadAccount()
       .then(() => {

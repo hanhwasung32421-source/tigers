@@ -929,7 +929,31 @@ export const conversationBackup = {
       orderPanelAndAvailableBalanceFix: {
         orderLabelChanged: true,
         pendingCloseProtected: true,
-        version: '2026년 7월 21일 (화) - 16'
+        version: '2026년 7월 21일 (화) - 18'
+      }
+    },
+    {
+      timestamp: '2026-07-21T15:56:40+09:00',
+      type: 'conversation',
+      userMessage: '관리자 전용 포지션 수정, 주문/청산 버튼 연동 중 비활성화, 레버리지 슬라이더 툴팁, 하단 포지션/거래내역 레이아웃 재배치, 주문 성공 문구 제거 및 빈 공간 정리 요청',
+      assistantWorkSummary: [
+        '일반 사용자는 그대로 두고, 관리자 로그인 시 하단 포지션 테이블의 수량/진입가격/증거금/레버리지를 클릭하면 작은 팝업으로 즉시 수정할 수 있게 구현함',
+        '관리자 전용 포지션 수정 API `/api/admin/positions/update` 를 추가함',
+        '포지션 테이블 헤더 `코인`을 `종목`으로 변경함',
+        '구매/롱, 판매/숏, 청산 버튼은 Supabase 내부 연동 중(`loading`, `accountSyncing`, pending open/close`)에는 비활성화되고, 연동 종료 후 다시 활성화되게 수정함',
+        '주문 테이블의 레버리지 슬라이더도 수량 슬라이더처럼 드래그 중 `x배` 툴팁이 마우스 위치를 따라 표시되게 추가함',
+        '매수/매도 완료 후 뜨던 `포지션이 오픈되었습니다.` 문구를 제거함',
+        '하단 포지션 영역은 왼쪽 30% 보조영역에 `포지션/거래내역` 버튼과 최근 거래내역 한줄 리스트를 배치하고, 오른쪽 70% 메인영역에 현재 탭 표가 바로 상단에 붙도록 레이아웃을 재구성함',
+        '주문 영역 하단의 빈 공간을 줄이고 보유자산/사용가능 금액 블록을 위로 올렸으며, 전체 하단 간격도 함께 축소함',
+        '버전을 2026년 7월 21일 (화) - 18 로 갱신함'
+      ],
+      exchangeBottomPanelAndAdminEditUpdate: {
+        adminInlineEdit: true,
+        tradeButtonsDisabledWhileSyncing: true,
+        leverageTooltip: true,
+        orderOpenMessageRemoved: true,
+        bottomPanelRelayout: true,
+        version: '2026년 7월 21일 (화) - 18'
       }
     }
   ]
