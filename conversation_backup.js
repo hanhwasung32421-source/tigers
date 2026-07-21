@@ -698,6 +698,19 @@ export const conversationBackup = {
         jitter500ms: true,
         version: 't20260721-132935'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:19:54+09:00',
+      type: 'conversation',
+      userMessage: '버전 표기 형식을 날짜형으로 변경: 오늘 날짜 + 끝자리 숫자 증가 방식',
+      assistantWorkSummary: [
+        'version.json 버전 문자열을 기존 t형식에서 "2026년 7월 21일 (화) - 1" 형식으로 변경함',
+        '앞으로 같은 날짜 내 수정 시 끝자리 숫자만 1씩 증가시키는 규칙으로 맞추기로 함'
+      ],
+      versionFormat: {
+        format: 'YYYY년 M월 D일 (요일) - N',
+        current: '2026년 7월 21일 (화) - 1'
+      }
     }
   ]
 }
