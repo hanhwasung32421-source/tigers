@@ -556,11 +556,13 @@
         >
           <div class="pointer-events-none absolute inset-0">
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(20,184,166,0.16),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(15,118,110,0.14),transparent_24%),radial-gradient(circle_at_52%_58%,rgba(16,185,129,0.10),transparent_26%)]" />
-            <div class="absolute -right-10 top-14 h-56 w-56 rounded-full border border-emerald-300/10" />
-            <div class="absolute -right-3 top-21 h-42 w-42 rounded-full border border-emerald-300/10" />
-            <div class="absolute inset-y-0 left-0 w-full bg-[linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:40px_100%] opacity-[0.07]" />
-            <div class="absolute inset-x-0 top-0 h-full bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:100%_40px] opacity-[0.06]" />
-            <div class="absolute right-4 top-3 text-[180px] font-black leading-none text-white/[0.035]">₿</div>
+            <div class="absolute right-[-18px] top-[62px] h-[220px] w-[220px] rounded-full border border-emerald-300/10" />
+            <div class="absolute right-[2px] top-[82px] h-[180px] w-[180px] rounded-full border border-emerald-300/10" />
+            <div class="absolute right-[22px] top-[102px] h-[140px] w-[140px] rounded-full border border-emerald-300/10" />
+            <div class="absolute right-[42px] top-[122px] flex h-[100px] w-[100px] items-center justify-center rounded-full border border-emerald-300/10 bg-emerald-300/[0.015] text-[56px] font-black leading-none text-white/[0.08]">
+              B
+            </div>
+            <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.014)_1px,transparent_1px)] bg-[length:26px_26px] opacity-[0.10]" />
           </div>
           <button
             type="button"

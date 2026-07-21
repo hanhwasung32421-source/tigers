@@ -548,6 +548,23 @@ export const conversationBackup = {
         appliesToAdminAndUser: true,
         version: 't20260721-103458'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:39:19+09:00',
+      type: 'conversation',
+      userMessage: '수익카드 배경에 아주 연한 바둑판 격자 추가, 원형 장식을 2~3겹 링으로 만들고 중앙에 B 글자 표시 요청',
+      assistantWorkSummary: [
+        '수익카드 배경 위에 아주 연한 바둑판 격자를 추가함',
+        '우측 원형 장식을 3중 링 구조로 변경함',
+        '원형 중앙에 연한 B 글자를 넣어 카드 배경 디테일을 강화함',
+        '버전을 t20260721-103919 로 갱신함'
+      ],
+      profitCardDetail: {
+        gridAdded: true,
+        multiRingCircle: true,
+        centerBAdded: true,
+        version: 't20260721-103919'
+      }
     }
   ]
 }
