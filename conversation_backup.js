@@ -797,6 +797,35 @@ export const conversationBackup = {
         positionTextIncreased: true,
         version: '2026년 7월 21일 (화) - 6'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:50:10+09:00',
+      type: 'conversation',
+      userMessage: '주문하기 아래 보유자산 숫자가 매수 직후 줄었다가 다시 올라갔다가 다시 줄어드는 문제 수정 요청',
+      assistantWorkSummary: [
+        '문제 원인을 주문 직후 낙관적 잔고 반영 뒤, 늦게 도착한 이전 /api/account 응답이 더 큰 서버 잔고로 UI를 한 번 덮어쓰는 흐름으로 확인함',
+        'loadAccount 에서 pending open 상태일 때는 현재 UI 잔고보다 더 큰 서버 잔고값으로 다시 올리지 않도록 수정함',
+        '이제 주문 직후 보유자산/사용가능 금액이 줄어든 뒤 예전 값으로 잠깐 되돌아가지 않게 처리함',
+        '버전을 2026년 7월 21일 (화) - 7 로 갱신함'
+      ],
+      balanceRollbackFix: {
+        pendingOpenProtected: true,
+        version: '2026년 7월 21일 (화) - 8'
+      }
+    },
+    {
+      timestamp: '2026-07-21T14:51:04+09:00',
+      type: 'conversation',
+      userMessage: '같은 종목에서 반대 포지션 전환 시 기존 포지션이 청산될 때도 수익카드 표시 요청',
+      assistantWorkSummary: [
+        '같은 종목에서 롱 상태로 숏을 잡거나, 숏 상태로 롱을 잡아 기존 포지션이 전환 청산될 때도 청산 카드가 뜨도록 수정함',
+        '전환 시 기존 포지션의 entry/exit/pnl/roe 를 계산해 showCloseSummaryDelayed 로 일반 청산과 동일한 카드 UX를 적용함',
+        '버전을 2026년 7월 21일 (화) - 8 로 갱신함'
+      ],
+      reversePositionCloseCard: {
+        enabled: true,
+        version: '2026년 7월 21일 (화) - 8'
+      }
     }
   ]
 }

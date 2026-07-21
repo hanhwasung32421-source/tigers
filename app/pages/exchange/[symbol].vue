@@ -2012,8 +2012,16 @@ async function loadAccount() {
   accountSyncing = true
   try {
     const data = await $fetch<any>('/api/account')
-    balance.value = data.balance.usdt
+    const hadPendingOpen = pendingOpenJobs.value.length > 0
+    const serverBalance = Number(data?.balance?.usdt || 0)
     positions.value = reconcilePendingOpenPositions(data.positions || [])
+    if (hadPendingOpen && serverBalance > Number(balance.value || 0)) {
+      // 주문 직후에는 서버의 늦은 이전 잔고 응답으로 UI가 다시 올라가지 않게 함.
+      // pending open 이 남아있는 동안에는 더 큰 서버 잔고로 덮어쓰지 않는다.
+      balance.value = Number(balance.value || 0)
+    } else {
+      balance.value = serverBalance
+    }
     pruneHiddenClosingPositions(data.positions || [])
     lastAccountTs = Date.now()
   } finally {
@@ -2131,6 +2139,18 @@ async function openPosition() {
     const pnl0 = existing.side === 'short' ? -raw : raw
     const pnlClamped = Number.isFinite(net0) && net0 > 0 ? Math.max(-net0, pnl0) : pnl0
     const { settlementAfterFee } = calcSettlementAfterFee(gross0, pnlClamped)
+
+    const roeCalc = net0 > 0 ? (pnlClamped / net0) * 100 : 0
+    showCloseSummaryDelayed({
+      symbol: String(existing.symbol),
+      side: existing.side === 'short' ? 'short' : 'long',
+      leverage: Number(existing.leverage || 1),
+      entryPrice: entry0,
+      exitPrice: price,
+      pnl: pnlClamped,
+      roe: Math.max(-100, roeCalc),
+      wonText: Math.round(pnlClamped * 1350).toLocaleString()
+    })
 
     // 기존 포지션 제거 + 잔고 반영(정산금 기준)
     positions.value.splice(existingIdx, 1)
