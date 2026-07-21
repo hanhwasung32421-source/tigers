@@ -1033,7 +1033,22 @@ export const conversationBackup = {
       bottomSpacingAndChartHeightUpdate: {
         bottomTablePaddingReduced: true,
         chartHeightPx: 600,
-        version: '2026년 7월 21일 (화) - 23'
+        version: '2026년 7월 21일 (화) - 24'
+      }
+    },
+    {
+      timestamp: '2026-07-21T16:31:13+09:00',
+      type: 'conversation',
+      userMessage: '관리자 포지션 목록 테이블을 1.2배 키워 줄바꿈 없이 한 줄로 보이게 조정 요청',
+      assistantWorkSummary: [
+        '관리자 포지션 목록 테이블의 폰트 크기와 셀 패딩을 확대해 약 1.2배 크게 보이도록 조정함',
+        '테이블 전체에 `whitespace-nowrap`를 적용해 한 줄 텍스트가 두 줄로 줄바꿈되지 않게 수정함',
+        '버전을 2026년 7월 21일 (화) - 24 로 갱신함'
+      ],
+      adminPositionsTableNoWrapUpdate: {
+        scaleApprox: 1.2,
+        noWrap: true,
+        version: '2026년 7월 21일 (화) - 24'
       }
     }
   ]

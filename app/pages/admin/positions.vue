@@ -57,38 +57,38 @@
       </div>
 
       <div class="mt-4 overflow-auto">
-        <table class="min-w-full text-xs text-slate-200">
-          <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
+        <table class="w-max min-w-full whitespace-nowrap text-[13px] text-slate-200">
+          <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
-              <th class="px-3 py-3 text-left">회원 이름</th>
-              <th class="px-3 py-3 text-left">소속총판</th>
-              <th class="px-3 py-3 text-left">심볼</th>
-              <th class="px-3 py-3 text-left">주문타입</th>
-              <th class="px-3 py-3 text-left">포지션</th>
-              <th class="px-3 py-3 text-right">증거금</th>
-              <th class="px-3 py-3 text-right">레버리지</th>
-              <th class="px-3 py-3 text-right">진입가격</th>
-              <th class="px-3 py-3 text-right">계약수량</th>
-              <th class="px-3 py-3 text-right">청산가격</th>
-              <th class="px-3 py-3 text-right">수익</th>
-              <th class="px-3 py-3 text-right">수익률</th>
-              <th class="px-3 py-3 text-right">수수료</th>
-              <th class="px-3 py-3 text-center">접속확인</th>
+              <th class="px-4 py-3.5 text-left">회원 이름</th>
+              <th class="px-4 py-3.5 text-left">소속총판</th>
+              <th class="px-4 py-3.5 text-left">심볼</th>
+              <th class="px-4 py-3.5 text-left">주문타입</th>
+              <th class="px-4 py-3.5 text-left">포지션</th>
+              <th class="px-4 py-3.5 text-right">증거금</th>
+              <th class="px-4 py-3.5 text-right">레버리지</th>
+              <th class="px-4 py-3.5 text-right">진입가격</th>
+              <th class="px-4 py-3.5 text-right">계약수량</th>
+              <th class="px-4 py-3.5 text-right">청산가격</th>
+              <th class="px-4 py-3.5 text-right">수익</th>
+              <th class="px-4 py-3.5 text-right">수익률</th>
+              <th class="px-4 py-3.5 text-right">수수료</th>
+              <th class="px-4 py-3.5 text-center">접속확인</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && filteredItems.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="14" class="px-3 py-8 text-center text-slate-500">표시할 포지션이 없습니다.</td>
+              <td colspan="14" class="px-4 py-8 text-center text-slate-500">표시할 포지션이 없습니다.</td>
             </tr>
             <tr v-for="row in pagedItems" :key="row.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-3 py-3">
+              <td class="px-4 py-3.5">
                 <div class="font-semibold text-slate-100">{{ row.username }}</div>
                 <div class="mt-0.5 font-mono text-[10px] text-slate-500">(#{{ row.user_id }})</div>
               </td>
-              <td class="px-3 py-3 text-slate-300">{{ row.affiliate }}</td>
-              <td class="px-3 py-3 font-semibold text-slate-100">{{ row.symbol }}</td>
-              <td class="px-3 py-3">{{ row.orderType }}</td>
-              <td class="px-3 py-3">
+              <td class="px-4 py-3.5 text-slate-300">{{ row.affiliate }}</td>
+              <td class="px-4 py-3.5 font-semibold text-slate-100">{{ row.symbol }}</td>
+              <td class="px-4 py-3.5">{{ row.orderType }}</td>
+              <td class="px-4 py-3.5">
                 <span
                   class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
                   :class="row.position === 'LONG' ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-[#151f35] text-[#60a5fa] ring-[#3b82f6]/30'"
@@ -96,19 +96,19 @@
                   {{ row.position }}
                 </span>
               </td>
-              <td class="px-3 py-3 text-right font-mono">{{ fmtNum(row.margin) }}</td>
-              <td class="px-3 py-3 text-right font-mono">{{ row.leverage }}x</td>
-              <td class="px-3 py-3 text-right font-mono">{{ fmtPrice(row.entryPrice) }}</td>
-              <td class="px-3 py-3 text-right font-mono">{{ fmtQty(row.qty) }}</td>
-              <td class="px-3 py-3 text-right font-mono">{{ fmtPrice(row.liqPrice) }}</td>
-              <td class="px-3 py-3 text-right font-mono" :class="profitClass(row.pnl)">
+              <td class="px-4 py-3.5 text-right font-mono">{{ fmtNum(row.margin) }}</td>
+              <td class="px-4 py-3.5 text-right font-mono">{{ row.leverage }}x</td>
+              <td class="px-4 py-3.5 text-right font-mono">{{ fmtPrice(row.entryPrice) }}</td>
+              <td class="px-4 py-3.5 text-right font-mono">{{ fmtQty(row.qty) }}</td>
+              <td class="px-4 py-3.5 text-right font-mono">{{ fmtPrice(row.liqPrice) }}</td>
+              <td class="px-4 py-3.5 text-right font-mono" :class="profitClass(row.pnl)">
                 {{ signed(row.pnl) }}
               </td>
-              <td class="px-3 py-3 text-right font-mono" :class="profitClass(row.roe)">
+              <td class="px-4 py-3.5 text-right font-mono" :class="profitClass(row.roe)">
                 {{ signed(row.roe, '%') }}
               </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmtNum(row.fee) }}</td>
-              <td class="px-3 py-3 text-center">
+              <td class="px-4 py-3.5 text-right font-mono text-slate-300">{{ fmtNum(row.fee) }}</td>
+              <td class="px-4 py-3.5 text-center">
                 <span
                   class="rounded px-2 py-1 text-[10px] font-semibold"
                   :class="row.online ? 'bg-emerald-500/15 text-emerald-300' : 'bg-[#2b3445] text-slate-200'"
