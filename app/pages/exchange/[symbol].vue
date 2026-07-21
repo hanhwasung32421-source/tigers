@@ -1,12 +1,13 @@
 <template>
   <div class="space-y-4">
     <!-- 메인 영역 (차트 / 호가 / 주문하기) -->
-    <!-- 좁아져도 패널이 '줄어들어 깨지는' 대신, 최소폭 이하에서는 가로 스크롤 -->
-    <div class="overflow-x-auto">
-      <!-- 차트는 더 넓게, 호가/주문은 조금 더 슬림하게 -->
-      <div class="grid min-w-[1360px] grid-cols-[minmax(940px,1.3fr)_280px_300px] gap-3">
+    <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
+    <div class="overflow-x-hidden">
+      <div
+        class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(260px,0.6fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_300px]"
+      >
       <!-- 차트 -->
-      <section class="overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)]">
+      <section class="min-w-0 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)]">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
           <div class="flex items-center justify-between gap-3">
             <div class="flex min-w-0 items-center gap-2">
@@ -182,7 +183,7 @@
       </section>
 
       <!-- 호가(첨부 스타일) -->
-      <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
+      <section class="min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
         <div class="flex items-center justify-between">
           <div class="text-sm font-semibold text-slate-100">호가</div>
         </div>
@@ -249,7 +250,7 @@
       </section>
 
       <!-- 보유자산/주문 -->
-      <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
+      <section class="min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
         <div class="text-sm font-semibold text-slate-100">주문하기</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-sm text-slate-300 ring-1 ring-cyan-500/10">

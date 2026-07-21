@@ -647,6 +647,23 @@ export const conversationBackup = {
         assetsSummary: true,
         version: 't20260721-110610'
       }
+    },
+    {
+      timestamp: '2026-07-21T11:21:58+09:00',
+      type: 'conversation',
+      userMessage: '창모드에서 가로 스크롤이 생기지 않게 하고, 창이 좁아지면 비율 축소. 50% 이상 줄면 모바일 버전처럼 보이게',
+      assistantWorkSummary: [
+        '거래 화면 메인 그리드의 고정 min-width와 overflow-x-auto를 제거해 가로 스크롤이 생기지 않게 함',
+        'lg 이상에서는 3단 그리드가 화면 폭에 맞게 축소되도록 minmax 기반 비율 레이아웃 적용',
+        'lg 미만(창이 크게 줄어든 상태)에서는 모바일처럼 1열(세로 스택) 레이아웃으로 자동 전환되게 함',
+        '버전을 t20260721-112158 로 갱신함'
+      ],
+      tradingResponsive: {
+        noHorizontalScroll: true,
+        desktopShrink: true,
+        mobileStackUnderLg: true,
+        version: 't20260721-112158'
+      }
     }
   ]
 }
