@@ -413,16 +413,20 @@
           <div class="flex flex-col gap-2 text-sm font-semibold">
             <button
               type="button"
-              class="rounded-md px-3 py-2 text-left ring-1"
-              :class="bottomTab === 'positions' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
+              class="rounded-md px-3 py-2 text-center text-sm ring-1 transition"
+              :class="bottomTab === 'positions'
+                ? 'bg-cyan-500/18 text-cyan-100 ring-cyan-300/40 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.16),0_6px_18px_rgba(8,145,178,0.18)]'
+                : 'bg-[#031019] text-slate-300 ring-white/10 hover:bg-white/5'"
               @click="bottomTab = 'positions'"
             >
               포지션
             </button>
             <button
               type="button"
-              class="rounded-md px-3 py-2 text-left text-xs ring-1"
-              :class="bottomTab === 'fills' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
+              class="rounded-md px-3 py-2 text-center text-sm ring-1 transition"
+              :class="bottomTab === 'fills'
+                ? 'bg-cyan-500/18 text-cyan-100 ring-cyan-300/40 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.16),0_6px_18px_rgba(8,145,178,0.18)]'
+                : 'bg-[#031019] text-slate-300 ring-white/10 hover:bg-white/5'"
               @click="bottomTab = 'fills'"
             >
               거래내역
@@ -978,7 +982,6 @@ const accountSyncing = ref(false)
 
 const isTradeSyncing = computed(() =>
   loading.value ||
-  accountSyncing.value ||
   pendingOpenJobs.value.length > 0 ||
   pendingCloseJobs.value.length > 0
 )

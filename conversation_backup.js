@@ -986,7 +986,24 @@ export const conversationBackup = {
       tradeButtonUnlockFix: {
         accountSyncingReactive: true,
         buttonsUnlockAfterSync: true,
-        version: '2026년 7월 21일 (화) - 20'
+        version: '2026년 7월 21일 (화) - 21'
+      }
+    },
+    {
+      timestamp: '2026-07-21T16:13:49+09:00',
+      type: 'conversation',
+      userMessage: '좌측 포지션/거래내역 버튼 선택 상태 강화 및 주문/청산 버튼이 평소에도 깜박이며 비활성화되는 문제 수정 요청',
+      assistantWorkSummary: [
+        '좌측 `포지션`, `거래내역` 버튼을 박스 안 가운데 정렬로 정리하고, `거래내역` 글씨 크기도 `포지션`과 동일하게 맞춤',
+        '선택된 버튼은 배경, 테두리, 안쪽 그림자로 눌린 상태가 더 분명하게 보이도록 시각 효과를 강화함',
+        '주문/청산 버튼 비활성화 조건에서 일반적인 주기 동기화 상태(`accountSyncing`)를 제외해, 평소에는 항상 활성화되고 실제 주문/청산 처리 중에만 잠기도록 수정함',
+        '버전을 2026년 7월 21일 (화) - 21 로 갱신함'
+      ],
+      leftTabsAndTradeButtonBlinkFix: {
+        leftTabsCentered: true,
+        leftTabsSelectedVisualEnhanced: true,
+        accountPollingNoLongerDisablesButtons: true,
+        version: '2026년 7월 21일 (화) - 21'
       }
     }
   ]
