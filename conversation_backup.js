@@ -970,7 +970,23 @@ export const conversationBackup = {
       bottomTabSlimLayout: {
         leftButtonsOnly: true,
         rightContentSwitchOnly: true,
-        version: '2026년 7월 21일 (화) - 19'
+        version: '2026년 7월 21일 (화) - 20'
+      }
+    },
+    {
+      timestamp: '2026-07-21T16:05:56+09:00',
+      type: 'conversation',
+      userMessage: '구매롱, 판매숏, 청산 버튼이 Supabase 연동 종료 후에도 계속 비활성화되는 문제 수정 요청',
+      assistantWorkSummary: [
+        '버튼 비활성화 상태를 계산하는 `isTradeSyncing`에서 사용하던 `accountSyncing`이 일반 변수라 UI가 연동 종료를 반응하지 못하던 문제를 확인함',
+        '`accountSyncing`을 반응형 `ref(false)` 로 변경하고 모든 사용처를 `.value` 기반으로 수정함',
+        '이제 내부 연동이 끝나면 구매/판매/청산 버튼이 즉시 다시 활성화되게 조정함',
+        '버전을 2026년 7월 21일 (화) - 20 으로 갱신함'
+      ],
+      tradeButtonUnlockFix: {
+        accountSyncingReactive: true,
+        buttonsUnlockAfterSync: true,
+        version: '2026년 7월 21일 (화) - 20'
       }
     }
   ]

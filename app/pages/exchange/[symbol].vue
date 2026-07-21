@@ -907,12 +907,6 @@ const positionEditModal = reactive<{
   value: '',
   saving: false
 })
-const isTradeSyncing = computed(() =>
-  loading.value ||
-  accountSyncing ||
-  pendingOpenJobs.value.length > 0 ||
-  pendingCloseJobs.value.length > 0
-)
 const closeSummary = ref<null | {
   symbol: string
   side: 'long' | 'short'
@@ -980,7 +974,14 @@ const pendingCloseTimers = new Map<number, any>()
 let closeSummaryTimer: any = null
 let lastAccountTs = 0
 let accountWatchTimer: any = null
-let accountSyncing = false
+const accountSyncing = ref(false)
+
+const isTradeSyncing = computed(() =>
+  loading.value ||
+  accountSyncing.value ||
+  pendingOpenJobs.value.length > 0 ||
+  pendingCloseJobs.value.length > 0
+)
 
 // 거래 설정(비중/레버리지) 서버 저장/복원
 const prefsHydrated = ref(false)
@@ -2330,8 +2331,8 @@ function startBuySellBandMotion() {
 
 async function loadAccount() {
   if (!me.value) return
-  if (accountSyncing) return
-  accountSyncing = true
+  if (accountSyncing.value) return
+  accountSyncing.value = true
   try {
     const data = await $fetch<any>('/api/account')
     const hadPendingOpen = pendingOpenJobs.value.length > 0
@@ -2353,7 +2354,7 @@ async function loadAccount() {
     pruneHiddenClosingPositions(data.positions || [])
     lastAccountTs = Date.now()
   } finally {
-    accountSyncing = false
+    accountSyncing.value = false
   }
 
   if (!prefsHydrated.value && data?.settings) {
