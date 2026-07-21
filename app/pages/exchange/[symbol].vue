@@ -1216,6 +1216,7 @@ const ASK_COUNT = 6
 const BID_COUNT = 6
 const askDisplay = ref<number[]>([])
 const bidDisplay = ref<number[]>([])
+const forcedBuyPct = ref(50)
 
 function resetOrderbook() {
   obAsks.value = new Map()
@@ -1278,6 +1279,31 @@ function refreshDisplayIfNeeded() {
   }
 }
 
+function ensureSyntheticOrderbook() {
+  const mid = Number(lastPrice.value || 0)
+  if (!Number.isFinite(mid) || mid <= 0) return
+  if (obAsks.value.size && obBids.value.size) return
+
+  const askMap = new Map<number, number>()
+  const bidMap = new Map<number, number>()
+  const step = Math.max(0.0001, mid * 0.0006)
+
+  for (let i = 1; i <= ASK_COUNT; i++) {
+    const price = Number((mid + step * i).toFixed(6))
+    const qty = 10 + Math.random() * 90
+    askMap.set(price, qty)
+  }
+  for (let i = 1; i <= BID_COUNT; i++) {
+    const price = Number((mid - step * i).toFixed(6))
+    const qty = 10 + Math.random() * 90
+    bidMap.set(price, qty)
+  }
+
+  obAsks.value = askMap
+  obBids.value = bidMap
+  initDisplayFromMaps()
+}
+
 function buildRowsFromDisplay(side: 'ask' | 'bid', count: number): Array<DepthRow | null> {
   const map = side === 'ask' ? obAsks.value : obBids.value
   const prices = side === 'ask' ? askDisplay.value : bidDisplay.value
@@ -1314,14 +1340,7 @@ function buildRowsFromDisplay(side: 'ask' | 'bid', count: number): Array<DepthRo
 const askRows = computed(() => buildRowsFromDisplay('ask', ASK_COUNT))
 const bidRows = computed(() => buildRowsFromDisplay('bid', BID_COUNT))
 
-const buyPct = computed(() => {
-  // 화면에 보이는 수량 합 기준
-  const buy = bidRows.value.reduce((s, r) => s + (r?.qty ?? 0), 0)
-  const sell = askRows.value.reduce((s, r) => s + (r?.qty ?? 0), 0)
-  const sum = buy + sell
-  if (!sum) return 50
-  return Math.max(40, Math.min(60, (buy / sum) * 100))
-})
+const buyPct = computed(() => forcedBuyPct.value)
 
 function fmtQty(sym: string, qty: number) {
   return Number(qty).toFixed(5)
@@ -1856,15 +1875,19 @@ async function refreshOrderbookFromRest() {
 }
 
 function simulateOrderbookJitter() {
-  // 현재가는 차트(lastPrice)만 따르고, 호가 수량만 표시용으로 미세하게 흔들어줌
+  // 현재가는 차트(lastPrice)만 따르고, 호가 수량은 강제로 계속 움직이게 함
+  ensureSyntheticOrderbook()
   const jitter = (m: Map<number, number>) => {
     for (const [p, q] of m.entries()) {
-      const next = q * (0.9 + Math.random() * 0.2) // ±10%
-      m.set(p, Math.max(0, next))
+      const swingPct = 0.05 + Math.random() * 0.25 // 5% ~ 30%
+      const direction = Math.random() > 0.5 ? 1 : -1
+      const next = q * (1 + swingPct * direction)
+      m.set(p, Math.max(0.00001, next))
     }
   }
   if (obAsks.value.size) jitter(obAsks.value)
   if (obBids.value.size) jitter(obBids.value)
+  forcedBuyPct.value = 40 + Math.random() * 20
 }
 
 function connectWs() {
@@ -1954,12 +1977,14 @@ function startOrderbookAutoReconnect() {
 
 function startOrderbookJitter() {
   if (!process.client) return
-  if (orderbookJitterTimer) clearInterval(orderbookJitterTimer)
-  orderbookJitterTimer = setInterval(() => {
-    if (!obAsks.value.size && !obBids.value.size) return
+  if (orderbookJitterTimer) clearTimeout(orderbookJitterTimer)
+  const tick = () => {
     simulateOrderbookJitter()
     refreshDisplayIfNeeded()
-  }, 500)
+    const nextDelay = 100 + Math.floor(Math.random() * 401) // 0.1초 ~ 0.5초
+    orderbookJitterTimer = setTimeout(tick, nextDelay)
+  }
+  tick()
 }
 
 async function loadAccount() {

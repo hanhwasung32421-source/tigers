@@ -730,6 +730,25 @@ export const conversationBackup = {
         keepCurrentPageOnRefresh: true,
         version: '2026년 7월 21일 (화) - 2'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:09:15+09:00',
+      type: 'conversation',
+      userMessage: '호가창이 실제 데이터와 무관하게 계속 움직이도록 강제 랜덤 변경 요청. 0.1~0.5초마다 물량 5~30% 랜덤 변동, BUY/SELL 40~60 랜덤 변동',
+      assistantWorkSummary: [
+        '호가창이 비어 있거나 실제 업데이트가 없어도 lastPrice 기준으로 가짜 호가를 생성하도록 수정함',
+        '호가 수량은 0.1초~0.5초 랜덤 주기마다 5%~30% 범위로 증감하도록 강제 랜덤 jitter 로직을 적용함',
+        'BUY/SELL 비율도 실제 계산값 대신 40~60 사이 랜덤값으로 계속 변동되게 변경함',
+        '중간 현재가격은 기존대로 차트 lastPrice 기준만 따르게 유지함',
+        '버전을 2026년 7월 21일 (화) - 3 으로 갱신함'
+      ],
+      forcedOrderbookMotion: {
+        syntheticLevels: true,
+        jitterRange: '5%-30%',
+        jitterInterval: '100ms-500ms',
+        buySellRange: '40-60',
+        version: '2026년 7월 21일 (화) - 3'
+      }
     }
   ]
 }
