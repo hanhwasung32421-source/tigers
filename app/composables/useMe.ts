@@ -9,9 +9,14 @@ export function useMe() {
   const isLoading = useState<boolean>('me_loading', () => false)
 
   async function refresh() {
+    if (isLoading.value) return
     isLoading.value = true
     try {
-      const data = await $fetch<{ me: Me | null }>('/api/me')
+      const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+      const data = await $fetch<{ me: Me | null }>('/api/me', {
+        headers,
+        credentials: 'include'
+      })
       me.value = data.me
     } catch {
       me.value = null
@@ -22,4 +27,3 @@ export function useMe() {
 
   return { me, isLoading, refresh }
 }
-

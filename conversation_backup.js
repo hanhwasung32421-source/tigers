@@ -532,6 +532,22 @@ export const conversationBackup = {
         luxuryDarkBackground: true,
         version: 't20260721-103101'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:34:58+09:00',
+      type: 'conversation',
+      userMessage: '로그인 상태에서 F5 새로고침 시 로그인 창으로 가지 않고 현재 화면이 그대로 새로고침되게 수정 요청(일반회원/관리자 공통)',
+      assistantWorkSummary: [
+        '공통 인증 복원 함수 useMe.refresh 에서 SSR 환경일 때 브라우저 cookie 헤더를 /api/me 로 함께 전달하도록 수정함',
+        'client/server 모두 credentials include 를 사용해 세션 쿠키가 유지되도록 보완함',
+        '이제 일반회원/관리자 모두 F5 새로고침 시 로그인 페이지로 튀지 않고 현재 화면에서 세션이 복원되도록 처리함',
+        '버전을 t20260721-103458 로 갱신함'
+      ],
+      authRefreshFix: {
+        persistOnF5: true,
+        appliesToAdminAndUser: true,
+        version: 't20260721-103458'
+      }
     }
   ]
 }
