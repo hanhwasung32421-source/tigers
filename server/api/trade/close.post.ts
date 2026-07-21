@@ -6,6 +6,7 @@ import { supabaseAppDbEnabled, syncBalanceToSupabase, syncTradeToSupabase } from
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 
 const FEE_RATE = 0.04
+const LIQUIDATION_TRIGGER_ROE = -50
 
 const BodySchema = z.object({
   positionId: z.number().int().positive(),
@@ -25,7 +26,9 @@ export default defineEventHandler(async (event) => {
   }
   const clampPnlToLiquidation = (pnl: number, netMargin: number) => {
     if (!Number.isFinite(pnl) || !Number.isFinite(netMargin) || netMargin <= 0) return 0
-    return Math.max(-netMargin, pnl)
+    const roeRaw = (pnl / netMargin) * 100
+    if (roeRaw <= LIQUIDATION_TRIGGER_ROE) return -netMargin
+    return pnl
   }
   // 수수료 정책:
   // - 매수 수수료는 이미 진입 시점에 빠져서 "netMargin"으로 포지션이 시작
@@ -60,7 +63,7 @@ export default defineEventHandler(async (event) => {
     const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
     const gross = Number(pos.margin)
     const net = netMarginFromGross(gross)
-    // 강제청산 하한: 최대 손실은 net(매수 수수료 제외 후 실제 진입금) 100%
+    // -50% 도달 시 전액 강제청산(증거금 전액 손실)
     const pnl = clampPnlToLiquidation(pnlUnclamped, net)
 
     const balRow = await supaSelectOne<{ usdt: number }>('trae_balances', { user_id: user.id })

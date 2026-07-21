@@ -7,6 +7,7 @@ import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, sy
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 
 const FEE_RATE = 0.04
+const LIQUIDATION_TRIGGER_ROE = -50
 
 const BodySchema = z.object({
   symbol: z.string().min(1),
@@ -31,8 +32,9 @@ function netMarginFromGross(gross: number) {
 
 function clampPnlToLiquidation(pnl: number, netMargin: number) {
   if (!Number.isFinite(pnl) || !Number.isFinite(netMargin) || netMargin <= 0) return 0
-  // 강제청산 하한: 최대 손실은 net 100%
-  return Math.max(-netMargin, pnl)
+  const roeRaw = (pnl / netMargin) * 100
+  if (roeRaw <= LIQUIDATION_TRIGGER_ROE) return -netMargin
+  return pnl
 }
 
 function calcSettlementAfterSellFee(grossMargin: number, pnl: number) {
@@ -312,4 +314,3 @@ export default defineEventHandler(async (event) => {
 
   return { ok: true, entryPrice: entry, qty, usedMargin: usedGross }
 })
-

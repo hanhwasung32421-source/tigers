@@ -6,7 +6,7 @@ import { getOkxLastPrice } from '../../utils/okx'
 
 function calcLiqPrice(side: string, entry: number, lev: number) {
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
-  return side === 'short' ? entry * (1 + 1 / lev) : entry * (1 - 1 / lev)
+  return side === 'short' ? entry * (1 + 0.5 / lev) : entry * (1 - 0.5 / lev)
 }
 
 function calcPnlRoe(side: string, entry: number, mark: number, qty: number, margin: number) {
@@ -14,8 +14,10 @@ function calcPnlRoe(side: string, entry: number, mark: number, qty: number, marg
   if (entry <= 0 || mark <= 0 || qty <= 0 || margin <= 0) return { pnl: 0, roe: 0 }
   const raw = (mark - entry) * qty
   const pnl = side === 'short' ? -raw : raw
-  const pnlClamped = Math.max(-margin, pnl)
-  const roe = Math.max(-100, (pnlClamped / margin) * 100)
+  const roeRaw = (pnl / margin) * 100
+  const hitLiquidation = roeRaw <= -50
+  const pnlClamped = hitLiquidation ? -margin : pnl
+  const roe = hitLiquidation ? -50 : roeRaw
   return { pnl: pnlClamped, roe }
 }
 
@@ -33,6 +35,7 @@ export default defineEventHandler(async (event) => {
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
+    const nowIso = new Date().toISOString()
 
     const { data: posRows, error: e1 } = await supa
       .from('trae_positions')
@@ -45,14 +48,23 @@ export default defineEventHandler(async (event) => {
       .select('id, username, role')
     if (e2) throw e2
 
+    const userIds = (userRows || []).map((u: any) => Number(u.id)).filter(Boolean)
+    const { data: sessions, error: e3 } = await supa
+      .from('trae_sessions')
+      .select('user_id, expires_at')
+      .in('user_id', userIds)
+      .gt('expires_at', nowIso)
+    if (e3) throw e3
+
     positions = posRows || []
-    users = userRows || []
+    const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
+    users = (userRows || []).map((u: any) => ({ ...u, online: onlineSet.has(Number(u.id)) }))
   } else {
     const db = getDb()
     positions = db
       .prepare('SELECT id, user_id, symbol, side, qty, entry_price, leverage, margin, created_at FROM positions ORDER BY created_at DESC')
       .all()
-    users = db.prepare('SELECT id, username, role FROM users').all()
+    users = db.prepare('SELECT id, username, role FROM users').all().map((u: any) => ({ ...u, online: false }))
   }
 
   const userMap = new Map(users.map((u: any) => [Number(u.id), u]))
@@ -97,7 +109,7 @@ export default defineEventHandler(async (event) => {
       roe,
       // 현재는 매수 수수료(4%)만 표시. (정산 수수료는 청산 시에만 발생)
       fee,
-      settled: false,
+      online: Boolean(user?.online),
       created_at: String(p.created_at || '')
     }
   })

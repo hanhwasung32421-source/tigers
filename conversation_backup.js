@@ -858,7 +858,27 @@ export const conversationBackup = {
       leverageLabelFormat: {
         currentValuePrefixX: true,
         leverageButtonsUseX: true,
-        version: '2026년 7월 21일 (화) - 10'
+        version: '2026년 7월 21일 (화) - 13'
+      }
+    },
+    {
+      timestamp: '2026-07-21T15:08:51+09:00',
+      type: 'conversation',
+      userMessage: '관리자 포지션 목록 라벨/접속확인, 주문하기 수량바 %툴팁, 롱/숏 표시 점검, -50% 강제청산 적용 요청',
+      assistantWorkSummary: [
+        '관리자 포지션 목록에서 컬럼명을 `수익`, `수익률`로 바꾸고 마지막 컬럼을 `접속확인`으로 변경했으며, API에 사용자 online 상태를 포함시켜 접속/미접속이 실제로 표시되게 함',
+        '포지션 목록의 LONG 배지 글씨 크기를 SHORT와 동일한 크기로 통일함',
+        '주문하기 수량 바를 드래그할 때 현재 퍼센트가 마우스 근처에서 보이는 툴팁을 추가함',
+        '포지션 ROE가 -50% 도달 시 전액 손실 강제청산되도록 프론트 자동청산, 청산가격 계산, 서버 정산 하한, 관리자 포지션 표시 기준을 모두 -50% 기준으로 수정함',
+        '롱인데 숏으로 뜬다는 이슈는 코드 경로상 직접적인 side 뒤집힘 로직은 찾지 못했고, 현재 구조상 일반 경로에서는 발생 가능성이 낮다고 점검함',
+        '버전을 2026년 7월 21일 (화) - 13 으로 갱신함'
+      ],
+      adminPositionAndLiquidationUpdate: {
+        onlineStatusColumn: true,
+        sliderTooltip: true,
+        liquidationRoe: -50,
+        sideFlipCodeIssueFound: false,
+        version: '2026년 7월 21일 (화) - 13'
       }
     }
   ]

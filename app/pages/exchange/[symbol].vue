@@ -313,7 +313,28 @@
             <div class="mt-1 flex items-center justify-between text-[11px] text-slate-400">
               <span class="font-mono">{{ qtyText }} {{ coinUnit }}</span>
             </div>
-            <input v-model.number="percent" type="range" min="0" max="100" step="1" class="mt-2 w-full accent-[#0c9f8e]" />
+            <div class="relative mt-2">
+              <div
+                v-if="showPercentTooltip"
+                class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[11px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
+                :style="percentTooltipStyle"
+              >
+                {{ percent }}%
+              </div>
+              <input
+                v-model.number="percent"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                class="w-full accent-[#0c9f8e]"
+                @pointerdown="showPercentTooltip = true"
+                @input="showPercentTooltip = true"
+                @change="showPercentTooltip = false"
+                @pointerup="showPercentTooltip = false"
+                @pointercancel="showPercentTooltip = false"
+              />
+            </div>
             <!-- 요구사항: 수량 조절 바 아래 % 글자 제거 -->
 
             <div class="grid grid-cols-5 gap-2 pt-1">
@@ -710,6 +731,10 @@ const bottomTab = ref<'positions' | 'fills'>('positions')
 
 // 주문 UI 상태(첨부 스타일)
 const percent = ref<number>(50)
+const showPercentTooltip = ref(false)
+const percentTooltipStyle = computed(() => ({
+  left: `calc(${percent.value}% - ${(percent.value / 100) * 16}px)`
+}))
 // 지정가 입력 제거
 
 const { me, refresh: refreshMe } = useMe()
@@ -756,6 +781,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const tradeMsg = ref<string | null>(null)
 const TRADE_FEE_RATE = 0.04
+const LIQUIDATION_TRIGGER_ROE = -50
+const LIQUIDATION_TRIGGER_FRACTION = 0.5
 const closeSummary = ref<null | {
   symbol: string
   side: 'long' | 'short'
@@ -792,6 +819,7 @@ type PendingCloseJob = {
 const PENDING_CLOSE_STORAGE_KEY = 'exchange_pending_close_jobs_v1'
 const pendingOpenJobs = ref<PendingOpenJob[]>([])
 const pendingCloseJobs = ref<PendingCloseJob[]>([])
+const autoLiquidatingIds = ref<number[]>([])
 const pendingCloseJobIds = computed(() => pendingCloseJobs.value.map((j) => Number(j.positionId)))
 const hiddenClosingPositionIds = ref<number[]>([])
 const currentPositions = computed(() =>
@@ -917,6 +945,7 @@ async function refreshMarks() {
   try {
     const res = await $fetch<any>('/api/okx/marks', { method: 'POST', body: { symbols: syms } })
     markPrices.value = { ...(markPrices.value || {}), ...(res?.prices || {}) }
+    await checkAutoLiquidations().catch(() => {})
   } finally {
     markPolling = false
   }
@@ -1396,7 +1425,7 @@ function openProfitCardFromTrade(t: any) {
   const lev = Number(t.leverage || 1)
   const marginApprox = lev > 0 ? (entryPrice * qty) / lev : 0
   const roeRaw = marginApprox > 0 ? (pnl / marginApprox) * 100 : 0
-  const roe = Math.max(-100, roeRaw)
+  const roe = Math.max(LIQUIDATION_TRIGGER_ROE, roeRaw)
 
   closeSummary.value = {
     symbol: String(t.symbol),
@@ -1414,9 +1443,9 @@ function calcLiqPrice(p: any) {
   const entry = Number(p.entry_price)
   const lev = Number(p.leverage || 1)
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
-  // 근사치
-  if (p.side === 'short') return entry * (1 + 1 / lev)
-  return entry * (1 - 1 / lev)
+  // -50% ROE에서 전액 강제청산 기준
+  if (p.side === 'short') return entry * (1 + LIQUIDATION_TRIGGER_FRACTION / lev)
+  return entry * (1 - LIQUIDATION_TRIGGER_FRACTION / lev)
 }
 
 function unrealized(p: any) {
@@ -1426,17 +1455,16 @@ function unrealized(p: any) {
   const grossMargin = Number(p.margin || 0)
   const margin = netMarginFromGross(grossMargin)
   // 방어 로직:
-  // - lastPrice가 0/비정상(WS 끊김/심볼 불일치 등)일 때 ROE가 ±수백만%까지 튈 수 있음
-  // - 강제청산은 -100%에서 끝나야 하므로 UI 표시용 ROE는 -100% 아래로 내려가지 않게 제한
+  // - lastPrice가 0/비정상일 때 ROE 폭주 방지
+  // - 강제청산 트리거는 -50%지만, 실제 손실은 증거금 전액 손실로 처리
   if (![mark, entry, qty, margin].every(Number.isFinite)) return { pnl: 0, roe: 0 }
   if (mark <= 0 || entry <= 0 || qty <= 0 || margin <= 0) return { pnl: 0, roe: 0 }
   const raw = (mark - entry) * qty
   const pnl = p.side === 'short' ? -raw : raw
   const roeRaw = (pnl / margin) * 100
-  // UI 표시용 클램프(강제청산 -100% 하한)
-  const roe = Math.max(-100, roeRaw)
-  // PnL도 강제청산 하한에 맞춰(최대 손실 = 증거금) UI 표시용으로 제한
-  const pnlClamped = Math.max(-margin, pnl)
+  const hitLiquidation = roeRaw <= LIQUIDATION_TRIGGER_ROE
+  const roe = hitLiquidation ? LIQUIDATION_TRIGGER_ROE : roeRaw
+  const pnlClamped = hitLiquidation ? -margin : pnl
   return { pnl: pnlClamped, roe }
 }
 
@@ -2115,6 +2143,27 @@ function onFillsScroll(e: Event) {
   }
 }
 
+async function checkAutoLiquidations() {
+  const targets = visiblePositions.value.filter((p: any) => {
+    const id = Number(p.id)
+    if (!id) return false
+    if (autoLiquidatingIds.value.includes(id)) return false
+    if (pendingCloseJobIds.value.includes(id)) return false
+    if (hiddenClosingPositionIds.value.includes(id)) return false
+    return unrealized(p).roe <= LIQUIDATION_TRIGGER_ROE
+  })
+
+  for (const p of targets) {
+    const id = Number(p.id)
+    autoLiquidatingIds.value = autoLiquidatingIds.value.concat([id])
+    try {
+      await closePosition(id, 'market', p)
+    } catch {
+      autoLiquidatingIds.value = autoLiquidatingIds.value.filter((v) => v !== id)
+    }
+  }
+}
+
 // 지정가/예약 삭제: 주문 타입 전환 기능 제거
 
 async function onOpen(s: 'long' | 'short') {
@@ -2170,7 +2219,7 @@ async function openPosition() {
       entryPrice: entry0,
       exitPrice: price,
       pnl: pnlClamped,
-      roe: Math.max(-100, roeCalc),
+      roe: Math.max(LIQUIDATION_TRIGGER_ROE, roeCalc),
       wonText: Math.round(pnlClamped * 1350).toLocaleString()
     })
 
@@ -2308,7 +2357,7 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         entryPrice: entry,
         exitPrice: exitClickPrice,
         pnl: pnlCalc,
-        roe: Math.max(-100, roeCalc),
+        roe: Math.max(LIQUIDATION_TRIGGER_ROE, roeCalc),
         wonText: Math.round(pnlCalc * 1350).toLocaleString()
       })
     }
@@ -2412,6 +2461,7 @@ watch(
     if (chartPrefs.indicators.sma7 || chartPrefs.indicators.sma25) {
       renderIndicators()
     }
+    checkAutoLiquidations().catch(() => {})
   }
 )
 

@@ -50,8 +50,9 @@
           v-model="settledFilter"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
         >
-          <option value="">정산여부</option>
-          <option value="미정산">미정산</option>
+          <option value="">접속여부</option>
+          <option value="접속">접속</option>
+          <option value="미접속">미접속</option>
         </select>
       </div>
 
@@ -69,10 +70,10 @@
               <th class="px-3 py-3 text-right">진입가격</th>
               <th class="px-3 py-3 text-right">계약수량</th>
               <th class="px-3 py-3 text-right">청산가격</th>
-              <th class="px-3 py-3 text-right">예상수익</th>
-              <th class="px-3 py-3 text-right">예상수익률</th>
+              <th class="px-3 py-3 text-right">수익</th>
+              <th class="px-3 py-3 text-right">수익률</th>
               <th class="px-3 py-3 text-right">수수료</th>
-              <th class="px-3 py-3 text-center">정산 여부</th>
+              <th class="px-3 py-3 text-center">접속확인</th>
             </tr>
           </thead>
           <tbody>
@@ -89,7 +90,7 @@
               <td class="px-3 py-3">{{ row.orderType }}</td>
               <td class="px-3 py-3">
                 <span
-                  class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
+                  class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
                   :class="row.position === 'LONG' ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-[#151f35] text-[#60a5fa] ring-[#3b82f6]/30'"
                 >
                   {{ row.position }}
@@ -108,7 +109,12 @@
               </td>
               <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmtNum(row.fee) }}</td>
               <td class="px-3 py-3 text-center">
-                <span class="rounded bg-[#2b3445] px-2 py-1 text-[10px] font-semibold text-slate-200">미정산</span>
+                <span
+                  class="rounded px-2 py-1 text-[10px] font-semibold"
+                  :class="row.online ? 'bg-emerald-500/15 text-emerald-300' : 'bg-[#2b3445] text-slate-200'"
+                >
+                  {{ row.online ? '접속' : '미접속' }}
+                </span>
               </td>
             </tr>
           </tbody>
@@ -163,7 +169,7 @@ type AdminPositionRow = {
   pnl: number
   roe: number
   fee: number
-  settled: boolean
+  online: boolean
   created_at: string
 }
 
@@ -193,7 +199,8 @@ const filteredItems = computed(() => {
     if (memberFilter.value && row.username !== memberFilter.value) return false
     if (symbolFilter.value && row.symbol !== symbolFilter.value) return false
     if (positionFilter.value && row.position !== positionFilter.value) return false
-    if (settledFilter.value && settledFilter.value !== '미정산') return false
+    if (settledFilter.value === '접속' && !row.online) return false
+    if (settledFilter.value === '미접속' && row.online) return false
     if (!q) return true
     return [row.username, row.symbol, row.position, row.affiliate, String(row.user_id)].some((v) => String(v).toLowerCase().includes(q))
   })
