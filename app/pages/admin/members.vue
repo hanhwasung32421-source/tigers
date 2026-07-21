@@ -6,11 +6,11 @@
     </div>
 
     <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
-      <div class="grid gap-2 md:grid-cols-[220px_160px_minmax(240px,1fr)_120px]">
+      <div class="grid gap-2 md:grid-cols-[360px_160px_minmax(240px,1fr)_120px]">
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
-          <input v-model="fromDate" type="date" class="w-full bg-transparent outline-none" />
+          <input v-model="fromDate" type="date" class="date-input w-full bg-transparent outline-none" />
           <span class="text-slate-500">~</span>
-          <input v-model="toDate" type="date" class="w-full bg-transparent outline-none" />
+          <input v-model="toDate" type="date" class="date-input w-full bg-transparent outline-none" />
         </div>
         <select v-model="roleFilter" class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none">
           <option value="">유저권한</option>
@@ -201,8 +201,10 @@ const error = ref<string | null>(null)
 const keyword = ref('')
 const roleFilter = ref('')
 const onlineFilter = ref('')
-const fromDate = ref('')
-const toDate = ref('')
+const DEFAULT_FROM_DATE = '2026-01-01'
+const DEFAULT_TO_DATE = new Date().toISOString().slice(0, 10)
+const fromDate = ref(DEFAULT_FROM_DATE)
+const toDate = ref(DEFAULT_TO_DATE)
 const page = ref(1)
 const pageSize = 10
 const tradeModalOpen = ref(false)
@@ -337,6 +339,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.date-input {
+  position: relative;
+  min-width: 140px;
+  padding-right: 24px;
+  color-scheme: dark;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
 .member-modal-enter-active,
 .member-modal-leave-active {
   transition:

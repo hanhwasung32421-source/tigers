@@ -17,11 +17,11 @@
         <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">총출금: <span class="font-mono">{{ fmt2(summary.totalOutUsdt) }}</span> USDT</span>
       </div>
 
-      <div class="mt-3 grid gap-2 md:grid-cols-[220px_180px_minmax(240px,1fr)_120px]">
+      <div class="mt-3 grid gap-2 md:grid-cols-[360px_180px_minmax(240px,1fr)_120px]">
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
-          <input v-model="fromDate" type="date" class="w-full bg-transparent outline-none" />
+          <input v-model="fromDate" type="date" class="date-input w-full bg-transparent outline-none" />
           <span class="text-slate-500">~</span>
-          <input v-model="toDate" type="date" class="w-full bg-transparent outline-none" />
+          <input v-model="toDate" type="date" class="date-input w-full bg-transparent outline-none" />
         </div>
         <select v-model="typeFilter" class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none">
           <option value="">유형</option>
@@ -107,8 +107,10 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const keyword = ref('')
 const typeFilter = ref('')
-const fromDate = ref('')
-const toDate = ref('')
+const DEFAULT_FROM_DATE = '2026-01-01'
+const DEFAULT_TO_DATE = new Date().toISOString().slice(0, 10)
+const fromDate = ref(DEFAULT_FROM_DATE)
+const toDate = ref(DEFAULT_TO_DATE)
 const page = ref(1)
 const pageSize = 10
 
@@ -176,3 +178,17 @@ onMounted(() => {
 })
 </script>
 
+<style scoped>
+.date-input {
+  position: relative;
+  min-width: 140px;
+  padding-right: 24px;
+  color-scheme: dark;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.9;
+}
+</style>

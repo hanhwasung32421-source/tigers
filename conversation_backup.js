@@ -498,6 +498,24 @@ export const conversationBackup = {
         autoRefreshMs: 1000,
         version: 't20260721-102450'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:28:12+09:00',
+      type: 'conversation',
+      userMessage: '모든 날짜 필터 공통 수정: 날짜칸 가로 확장, 달력 버튼을 칸 오른쪽 정렬, 기본값을 2026-01-01 ~ 오늘로 설정',
+      assistantWorkSummary: [
+        '관리자 날짜 필터가 있는 페이지(회원 목록, 거래 내역, 입출금 내역)의 날짜 필터 폭을 360px 기준으로 넓힘',
+        '날짜 입력에 공통 date-input 스타일을 넣어 달력 선택 버튼이 각 칸 오른쪽 끝에 위치하도록 조정함',
+        '날짜 기본값을 공통으로 from=2026-01-01, to=오늘 날짜로 설정함',
+        '버전을 t20260721-102812 로 갱신함'
+      ],
+      dateFilterUi: {
+        pages: ['members', 'trades', 'transfers'],
+        defaultFrom: '2026-01-01',
+        defaultTo: 'today',
+        widened: true,
+        version: 't20260721-102812'
+      }
     }
   ]
 }
