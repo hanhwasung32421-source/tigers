@@ -72,7 +72,7 @@
           </div>
         </div>
 
-        <div class="flex h-[560px] bg-[#131722]">
+        <div class="flex h-[600px] bg-[#131722]">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2">
             <button
               type="button"
@@ -407,8 +407,8 @@
     </div>
 
     <!-- 하단: 포지션 테이블 -->
-      <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
-      <div class="grid grid-cols-1 gap-3 lg:grid-cols-[110px_minmax(0,1fr)]">
+      <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-1.5 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
+      <div class="grid grid-cols-1 gap-1.5 lg:grid-cols-[110px_minmax(0,1fr)]">
         <aside class="self-start rounded-lg border border-cyan-500/10 bg-[#031019] p-2">
           <div class="flex flex-col gap-2 text-sm font-semibold">
             <button
@@ -439,24 +439,24 @@
         <table class="w-full text-[14px]">
           <thead class="text-[13px] text-slate-500">
             <tr class="text-left">
-              <th class="py-2">종목</th>
-              <th class="py-2">포지션</th>
-              <th class="py-2">수량</th>
-              <th class="py-2">진입가격</th>
-              <th class="py-2">시장가</th>
-              <th class="py-2">강제청산가격</th>
-              <th class="py-2">증거금</th>
-              <th class="py-2">미실현손익(ROE)</th>
-              <th class="py-2">청산</th>
+              <th class="py-1">종목</th>
+              <th class="py-1">포지션</th>
+              <th class="py-1">수량</th>
+              <th class="py-1">진입가격</th>
+              <th class="py-1">시장가</th>
+              <th class="py-1">강제청산가격</th>
+              <th class="py-1">증거금</th>
+              <th class="py-1">미실현손익(ROE)</th>
+              <th class="py-1">청산</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="visiblePositions.length === 0" class="border-t border-cyan-500/10">
-              <td colspan="9" class="py-3 text-slate-400">데이터가 없습니다.</td>
+              <td colspan="9" class="py-1.5 text-slate-400">데이터가 없습니다.</td>
             </tr>
             <!-- 포지션 테이블은 통합: 어떤 차트로 이동해도 전체 포지션이 유지되어야 함 -->
             <tr v-for="p in visiblePositions" :key="p.id" class="border-t border-cyan-500/10">
-              <td class="py-2">
+              <td class="py-1">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[12px] ring-1 ring-amber-400/40">
                     {{ p.symbol?.slice(0, 1) }}
@@ -473,7 +473,7 @@
                   </button>
                 </div>
               </td>
-              <td class="py-2" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
+              <td class="py-1" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
                 <span
                   class="rounded px-2 py-1 ring-1"
                   :class="[
@@ -487,7 +487,7 @@
                   {{ p.side === 'long' ? '롱' : '숏' }}
                 </span>
               </td>
-              <td class="py-2 font-mono">
+              <td class="py-1 font-mono">
                 <button
                   type="button"
                   class="font-mono"
@@ -498,7 +498,7 @@
                   {{ fmtQty(p.symbol, p.qty) }}
                 </button>
               </td>
-              <td class="py-2 font-mono">
+              <td class="py-1 font-mono">
                 <button
                   type="button"
                   class="font-mono"
@@ -509,9 +509,9 @@
                   {{ fmtPrice(Number(p.entry_price)) }}
                 </button>
               </td>
-              <td class="py-2 font-mono">{{ markOf(p.symbol) ? fmtPrice(markOf(p.symbol)) : '—' }}</td>
-              <td class="py-2 font-mono">{{ fmtPrice(calcLiqPrice(p)) }}</td>
-              <td class="py-2 font-mono">
+              <td class="py-1 font-mono">{{ markOf(p.symbol) ? fmtPrice(markOf(p.symbol)) : '—' }}</td>
+              <td class="py-1 font-mono">{{ fmtPrice(calcLiqPrice(p)) }}</td>
+              <td class="py-1 font-mono">
                 <button
                   type="button"
                   class="font-mono"
@@ -522,7 +522,7 @@
                   {{ Number(p.margin).toFixed(5) }}
                 </button>
               </td>
-              <td class="py-2">
+              <td class="py-1">
                 <div class="font-mono" :class="unrealized(p).pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'">
                   {{ unrealized(p).pnl >= 0 ? '+' : '' }}{{ unrealized(p).pnl.toFixed(5) }}
                 </div>
@@ -530,7 +530,7 @@
                   {{ unrealized(p).roe >= 0 ? '+' : '' }}{{ unrealized(p).roe.toFixed(2) }}%
                 </div>
               </td>
-              <td class="py-2">
+              <td class="py-1">
                 <div class="flex items-center gap-2">
                   <button
                     class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
@@ -1385,9 +1385,9 @@ type DepthRow = { price: number; qty: number; qtyText: string; total: number; to
 // 오더북을 "가격 라더"처럼 유지하기 위해 Map으로 누적 업데이트
 const obAsks = shallowRef<Map<number, number>>(new Map())
 const obBids = shallowRef<Map<number, number>>(new Map())
-// 화면에 보여줄 가격(고정): 매도 8줄(높은→낮은), 매수 7줄(높은→낮은)
-const ASK_COUNT = 6
-const BID_COUNT = 6
+// 화면에 보여줄 가격(고정): 매도/매수 각각 8줄
+const ASK_COUNT = 8
+const BID_COUNT = 8
 const askDisplay = ref<number[]>([])
 const bidDisplay = ref<number[]>([])
 const forcedBuyPct = ref(50)

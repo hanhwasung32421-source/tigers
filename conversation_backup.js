@@ -1003,7 +1003,37 @@ export const conversationBackup = {
         leftTabsCentered: true,
         leftTabsSelectedVisualEnhanced: true,
         accountPollingNoLongerDisablesButtons: true,
-        version: '2026년 7월 21일 (화) - 21'
+        version: '2026년 7월 21일 (화) - 22'
+      }
+    },
+    {
+      timestamp: '2026-07-21T16:18:19+09:00',
+      type: 'conversation',
+      userMessage: '호가창에서 매수/매도 수치를 위아래로 2개씩 더 추가 요청',
+      assistantWorkSummary: [
+        '호가창 표시 줄 수 상수를 조정해 매도/매수 표시 개수를 각각 6줄에서 8줄로 확대함',
+        '이제 호가창에서 위아래로 각 2줄씩 더 많은 호가가 보이도록 수정함',
+        '버전을 2026년 7월 21일 (화) - 22 로 갱신함'
+      ],
+      orderbookDepthExpanded: {
+        askCount: 8,
+        bidCount: 8,
+        version: '2026년 7월 21일 (화) - 23'
+      }
+    },
+    {
+      timestamp: '2026-07-21T16:21:08+09:00',
+      type: 'conversation',
+      userMessage: '하단 포지션 테이블 위아래 여백을 절반으로 줄이고, 차트 하단 남는 여백만큼 차트 세로 크기 확대 요청',
+      assistantWorkSummary: [
+        '하단 포지션 테이블 섹션 패딩과 헤더/행의 위아래 패딩을 절반 수준으로 축소해 더 촘촘하게 정리함',
+        '차트 하단에 남는 여백을 활용하도록 메인 차트 높이를 560px에서 600px로 다시 확대함',
+        '버전을 2026년 7월 21일 (화) - 23 로 갱신함'
+      ],
+      bottomSpacingAndChartHeightUpdate: {
+        bottomTablePaddingReduced: true,
+        chartHeightPx: 600,
+        version: '2026년 7월 21일 (화) - 23'
       }
     }
   ]
