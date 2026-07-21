@@ -79,7 +79,7 @@
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'cursor' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               title="커서"
-              @click="activeTool = 'cursor'"
+              @click="selectTool('cursor')"
             >
               ✛
             </button>
@@ -88,7 +88,7 @@
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'trend' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               title="추세선"
-              @click="activeTool = 'trend'"
+              @click="selectTool('trend')"
             >
               ／
             </button>
@@ -97,7 +97,7 @@
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'hline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               title="수평선"
-              @click="activeTool = 'hline'"
+              @click="selectTool('hline')"
             >
               ㅡ
             </button>
@@ -1012,11 +1012,14 @@ let sma25Series: ISeriesApi<'Line'> | null = null
 const priceLines: any[] = []
 const drawingPriceLines: any[] = []
 const trendLinePrimitives: TrendLinePrimitive[] = []
+let previewPriceLine: any = null
+let previewTrendPrimitive: TrendLinePrimitive | null = null
 const candleData = ref<CandlestickData[]>([])
 const volumeData = ref<HistogramData[]>([])
 const liveLastCandle = shallowRef<CandlestickData | null>(null)
 const activeTool = ref<'cursor' | 'trend' | 'hline'>('cursor')
 const pendingTrendStart = ref<{ time: any; price: number } | null>(null)
+const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
 const chartPrefsHydrated = ref(false)
 let saveChartPrefsTimer: any = null
@@ -1819,6 +1822,53 @@ function clearDrawingVisuals() {
   }
 }
 
+function clearDrawingPreviewVisuals() {
+  if (previewPriceLine) {
+    try { candleSeries?.removePriceLine(previewPriceLine) } catch {}
+    previewPriceLine = null
+  }
+  if (previewTrendPrimitive) {
+    try { if (candleSeries) candleSeries.detachPrimitive(previewTrendPrimitive) } catch {}
+    previewTrendPrimitive = null
+  }
+}
+
+function renderDrawingPreview() {
+  if (!chart || !candleSeries) return
+  clearDrawingPreviewVisuals()
+
+  if (activeTool.value === 'hline' && liveDrawingPoint.value && Number.isFinite(Number(liveDrawingPoint.value.price))) {
+    previewPriceLine = candleSeries.createPriceLine({
+      price: Number(liveDrawingPoint.value.price),
+      color: '#60a5fa',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      axisLabelColor: '#60a5fa',
+      axisLabelTextColor: '#ffffff',
+      title: ''
+    })
+    return
+  }
+
+  if (
+    activeTool.value === 'trend' &&
+    pendingTrendStart.value &&
+    liveDrawingPoint.value &&
+    Number.isFinite(Number(pendingTrendStart.value.price)) &&
+    Number.isFinite(Number(liveDrawingPoint.value.price))
+  ) {
+    previewTrendPrimitive = new TrendLinePrimitive(
+      chart,
+      candleSeries,
+      { time: pendingTrendStart.value.time, price: Number(pendingTrendStart.value.price) },
+      { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
+      { lineColor: '#facc15', width: 1 }
+    )
+    candleSeries.attachPrimitive(previewTrendPrimitive)
+  }
+}
+
 function renderSavedDrawings() {
   if (!chart || !candleSeries) return
   clearDrawingVisuals()
@@ -1858,6 +1908,8 @@ function toggleIndicator(key: 'sma7' | 'sma25') {
 function clearAllDrawings() {
   chartPrefs.drawings = []
   pendingTrendStart.value = null
+  liveDrawingPoint.value = null
+  clearDrawingPreviewVisuals()
   activeTool.value = 'cursor'
   renderSavedDrawings()
   scheduleSaveChartPrefs()
@@ -1867,6 +1919,8 @@ function clearLastDrawing() {
   // 추세선 1번 찍고 대기 중이면 "최근 도구"는 그 대기 상태를 취소
   if (pendingTrendStart.value) {
     pendingTrendStart.value = null
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
     activeTool.value = 'cursor'
     return
   }
@@ -1874,6 +1928,13 @@ function clearLastDrawing() {
   chartPrefs.drawings.pop()
   renderSavedDrawings()
   scheduleSaveChartPrefs()
+}
+
+function selectTool(tool: 'cursor' | 'trend' | 'hline') {
+  activeTool.value = tool
+  pendingTrendStart.value = null
+  liveDrawingPoint.value = null
+  clearDrawingPreviewVisuals()
 }
 
 function onChartClick(param: any) {
@@ -1890,6 +1951,8 @@ function onChartClick(param: any) {
       color: '#2962ff',
       price: Number(price)
     })
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
     renderSavedDrawings()
     scheduleSaveChartPrefs()
     activeTool.value = 'cursor'
@@ -1899,6 +1962,8 @@ function onChartClick(param: any) {
   if (activeTool.value === 'trend') {
     if (!pendingTrendStart.value) {
       pendingTrendStart.value = { time, price: Number(price) }
+      liveDrawingPoint.value = { time, price: Number(price) }
+      renderDrawingPreview()
       return
     }
     chartPrefs.drawings.push({
@@ -1911,6 +1976,8 @@ function onChartClick(param: any) {
       ]
     })
     pendingTrendStart.value = null
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
     renderSavedDrawings()
     scheduleSaveChartPrefs()
     activeTool.value = 'cursor'
@@ -1920,11 +1987,42 @@ function onChartClick(param: any) {
 function onCrosshairMove(param: any) {
   if (!param || !param.point) {
     mouseCrosshair.visible = false
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
     return
   }
   mouseCrosshair.visible = true
   mouseCrosshair.x = param.point.x
   mouseCrosshair.y = param.point.y
+
+  if (!chart || !candleSeries || activeTool.value === 'cursor') {
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
+    return
+  }
+
+  const price = candleSeries.coordinateToPrice(param.point.y)
+  const time = param.time ?? chart.timeScale().coordinateToTime(param.point.x)
+  if (!Number.isFinite(Number(price)) || !time) {
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
+    return
+  }
+
+  if (activeTool.value === 'hline') {
+    liveDrawingPoint.value = { time, price: Number(price) }
+    renderDrawingPreview()
+    return
+  }
+
+  if (activeTool.value === 'trend' && pendingTrendStart.value) {
+    liveDrawingPoint.value = { time, price: Number(price) }
+    renderDrawingPreview()
+    return
+  }
+
+  liveDrawingPoint.value = null
+  clearDrawingPreviewVisuals()
 }
 
 function initChart() {

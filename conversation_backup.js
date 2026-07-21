@@ -1084,7 +1084,24 @@ export const conversationBackup = {
         provider: 'OKX',
         revertedBinanceMigration: true,
         keptVercelChunkMitigation: true,
-        version: '2026년 7월 21일 (화) - 28'
+        version: '2026년 7월 21일 (화) - 29'
+      }
+    },
+    {
+      timestamp: '2026-07-21T17:29:42+09:00',
+      type: 'conversation',
+      userMessage: '차트 추세선/수평선 도구에 마우스 추적 미리보기 추가 요청',
+      assistantWorkSummary: [
+        '추세선 도구는 첫 클릭 후 시작점이 고정되고, 다른 끝점이 마우스 커서를 따라다니는 임시 미리보기 선을 추가함',
+        '추세선은 두 번째 클릭 시 해당 지점에서 최종 고정되도록 구현함',
+        '수평선 도구는 선택 즉시 마우스를 따라 움직이는 임시 수평선을 표시하고, 클릭 시 그 위치에 고정되도록 구현함',
+        '도구 전환, 최근도구 지우기, 전체 지우기 시 임시 미리보기 선도 함께 정리되도록 보완함',
+        '버전을 2026년 7월 21일 (화) - 29 로 갱신함'
+      ],
+      chartDrawingPreviewUpdate: {
+        trendPreviewFollowMouse: true,
+        hlinePreviewFollowMouse: true,
+        version: '2026년 7월 21일 (화) - 29'
       }
     }
   ]
