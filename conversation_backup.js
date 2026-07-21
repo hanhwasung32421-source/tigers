@@ -953,7 +953,24 @@ export const conversationBackup = {
         leverageTooltip: true,
         orderOpenMessageRemoved: true,
         bottomPanelRelayout: true,
-        version: '2026년 7월 21일 (화) - 18'
+        version: '2026년 7월 21일 (화) - 19'
+      }
+    },
+    {
+      timestamp: '2026-07-21T16:00:34+09:00',
+      type: 'conversation',
+      userMessage: '포지션/거래내역 탭 아래 내용 제거, 좌측 작은 세로 버튼 형태로 정리 요청',
+      assistantWorkSummary: [
+        '좌측 보조영역 아래에 붙어 있던 거래내역 리스트를 제거함',
+        '포지션/거래내역 탭을 더 작은 세로 버튼 영역으로 축소하고 `포지션` 위 `거래내역` 아래 형태로 배치함',
+        '버튼을 눌렀을 때 아래에 별도 내용은 뜨지 않고, 선택된 버튼만 눌린 상태처럼 보이게 정리함',
+        '오른쪽 메인 테이블만 탭 선택에 따라 변경되도록 유지함',
+        '버전을 2026년 7월 21일 (화) - 19 로 갱신함'
+      ],
+      bottomTabSlimLayout: {
+        leftButtonsOnly: true,
+        rightContentSwitchOnly: true,
+        version: '2026년 7월 21일 (화) - 19'
       }
     }
   ]

@@ -408,12 +408,12 @@
 
     <!-- 하단: 포지션 테이블 -->
       <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
-      <div class="grid grid-cols-1 gap-3 lg:grid-cols-[0.3fr_0.7fr]">
-        <aside class="rounded-lg border border-cyan-500/10 bg-[#031019] p-3">
-          <div class="flex items-center gap-2 text-sm font-semibold">
+      <div class="grid grid-cols-1 gap-3 lg:grid-cols-[110px_minmax(0,1fr)]">
+        <aside class="self-start rounded-lg border border-cyan-500/10 bg-[#031019] p-2">
+          <div class="flex flex-col gap-2 text-sm font-semibold">
             <button
               type="button"
-              class="rounded-md px-3 py-2 ring-1"
+              class="rounded-md px-3 py-2 text-left ring-1"
               :class="bottomTab === 'positions' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
               @click="bottomTab = 'positions'"
             >
@@ -421,24 +421,12 @@
             </button>
             <button
               type="button"
-              class="rounded-md px-3 py-2 text-xs ring-1"
+              class="rounded-md px-3 py-2 text-left text-xs ring-1"
               :class="bottomTab === 'fills' ? 'bg-cyan-500/12 text-cyan-200 ring-cyan-400/25' : 'bg-[#031019] ring-white/10 hover:bg-white/5'"
               @click="bottomTab = 'fills'"
             >
               거래내역
             </button>
-          </div>
-
-          <div class="mt-3 space-y-1 text-xs text-slate-300">
-            <div v-if="fills.length === 0" class="rounded bg-black/20 px-2 py-2 text-slate-500">거래내역 없음</div>
-            <div v-for="t in fills.slice(0, 10)" :key="`left-fill-${t.id}`" class="rounded bg-black/20 px-2 py-1.5 font-mono">
-              <div class="flex items-center justify-between gap-2">
-                <span class="truncate text-slate-200">{{ shortSymbol(t.symbol) }}</span>
-                <span :class="Number(t.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
-                  {{ Number(t.pnl) >= 0 ? '+' : '' }}{{ Number(t.pnl).toFixed(3) }}
-                </span>
-              </div>
-            </div>
           </div>
         </aside>
 
