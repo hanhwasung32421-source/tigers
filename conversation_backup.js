@@ -844,6 +844,22 @@ export const conversationBackup = {
         timezone: 'Asia/Seoul',
         version: '2026년 7월 21일 (화) - 9'
       }
+    },
+    {
+      timestamp: '2026-07-21T14:58:24+09:00',
+      type: 'conversation',
+      userMessage: '주문하기 레버리지 표기를 100x에서 x100으로, 레버리지 바 버튼을 % 대신 x10~x100 형식으로 수정 요청',
+      assistantWorkSummary: [
+        '주문하기 패널 상단 레버리지 현재값 표기를 `100x` 대신 `x100` 형식으로 변경함',
+        '하단 상태줄의 레버리지 표기도 `x100` 형식으로 맞춤',
+        '레버리지 바 아래 빠른 설정 버튼 라벨을 `10%/25%/...` 에서 `x10/x25/.../x100` 형식으로 변경함',
+        '버전을 2026년 7월 21일 (화) - 10 으로 갱신함'
+      ],
+      leverageLabelFormat: {
+        currentValuePrefixX: true,
+        leverageButtonsUseX: true,
+        version: '2026년 7월 21일 (화) - 10'
+      }
     }
   ]
 }

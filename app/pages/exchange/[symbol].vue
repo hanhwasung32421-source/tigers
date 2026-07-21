@@ -177,7 +177,7 @@
           </div>
           <div class="flex items-center gap-3">
             <span>비중 {{ percent }}%</span>
-            <span>레버리지 {{ leverage }}x</span>
+            <span>레버리지 x{{ leverage }}</span>
           </div>
         </div>
       </section>
@@ -263,7 +263,7 @@
             <div class="rounded-lg border border-white/10 bg-[#071722] p-3">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-semibold text-slate-100">레버리지</div>
-                <button type="button" class="font-mono text-sm text-slate-200 hover:text-white" @click="openLeverageModal">{{ leverage }}x ▸</button>
+                <button type="button" class="font-mono text-sm text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
               </div>
               <div class="mt-3 flex items-center justify-between text-xs text-slate-300">
                 <span class="text-slate-400">레버리지 배율</span>
@@ -282,11 +282,11 @@
               <div class="mt-3">
                 <input v-model.number="leverage" type="range" min="1" max="100" step="1" class="w-full accent-[#0c9f8e]" />
                 <div class="mt-2 grid grid-cols-5 gap-2">
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(10)">10%</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(25)">25%</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(50)">50%</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(75)">75%</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(100)">100%</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(10)">x10</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(25)">x25</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(50)">x50</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(75)">x75</button>
+                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(100)">x100</button>
                 </div>
               </div>
             </div>
