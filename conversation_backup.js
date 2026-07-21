@@ -664,6 +664,22 @@ export const conversationBackup = {
         mobileStackUnderLg: true,
         version: 't20260721-112158'
       }
+    },
+    {
+      timestamp: '2026-07-21T11:33:27+09:00',
+      type: 'conversation',
+      userMessage: '주문 패널의 미실현 총 손익 항목 제거 및 테이블 자체 스크롤 제거 요청',
+      assistantWorkSummary: [
+        '주문 패널 하단 요약에서 미실현 총 손익(USDT/원) 블록을 제거함',
+        '주문 패널 컨테이너 높이를 고정 h에서 min-height로 바꿔 내부 스크롤이 생기지 않게 조정함',
+        '포지션 테이블 래퍼의 overflow-auto를 제거해 테이블 자체 스크롤이 생기지 않게 수정함',
+        '버전을 t20260721-113327 로 갱신함'
+      ],
+      orderPanelCleanup: {
+        removedTotalUnrealized: true,
+        removedTableInnerScroll: true,
+        version: 't20260721-113327'
+      }
     }
   ]
 }

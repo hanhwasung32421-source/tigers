@@ -257,7 +257,7 @@
           주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
         </div>
 
-        <div v-else class="mt-3 flex h-[500px] flex-col rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
+        <div v-else class="mt-3 flex min-h-[500px] flex-col rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
           <div class="flex-1">
             <!-- 레버리지 (첨부2 스타일) -->
             <div class="rounded-lg border border-white/10 bg-[#071722] p-3">
@@ -354,7 +354,7 @@
           </form>
           </div>
 
-          <!-- 하단: 보유자산/사용가능/미실현 총 손익 -->
+          <!-- 하단: 보유자산/사용가능 -->
           <div class="mt-4 rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-3 ring-1 ring-white/10">
             <div class="text-sm font-semibold text-slate-100">보유자산</div>
             <div class="mt-3 flex items-center justify-between">
@@ -367,18 +367,6 @@
               <div class="text-right">
                 <div class="font-mono text-sm text-slate-100">{{ balanceDisplay }} USDT</div>
                 <div class="mt-0.5 font-mono text-xs text-slate-500">{{ availableWonText }} 원</div>
-              </div>
-            </div>
-
-            <div class="mt-4 flex items-start justify-between">
-              <div class="text-sm font-semibold text-slate-200">미실현 총 손익</div>
-              <div class="text-right">
-                <div class="font-mono text-sm" :class="totalUnrealizedPnl >= 0 ? 'text-rose-300' : 'text-sky-300'">
-                  {{ totalUnrealizedPnl >= 0 ? '+' : '' }}{{ totalUnrealizedPnl.toFixed(4) }} USDT
-                </div>
-                <div class="mt-0.5 font-mono text-xs text-slate-500">
-                  {{ totalUnrealizedPnl >= 0 ? '+' : '' }}{{ totalUnrealizedWonText }} 원
-                </div>
               </div>
             </div>
           </div>
@@ -410,7 +398,7 @@
         </div>
       </div>
 
-      <div class="mt-3 overflow-auto" v-if="bottomTab === 'positions'">
+      <div class="mt-3" v-if="bottomTab === 'positions'">
         <table class="w-full text-xs">
           <thead class="text-slate-500">
             <tr class="text-left">
@@ -1159,16 +1147,6 @@ const totalAssetsDisplay = computed(() =>
 )
 
 const availableWonText = computed(() => Math.round(Number(balance.value || 0) * KRW_RATE).toLocaleString())
-
-const totalUnrealizedPnl = computed(() => {
-  return visiblePositions.value.reduce((s: number, p: any) => {
-    const u = unrealized(p)
-    const pnl = Number(u?.pnl ?? 0)
-    return s + (Number.isFinite(pnl) ? pnl : 0)
-  }, 0)
-})
-
-const totalUnrealizedWonText = computed(() => Math.round(Number(totalUnrealizedPnl.value || 0) * KRW_RATE).toLocaleString())
 
 function setPercent(v: number) {
   percent.value = Math.max(0, Math.min(100, Math.round(v)))
