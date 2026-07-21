@@ -477,6 +477,27 @@ export const conversationBackup = {
         pendingOpenMerge: true,
         version: 't20260721-102057'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:24:50+09:00',
+      type: 'conversation',
+      userMessage: '회원 목록에 보유금액(현금 USDT) 컬럼 추가, 클릭 시 회원 거래내역 팝업, 수수료 오른쪽에 접속상태 컬럼 추가, 1초 자동갱신, 상단 대시보드/새로고침 버튼 삭제 요청',
+      assistantWorkSummary: [
+        '회원 목록 API(/api/admin/members)에 balanceUsdt(현재 보유 현금 USDT)를 추가함',
+        '회원 목록 화면에 보유금액 컬럼을 누적손실 왼쪽에 추가하고, 클릭 가능한 버튼으로 표시함',
+        '보유금액 클릭 시 회원별 거래내역 팝업이 열리도록 구현하고, /api/admin/trades?userId=... 로 해당 회원의 전체 거래내역을 조회하게 함',
+        '거래내역 팝업 테이블에서 수수료 오른쪽에 접속상태 컬럼을 추가하고, 실시간 접속중/미접속중을 표시함',
+        '회원 목록과 팝업 거래내역을 1초마다 자동갱신되도록 처리함',
+        '회원 목록 상단 대시보드/새로고침 버튼을 제거함',
+        '버전을 t20260721-102450 로 갱신함'
+      ],
+      memberListEnhancement: {
+        balanceColumn: true,
+        clickableTradePopup: true,
+        onlineStatusRightOfFee: true,
+        autoRefreshMs: 1000,
+        version: 't20260721-102450'
+      }
     }
   ]
 }

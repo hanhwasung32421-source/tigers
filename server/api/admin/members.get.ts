@@ -33,6 +33,10 @@ export default defineEventHandler(async (event) => {
     if (e2) throw e2
     const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
 
+    const { data: balances, error: eBalance } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
+    if (eBalance) throw eBalance
+    const balanceMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
+
     const { data: events, error: e3 } = await supa
       .from('app_login_events')
       .select('local_user_id, ip, created_at')
@@ -74,6 +78,7 @@ export default defineEventHandler(async (event) => {
         affiliateName: String(u.role || '') === 'branch_admin' ? String(u.username || '') : '—',
         affiliateParent: '—',
         affiliateRate: 0,
+        balanceUsdt: balanceMap.get(id) ?? 0,
         cumulativeLoss: lossMap.get(id) ?? 0,
         created_at: String(u.created_at || ''),
         online: onlineSet.has(id),
@@ -86,7 +91,9 @@ export default defineEventHandler(async (event) => {
 
   const db = getDb()
   const users = db.prepare('SELECT id, username, role, created_at FROM users ORDER BY id DESC').all() as any[]
+  const balances = db.prepare('SELECT user_id, usdt FROM balances').all() as any[]
   const trades = db.prepare('SELECT user_id, pnl FROM trades').all() as any[]
+  const balanceMap = new Map(balances.map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
   const lossMap = new Map<number, number>()
   for (const t of trades) {
     const uid = Number(t.user_id)
@@ -103,6 +110,7 @@ export default defineEventHandler(async (event) => {
     affiliateName: String(u.role || '') === 'branch_admin' ? String(u.username || '') : '—',
     affiliateParent: '—',
     affiliateRate: 0,
+    balanceUsdt: balanceMap.get(Number(u.id)) ?? 0,
     cumulativeLoss: lossMap.get(Number(u.id)) ?? 0,
     created_at: String(u.created_at || ''),
     online: false,
@@ -111,4 +119,3 @@ export default defineEventHandler(async (event) => {
 
   return { items: rows }
 })
-
