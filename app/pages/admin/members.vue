@@ -42,7 +42,7 @@
               <th class="px-3 py-3 text-left">총판부모</th>
               <th class="px-3 py-3 text-right">총판수율</th>
               <th class="px-3 py-3 text-right">보유금액</th>
-              <th class="px-3 py-3 text-right">누적 손실</th>
+              <th class="px-3 py-3 text-right">누적수익</th>
               <th class="px-3 py-3 text-left">가입일</th>
               <th class="px-3 py-3 text-left">접속여부</th>
             </tr>
@@ -67,12 +67,25 @@
                 <button
                   type="button"
                   class="rounded bg-cyan-500/10 px-2 py-1 text-cyan-100 ring-1 ring-cyan-400/20 hover:bg-cyan-500/15"
-                  @click="openTradeModal(u)"
+                  @click="openBalanceModal(u)"
                 >
                   {{ fmt2(u.balanceUsdt) }}
                 </button>
               </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmt2(u.cumulativeLoss) }}</td>
+              <td class="px-3 py-3 text-right font-mono">
+                <button
+                  type="button"
+                  class="rounded px-2 py-1 ring-1"
+                  :class="
+                    u.cumulativeProfit >= 0
+                      ? 'bg-rose-500/10 text-rose-300 ring-rose-400/20 hover:bg-rose-500/15'
+                      : 'bg-sky-500/10 text-sky-300 ring-sky-400/20 hover:bg-sky-500/15'
+                  "
+                  @click="openTradeModal(u)"
+                >
+                  {{ signedProfitText(u.cumulativeProfit) }}
+                </button>
+              </td>
               <td class="px-3 py-3 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
               <td class="px-3 py-3">
                 <span
@@ -157,6 +170,48 @@
         </div>
       </div>
     </Transition>
+
+    <Transition name="member-modal">
+      <div v-if="balanceModalOpen && selectedMember" class="fixed inset-0 z-[81] flex items-center justify-center bg-black/60 px-4" @click.self="closeBalanceModal">
+        <div class="w-full max-w-md rounded-2xl border border-[#12314a] bg-[#03101d] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-semibold text-slate-100">{{ selectedMember.name }} 보유금액 수정</h2>
+              <p class="mt-1 text-sm text-slate-400">현재 보유 현금 USDT를 직접 수정합니다.</p>
+            </div>
+            <button type="button" class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-100 hover:bg-white/15" @click="closeBalanceModal">닫기</button>
+          </div>
+
+          <div class="mt-4">
+            <label class="text-sm text-slate-300">보유금액 (USDT)</label>
+            <input
+              v-model.number="balanceDraft"
+              type="number"
+              min="0"
+              step="0.01"
+              class="mt-2 w-full rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-100 outline-none"
+              :disabled="!canEditBalance || balanceSaving"
+            />
+          </div>
+
+          <p v-if="balanceError" class="mt-3 text-sm text-rose-300">{{ balanceError }}</p>
+
+          <div class="mt-5 flex justify-end gap-2">
+            <button type="button" class="rounded-md bg-white/10 px-4 py-2 text-sm text-slate-100 hover:bg-white/15" @click="closeBalanceModal">
+              취소
+            </button>
+            <button
+              type="button"
+              class="rounded-md bg-cyan-500/15 px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-40"
+              :disabled="!canEditBalance || balanceSaving"
+              @click="saveBalance"
+            >
+              수정
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -173,7 +228,7 @@ type MemberRow = {
   affiliateParent: string
   affiliateRate: number
   balanceUsdt: number
-  cumulativeLoss: number
+  cumulativeProfit: number
   created_at: string
   online: boolean
   last_ip: string | null
@@ -192,7 +247,7 @@ type MemberTradeRow = {
   online: boolean
 }
 
-const { refresh } = useMe()
+const { me, refresh } = useMe()
 await refresh()
 
 const items = ref<MemberRow[]>([])
@@ -208,12 +263,17 @@ const toDate = ref(DEFAULT_TO_DATE)
 const page = ref(1)
 const pageSize = 10
 const tradeModalOpen = ref(false)
+const balanceModalOpen = ref(false)
 const selectedMember = ref<MemberRow | null>(null)
 const memberTrades = ref<MemberTradeRow[]>([])
 const tradeLoading = ref(false)
 const tradeError = ref<string | null>(null)
+const balanceDraft = ref(0)
+const balanceSaving = ref(false)
+const balanceError = ref<string | null>(null)
 let pollTimer: any = null
 let loadingNow = false
+const canEditBalance = computed(() => me.value?.role === 'super_admin' || (me.value as any)?.permissions?.canCredit)
 
 function dateOnly(v: string) {
   const s = String(v || '')
@@ -221,6 +281,10 @@ function dateOnly(v: string) {
 }
 function fmt2(v: number) {
   return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+function signedProfitText(v: number) {
+  const n = Number(v || 0)
+  return `${n >= 0 ? '+' : '-'}${fmt2(Math.abs(n))}`
 }
 function fmtRate(v: number) {
   return `${Number(v || 0).toFixed(2)}`
@@ -317,9 +381,45 @@ async function openTradeModal(member: MemberRow) {
 
 function closeTradeModal() {
   tradeModalOpen.value = false
-  selectedMember.value = null
   memberTrades.value = []
   tradeError.value = null
+  if (!balanceModalOpen.value) selectedMember.value = null
+}
+
+function openBalanceModal(member: MemberRow) {
+  selectedMember.value = member
+  balanceDraft.value = Number(member.balanceUsdt || 0)
+  balanceError.value = null
+  balanceModalOpen.value = true
+}
+
+function closeBalanceModal() {
+  balanceModalOpen.value = false
+  balanceError.value = null
+  balanceDraft.value = 0
+  if (!tradeModalOpen.value) selectedMember.value = null
+}
+
+async function saveBalance() {
+  if (!selectedMember.value) return
+  const usdt = Number(balanceDraft.value)
+  if (!Number.isFinite(usdt) || usdt < 0) {
+    balanceError.value = '0 이상 금액만 입력할 수 있습니다.'
+    return
+  }
+  balanceSaving.value = true
+  try {
+    await $fetch('/api/admin/users/update', {
+      method: 'POST',
+      body: { userId: selectedMember.value.id, usdt }
+    })
+    await load(true)
+    closeBalanceModal()
+  } catch (e: any) {
+    balanceError.value = e?.data?.statusMessage || '보유금액 수정에 실패했습니다.'
+  } finally {
+    balanceSaving.value = false
+  }
 }
 
 onMounted(async () => {

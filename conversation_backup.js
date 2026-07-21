@@ -565,6 +565,24 @@ export const conversationBackup = {
         centerBAdded: true,
         version: 't20260721-103919'
       }
+    },
+    {
+      timestamp: '2026-07-21T10:50:57+09:00',
+      type: 'conversation',
+      userMessage: '회원 목록 수정: 누적손실→누적수익, 손실은 - 파란색/수익은 + 빨간색, 누적수익 클릭 시 거래내역 팝업, 보유금액 클릭 시 관리자 금액 수정',
+      assistantWorkSummary: [
+        '회원 목록 API의 누적손실 계산을 누적수익(pnl 합계)으로 변경함',
+        '회원 목록 화면에서 누적손실 컬럼명을 누적수익으로 바꾸고, 수익은 + 빨간색, 손실은 - 파란색 규칙을 적용함',
+        '누적수익 클릭 시 회원 거래내역 팝업이 열리도록 변경함',
+        '보유금액 클릭 시 관리자 잔액 수정 팝업이 열리고 /api/admin/users/update 로 현재 USDT를 직접 수정할 수 있게 연결함',
+        '버전을 t20260721-105057 로 갱신함'
+      ],
+      memberProfitUi: {
+        cumulativeProfit: true,
+        profitClickOpensTrades: true,
+        balanceClickEditsAmount: true,
+        version: 't20260721-105057'
+      }
     }
   ]
 }

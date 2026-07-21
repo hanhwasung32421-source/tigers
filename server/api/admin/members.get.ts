@@ -52,19 +52,19 @@ export default defineEventHandler(async (event) => {
       if (ip) ipMap.set(uid, ip)
     }
 
-    // 누적손실(현재 데이터 구조상 pnl 합으로만 계산)
+    // 누적수익(손실은 음수, 수익은 양수)
     const { data: trades, error: e4 } = await supa
       .from('trae_trades')
       .select('user_id, pnl')
       .in('user_id', ids)
       .limit(5000)
     if (e4) throw e4
-    const lossMap = new Map<number, number>()
+    const profitMap = new Map<number, number>()
     for (const t of trades || []) {
       const uid = Number((t as any).user_id)
       const pnl = Number((t as any).pnl ?? 0)
       if (!uid || !Number.isFinite(pnl)) continue
-      if (pnl < 0) lossMap.set(uid, (lossMap.get(uid) ?? 0) + Math.abs(pnl))
+      profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl)
     }
 
     const rows = (users || []).map((u: any) => {
@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
         affiliateParent: '—',
         affiliateRate: 0,
         balanceUsdt: balanceMap.get(id) ?? 0,
-        cumulativeLoss: lossMap.get(id) ?? 0,
+        cumulativeProfit: profitMap.get(id) ?? 0,
         created_at: String(u.created_at || ''),
         online: onlineSet.has(id),
         last_ip: ipMap.get(id) ?? null
@@ -94,12 +94,12 @@ export default defineEventHandler(async (event) => {
   const balances = db.prepare('SELECT user_id, usdt FROM balances').all() as any[]
   const trades = db.prepare('SELECT user_id, pnl FROM trades').all() as any[]
   const balanceMap = new Map(balances.map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
-  const lossMap = new Map<number, number>()
+  const profitMap = new Map<number, number>()
   for (const t of trades) {
     const uid = Number(t.user_id)
     const pnl = Number(t.pnl ?? 0)
     if (!uid || !Number.isFinite(pnl)) continue
-    if (pnl < 0) lossMap.set(uid, (lossMap.get(uid) ?? 0) + Math.abs(pnl))
+    profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl)
   }
   const rows = users.map((u) => ({
     id: Number(u.id),
@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
     affiliateParent: '—',
     affiliateRate: 0,
     balanceUsdt: balanceMap.get(Number(u.id)) ?? 0,
-    cumulativeLoss: lossMap.get(Number(u.id)) ?? 0,
+    cumulativeProfit: profitMap.get(Number(u.id)) ?? 0,
     created_at: String(u.created_at || ''),
     online: false,
     last_ip: null
