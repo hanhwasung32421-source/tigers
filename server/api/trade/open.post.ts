@@ -230,7 +230,7 @@ export default defineEventHandler(async (event) => {
     db.prepare('UPDATE balances SET usdt = usdt + ? WHERE user_id = ?').run(settlementAfterFee, user.id)
     db.prepare('DELETE FROM positions WHERE id = ? AND user_id = ?').run(existing.id, user.id)
     db.prepare(
-      'INSERT INTO trades (user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO trades (user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, liquidation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(
       user.id,
       symbol,
@@ -240,6 +240,7 @@ export default defineEventHandler(async (event) => {
       exit,
       Number(existing.leverage),
       pnl,
+      0,
       new Date().toISOString()
     )
   }

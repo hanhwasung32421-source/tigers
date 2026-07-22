@@ -3,7 +3,7 @@ import { requireUser } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { getOkxLastPrice } from '../../utils/okx'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
-import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
+import { getSupabaseAdminClient, isMissingColumnError, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 
 const FEE_RATE = 0.04
 const LIQUIDATION_TRIGGER_ROE = -50
@@ -11,7 +11,9 @@ const LIQUIDATION_TRIGGER_ROE = -50
 const BodySchema = z.object({
   positionId: z.number().int().positive(),
   // 요구사항: 버튼을 누른 순간의 가격으로 서버에도 동일하게 반영
-  exitPrice: z.number().positive().optional()
+  exitPrice: z.number().positive().optional(),
+  // 자동 강제청산(시스템) 여부: 거래내역에서 "청산/강제청산" 구분용
+  liquidation: z.boolean().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -77,22 +79,29 @@ export default defineEventHandler(async (event) => {
 
     // 거래 내역 저장(bigint PK 직접 생성)
     const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
-    await supaUpsert(
-      'trae_trades',
-      {
-        id: tradeId,
-        user_id: user.id,
-        symbol: pos.symbol,
-        side: pos.side,
-        qty: Number(pos.qty),
-        entry_price: Number(pos.entry_price),
-        exit_price: exit,
-        leverage: Number(pos.leverage),
-        pnl,
-        created_at: new Date().toISOString()
-      },
-      ['id']
-    )
+    const tradePayload: any = {
+      id: tradeId,
+      user_id: user.id,
+      symbol: pos.symbol,
+      side: pos.side,
+      qty: Number(pos.qty),
+      entry_price: Number(pos.entry_price),
+      exit_price: exit,
+      leverage: Number(pos.leverage),
+      pnl,
+      liquidation: body.liquidation ? 1 : 0,
+      created_at: new Date().toISOString()
+    }
+    // Supabase 테이블에 liquidation 컬럼이 아직 없을 수 있어(스키마 미적용).
+    // 있으면 저장하고, 없으면 기존 컬럼만으로 저장한다.
+    const { error: tradeErr } = await supa.from('trae_trades').upsert(tradePayload, { onConflict: 'id' })
+    if (tradeErr && isMissingColumnError(tradeErr, 'liquidation')) {
+      delete tradePayload.liquidation
+      const { error: tradeErr2 } = await supa.from('trae_trades').upsert(tradePayload, { onConflict: 'id' })
+      if (tradeErr2) throw tradeErr2
+    } else if (tradeErr) {
+      throw tradeErr
+    }
 
     await supaUpsert('trae_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'])
     await safeRun(() => supaUpdate('trae_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() }))
@@ -127,7 +136,7 @@ export default defineEventHandler(async (event) => {
   db.prepare('DELETE FROM positions WHERE id = ? AND user_id = ?').run(pos.id, user.id)
 
   db.prepare(
-    'INSERT INTO trades (user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO trades (user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, liquidation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
     user.id,
     pos.symbol,
@@ -137,6 +146,7 @@ export default defineEventHandler(async (event) => {
     exit,
     pos.leverage,
     pnl,
+    body.liquidation ? 1 : 0,
     new Date().toISOString()
   )
 

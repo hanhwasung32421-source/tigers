@@ -551,6 +551,7 @@
             <tr class="text-left">
               <th class="px-3 py-2">시간</th>
               <th class="px-3 py-2">종목</th>
+              <th class="px-3 py-2">구분</th>
               <th class="px-3 py-2">방향</th>
               <th class="px-3 py-2">체결가</th>
               <th class="px-3 py-2">수량</th>
@@ -560,11 +561,19 @@
           </thead>
           <tbody>
             <tr v-if="fills.length === 0 && !fillsLoading" class="border-t border-white/10">
-              <td colspan="7" class="px-3 py-4 text-slate-400">거래내역이 없습니다.</td>
+              <td colspan="8" class="px-3 py-4 text-slate-400">거래내역이 없습니다.</td>
             </tr>
             <tr v-for="t in fills" :key="`fill-${t.id}`" class="border-t border-white/10">
               <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(t.created_at) }}</td>
               <td class="px-3 py-3 text-slate-100">{{ shortSymbol(t.symbol) }}</td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
+                  :class="t.liquidation ? 'bg-rose-500/15 text-rose-300 ring-rose-400/20' : 'bg-blue-500/15 text-blue-300 ring-blue-400/20'"
+                >
+                  {{ t.liquidation ? '강제청산' : '청산' }}
+                </span>
+              </td>
               <td class="px-3 py-3" :class="fillDirection(t) === 'BUY' ? 'text-emerald-300' : 'text-rose-300'">
                 {{ fillDirection(t) }}
               </td>
@@ -587,7 +596,7 @@
               </td>
             </tr>
             <tr v-if="fillsLoading" class="border-t border-white/10">
-              <td colspan="7" class="px-3 py-3 text-slate-400">불러오는 중…</td>
+              <td colspan="8" class="px-3 py-3 text-slate-400">불러오는 중…</td>
             </tr>
           </tbody>
         </table>
@@ -941,6 +950,8 @@ type PendingCloseJob = {
   exitPrice: number
   qty: number
   margin: number
+  // 자동 강제청산 여부(거래내역 표시용)
+  liquidation?: boolean
   createdAt: string
   retryCount: number
 }
@@ -1256,7 +1267,8 @@ async function processPendingCloseJob(positionId: number) {
       body: {
         positionId: job.positionId,
         // 클릭 순간 가격을 끝까지 유지
-        exitPrice: job.exitPrice
+        exitPrice: job.exitPrice,
+        liquidation: Boolean(job.liquidation)
       }
     })
     // 요구사항: 내부 처리. 사용자에게 "청산 완료" 같은 토스트/문구를 추가로 노출하지 않음.
@@ -2537,7 +2549,7 @@ async function checkAutoLiquidations() {
     const id = Number(p.id)
     autoLiquidatingIds.value = autoLiquidatingIds.value.concat([id])
     try {
-      await closePosition(id, 'market', p, true)
+      await closePosition(id, 'market', p, true, true)
     } catch {
       autoLiquidatingIds.value = autoLiquidatingIds.value.filter((v) => v !== id)
     }
@@ -2710,7 +2722,13 @@ async function openPosition() {
   }
 }
 
-async function closePosition(positionId: number, mode: 'market' | 'limit' = 'market', pos?: any, suppressSummary = false) {
+async function closePosition(
+  positionId: number,
+  mode: 'market' | 'limit' = 'market',
+  pos?: any,
+  suppressSummary = false,
+  isLiquidation = false
+) {
   tradeMsg.value = null
   try {
     // 요구사항: "청산 버튼 누른 순간 가격"으로 즉시 계산해서 카드에 표시 + 서버에도 같은 가격으로 저장
@@ -2773,6 +2791,7 @@ async function closePosition(positionId: number, mode: 'market' | 'limit' = 'mar
         exitPrice: Number(exitClickPrice || markOf(removed.symbol) || removed.entry_price || 0),
         qty: Number(removed.qty || 0),
         margin: Number(removed.margin || 0),
+        liquidation: Boolean(isLiquidation),
         createdAt: new Date().toISOString(),
         retryCount: 0
       })

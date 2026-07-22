@@ -43,6 +43,7 @@
               <th class="px-3 py-3 text-left">총판 이름</th>
               <th class="px-3 py-3 text-left">심볼</th>
               <th class="px-3 py-3 text-left">주문유형</th>
+              <th class="px-3 py-3 text-left">구분</th>
               <th class="px-3 py-3 text-right">레버리지</th>
               <th class="px-3 py-3 text-right">체결가격</th>
               <th class="px-3 py-3 text-right">체결량</th>
@@ -52,7 +53,7 @@
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="11" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
+              <td colspan="12" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
             </tr>
             <tr v-for="t in paged" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(t.created_at) }}</td>
@@ -63,6 +64,14 @@
               <td class="px-3 py-3">
                 <span class="rounded bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-200 ring-1 ring-emerald-400/20">
                   {{ t.orderType }}
+                </span>
+              </td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
+                  :class="t.liquidation ? 'bg-rose-500/15 text-rose-300 ring-rose-400/20' : 'bg-blue-500/15 text-blue-300 ring-blue-400/20'"
+                >
+                  {{ t.liquidation ? '강제청산' : '청산' }}
                 </span>
               </td>
               <td class="px-3 py-3 text-right font-mono text-slate-300">x{{ t.leverage }}</td>
@@ -118,6 +127,7 @@ type TradeRow = {
   affiliateName: string
   symbol: string
   orderType: string
+  liquidation?: boolean
   positionSide: string
   leverage: number
   price: number

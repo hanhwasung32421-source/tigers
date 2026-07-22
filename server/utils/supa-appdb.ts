@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import { supaCount, supaSelectAll, supaUpsert, supaInsert, supaUpsertUserSettings } from './supabase'
+import { isMissingColumnError, supaCount, supaSelectAll, supaUpsert, supaUpsertStrict, supaInsert, supaUpsertUserSettings } from './supabase'
 
 // Supabase 테이블명 (요구사항: trae_ prefix)
 const T_USERS = 'trae_users'
@@ -77,22 +77,29 @@ export async function syncPositionToSupabase(row: any) {
 
 export async function syncTradeToSupabase(row: any) {
   if (!supabaseAppDbEnabled()) return
-  await supaUpsert(
-    T_TRADES,
-    {
-      id: Number(row.id),
-      user_id: Number(row.user_id),
-      symbol: String(row.symbol),
-      side: String(row.side),
-      qty: Number(row.qty),
-      entry_price: Number(row.entry_price),
-      exit_price: Number(row.exit_price),
-      leverage: Number(row.leverage),
-      pnl: Number(row.pnl),
-      created_at: row.created_at
-    },
-    'id'
-  )
+  const payload: any = {
+    id: Number(row.id),
+    user_id: Number(row.user_id),
+    symbol: String(row.symbol),
+    side: String(row.side),
+    qty: Number(row.qty),
+    entry_price: Number(row.entry_price),
+    exit_price: Number(row.exit_price),
+    leverage: Number(row.leverage),
+    pnl: Number(row.pnl),
+    liquidation: Number(row.liquidation || 0),
+    created_at: row.created_at
+  }
+  try {
+    await supaUpsertStrict(T_TRADES, payload, 'id')
+  } catch (e: any) {
+    if (isMissingColumnError(e, 'liquidation')) {
+      delete payload.liquidation
+      await supaUpsertStrict(T_TRADES, payload, 'id')
+      return
+    }
+    // 기존 동기화 실패로 전체 흐름을 막지 않음
+  }
 }
 
 export async function syncProfitCardToSupabase(row: any) {
@@ -144,7 +151,22 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
     if (positions.length) await supaUpsert(T_POSITIONS, positions, 'id')
 
     const trades = db.prepare('SELECT * FROM trades').all() as any[]
-    if (trades.length) await supaUpsert(T_TRADES, trades, 'id')
+    if (trades.length) {
+      try {
+        await supaUpsertStrict(T_TRADES, trades, 'id')
+      } catch (e: any) {
+        if (isMissingColumnError(e, 'liquidation')) {
+          await supaUpsertStrict(
+            T_TRADES,
+            trades.map((t) => {
+              const { liquidation, ...rest } = t
+              return rest
+            }),
+            'id'
+          )
+        }
+      }
+    }
   }
 
   // 2) "무조건 Supabase에서 불러오기" 모드:
@@ -191,8 +213,20 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
       }
       for (const t of trades) {
         db.prepare(
-          'INSERT OR REPLACE INTO trades (id, user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        ).run(t.id, t.user_id, t.symbol, t.side, t.qty, t.entry_price, t.exit_price, t.leverage, t.pnl, new Date(t.created_at).toISOString())
+          'INSERT OR REPLACE INTO trades (id, user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, liquidation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(
+          t.id,
+          t.user_id,
+          t.symbol,
+          t.side,
+          t.qty,
+          t.entry_price,
+          t.exit_price,
+          t.leverage,
+          t.pnl,
+          Number((t as any).liquidation || 0),
+          new Date(t.created_at).toISOString()
+        )
       }
 
       db.exec('COMMIT;')

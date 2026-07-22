@@ -102,6 +102,7 @@ export function getDb() {
       exit_price REAL NOT NULL,
       leverage INTEGER NOT NULL,
       pnl REAL NOT NULL,
+      liquidation INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -122,6 +123,17 @@ export function getDb() {
       updated_at TEXT NOT NULL
     );
   `)
+
+  // 마이그레이션: trades.liquidation 컬럼 추가(강제청산 표시용)
+  try {
+    const cols = db.prepare("PRAGMA table_info('trades')").all() as any[]
+    const hasLiquidation = cols.some((c) => String(c?.name) === 'liquidation')
+    if (!hasLiquidation) {
+      db.exec('ALTER TABLE trades ADD COLUMN liquidation INTEGER NOT NULL DEFAULT 0;')
+    }
+  } catch {
+    // ignore
+  }
 
   // 경량 마이그레이션
   const userSettingsCols = (db.prepare(`PRAGMA table_info(user_settings)`).all() as any[]).map((r) => String(r.name))

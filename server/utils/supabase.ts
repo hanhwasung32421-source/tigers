@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
 
-function isMissingColumnError(error: any, column: string) {
+export function isMissingColumnError(error: any, column: string) {
   const msg = String(error?.message || error || '')
   return msg.includes(`Could not find the '${column}' column`)
 }

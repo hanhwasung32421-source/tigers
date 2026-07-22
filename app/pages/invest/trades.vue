@@ -10,7 +10,15 @@
         <div v-if="trades.length === 0" class="text-sm text-slate-400">거래 내역이 없습니다.</div>
         <div v-for="t in trades" :key="t.id" class="rounded-xl bg-[#031019] p-4 text-sm ring-1 ring-cyan-500/10">
           <div class="flex justify-between">
-            <div class="font-medium">{{ t.symbol }} · {{ t.side.toUpperCase() }} · x{{ t.leverage }}</div>
+            <div class="flex items-center gap-2 font-medium">
+              <span>{{ t.symbol }} · {{ t.side.toUpperCase() }} · x{{ t.leverage }}</span>
+              <span
+                class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
+                :class="t.liquidation ? 'bg-rose-500/15 text-rose-300 ring-rose-400/20' : 'bg-blue-500/15 text-blue-300 ring-blue-400/20'"
+              >
+                {{ t.liquidation ? '강제청산' : '청산' }}
+              </span>
+            </div>
             <div class="font-mono" :class="t.pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'">
               {{ t.pnl >= 0 ? '+' : '' }}{{ Number(t.pnl).toFixed(2) }} USDT
             </div>

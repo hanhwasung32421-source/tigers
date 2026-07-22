@@ -1117,7 +1117,24 @@ export const conversationBackup = {
       liquidationCloseCardSuppressed: {
         autoLiquidationNoSummaryCard: true,
         manualCloseSummaryCardKept: true,
-        version: '2026년 7월 22일 (수) - 30'
+        version: '2026년 7월 22일 (수) - 31'
+      }
+    },
+    {
+      timestamp: '2026-07-22T09:02:27+09:00',
+      type: 'conversation',
+      userMessage: '거래내역에 청산/강제청산 구분 칸 추가 및 색상 표시 요청',
+      assistantWorkSummary: [
+        '자동 강제청산 체크 경로에서 청산 요청 시 `liquidation` 플래그를 서버로 전달하도록 처리함',
+        '서버 거래내역(trades)에 `liquidation` 컬럼을 추가해 강제청산 여부를 저장하고, Supabase 스키마에 컬럼이 없을 경우를 대비해 안전한 fallback 로직을 추가함',
+        '거래내역 UI(거래내역 탭/투자내역/관리자 거래내역)에 `구분` 표시를 추가하고, `청산`은 파란색, `강제청산`은 빨간색 배지로 표시함',
+        '버전을 2026년 7월 22일 (수) - 31 로 갱신함'
+      ],
+      tradeCloseTypeColumnAdded: {
+        addedLiquidationFlag: true,
+        userTradesShowCloseType: true,
+        adminTradesShowCloseType: true,
+        version: '2026년 7월 22일 (수) - 31'
       }
     }
   ]

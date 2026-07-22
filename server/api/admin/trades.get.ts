@@ -1,7 +1,7 @@
 import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
-import { getSupabaseAdminClient } from '../../utils/supabase'
+import { getSupabaseAdminClient, isMissingColumnError } from '../../utils/supabase'
 
 const FEE_RATE = 0.04
 
@@ -23,13 +23,22 @@ export default defineEventHandler(async (event) => {
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    let query = supa
-      .from('trae_trades')
-      .select('id, user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, created_at')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
-    if (userId > 0) query = query.eq('user_id', userId)
-    const { data: trades, error: e1 } = await query
+    const selectBase = 'id, user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, created_at'
+    const runQuery = async (select: string) => {
+      let query = supa
+        .from('trae_trades')
+        .select(select)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+      if (userId > 0) query = query.eq('user_id', userId)
+      const { data, error } = await query
+      return { data, error }
+    }
+
+    // liquidation 컬럼이 없는 구버전 스키마도 있을 수 있어 fallback 처리
+    const { data: trades1, error: e1a } = await runQuery(`${selectBase}, liquidation`)
+    const { data: trades, error: e1 } =
+      e1a && isMissingColumnError(e1a, 'liquidation') ? await runQuery(selectBase) : { data: trades1, error: e1a }
     if (e1) throw e1
 
     const userIds = Array.from(new Set((trades || []).map((t: any) => Number(t.user_id)).filter(Boolean)))
@@ -65,6 +74,7 @@ export default defineEventHandler(async (event) => {
         price: Number(t.exit_price || 0),
         qty,
         pnl: Number(t.pnl || 0),
+        liquidation: Boolean((t as any).liquidation),
         fee: calcTotalFee(entry, qty, lev),
         online: onlineSet.has(uid)
       }
@@ -77,7 +87,7 @@ export default defineEventHandler(async (event) => {
   const rows = db
     .prepare(
       `
-      SELECT t.id, t.user_id, t.symbol, t.side, t.qty, t.entry_price, t.exit_price, t.leverage, t.pnl, t.created_at, u.username, u.role
+      SELECT t.id, t.user_id, t.symbol, t.side, t.qty, t.entry_price, t.exit_price, t.leverage, t.pnl, t.liquidation, t.created_at, u.username, u.role
       FROM trades t
       LEFT JOIN users u ON u.id = t.user_id
       ${userId > 0 ? 'WHERE t.user_id = ?' : ''}
@@ -105,6 +115,7 @@ export default defineEventHandler(async (event) => {
       price: Number(t.exit_price || 0),
       qty,
       pnl: Number(t.pnl || 0),
+      liquidation: Boolean(t.liquidation),
       fee: calcTotalFee(entry, qty, lev),
       online: false
     }
