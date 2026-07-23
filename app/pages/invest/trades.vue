@@ -14,9 +14,9 @@
               <span>{{ t.symbol }} · {{ t.side.toUpperCase() }} · x{{ t.leverage }}</span>
               <span
                 class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
-                :class="t.liquidation ? 'bg-rose-500/15 text-rose-300 ring-rose-400/20' : 'bg-blue-500/15 text-blue-300 ring-blue-400/20'"
+                :class="tradeResultBadgeClass(t)"
               >
-                {{ t.liquidation ? '강제청산' : '청산' }}
+                {{ tradeResultLabel(t) }}
               </span>
             </div>
             <div class="font-mono" :class="t.pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'">
@@ -40,4 +40,14 @@ definePageMeta({ middleware: ['auth'] })
 const trades = ref<any[]>([])
 const data = await $fetch<any>('/api/account')
 trades.value = data.trades
+
+function tradeResultLabel(t: any) {
+  if (Boolean(t?.liquidation)) return '강제청산'
+  return Number(t?.pnl || 0) >= 0 ? '수익' : '손실'
+}
+
+function tradeResultBadgeClass(t: any) {
+  if (Boolean(t?.liquidation)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+  return Number(t?.pnl || 0) >= 0 ? 'bg-blue-500/15 text-blue-300 ring-blue-400/20' : 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+}
 </script>

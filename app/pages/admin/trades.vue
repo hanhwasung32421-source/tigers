@@ -69,9 +69,9 @@
               <td class="px-3 py-3">
                 <span
                   class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
-                  :class="t.liquidation ? 'bg-rose-500/15 text-rose-300 ring-rose-400/20' : 'bg-blue-500/15 text-blue-300 ring-blue-400/20'"
+                  :class="tradeResultBadgeClass(t)"
                 >
-                  {{ t.liquidation ? '강제청산' : '청산' }}
+                  {{ tradeResultLabel(t) }}
                 </span>
               </td>
               <td class="px-3 py-3 text-right font-mono text-slate-300">x{{ t.leverage }}</td>
@@ -171,6 +171,16 @@ function formatDateTime(v: string) {
   }).format(d)
 }
 
+function tradeResultLabel(t: Pick<TradeRow, 'liquidation' | 'pnl'>) {
+  if (Boolean(t?.liquidation)) return '강제청산'
+  return Number(t?.pnl || 0) >= 0 ? '수익' : '손실'
+}
+
+function tradeResultBadgeClass(t: Pick<TradeRow, 'liquidation' | 'pnl'>) {
+  if (Boolean(t?.liquidation)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+  return Number(t?.pnl || 0) >= 0 ? 'bg-blue-500/15 text-blue-300 ring-blue-400/20' : 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+}
+
 function dateOnly(v: string) {
   const s = String(v || '')
   return s ? s.slice(0, 10) : ''
@@ -187,7 +197,7 @@ const filtered = computed(() => {
       if (!ok) return false
     }
     if (!q) return true
-    return [t.symbol, t.orderType, t.positionSide, t.affiliateName].some((v) => String(v).toLowerCase().includes(q))
+    return [t.symbol, t.orderType, t.positionSide, t.affiliateName, tradeResultLabel(t)].some((v) => String(v).toLowerCase().includes(q))
   })
 })
 

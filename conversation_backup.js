@@ -1134,7 +1134,23 @@ export const conversationBackup = {
         addedLiquidationFlag: true,
         userTradesShowCloseType: true,
         adminTradesShowCloseType: true,
-        version: '2026년 7월 22일 (수) - 31'
+        version: '2026년 7월 22일 (수) - 32'
+      }
+    },
+    {
+      timestamp: '2026-07-22T09:19:41+09:00',
+      type: 'conversation',
+      userMessage: '거래내역 구분을 강제청산/수익/손실 3종으로 재분류 요청',
+      assistantWorkSummary: [
+        '거래내역의 구분 표시를 기존 `청산/강제청산` 2단계에서 `강제청산/수익/손실` 3단계로 변경함',
+        '강제청산과 손실은 빨간색 계열 배지로, 수익은 기존 청산과 같은 파란색 계열 배지로 적용함',
+        '거래화면 하단 거래내역, 투자내역 거래내역, 관리자 거래내역 화면에 동일한 기준으로 반영함',
+        '관리자 거래내역 검색도 새 구분 라벨(강제청산/수익/손실)로 검색되도록 보완함',
+        '버전을 2026년 7월 22일 (수) - 32 로 갱신함'
+      ],
+      tradeResultClassificationRefined: {
+        labels: ['강제청산', '수익', '손실'],
+        version: '2026년 7월 22일 (수) - 32'
       }
     }
   ]
