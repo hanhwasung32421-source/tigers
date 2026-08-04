@@ -37,7 +37,7 @@ export async function createPasswordResetRequest(user: SessionUser, name: string
         sender_id: Number(user.id),
         recipient_id: Number(operator.id),
         subject: '비밀번호 초기화 요청',
-        body: `비밀번호 초기화 요청\n아이디: ${user.username}\n이름: ${name}\n생년월일: ${birthDate}\n\n운영자 확인 후 아이디와 동일한 비밀번호로 초기화됩니다.`,
+        body: `비밀번호 초기화 요청\n아이디: ${user.username}\n이름: ${name}\n생년월일: ${birthDate}\n\n운영자 확인 후 비밀번호는 1234로 초기화됩니다.`,
         read_at: null
       }
     ])
@@ -69,7 +69,7 @@ export async function createPasswordResetRequest(user: SessionUser, name: string
       sender_id: Number(user.id),
       recipient_id: Number(operator.id),
       subject: '비밀번호 초기화 요청',
-      body: `비밀번호 초기화 요청\n아이디: ${user.username}\n이름: ${name}\n생년월일: ${birthDate}\n\n운영자 확인 후 아이디와 동일한 비밀번호로 초기화됩니다.`,
+      body: `비밀번호 초기화 요청\n아이디: ${user.username}\n이름: ${name}\n생년월일: ${birthDate}\n\n운영자 확인 후 비밀번호는 1234로 초기화됩니다.`,
       read_at: null
     }
   ])
@@ -121,8 +121,16 @@ export async function approvePasswordReset(requestId: number, adminUser: Session
     if (!req) throw createError({ statusCode: 404, statusMessage: '초기화 요청을 찾을 수 없습니다.' })
     if (String(req.status) !== 'pending') throw createError({ statusCode: 409, statusMessage: '이미 처리된 요청입니다.' })
 
-    const newHash = hashPassword(String(req.username_snapshot || ''))
-    await supa.from('trae_users').update({ password_hash: newHash, updated_at: approvedAt }).eq('id', Number(req.user_id))
+    const newHash = hashPassword('1234')
+    await supa
+      .from('trae_users')
+      .update({
+        password_hash: newHash,
+        password_reset_required: true,
+        password_reset_notice_dismissed_at: null,
+        updated_at: approvedAt
+      })
+      .eq('id', Number(req.user_id))
     await supa
       .from('trae_password_reset_requests')
       .update({ status: 'approved', approved_by: Number(adminUser.id), approved_at: approvedAt })
@@ -133,7 +141,7 @@ export async function approvePasswordReset(requestId: number, adminUser: Session
         sender_id: Number(adminUser.id),
         recipient_id: Number(req.user_id),
         subject: '비밀번호 초기화 승인',
-        body: `비밀번호 초기화가 승인되었습니다.\n현재 비밀번호는 아이디와 동일하게 변경되었습니다.\n아이디: ${String(req.username_snapshot || '')}`,
+        body: `비밀번호 초기화가 승인되었습니다.\n현재 비밀번호는 1234로 변경되었습니다.\n로그인 후 우측상단 아이디를 클릭해서 비밀번호를 변경해 주세요.`,
         read_at: null
       }
     ])
@@ -145,8 +153,8 @@ export async function approvePasswordReset(requestId: number, adminUser: Session
   if (!req) throw createError({ statusCode: 404, statusMessage: '초기화 요청을 찾을 수 없습니다.' })
   if (String(req.status) !== 'pending') throw createError({ statusCode: 409, statusMessage: '이미 처리된 요청입니다.' })
 
-  const newHash = hashPassword(String(req.username_snapshot || ''))
-  db.prepare(`UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?`).run(newHash, approvedAt, Number(req.user_id))
+  const newHash = hashPassword('1234')
+  db.prepare(`UPDATE users SET password_hash = ?, password_reset_required = 1, password_reset_notice_dismissed_at = NULL, updated_at = ? WHERE id = ?`).run(newHash, approvedAt, Number(req.user_id))
   db.prepare(`UPDATE password_reset_requests SET status = 'approved', approved_by = ?, approved_at = ? WHERE id = ?`).run(Number(adminUser.id), approvedAt, Number(requestId))
   await insertMessages([
     {
@@ -154,7 +162,7 @@ export async function approvePasswordReset(requestId: number, adminUser: Session
       sender_id: Number(adminUser.id),
       recipient_id: Number(req.user_id),
       subject: '비밀번호 초기화 승인',
-      body: `비밀번호 초기화가 승인되었습니다.\n현재 비밀번호는 아이디와 동일하게 변경되었습니다.\n아이디: ${String(req.username_snapshot || '')}`,
+      body: `비밀번호 초기화가 승인되었습니다.\n현재 비밀번호는 1234로 변경되었습니다.\n로그인 후 우측상단 아이디를 클릭해서 비밀번호를 변경해 주세요.`,
       read_at: null
     }
   ])

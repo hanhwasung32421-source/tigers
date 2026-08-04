@@ -40,6 +40,8 @@ export async function syncUserToSupabase(row: any) {
       account_holder: String(row.account_holder || ''),
       referral_code: String(row.referral_code || ''),
       terms_agreed_at: row.terms_agreed_at ? String(row.terms_agreed_at) : null,
+      password_reset_required: Boolean(row.password_reset_required),
+      password_reset_notice_dismissed_at: row.password_reset_notice_dismissed_at ? String(row.password_reset_notice_dismissed_at) : null,
       role: String(row.role),
       permissions: parsePerm(row.permissions),
       created_at: row.created_at,
@@ -223,7 +225,7 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
 
       for (const u of users) {
         db.prepare(
-          'INSERT OR REPLACE INTO users (id, username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          'INSERT OR REPLACE INTO users (id, username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, password_reset_required, password_reset_notice_dismissed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         ).run(
           u.id,
           u.username,
@@ -235,6 +237,8 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
           u.account_holder || '',
           u.referral_code || '',
           u.terms_agreed_at || null,
+          u.password_reset_required ? 1 : 0,
+          u.password_reset_notice_dismissed_at || null,
           u.role,
           JSON.stringify(u.permissions || {}),
           new Date(u.created_at).toISOString(),

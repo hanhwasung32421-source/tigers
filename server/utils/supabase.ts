@@ -111,6 +111,8 @@ export async function ensureAdminExists() {
     account_holder: '',
     referral_code: '',
     terms_agreed_at: now,
+    password_reset_required: false,
+    password_reset_notice_dismissed_at: null,
     role: 'super_admin',
     permissions: { all: true, canCredit: true },
     created_at: now,

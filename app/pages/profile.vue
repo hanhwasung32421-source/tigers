@@ -46,6 +46,21 @@
         <input v-model.trim="accountHolder" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
 
+      <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <div class="text-sm font-medium text-slate-200">비밀번호 변경</div>
+        <div class="mt-3 grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="text-sm text-slate-300">새 비밀번호</label>
+            <input v-model="newPassword" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-300">새 비밀번호 확인</label>
+            <input v-model="newPasswordConfirm" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+          </div>
+        </div>
+        <p class="mt-2 text-xs text-slate-500">변경하지 않을 경우 비워두세요.</p>
+      </div>
+
       <div class="flex items-center justify-end gap-2">
         <button class="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium hover:bg-indigo-400 disabled:opacity-60" :disabled="saving">
           {{ saving ? '저장 중...' : '저장' }}
@@ -73,6 +88,8 @@ const birthDate = ref(me.value?.birth_date || '')
 const bankName = ref(me.value?.bank_name || banks[0])
 const bankAccount = ref(me.value?.bank_account || '')
 const accountHolder = ref(me.value?.account_holder || '')
+const newPassword = ref('')
+const newPasswordConfirm = ref('')
 const saving = ref(false)
 const error = ref<string | null>(null)
 const okText = ref<string | null>(null)
@@ -82,6 +99,9 @@ async function save() {
   error.value = null
   okText.value = null
   try {
+    if ((newPassword.value || newPasswordConfirm.value) && newPassword.value !== newPasswordConfirm.value) {
+      throw new Error('새 비밀번호 확인이 일치하지 않습니다.')
+    }
     await $fetch('/api/me/profile', {
       method: 'POST',
       body: {
@@ -89,10 +109,13 @@ async function save() {
         birthDate: birthDate.value,
         bankName: bankName.value,
         bankAccount: bankAccount.value,
-        accountHolder: accountHolder.value
+        accountHolder: accountHolder.value,
+        newPassword: newPassword.value || undefined
       }
     })
     await refresh()
+    newPassword.value = ''
+    newPasswordConfirm.value = ''
     okText.value = '회원정보를 저장했습니다.'
   } catch (e: any) {
     error.value = e?.data?.statusMessage || '회원정보 저장에 실패했습니다.'

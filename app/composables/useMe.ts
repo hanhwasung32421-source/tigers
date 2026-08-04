@@ -7,6 +7,8 @@ type Me = {
   bank_account?: string
   account_holder?: string
   referral_code?: string
+  password_reset_required?: boolean
+  password_reset_notice_dismissed_at?: string | null
   role: 'user' | 'super_admin' | 'branch_admin'
 }
 

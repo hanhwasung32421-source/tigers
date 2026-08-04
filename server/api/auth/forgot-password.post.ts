@@ -12,7 +12,12 @@ const BodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const body = BodySchema.parse(await readBody(event))
+  let body: z.infer<typeof BodySchema>
+  try {
+    body = BodySchema.parse(await readBody(event))
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: '필수 항목을 모두 올바르게 입력해 주세요.' })
+  }
 
   let user: any = null
   if (supabaseAppDbEnabled()) {

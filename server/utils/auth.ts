@@ -18,6 +18,8 @@ export type SessionUser = {
   bank_account?: string
   account_holder?: string
   referral_code?: string
+  password_reset_required?: boolean
+  password_reset_notice_dismissed_at?: string | null
   role: Role
   permissions: Record<string, any>
 }
@@ -94,6 +96,8 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
         bank_account: String(user.bank_account || ''),
         account_holder: String(user.account_holder || ''),
         referral_code: String(user.referral_code || ''),
+        password_reset_required: Boolean(user.password_reset_required),
+        password_reset_notice_dismissed_at: user.password_reset_notice_dismissed_at ? String(user.password_reset_notice_dismissed_at) : null,
         role: String(user.role) as Role,
         permissions: user.permissions || {}
       }
@@ -107,13 +111,13 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
   const row = db
     .prepare(
       `
-      SELECT u.id, u.username, u.name, u.birth_date, u.bank_name, u.bank_account, u.account_holder, u.referral_code, u.role, u.permissions
+      SELECT u.id, u.username, u.name, u.birth_date, u.bank_name, u.bank_account, u.account_holder, u.referral_code, u.password_reset_required, u.password_reset_notice_dismissed_at, u.role, u.permissions
       FROM sessions s
       JOIN users u ON u.id = s.user_id
       WHERE s.token = ?
       `
     )
-    .get(token) as { id: number; username: string; name: string; birth_date: string; bank_name: string; bank_account: string; account_holder: string; referral_code: string; role: Role; permissions: string } | undefined
+    .get(token) as { id: number; username: string; name: string; birth_date: string; bank_name: string; bank_account: string; account_holder: string; referral_code: string; password_reset_required: number; password_reset_notice_dismissed_at: string | null; role: Role; permissions: string } | undefined
 
   if (!row) return null
   return {
@@ -125,6 +129,8 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
     bank_account: (row as any).bank_account || '',
     account_holder: (row as any).account_holder || '',
     referral_code: (row as any).referral_code || '',
+    password_reset_required: Boolean((row as any).password_reset_required),
+    password_reset_notice_dismissed_at: (row as any).password_reset_notice_dismissed_at || null,
     role: row.role,
     permissions: JSON.parse(row.permissions || '{}')
   }

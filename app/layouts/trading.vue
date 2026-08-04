@@ -74,6 +74,19 @@
     <main class="mx-auto max-w-[1920px] px-3 py-3">
       <slot />
     </main>
+
+    <Teleport to="body">
+      <div v-if="showResetNotice" class="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 px-4">
+        <div class="w-full max-w-md rounded-2xl border border-amber-400/20 bg-[#0b1220] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+          <h2 class="text-lg font-semibold text-slate-100">비밀번호 안내</h2>
+          <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-300">비밀번호가 초기화 되었습니다.
+우측상단 아이디를 클릭하여 비밀번호를 변경해주세요</p>
+          <div class="mt-5 flex justify-end">
+            <button class="rounded-md bg-white/10 px-4 py-2 text-sm hover:bg-white/15" @click="dismissResetNotice">다시보지않기</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -87,6 +100,7 @@ const navLoading = useState<boolean>('global_nav_loading', () => false)
 const { me, refresh } = useMe()
 await refresh()
 const { unread, refreshUnread } = useMessages()
+const resetNoticeHidden = ref(false)
 if (me.value) {
   await refreshUnread()
 } else {
@@ -96,6 +110,13 @@ if (me.value) {
 const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
 const supportTarget = computed(() => (isAdmin.value ? '/admin/messages' : '/support'))
 const bellTarget = computed(() => (isAdmin.value ? '/admin/messages' : '/support'))
+const showResetNotice = computed(
+  () =>
+    !isAdmin.value &&
+    !resetNoticeHidden.value &&
+    Boolean(me.value?.password_reset_required) &&
+    !me.value?.password_reset_notice_dismissed_at
+)
 
 function startNavLoading(target?: string) {
   if (target && String(target) === String(route.path)) return
@@ -115,8 +136,15 @@ watch(
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
   unread.value = 0
+  resetNoticeHidden.value = false
   await refresh()
   await navigateTo('/')
+}
+
+async function dismissResetNotice() {
+  await $fetch('/api/me/reset-notice-dismiss', { method: 'POST' }).catch(() => {})
+  resetNoticeHidden.value = true
+  if (me.value) me.value.password_reset_notice_dismissed_at = new Date().toISOString()
 }
 </script>
 

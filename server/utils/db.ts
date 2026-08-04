@@ -70,6 +70,8 @@ export function getDb() {
       account_holder TEXT NOT NULL DEFAULT '',
       referral_code TEXT NOT NULL DEFAULT '',
       terms_agreed_at TEXT NULL,
+      password_reset_required INTEGER NOT NULL DEFAULT 0,
+      password_reset_notice_dismissed_at TEXT NULL,
       role TEXT NOT NULL,
       permissions TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL,
@@ -176,6 +178,8 @@ export function getDb() {
   if (!userCols.includes('account_holder')) db.exec(`ALTER TABLE users ADD COLUMN account_holder TEXT NOT NULL DEFAULT ''`)
   if (!userCols.includes('referral_code')) db.exec(`ALTER TABLE users ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''`)
   if (!userCols.includes('terms_agreed_at')) db.exec(`ALTER TABLE users ADD COLUMN terms_agreed_at TEXT NULL`)
+  if (!userCols.includes('password_reset_required')) db.exec(`ALTER TABLE users ADD COLUMN password_reset_required INTEGER NOT NULL DEFAULT 0`)
+  if (!userCols.includes('password_reset_notice_dismissed_at')) db.exec(`ALTER TABLE users ADD COLUMN password_reset_notice_dismissed_at TEXT NULL`)
   if (!userCols.includes('updated_at')) db.exec(`ALTER TABLE users ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`)
 
   // 과거 UI에서 이름칸에 아이디를 보여주던 데이터는 빈값으로 정리
@@ -198,8 +202,8 @@ export function getDb() {
   if (!existing?.id) {
     const passwordHash = bcrypt.hashSync('1121', 10)
     db.prepare(
-      'INSERT INTO users (username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run('admin', passwordHash, '', '', '', '', '', '', nowIso(), 'super_admin', JSON.stringify({ all: true, canCredit: true }), nowIso(), nowIso())
+      'INSERT INTO users (username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, password_reset_required, password_reset_notice_dismissed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run('admin', passwordHash, '', '', '', '', '', '', nowIso(), 0, null, 'super_admin', JSON.stringify({ all: true, canCredit: true }), nowIso(), nowIso())
 
     const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin') as { id: number }
     db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(admin.id, 0)
