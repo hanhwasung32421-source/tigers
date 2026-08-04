@@ -1166,7 +1166,24 @@ export const conversationBackup = {
       adminMemberTradeHistoryGuarded: {
         safeEmptyTradeResponse: true,
         safeInvalidUserIdFallback: true,
-        version: '2026년 8월 4일 (화) - 33'
+        version: '2026년 8월 4일 (화) - 34'
+      }
+    },
+    {
+      timestamp: '2026-08-04T15:57:14+09:00',
+      type: 'conversation',
+      userMessage: '모든 회원 누적수익 클릭 시 공통 server error 발생, `/api/admin/trades` 전체 방어 강화 요청',
+      assistantWorkSummary: [
+        'Supabase `trae_trades` 조회에서 `liquidation` 컬럼을 기본 select에서 분리해, 컬럼 호환 문제로 전체 거래내역 API가 실패하지 않도록 수정함',
+        '`trae_users`, `trae_sessions` 부가 조회는 실패해도 거래내역 본체는 계속 반환하도록 예외 전파를 완화함',
+        '관리자 거래내역 API(`/api/admin/trades`)가 거래 본체 우선으로 항상 응답하도록 보강했고 빌드 통과도 확인함',
+        '버전을 2026년 8월 4일 (화) - 34 로 갱신함'
+      ],
+      adminTradesApiMadeLenient: {
+        tradesCoreAlwaysPreferred: true,
+        liquidationLookupBestEffort: true,
+        auxiliaryLookupsBestEffort: true,
+        version: '2026년 8월 4일 (화) - 34'
       }
     },
     {

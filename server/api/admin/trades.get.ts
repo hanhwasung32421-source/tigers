@@ -1,7 +1,7 @@
 import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
-import { getSupabaseAdminClient, isMissingColumnError } from '../../utils/supabase'
+import { getSupabaseAdminClient } from '../../utils/supabase'
 
 const FEE_RATE = 0.04
 
@@ -35,15 +35,27 @@ export default defineEventHandler(async (event) => {
       return { data, error }
     }
 
-    // liquidation 컬럼이 없는 구버전 스키마도 있을 수 있어 fallback 처리
-    const { data: trades1, error: e1a } = await runQuery(`${selectBase}, liquidation`)
-    const { data: trades, error: e1 } =
-      e1a && isMissingColumnError(e1a, 'liquidation') ? await runQuery(selectBase) : { data: trades1, error: e1a }
+    // 거래내역 본체는 liquidation 컬럼 없이 먼저 안전하게 읽는다.
+    // (배포/마이그레이션 타이밍에 liquidation 컬럼 호환 문제로 전체 500이 나는 것을 방지)
+    const { data: trades, error: e1 } = await runQuery(selectBase)
     if (e1) throw e1
 
     // 특정 회원의 거래내역이 비어 있으면 users/sessions in([]) 조회를 타지 않고 바로 빈 결과 반환
     if (!trades || trades.length === 0) {
       return { items: [], hasMore: false }
+    }
+
+    // liquidation 컬럼은 부가 정보로만 취급하고, 실패해도 전체 응답은 유지한다.
+    const liquidationMap = new Map<number, boolean>()
+    try {
+      const { data: liquidationRows, error: liqErr } = await runQuery('id, liquidation')
+      if (!liqErr) {
+        for (const row of liquidationRows || []) {
+          liquidationMap.set(Number((row as any).id), Boolean((row as any).liquidation))
+        }
+      }
+    } catch {
+      // ignore
     }
 
     const userIds = Array.from(new Set((trades || []).map((t: any) => Number(t.user_id)).filter(Boolean)))
@@ -66,7 +78,7 @@ export default defineEventHandler(async (event) => {
           price: Number(t.exit_price || 0),
           qty,
           pnl: Number(t.pnl || 0),
-          liquidation: Boolean((t as any).liquidation),
+          liquidation: liquidationMap.get(Number(t.id)) ?? false,
           fee: calcTotalFee(entry, qty, lev),
           online: false
         }
@@ -75,16 +87,24 @@ export default defineEventHandler(async (event) => {
     }
 
     const nowIso = new Date().toISOString()
-    const { data: users, error: e2 } = await supa.from('trae_users').select('id, username, role').in('id', userIds)
-    if (e2) throw e2
-    const { data: sessions, error: e3 } = await supa
-      .from('trae_sessions')
-      .select('user_id, expires_at')
-      .in('user_id', userIds)
-      .gt('expires_at', nowIso)
-    if (e3) throw e3
-    const userMap = new Map((users || []).map((u: any) => [Number(u.id), u]))
-    const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
+    let userMap = new Map<number, any>()
+    let onlineSet = new Set<number>()
+    try {
+      const { data: users, error: e2 } = await supa.from('trae_users').select('id, username, role').in('id', userIds)
+      if (!e2) userMap = new Map((users || []).map((u: any) => [Number(u.id), u]))
+    } catch {
+      // ignore
+    }
+    try {
+      const { data: sessions, error: e3 } = await supa
+        .from('trae_sessions')
+        .select('user_id, expires_at')
+        .in('user_id', userIds)
+        .gt('expires_at', nowIso)
+      if (!e3) onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
+    } catch {
+      // ignore
+    }
 
     const items = (trades || []).map((t: any) => {
       const uid = Number(t.user_id)
@@ -106,7 +126,7 @@ export default defineEventHandler(async (event) => {
         price: Number(t.exit_price || 0),
         qty,
         pnl: Number(t.pnl || 0),
-        liquidation: Boolean((t as any).liquidation),
+        liquidation: liquidationMap.get(Number(t.id)) ?? false,
         fee: calcTotalFee(entry, qty, lev),
         online: onlineSet.has(uid)
       }
