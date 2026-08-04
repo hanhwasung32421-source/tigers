@@ -18,7 +18,12 @@ const BodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const body = BodySchema.parse(await readBody(event))
+  let body: z.infer<typeof BodySchema>
+  try {
+    body = BodySchema.parse(await readBody(event))
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: '필수 항목을 모두 올바르게 입력해 주세요.' })
+  }
   const useSupa = supabaseAppDbEnabled()
 
   // 배포/서버리스: Supabase를 단일 진실 소스로 사용 (가입 즉시 Supabase에 반영)
@@ -43,28 +48,40 @@ export default defineEventHandler(async (event) => {
     const userId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
     const now = new Date().toISOString()
 
-    await supaUpsertStrict(
-      'trae_users',
-      {
-        id: userId,
-        username: body.username,
-        password_hash: passwordHash,
-        name: body.name.trim(),
-        birth_date: body.birthDate,
-        bank_name: body.bankName.trim(),
-        bank_account: body.bankAccount.trim(),
-        account_holder: body.accountHolder.trim(),
-        referral_code: (body.referralCode || '').trim(),
-        terms_agreed_at: now,
-        role: 'user',
-        permissions: {},
-        created_at: now,
-        updated_at: now
-      },
-      'id'
-    )
-    await supaUpsertStrict('trae_balances', { user_id: userId, usdt: 0 }, 'user_id')
-    await supaUpsertUserSettings({ user_id: userId, trade_percent: 50, trade_leverage: 100, chart_prefs: {}, updated_at: now })
+    try {
+      await supaUpsertStrict(
+        'trae_users',
+        {
+          id: userId,
+          username: body.username,
+          password_hash: passwordHash,
+          name: body.name.trim(),
+          birth_date: body.birthDate,
+          bank_name: body.bankName.trim(),
+          bank_account: body.bankAccount.trim(),
+          account_holder: body.accountHolder.trim(),
+          referral_code: (body.referralCode || '').trim(),
+          terms_agreed_at: now,
+          role: 'user',
+          permissions: {},
+          created_at: now,
+          updated_at: now
+        },
+        'id'
+      )
+      await supaUpsertStrict('trae_balances', { user_id: userId, usdt: 0 }, 'user_id')
+      await supaUpsertUserSettings({ user_id: userId, trade_percent: 50, trade_leverage: 100, chart_prefs: {}, updated_at: now })
+    } catch (e: any) {
+      const msg = String(e?.message || e || '')
+      if (msg.includes("Could not find the '") && msg.includes(" column")) {
+        throw createError({
+          statusCode: 500,
+          statusMessage:
+            'Supabase 회원 테이블 컬럼이 아직 업데이트되지 않았습니다. 방금 드린 SQL(trae_users 컬럼 추가)을 다시 실행한 뒤 재시도해 주세요.'
+        })
+      }
+      throw createError({ statusCode: 500, statusMessage: msg || '회원가입 처리 중 오류가 발생했습니다.' })
+    }
 
     // 세션 생성(서버리스에서 지속되도록 auth.ts에서 Supabase 세션으로 저장)
     await createSession(event, userId)

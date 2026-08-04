@@ -1266,7 +1266,23 @@ export const conversationBackup = {
       ],
       registerBankDropdownStyleUpdated: {
         darkDropdown: true,
-        version: '2026년 8월 4일 (화) - 39'
+        version: '2026년 8월 4일 (화) - 40'
+      }
+    },
+    {
+      timestamp: '2026-08-04T17:28:09+09:00',
+      type: 'conversation',
+      userMessage: '회원가입 시 /api/auth/register 500 server error 발생',
+      assistantWorkSummary: [
+        '회원가입 API에서 입력값 검증 실패(Zod)나 Supabase 스키마 불일치(누락 컬럼) 오류가 500으로만 보이던 문제를 개선함',
+        '필수 항목 누락/형식 오류는 400으로 내려 사용자에게 "필수 항목" 안내가 보이도록 수정함',
+        'Supabase에서 "Could not find the \\'...\\' column" 오류가 발생하면 컬럼 추가 SQL 재실행 안내를 statusMessage로 반환하도록 개선함',
+        '버전을 2026년 8월 4일 (화) - 40 로 갱신함'
+      ],
+      registerApiErrorHardened: {
+        zodTo400: true,
+        missingColumnHint: true,
+        version: '2026년 8월 4일 (화) - 40'
       }
     },
     {
