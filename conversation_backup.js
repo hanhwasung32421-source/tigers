@@ -1343,7 +1343,20 @@ export const conversationBackup = {
         accountHolderKoreanOnly: true,
         passwordHangulToQwerty: true,
         bankAccountDigitsOnly: true,
-        version: '2026년 8월 4일 (화) - 43'
+        version: '2026년 8월 4일 (화) - 44'
+      }
+    },
+    {
+      timestamp: '2026-08-04T18:39:12+09:00',
+      type: 'conversation',
+      userMessage: '회원정보 변경 은행명 드롭다운 포함, 거래소 내 모든 드롭다운 검정 배경/흰 글씨 기본 적용 요청',
+      assistantWorkSummary: [
+        '전역 CSS에서 select/option 기본 스타일을 검정 배경/흰 글씨로 강제 적용해 회원정보 변경 은행명 드롭다운 포함 전체 드롭다운이 동일 스타일을 사용하도록 수정함',
+        '버전을 2026년 8월 4일 (화) - 44 로 갱신함'
+      ],
+      globalDropdownDarkStyleApplied: {
+        selectDarkDefault: true,
+        version: '2026년 8월 4일 (화) - 44'
       }
     },
     {

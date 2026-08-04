@@ -27,8 +27,8 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   // 입력 제한 (프론트와 동일 규칙)
-  if (!/^[A-Za-z]+$/.test(String(body.username || '').trim())) {
-    throw createError({ statusCode: 400, statusMessage: '아이디는 영문만 사용 가능합니다' })
+  if (!/^[A-Za-z0-9]+$/.test(String(body.username || '').trim())) {
+    throw createError({ statusCode: 400, statusMessage: '아이디는 한글은 사용할 수 없습니다' })
   }
   if (!/^[가-힣\s]+$/.test(String(body.name || '').trim())) {
     throw createError({ statusCode: 400, statusMessage: '이름은 한국어만 사용 가능합니다' })

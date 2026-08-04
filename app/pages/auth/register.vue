@@ -12,7 +12,7 @@
           autocomplete="off"
           class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
         />
-        <p v-if="username && !usernameValid" class="mt-1 text-xs text-rose-400">영문만 사용 가능합니다</p>
+        <p v-if="username && !usernameValid" class="mt-1 text-xs text-rose-400">한글은 사용할 수 없습니다</p>
       </div>
 
       <div>
@@ -204,7 +204,7 @@ const birthDateValid = computed(() => {
 
 const passwordsMatch = computed(() => String(password.value || '') === String(passwordConfirm.value || ''))
 
-const usernameValid = computed(() => /^[A-Za-z]+$/.test(username.value.trim()))
+const usernameValid = computed(() => /^[A-Za-z0-9]+$/.test(username.value.trim()))
 const nameValid = computed(() => /^[가-힣\s]+$/.test(name.value.trim()))
 const accountHolderValid = computed(() => /^[가-힣\s]+$/.test(accountHolder.value.trim()))
 
