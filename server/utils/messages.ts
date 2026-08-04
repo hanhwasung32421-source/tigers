@@ -1,0 +1,276 @@
+import { getDb } from './db'
+import { SessionUser } from './auth'
+import { getSupabaseAdminClient } from './supabase'
+import { supabaseAppDbEnabled } from './supa-appdb'
+import { createError } from 'h3'
+
+export type MessageRow = {
+  id: number
+  thread_key: string
+  sender_id: number
+  recipient_id: number
+  subject: string
+  body: string
+  read_at: string | null
+  created_at: string
+}
+
+export function threadKeyForUser(userId: number) {
+  return `user:${Number(userId)}`
+}
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function makeId() {
+  return Date.now() * 1000 + Math.floor(Math.random() * 1000)
+}
+
+export async function getOperatorAdminUser() {
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    const { data: adminByName } = await supa
+      .from('trae_users')
+      .select('id, username, role')
+      .eq('username', 'admin')
+      .limit(1)
+    const found = (adminByName || [])[0]
+    if (found) return { id: Number((found as any).id), username: String((found as any).username || 'admin') }
+
+    const { data: superAdmins } = await supa
+      .from('trae_users')
+      .select('id, username, role')
+      .eq('role', 'super_admin')
+      .order('id', { ascending: true })
+      .limit(1)
+    const fallback = (superAdmins || [])[0]
+    if (fallback) return { id: Number((fallback as any).id), username: String((fallback as any).username || 'admin') }
+    return null
+  }
+
+  const db = getDb()
+  const row = db
+    .prepare(`SELECT id, username FROM users WHERE username = ? OR role = 'super_admin' ORDER BY CASE WHEN username = 'admin' THEN 0 ELSE 1 END, id ASC LIMIT 1`)
+    .get('admin') as any
+  if (!row) return null
+  return { id: Number(row.id), username: String(row.username || 'admin') }
+}
+
+export async function listMessageRecipientsForAdmin() {
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    const { data, error } = await supa
+      .from('trae_users')
+      .select('id, username, role, created_at')
+      .eq('role', 'user')
+      .order('id', { ascending: false })
+    if (error) throw error
+    return (data || []).map((u: any) => ({
+      id: Number(u.id),
+      username: String(u.username || ''),
+      role: String(u.role || 'user'),
+      created_at: String(u.created_at || '')
+    }))
+  }
+
+  const db = getDb()
+  const rows = db.prepare(`SELECT id, username, role, created_at FROM users WHERE role = 'user' ORDER BY id DESC`).all() as any[]
+  return rows.map((u) => ({
+    id: Number(u.id),
+    username: String(u.username || ''),
+    role: String(u.role || 'user'),
+    created_at: String(u.created_at || '')
+  }))
+}
+
+export async function listUsersByIds(ids: number[]) {
+  const uniq = Array.from(new Set(ids.map((v) => Number(v)).filter(Boolean)))
+  if (!uniq.length) return new Map<number, { id: number; username: string; role: string }>()
+
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    const { data, error } = await supa.from('trae_users').select('id, username, role').in('id', uniq)
+    if (error) throw error
+    return new Map(
+      (data || []).map((u: any) => [Number(u.id), { id: Number(u.id), username: String(u.username || ''), role: String(u.role || 'user') }])
+    )
+  }
+
+  const db = getDb()
+  const placeholders = uniq.map(() => '?').join(', ')
+  const rows = db.prepare(`SELECT id, username, role FROM users WHERE id IN (${placeholders})`).all(...uniq) as any[]
+  return new Map(rows.map((u) => [Number(u.id), { id: Number(u.id), username: String(u.username || ''), role: String(u.role || 'user') }]))
+}
+
+export async function insertMessages(rows: Array<Omit<MessageRow, 'id' | 'created_at'>>) {
+  const payload = rows.map((r) => ({
+    id: makeId(),
+    thread_key: String(r.thread_key),
+    sender_id: Number(r.sender_id),
+    recipient_id: Number(r.recipient_id),
+    subject: String(r.subject || ''),
+    body: String(r.body || ''),
+    read_at: r.read_at ? String(r.read_at) : null,
+    created_at: nowIso()
+  }))
+
+  if (supabaseAppDbEnabled()) {
+    try {
+      const supa = getSupabaseAdminClient()
+      const { error } = await supa.from('trae_messages').insert(payload as any)
+      if (!error) return payload
+    } catch {
+      // fall through
+    }
+  }
+
+  const db = getDb()
+  const stmt = db.prepare(
+    `INSERT INTO messages (id, thread_key, sender_id, recipient_id, subject, body, read_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+  for (const row of payload) {
+    stmt.run(row.id, row.thread_key, row.sender_id, row.recipient_id, row.subject, row.body, row.read_at, row.created_at)
+  }
+  return payload
+}
+
+export async function getThreadMessages(threadKey: string) {
+  if (supabaseAppDbEnabled()) {
+    try {
+      const supa = getSupabaseAdminClient()
+      const { data, error } = await supa.from('trae_messages').select('*').eq('thread_key', threadKey).order('created_at', { ascending: true })
+      if (!error) {
+        return ((data || []) as any[]).map((m) => ({
+          id: Number(m.id),
+          thread_key: String(m.thread_key),
+          sender_id: Number(m.sender_id),
+          recipient_id: Number(m.recipient_id),
+          subject: String(m.subject || ''),
+          body: String(m.body || ''),
+          read_at: m.read_at ? String(m.read_at) : null,
+          created_at: String(m.created_at || '')
+        })) as MessageRow[]
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  const db = getDb()
+  const rows = db.prepare(`SELECT * FROM messages WHERE thread_key = ? ORDER BY created_at ASC`).all(threadKey) as any[]
+  return rows.map((m) => ({
+    id: Number(m.id),
+    thread_key: String(m.thread_key),
+    sender_id: Number(m.sender_id),
+    recipient_id: Number(m.recipient_id),
+    subject: String(m.subject || ''),
+    body: String(m.body || ''),
+    read_at: m.read_at ? String(m.read_at) : null,
+    created_at: String(m.created_at || '')
+  })) as MessageRow[]
+}
+
+export async function getThreadsForUser(user: SessionUser) {
+  const isAdmin = user.role === 'super_admin' || user.role === 'branch_admin'
+
+  if (supabaseAppDbEnabled()) {
+    try {
+      const supa = getSupabaseAdminClient()
+      let q: any = supa.from('trae_messages').select('*').order('created_at', { ascending: false }).limit(3000)
+      if (!isAdmin) q = q.eq('thread_key', threadKeyForUser(user.id))
+      const { data, error } = await q
+      if (!error) return normalizeThreadSummaries((data || []) as any[], user.id)
+    } catch {
+      // fall through
+    }
+  }
+
+  const db = getDb()
+  const rows = isAdmin
+    ? (db.prepare(`SELECT * FROM messages ORDER BY created_at DESC LIMIT 3000`).all() as any[])
+    : (db.prepare(`SELECT * FROM messages WHERE thread_key = ? ORDER BY created_at DESC LIMIT 3000`).all(threadKeyForUser(user.id)) as any[])
+  return normalizeThreadSummaries(rows, user.id)
+}
+
+function normalizeThreadSummaries(rows: any[], currentUserId: number) {
+  const out = new Map<
+    string,
+    {
+      threadKey: string
+      userId: number
+      lastMessage: string
+      lastAt: string
+      unreadCount: number
+      lastSenderId: number
+      subject: string
+    }
+  >()
+  for (const m of rows) {
+    const threadKey = String(m.thread_key || '')
+    const userId = Number(String(threadKey).replace('user:', '')) || 0
+    const unread = Number(m.recipient_id) === Number(currentUserId) && !m.read_at ? 1 : 0
+    const prev = out.get(threadKey)
+    if (!prev) {
+      out.set(threadKey, {
+        threadKey,
+        userId,
+        lastMessage: String(m.body || ''),
+        lastAt: String(m.created_at || ''),
+        unreadCount: unread,
+        lastSenderId: Number(m.sender_id || 0),
+        subject: String(m.subject || '')
+      })
+      continue
+    }
+    prev.unreadCount += unread
+  }
+  return Array.from(out.values()).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)))
+}
+
+export async function markThreadAsRead(threadKey: string, userId: number) {
+  const readAt = nowIso()
+  if (supabaseAppDbEnabled()) {
+    try {
+      const supa = getSupabaseAdminClient()
+      await supa.from('trae_messages').update({ read_at: readAt }).eq('thread_key', threadKey).eq('recipient_id', Number(userId)).is('read_at', null)
+      return
+    } catch {
+      // fall through
+    }
+  }
+
+  const db = getDb()
+  db.prepare(`UPDATE messages SET read_at = ? WHERE thread_key = ? AND recipient_id = ? AND read_at IS NULL`).run(readAt, threadKey, Number(userId))
+}
+
+export async function countUnreadMessages(userId: number) {
+  if (supabaseAppDbEnabled()) {
+    try {
+      const supa = getSupabaseAdminClient()
+      const { count, error } = await supa
+        .from('trae_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_id', Number(userId))
+        .is('read_at', null)
+      if (!error) return Number(count || 0)
+    } catch {
+      // fall through
+    }
+  }
+
+  const db = getDb()
+  const row = db.prepare(`SELECT COUNT(*) as c FROM messages WHERE recipient_id = ? AND read_at IS NULL`).get(Number(userId)) as any
+  return Number(row?.c || 0)
+}
+
+export async function ensureAdminThreadAccess(user: SessionUser, targetUserId?: number) {
+  if (user.role === 'super_admin' || user.role === 'branch_admin') {
+    if (!targetUserId) {
+      throw createError({ statusCode: 400, statusMessage: '대화 대상 회원이 필요합니다.' })
+    }
+    return { threadKey: threadKeyForUser(targetUserId), targetUserId: Number(targetUserId) }
+  }
+  return { threadKey: threadKeyForUser(user.id), targetUserId: user.id }
+}

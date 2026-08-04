@@ -122,6 +122,17 @@ export function getDb() {
       chart_prefs TEXT NOT NULL DEFAULT '{}',
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY,
+      thread_key TEXT NOT NULL,
+      sender_id INTEGER NOT NULL,
+      recipient_id INTEGER NOT NULL,
+      subject TEXT NOT NULL DEFAULT '',
+      body TEXT NOT NULL,
+      read_at TEXT NULL,
+      created_at TEXT NOT NULL
+    );
   `)
 
   // 마이그레이션: trades.liquidation 컬럼 추가(강제청산 표시용)

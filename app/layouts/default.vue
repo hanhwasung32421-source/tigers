@@ -30,6 +30,7 @@
                 <NuxtLink to="/admin/trades" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/trades')">거래 내역</NuxtLink>
                 <NuxtLink to="/admin/transfers" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/transfers')">입출금 내역</NuxtLink>
                 <NuxtLink to="/admin/positions" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/positions')">포지션 목록</NuxtLink>
+                <NuxtLink to="/admin/messages" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/messages')">쪽지관리</NuxtLink>
               </div>
             </div>
           </div>
@@ -41,6 +42,20 @@
           </span>
           <template v-if="me">
             <span class="hidden sm:inline text-slate-300">{{ me.username }}</span>
+            <NuxtLink
+              to="/support"
+              class="relative rounded-md border px-3 py-1.5 transition"
+              :class="unread > 0 ? 'border-amber-400/60 bg-amber-400/15 text-amber-300 hover:bg-amber-400/20' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
+              @click="startNavLoading('/support')"
+            >
+              <span>🔔</span>
+              <span
+                v-if="unread > 0"
+                class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold leading-none text-slate-900"
+              >
+                {{ unread }}
+              </span>
+            </NuxtLink>
             <button class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10" @click="logout">
               로그아웃
             </button>
@@ -72,6 +87,10 @@ const navLoading = useState<boolean>('global_nav_loading', () => false)
 
 const { me, refresh } = useMe()
 await refresh()
+const { unread, refreshUnread } = useMessages()
+if (me.value?.role === 'user') {
+  await refreshUnread()
+}
 
 const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
 

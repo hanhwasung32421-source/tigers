@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+    <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)] xl:-mx-6 2xl:-mx-10">
       <div class="grid gap-2 md:grid-cols-[180px_minmax(220px,1fr)_120px_120px_120px]">
         <select
           v-model="memberFilter"
@@ -56,8 +56,8 @@
         </select>
       </div>
 
-      <div class="mt-4 overflow-auto">
-        <table class="w-max min-w-full whitespace-nowrap text-[13px] text-slate-200">
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full whitespace-nowrap text-[13px] text-slate-200 xl:w-full">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
               <th class="px-4 py-3.5 text-left">회원 이름</th>

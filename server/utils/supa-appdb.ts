@@ -8,6 +8,7 @@ const T_POSITIONS = 'trae_positions'
 const T_TRADES = 'trae_trades'
 const T_PROFIT_CARDS = 'trae_profit_cards'
 const T_USER_SETTINGS = 'trae_user_settings'
+const T_MESSAGES = 'trae_messages'
 
 export function supabaseAppDbEnabled() {
   const cfg = useRuntimeConfig()
@@ -114,6 +115,24 @@ export async function syncProfitCardToSupabase(row: any) {
   })
 }
 
+export async function syncMessageToSupabase(row: any) {
+  if (!supabaseAppDbEnabled()) return
+  await supaUpsert(
+    T_MESSAGES,
+    {
+      id: Number(row.id),
+      thread_key: String(row.thread_key || ''),
+      sender_id: Number(row.sender_id),
+      recipient_id: Number(row.recipient_id),
+      subject: String(row.subject || ''),
+      body: String(row.body || ''),
+      read_at: row.read_at ? String(row.read_at) : null,
+      created_at: String(row.created_at || '')
+    },
+    'id'
+  )
+}
+
 export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
   if (!supabaseAppDbEnabled()) return
 
@@ -167,6 +186,9 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
         }
       }
     }
+
+    const messages = db.prepare('SELECT * FROM messages').all() as any[]
+    if (messages.length) await supaUpsert(T_MESSAGES, messages, 'id')
   }
 
   // 2) "무조건 Supabase에서 불러오기" 모드:
@@ -178,6 +200,7 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
     const settings = await supaSelectAll<any>(T_USER_SETTINGS, 'user_id').catch(() => [])
     const positions = await supaSelectAll<any>(T_POSITIONS, 'id').catch(() => [])
     const trades = await supaSelectAll<any>(T_TRADES, 'id').catch(() => [])
+    const messages = await supaSelectAll<any>(T_MESSAGES, 'id').catch(() => [])
 
     // 덮어쓰기: 기존 데이터 제거 후 재삽입
     db.exec('BEGIN;')
@@ -187,6 +210,7 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
       db.exec('DELETE FROM user_settings;')
       db.exec('DELETE FROM positions;')
       db.exec('DELETE FROM trades;')
+      db.exec('DELETE FROM messages;')
       // profit_cards는 앱에서 저장하지만, 화면 핵심 데이터는 아니라서 여기서는 생략(원하면 추가 가능)
 
       for (const u of users) {
@@ -226,6 +250,20 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
           t.pnl,
           Number((t as any).liquidation || 0),
           new Date(t.created_at).toISOString()
+        )
+      }
+      for (const m of messages) {
+        db.prepare(
+          'INSERT OR REPLACE INTO messages (id, thread_key, sender_id, recipient_id, subject, body, read_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(
+          m.id,
+          m.thread_key,
+          m.sender_id,
+          m.recipient_id,
+          m.subject || '',
+          m.body || '',
+          m.read_at || null,
+          new Date(m.created_at).toISOString()
         )
       }
 

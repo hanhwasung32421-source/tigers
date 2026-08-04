@@ -1183,7 +1183,26 @@ export const conversationBackup = {
         tradesCoreAlwaysPreferred: true,
         liquidationLookupBestEffort: true,
         auxiliaryLookupsBestEffort: true,
-        version: '2026년 8월 4일 (화) - 34'
+        version: '2026년 8월 4일 (화) - 35'
+      }
+    },
+    {
+      timestamp: '2026-08-04T16:22:10+09:00',
+      type: 'conversation',
+      userMessage: '관리자 포지션 목록 확장 및 관리자/회원 쪽지 기능 추가 요청',
+      assistantWorkSummary: [
+        '관리자 포지션 목록 카드 컨테이너를 좌우로 확장해 내부 가로 스크롤 의존을 줄임',
+        '관리자 메뉴에 `쪽지관리`를 추가하고, 전체회원 발송/다중선택 발송/대화 목록/답장 기능이 있는 관리자 쪽지 페이지를 구현함',
+        '회원 고객센터 화면을 운영자(admin)와의 쪽지함으로 교체하고, 운영자가 보낸 안읽은 쪽지가 있으면 헤더 로그아웃 왼쪽에 노란 종 아이콘과 개수가 보이도록 구현함',
+        '쪽지 데이터는 로컬 `messages` 테이블과 Supabase `trae_messages`에 저장되도록 저장 모델과 API를 추가함',
+        '버전을 2026년 8월 4일 (화) - 35 로 갱신함'
+      ],
+      messagingSystemAdded: {
+        adminMessagingCenter: true,
+        memberSupportInbox: true,
+        unreadBellIndicator: true,
+        supabaseMessageStorage: true,
+        version: '2026년 8월 4일 (화) - 35'
       }
     },
     {
