@@ -5,33 +5,42 @@
 
     <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
       <div>
-        <label class="text-sm text-slate-300">아이디*</label>
+        <label class="text-sm text-slate-300">아이디<span class="text-rose-400">*</span></label>
         <input v-model.trim="username" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">이름*</label>
+        <label class="text-sm text-slate-300">이름<span class="text-rose-400">*</span></label>
         <input v-model.trim="name" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">생년월일 YYYY-MM-DD*</label>
-        <input v-model.trim="birthDate" placeholder="YYYY-MM-DD" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+        <div class="flex items-center justify-between gap-2">
+          <label class="text-sm text-slate-300">생년월일 yyyy-mm-dd<span class="text-rose-400">*</span></label>
+          <span v-if="birthDate && !birthDateValid" class="text-xs text-rose-400">날짜가 정확하지 않습니다.</span>
+        </div>
+        <input
+          v-model="birthDate"
+          inputmode="numeric"
+          placeholder="YYYY-MM-DD"
+          class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          @input="onBirthInput"
+        />
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
         <div>
-          <label class="text-sm text-slate-300">비밀번호*</label>
+          <label class="text-sm text-slate-300">비밀번호<span class="text-rose-400">*</span></label>
           <input v-model="password" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
         </div>
         <div>
-          <label class="text-sm text-slate-300">비밀번호확인*</label>
+          <label class="text-sm text-slate-300">비밀번호확인<span class="text-rose-400">*</span></label>
           <input v-model="passwordConfirm" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
         </div>
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">은행계좌</label>
+        <label class="text-sm text-slate-300">은행계좌<span class="text-rose-400">*</span></label>
         <div class="mt-1 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
           <input
             v-model.trim="bankAccount"
@@ -49,7 +58,7 @@
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">예금주*</label>
+        <label class="text-sm text-slate-300">예금주<span class="text-rose-400">*</span></label>
         <input
           v-model.trim="accountHolder"
           placeholder="예금주를 입력해 주세요"
@@ -65,14 +74,14 @@
       <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
         <label class="flex items-center gap-3 text-sm text-slate-200">
           <input v-model="agreedToTerms" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
-          <span>약관에 동의합니다. *</span>
+          <span>약관에 동의합니다. <span class="text-rose-400">*</span></span>
           <button type="button" class="text-indigo-300 underline underline-offset-2 hover:text-indigo-200" @click="termsOpen = true">이용약관</button>
         </label>
       </div>
 
       <button
         class="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-70"
-        :disabled="loading"
+        :disabled="loading || !canSubmit"
       >
         <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
         <span>{{ loading ? '가입 처리 중...' : '회원가입' }}</span>
@@ -155,10 +164,58 @@ const termsLines = [
   '회원은 타인의 정보를 도용하거나 허위 정보를 입력해서는 안 되며, 허위 정보 기재로 인해 서비스 제한, 거래 취소, 계정 정지, 민형사상 책임이 발생할 수 있습니다. 회사는 서비스 안정성과 회원 보호를 위해 필요한 범위 안에서 본 약관을 개정할 수 있습니다.'
 ]
 
+const birthDateValid = computed(() => {
+  const v = birthDate.value.trim()
+  if (!v) return false
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false
+  const [y, m, d] = v.split('-').map((n) => Number(n))
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return false
+  if (y < 1900 || y > new Date().getFullYear()) return false
+  if (m < 1 || m > 12) return false
+  if (d < 1 || d > 31) return false
+  const dt = new Date(`${v}T00:00:00Z`)
+  if (Number.isNaN(dt.getTime())) return false
+  const yy = dt.getUTCFullYear()
+  const mm = dt.getUTCMonth() + 1
+  const dd = dt.getUTCDate()
+  return yy === y && mm === m && dd === d
+})
+
+const passwordsMatch = computed(() => String(password.value || '') === String(passwordConfirm.value || ''))
+
+const canSubmit = computed(() => {
+  if (!username.value.trim()) return false
+  if (!name.value.trim()) return false
+  if (!birthDateValid.value) return false
+  if (!password.value) return false
+  if (!passwordConfirm.value) return false
+  if (!passwordsMatch.value) return false
+  if (!bankAccount.value.trim()) return false
+  if (!bankName.value) return false
+  if (!accountHolder.value.trim()) return false
+  if (!agreedToTerms.value) return false
+  return true
+})
+
+function onBirthInput(e: Event) {
+  const raw = String((e.target as HTMLInputElement)?.value || '')
+  const digits = raw.replace(/\D/g, '').slice(0, 8)
+  const y = digits.slice(0, 4)
+  const m = digits.slice(4, 6)
+  const d = digits.slice(6, 8)
+  let out = y
+  if (m) out += `-${m}`
+  if (d) out += `-${d}`
+  birthDate.value = out
+}
+
 async function onSubmit() {
   loading.value = true
   error.value = null
   try {
+    if (!canSubmit.value) {
+      throw new Error('필수 항목을 모두 올바르게 입력해 주세요.')
+    }
     if (password.value !== passwordConfirm.value) {
       throw new Error('비밀번호 확인이 일치하지 않습니다.')
     }

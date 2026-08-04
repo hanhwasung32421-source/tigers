@@ -1282,7 +1282,27 @@ export const conversationBackup = {
       registerApiErrorHardened: {
         zodTo400: true,
         missingColumnHint: true,
-        version: '2026년 8월 4일 (화) - 40'
+        version: '2026년 8월 4일 (화) - 41'
+      }
+    },
+    {
+      timestamp: '2026-08-04T17:34:52+09:00',
+      type: 'conversation',
+      userMessage: '회원가입 화면 필수(*) 빨간색, 생년월일 자동포맷/유효성 검사, 필수값 미입력 시 버튼 비활성화, 은행계좌 필수 처리 요청',
+      assistantWorkSummary: [
+        '회원가입 화면의 모든 필수 항목(*)을 빨간색으로 표시하도록 수정함',
+        '생년월일 입력 시 숫자만 받아 YYYY-MM-DD 형태로 자동 하이픈이 들어가도록 처리함',
+        '생년월일 형식/실제 날짜 유효성 검사에 실패하면 라벨 우측에 빨간 경고 문구가 표시되고 회원가입 버튼이 비활성화되도록 구현함',
+        '필수 항목이 하나라도 비어 있거나 약관 동의가 없으면 회원가입 버튼이 비활성화되도록 구현함',
+        '은행계좌 항목을 필수(*)로 변경함',
+        '버전을 2026년 8월 4일 (화) - 41 로 갱신함'
+      ],
+      registerFormValidationUpgraded: {
+        requiredStarsRed: true,
+        birthAutoFormatAndValidate: true,
+        submitDisabledUntilValid: true,
+        bankAccountRequired: true,
+        version: '2026년 8월 4일 (화) - 41'
       }
     },
     {
