@@ -43,10 +43,10 @@
           <template v-if="me">
             <span class="hidden sm:inline text-slate-300">{{ me.username }}</span>
             <NuxtLink
-              to="/support"
+              :to="bellTarget"
               class="relative rounded-md border px-3 py-1.5 transition"
               :class="unread > 0 ? 'border-amber-400/60 bg-amber-400/15 text-amber-300 hover:bg-amber-400/20' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
-              @click="startNavLoading('/support')"
+              @click="startNavLoading(bellTarget)"
             >
               <span>🔔</span>
               <span
@@ -88,11 +88,14 @@ const navLoading = useState<boolean>('global_nav_loading', () => false)
 const { me, refresh } = useMe()
 await refresh()
 const { unread, refreshUnread } = useMessages()
-if (me.value?.role === 'user') {
+if (me.value) {
   await refreshUnread()
+} else {
+  unread.value = 0
 }
 
 const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+const bellTarget = computed(() => (isAdmin.value ? '/admin/messages' : '/support'))
 
 function startNavLoading(target?: string) {
   if (target && String(target) === String(route.path)) return
@@ -111,6 +114,7 @@ watch(
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+  unread.value = 0
   await refresh()
   await navigateTo('/')
 }

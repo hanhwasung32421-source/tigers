@@ -1202,7 +1202,23 @@ export const conversationBackup = {
         memberSupportInbox: true,
         unreadBellIndicator: true,
         supabaseMessageStorage: true,
-        version: '2026년 8월 4일 (화) - 35'
+        version: '2026년 8월 4일 (화) - 36'
+      }
+    },
+    {
+      timestamp: '2026-08-04T16:34:48+09:00',
+      type: 'conversation',
+      userMessage: '회원이 운영자에게 쪽지 보낸 뒤 운영자 종 알림 숫자/클릭 경로가 동작하지 않는 문제 수정 요청',
+      assistantWorkSummary: [
+        '운영자도 안읽은 쪽지 개수를 실제로 받도록 `/api/messages/unread`에서 관리자 0 고정 처리를 제거함',
+        '로그인 레이아웃에서 회원뿐 아니라 운영자 로그인 시에도 unread를 새로고침하도록 수정하고, 로그아웃 시 unread 상태를 초기화함',
+        '운영자 종 아이콘 클릭 경로를 `/support`가 아니라 `/admin/messages`로 변경해 운영자가 바로 쪽지관리 화면으로 이동하도록 수정함',
+        '버전을 2026년 8월 4일 (화) - 36 으로 갱신함'
+      ],
+      adminBellFlowFixed: {
+        adminUnreadEnabled: true,
+        adminBellRouteToMessages: true,
+        version: '2026년 8월 4일 (화) - 36'
       }
     },
     {
