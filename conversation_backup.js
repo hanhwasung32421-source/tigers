@@ -1360,6 +1360,21 @@ export const conversationBackup = {
       }
     },
     {
+      timestamp: '2026-08-04T18:47:58+09:00',
+      type: 'conversation',
+      userMessage: '신규 가입 시 운영자로부터 환영 쪽지 1개가 기본으로 와 있고, 우측 상단 종에 1이 표시되게 요청',
+      assistantWorkSummary: [
+        '회원가입 완료 시 운영자(admin) 계정에서 신규 회원에게 환영 쪽지를 1개 자동 발송하도록 구현함(안읽음 상태)',
+        '쪽지 내용은 “환영합니다. 궁금한 점이 있으시면 이곳으로 문의해 주세요.” 형태로 공손한 문구로 설정함',
+        '버전을 2026년 8월 4일 (화) - 45 로 갱신함'
+      ],
+      registerWelcomeMessageAdded: {
+        autoWelcomeMessage: true,
+        unreadBellCountExpected: 1,
+        version: '2026년 8월 4일 (화) - 45'
+      }
+    },
+    {
       timestamp: '2026-07-24T00:00:00+09:00',
       type: 'conversation',
       userMessage: 'hooking2.0와 coinbreaker3를 확인해서 스크린샷 크롭 이미지 1개와 문구 1개를 텔레그램 창마다 순서대로 보내는 자동화 계획 요청',

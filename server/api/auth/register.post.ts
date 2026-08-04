@@ -4,6 +4,7 @@ import { createSession, hashPassword } from '../../utils/auth'
 import { logAppUser, logLogin } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncUserSettingsToSupabase, syncUserToSupabase } from '../../utils/supa-appdb'
 import { supaSelectOne, supaUpsertStrict, supaUpsertUserSettings } from '../../utils/supabase'
+import { getOperatorAdminUser, insertMessages, threadKeyForUser } from '../../utils/messages'
 
 const BodySchema = z.object({
   username: z.string().min(3).max(20),
@@ -103,6 +104,25 @@ export default defineEventHandler(async (event) => {
     await logAppUser({ id: userId as any, username: body.username, role: 'user' })
     await logLogin(event, { userId: userId as any, username: body.username, area: 'main', success: true })
 
+    // 가입 환영 쪽지(기본 1개, 안읽음)
+    try {
+      const operator = await getOperatorAdminUser()
+      if (operator) {
+        await insertMessages([
+          {
+            thread_key: threadKeyForUser(userId),
+            sender_id: Number(operator.id),
+            recipient_id: Number(userId),
+            subject: '환영합니다',
+            body: '환영합니다.\n궁금한 점이 있으시면 이곳으로 문의해 주세요.\n항상 빠르게 답변드리겠습니다.',
+            read_at: null
+          }
+        ])
+      }
+    } catch {
+      // ignore
+    }
+
     return { ok: true }
   }
 
@@ -146,6 +166,25 @@ export default defineEventHandler(async (event) => {
   await createSession(event, user.id)
   await logAppUser({ id: user.id, username: body.username, role: 'user' })
   await logLogin(event, { userId: user.id, username: body.username, area: 'main', success: true })
+
+  // 가입 환영 쪽지(기본 1개, 안읽음)
+  try {
+    const operator = await getOperatorAdminUser()
+    if (operator) {
+      await insertMessages([
+        {
+          thread_key: threadKeyForUser(user.id),
+          sender_id: Number(operator.id),
+          recipient_id: Number(user.id),
+          subject: '환영합니다',
+          body: '환영합니다.\n궁금한 점이 있으시면 이곳으로 문의해 주세요.\n항상 빠르게 답변드리겠습니다.',
+          read_at: null
+        }
+      ])
+    }
+  } catch {
+    // ignore
+  }
 
   // Supabase(회원 DB)에도 항상 저장(미러)
   const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as any
