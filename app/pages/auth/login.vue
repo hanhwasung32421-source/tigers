@@ -26,6 +26,10 @@
       계정이 없나요?
       <NuxtLink to="/auth/register" class="text-indigo-300 hover:underline">회원가입</NuxtLink>
     </div>
+    <div class="mt-2 text-sm text-slate-400">
+      비밀번호를 잊으셨나요?
+      <NuxtLink to="/auth/find-password" class="text-indigo-300 hover:underline">비밀번호 찾기</NuxtLink>
+    </div>
   </div>
 
   <!-- 전체 화면 로딩 오버레이 -->

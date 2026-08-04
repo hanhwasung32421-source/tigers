@@ -41,7 +41,9 @@
             {{ appVersion }}
           </span>
           <template v-if="me">
-            <span class="hidden sm:inline text-slate-300">{{ me.username }}</span>
+            <NuxtLink to="/profile" class="hidden sm:inline text-slate-300 underline-offset-4 hover:text-white hover:underline" @click="startNavLoading('/profile')">
+              {{ me.username }}
+            </NuxtLink>
             <NuxtLink
               :to="bellTarget"
               class="relative rounded-md border px-3 py-1.5 transition"

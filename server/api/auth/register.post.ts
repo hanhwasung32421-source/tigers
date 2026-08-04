@@ -7,7 +7,14 @@ import { supaSelectOne, supaUpsertStrict, supaUpsertUserSettings } from '../../u
 
 const BodySchema = z.object({
   username: z.string().min(3).max(20),
-  password: z.string().min(4).max(50)
+  name: z.string().trim().min(1).max(40),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  password: z.string().min(4).max(50),
+  bankName: z.string().trim().min(1).max(40),
+  bankAccount: z.string().trim().min(1).max(80),
+  accountHolder: z.string().trim().min(1).max(40),
+  referralCode: z.string().trim().max(32).optional(),
+  agreedToTerms: z.boolean()
 })
 
 export default defineEventHandler(async (event) => {
@@ -28,6 +35,9 @@ export default defineEventHandler(async (event) => {
     if (exists?.id) {
       throw createError({ statusCode: 409, statusMessage: '이미 사용 중인 아이디입니다.' })
     }
+    if (!body.agreedToTerms) {
+      throw createError({ statusCode: 400, statusMessage: '약관 동의가 필요합니다.' })
+    }
 
     const passwordHash = hashPassword(body.password)
     const userId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
@@ -39,9 +49,17 @@ export default defineEventHandler(async (event) => {
         id: userId,
         username: body.username,
         password_hash: passwordHash,
+        name: body.name.trim(),
+        birth_date: body.birthDate,
+        bank_name: body.bankName.trim(),
+        bank_account: body.bankAccount.trim(),
+        account_holder: body.accountHolder.trim(),
+        referral_code: (body.referralCode || '').trim(),
+        terms_agreed_at: now,
         role: 'user',
         permissions: {},
-        created_at: now
+        created_at: now,
+        updated_at: now
       },
       'id'
     )
@@ -65,11 +83,28 @@ export default defineEventHandler(async (event) => {
   if (exists?.id) {
     throw createError({ statusCode: 409, statusMessage: '이미 사용 중인 아이디입니다.' })
   }
+  if (!body.agreedToTerms) {
+    throw createError({ statusCode: 400, statusMessage: '약관 동의가 필요합니다.' })
+  }
 
   const passwordHash = hashPassword(body.password)
   db.prepare(
-    'INSERT INTO users (username, password_hash, role, permissions, created_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(body.username, passwordHash, 'user', JSON.stringify({}), new Date().toISOString())
+    'INSERT INTO users (username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(
+    body.username,
+    passwordHash,
+    body.name.trim(),
+    body.birthDate,
+    body.bankName.trim(),
+    body.bankAccount.trim(),
+    body.accountHolder.trim(),
+    (body.referralCode || '').trim(),
+    new Date().toISOString(),
+    'user',
+    JSON.stringify({}),
+    new Date().toISOString(),
+    new Date().toISOString()
+  )
 
   const user = db.prepare('SELECT id FROM users WHERE username = ?').get(body.username) as { id: number }
   db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(user.id, 0)

@@ -33,9 +33,17 @@ export async function syncUserToSupabase(row: any) {
       id: Number(row.id),
       username: String(row.username),
       password_hash: String(row.password_hash),
+      name: String(row.name || ''),
+      birth_date: String(row.birth_date || ''),
+      bank_name: String(row.bank_name || ''),
+      bank_account: String(row.bank_account || ''),
+      account_holder: String(row.account_holder || ''),
+      referral_code: String(row.referral_code || ''),
+      terms_agreed_at: row.terms_agreed_at ? String(row.terms_agreed_at) : null,
       role: String(row.role),
       permissions: parsePerm(row.permissions),
-      created_at: row.created_at
+      created_at: row.created_at,
+      updated_at: String(row.updated_at || row.created_at || '')
     },
     'id'
   )
@@ -215,8 +223,23 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
 
       for (const u of users) {
         db.prepare(
-          'INSERT OR REPLACE INTO users (id, username, password_hash, role, permissions, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-        ).run(u.id, u.username, u.password_hash, u.role, JSON.stringify(u.permissions || {}), new Date(u.created_at).toISOString())
+          'INSERT OR REPLACE INTO users (id, username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(
+          u.id,
+          u.username,
+          u.password_hash,
+          u.name || '',
+          u.birth_date || '',
+          u.bank_name || '',
+          u.bank_account || '',
+          u.account_holder || '',
+          u.referral_code || '',
+          u.terms_agreed_at || null,
+          u.role,
+          JSON.stringify(u.permissions || {}),
+          new Date(u.created_at).toISOString(),
+          new Date(u.updated_at || u.created_at).toISOString()
+        )
       }
       for (const b of balances) {
         db.prepare('INSERT OR REPLACE INTO balances (user_id, usdt) VALUES (?, ?)').run(b.user_id, b.usdt)

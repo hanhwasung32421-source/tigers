@@ -1232,7 +1232,28 @@ export const conversationBackup = {
       ],
       supportAndBellTargetsUnified: {
         supportTargetUnifiedWithBell: true,
-        version: '2026년 8월 4일 (화) - 37'
+        version: '2026년 8월 4일 (화) - 38'
+      }
+    },
+    {
+      timestamp: '2026-08-04T17:08:11+09:00',
+      type: 'conversation',
+      userMessage: '회원가입 항목 확장, 비밀번호 초기화 요청/승인, 회원정보 수정, 관리자 회원수정, 관리자 전용 오류 화면 정책 요청',
+      assistantWorkSummary: [
+        '회원 스키마에 이름, 생년월일, 은행명, 은행계좌, 예금주, 추천코드, 약관동의시각, 수정시각을 추가하고 기존 이름값이 아이디와 같던 회원 데이터는 빈값으로 정리하는 로컬 마이그레이션을 추가함',
+        '회원가입 화면을 요청한 항목 구조로 확장하고, 약관 모달과 비밀번호 찾기 페이지를 추가했으며 비밀번호 찾기 요청 시 운영자에게 초기화 요청 쪽지가 전송되도록 구현함',
+        '회원 우측 상단 아이디 클릭 시 `/profile`에서 회원정보를 수정할 수 있게 하고, 관리자 회원목록에서 아이디 클릭 시 회원정보 수정 모달이 열리도록 구현함',
+        '운영자 쪽지관리에서 비밀번호 초기화 요청이 있는 회원 대화에 `초기화 승인` 버튼이 나타나고, 승인 시 비밀번호가 아이디와 동일하게 변경되도록 구현함',
+        '관리자 메시지 화면 F5 시 SSR 쿠키 전달을 보강했고, 전역 에러 화면은 관리자에게만 상세 정보가 보이고 회원은 홈으로 리다이렉트되도록 수정함',
+        '버전을 2026년 8월 4일 (화) - 38 로 갱신함'
+      ],
+      accountAndResetFlowExpanded: {
+        registrationFieldsExpanded: true,
+        forgotPasswordRequestFlow: true,
+        memberProfileEditPage: true,
+        adminMemberProfileEdit: true,
+        adminOnlyVerboseErrorPage: true,
+        version: '2026년 8월 4일 (화) - 38'
       }
     },
     {

@@ -12,6 +12,12 @@ export type Role = 'user' | 'super_admin' | 'branch_admin'
 export type SessionUser = {
   id: number
   username: string
+  name?: string
+  birth_date?: string
+  bank_name?: string
+  bank_account?: string
+  account_holder?: string
+  referral_code?: string
   role: Role
   permissions: Record<string, any>
 }
@@ -82,6 +88,12 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
       return {
         id: Number(user.id),
         username: String(user.username),
+        name: String(user.name || ''),
+        birth_date: String(user.birth_date || ''),
+        bank_name: String(user.bank_name || ''),
+        bank_account: String(user.bank_account || ''),
+        account_holder: String(user.account_holder || ''),
+        referral_code: String(user.referral_code || ''),
         role: String(user.role) as Role,
         permissions: user.permissions || {}
       }
@@ -95,18 +107,24 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
   const row = db
     .prepare(
       `
-      SELECT u.id, u.username, u.role, u.permissions
+      SELECT u.id, u.username, u.name, u.birth_date, u.bank_name, u.bank_account, u.account_holder, u.referral_code, u.role, u.permissions
       FROM sessions s
       JOIN users u ON u.id = s.user_id
       WHERE s.token = ?
       `
     )
-    .get(token) as { id: number; username: string; role: Role; permissions: string } | undefined
+    .get(token) as { id: number; username: string; name: string; birth_date: string; bank_name: string; bank_account: string; account_holder: string; referral_code: string; role: Role; permissions: string } | undefined
 
   if (!row) return null
   return {
     id: row.id,
     username: row.username,
+    name: (row as any).name || '',
+    birth_date: (row as any).birth_date || '',
+    bank_name: (row as any).bank_name || '',
+    bank_account: (row as any).bank_account || '',
+    account_holder: (row as any).account_holder || '',
+    referral_code: (row as any).referral_code || '',
     role: row.role,
     permissions: JSON.parse(row.permissions || '{}')
   }

@@ -26,9 +26,17 @@ export default defineNitroPlugin((nitroApp) => {
           id: adminId,
           username: 'admin',
           password_hash: desiredPasswordHash,
+          name: '',
+          birth_date: '',
+          bank_name: '',
+          bank_account: '',
+          account_holder: '',
+          referral_code: '',
+          terms_agreed_at: now,
           role: 'super_admin',
           permissions: { all: true, canCredit: true },
-          created_at: now
+          created_at: now,
+          updated_at: now
         })
         if (error) throw error
       }

@@ -1,6 +1,12 @@
 type Me = {
   id: number
   username: string
+  name?: string
+  birth_date?: string
+  bank_name?: string
+  bank_account?: string
+  account_holder?: string
+  referral_code?: string
   role: 'user' | 'super_admin' | 'branch_admin'
 }
 

@@ -63,9 +63,17 @@ export function getDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      birth_date TEXT NOT NULL DEFAULT '',
+      bank_name TEXT NOT NULL DEFAULT '',
+      bank_account TEXT NOT NULL DEFAULT '',
+      account_holder TEXT NOT NULL DEFAULT '',
+      referral_code TEXT NOT NULL DEFAULT '',
+      terms_agreed_at TEXT NULL,
       role TEXT NOT NULL,
       permissions TEXT NOT NULL DEFAULT '{}',
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
@@ -133,6 +141,19 @@ export function getDb() {
       read_at TEXT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS password_reset_requests (
+      id INTEGER PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      username_snapshot TEXT NOT NULL,
+      requested_name TEXT NOT NULL DEFAULT '',
+      requested_birth_date TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      approved_by INTEGER NULL,
+      message_id INTEGER NULL,
+      requested_at TEXT NOT NULL,
+      approved_at TEXT NULL
+    );
   `)
 
   // 마이그레이션: trades.liquidation 컬럼 추가(강제청산 표시용)
@@ -147,6 +168,23 @@ export function getDb() {
   }
 
   // 경량 마이그레이션
+  const userCols = (db.prepare(`PRAGMA table_info(users)`).all() as any[]).map((r) => String(r.name))
+  if (!userCols.includes('name')) db.exec(`ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT ''`)
+  if (!userCols.includes('birth_date')) db.exec(`ALTER TABLE users ADD COLUMN birth_date TEXT NOT NULL DEFAULT ''`)
+  if (!userCols.includes('bank_name')) db.exec(`ALTER TABLE users ADD COLUMN bank_name TEXT NOT NULL DEFAULT ''`)
+  if (!userCols.includes('bank_account')) db.exec(`ALTER TABLE users ADD COLUMN bank_account TEXT NOT NULL DEFAULT ''`)
+  if (!userCols.includes('account_holder')) db.exec(`ALTER TABLE users ADD COLUMN account_holder TEXT NOT NULL DEFAULT ''`)
+  if (!userCols.includes('referral_code')) db.exec(`ALTER TABLE users ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''`)
+  if (!userCols.includes('terms_agreed_at')) db.exec(`ALTER TABLE users ADD COLUMN terms_agreed_at TEXT NULL`)
+  if (!userCols.includes('updated_at')) db.exec(`ALTER TABLE users ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`)
+
+  // 과거 UI에서 이름칸에 아이디를 보여주던 데이터는 빈값으로 정리
+  try {
+    db.exec(`UPDATE users SET name = '' WHERE COALESCE(name, '') = COALESCE(username, '')`)
+  } catch {
+    // ignore
+  }
+
   const userSettingsCols = (db.prepare(`PRAGMA table_info(user_settings)`).all() as any[]).map((r) => String(r.name))
   if (!userSettingsCols.includes('chart_prefs')) {
     db.exec(`ALTER TABLE user_settings ADD COLUMN chart_prefs TEXT NOT NULL DEFAULT '{}'`)
@@ -160,8 +198,8 @@ export function getDb() {
   if (!existing?.id) {
     const passwordHash = bcrypt.hashSync('1121', 10)
     db.prepare(
-      'INSERT INTO users (username, password_hash, role, permissions, created_at) VALUES (?, ?, ?, ?, ?)'
-    ).run('admin', passwordHash, 'super_admin', JSON.stringify({ all: true, canCredit: true }), nowIso())
+      'INSERT INTO users (username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run('admin', passwordHash, '', '', '', '', '', '', nowIso(), 'super_admin', JSON.stringify({ all: true, canCredit: true }), nowIso(), nowIso())
 
     const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin') as { id: number }
     db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(admin.id, 0)

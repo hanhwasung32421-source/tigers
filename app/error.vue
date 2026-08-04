@@ -26,6 +26,14 @@
 
 <script setup lang="ts">
 const error = useError()
+const { me, refresh } = useMe()
+await refresh()
+
+const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+
+if (!isAdmin.value) {
+  await clearError({ redirect: '/' })
+}
 
 const summary = computed(() => {
   if (!error.value) return 'unknown error'
@@ -42,4 +50,3 @@ const summary = computed(() => {
 
 const json = computed(() => JSON.stringify(error.value, null, 2))
 </script>
-

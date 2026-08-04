@@ -1,6 +1,7 @@
 import { getQuery } from 'h3'
 import { requireUser } from '../../utils/auth'
 import { ensureAdminThreadAccess, getOperatorAdminUser, getThreadMessages, listUsersByIds } from '../../utils/messages'
+import { getPendingResetRequestForUser } from '../../utils/password-reset'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
     threadKey,
     targetUserId: resolvedUserId,
     operatorId: operator?.id ?? null,
+    pendingResetRequest: user.role === 'super_admin' || user.role === 'branch_admin' ? await getPendingResetRequestForUser(resolvedUserId) : null,
     items: messages.map((m) => ({
       ...m,
       senderName: users.get(Number(m.sender_id))?.username || (Number(m.sender_id) === operator?.id ? 'admin' : `회원 #${m.sender_id}`),

@@ -6,7 +6,8 @@ export function useMessages() {
     if (loading.value) return
     loading.value = true
     try {
-      const data = await $fetch<{ unread: number }>('/api/messages/unread', { credentials: 'include' })
+      const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+      const data = await $fetch<{ unread: number }>('/api/messages/unread', { credentials: 'include', headers })
       unread.value = Number(data.unread || 0)
     } catch {
       unread.value = 0

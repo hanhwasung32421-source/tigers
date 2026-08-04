@@ -114,6 +114,25 @@
                 <div class="mt-1 text-xs text-slate-500">회원번호 #{{ activeThread.userId }}</div>
               </div>
 
+              <div v-if="pendingResetRequest" class="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm">
+                <div class="font-semibold text-amber-200">비밀번호 초기화 요청 대기중</div>
+                <div class="mt-2 space-y-1 text-xs text-amber-100/90">
+                  <div>아이디: {{ pendingResetRequest.username_snapshot }}</div>
+                  <div>이름: {{ pendingResetRequest.requested_name }}</div>
+                  <div>생년월일: {{ pendingResetRequest.requested_birth_date }}</div>
+                  <div>요청시각: {{ formatDateTime(pendingResetRequest.requested_at) }}</div>
+                </div>
+                <div class="mt-3">
+                  <button
+                    class="rounded-md bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-200 disabled:opacity-50"
+                    :disabled="approvingReset"
+                    @click="approveReset"
+                  >
+                    {{ approvingReset ? '승인 처리 중...' : '초기화 승인' }}
+                  </button>
+                </div>
+              </div>
+
               <div class="max-h-[440px] space-y-3 overflow-auto pr-1">
                 <div
                   v-for="message in activeMessages"
@@ -177,14 +196,25 @@ type MessageItem = {
   subject: string
   created_at: string
 }
+type PendingResetRequest = {
+  id: number
+  user_id: number
+  username_snapshot: string
+  requested_name: string
+  requested_birth_date: string
+  status: string
+  requested_at: string
+} | null
 
 const { me, refresh } = useMe()
 await refresh()
+const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
 const recipients = ref<Recipient[]>([])
 const threads = ref<ThreadSummary[]>([])
 const activeThread = ref<ThreadSummary | null>(null)
 const activeMessages = ref<MessageItem[]>([])
+const pendingResetRequest = ref<PendingResetRequest>(null)
 const selectedRecipientIds = ref<number[]>([])
 const recipientKeyword = ref('')
 const threadKeyword = ref('')
@@ -194,6 +224,7 @@ const body = ref('')
 const replyBody = ref('')
 const sending = ref(false)
 const replySending = ref(false)
+const approvingReset = ref(false)
 const sendError = ref<string | null>(null)
 const replyError = ref<string | null>(null)
 const sendMessageText = ref<string | null>(null)
@@ -224,12 +255,12 @@ function formatDateTime(v: string) {
 }
 
 async function loadRecipients() {
-  const res = await $fetch<{ items: Recipient[] }>('/api/messages/recipients')
+  const res = await $fetch<{ items: Recipient[] }>('/api/messages/recipients', { headers: requestHeaders, credentials: 'include' })
   recipients.value = res.items || []
 }
 
 async function loadThreads() {
-  const res = await $fetch<{ items: ThreadSummary[] }>('/api/messages/threads')
+  const res = await $fetch<{ items: ThreadSummary[] }>('/api/messages/threads', { headers: requestHeaders, credentials: 'include' })
   threads.value = res.items || []
   if (activeThread.value) {
     const fresh = threads.value.find((t) => t.threadKey === activeThread.value?.threadKey)
@@ -241,10 +272,34 @@ async function openThread(thread: ThreadSummary) {
   activeThread.value = thread
   replyBody.value = ''
   replyError.value = null
-  const res = await $fetch<{ items: MessageItem[] }>('/api/messages/thread', { query: { userId: thread.userId } })
+  const res = await $fetch<{ items: MessageItem[]; pendingResetRequest: PendingResetRequest }>('/api/messages/thread', {
+    query: { userId: thread.userId },
+    headers: requestHeaders,
+    credentials: 'include'
+  })
   activeMessages.value = res.items || []
-  await $fetch('/api/messages/mark-read', { method: 'POST', body: { userId: thread.userId } }).catch(() => {})
+  pendingResetRequest.value = res.pendingResetRequest || null
+  await $fetch('/api/messages/mark-read', { method: 'POST', body: { userId: thread.userId }, headers: requestHeaders, credentials: 'include' }).catch(() => {})
   await loadThreads()
+}
+
+async function approveReset() {
+  if (!pendingResetRequest.value) return
+  approvingReset.value = true
+  replyError.value = null
+  try {
+    await $fetch('/api/admin/users/approve-reset', {
+      method: 'POST',
+      headers: requestHeaders,
+      credentials: 'include',
+      body: { requestId: pendingResetRequest.value.id }
+    })
+    if (activeThread.value) await openThread(activeThread.value)
+  } catch (e: any) {
+    replyError.value = e?.data?.statusMessage || '비밀번호 초기화 승인에 실패했습니다.'
+  } finally {
+    approvingReset.value = false
+  }
 }
 
 async function sendMessage() {
@@ -255,6 +310,8 @@ async function sendMessage() {
   try {
     const res = await $fetch<{ count: number }>('/api/messages/send', {
       method: 'POST',
+      headers: requestHeaders,
+      credentials: 'include',
       body: {
         sendToAll: sendToAll.value,
         userIds: sendToAll.value ? [] : selectedRecipientIds.value,
@@ -282,6 +339,8 @@ async function sendReply() {
   try {
     await $fetch('/api/messages/send', {
       method: 'POST',
+      headers: requestHeaders,
+      credentials: 'include',
       body: {
         userIds: [activeThread.value.userId],
         subject: activeThread.value.subject || '운영자 답장',

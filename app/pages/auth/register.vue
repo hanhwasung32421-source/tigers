@@ -1,32 +1,87 @@
 <template>
-  <div class="mx-auto max-w-md">
+  <div class="mx-auto max-w-xl">
     <h1 class="text-xl font-semibold">회원가입</h1>
-    <p class="mt-1 text-sm text-slate-400">메인 사이트 가입</p>
+    <p class="mt-1 text-sm text-slate-400">필수 정보를 입력해서 계정을 만드세요.</p>
 
-    <form class="mt-6 space-y-3" @submit.prevent="onSubmit">
+    <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
       <div>
-        <label class="text-sm text-slate-300">아이디</label>
+        <label class="text-sm text-slate-300">아이디*</label>
         <input v-model.trim="username" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
-        <p class="mt-1 text-xs text-slate-500">3~20자</p>
       </div>
+
       <div>
-        <label class="text-sm text-slate-300">비밀번호</label>
-        <input v-model="password" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
-        <p class="mt-1 text-xs text-slate-500">4자 이상</p>
+        <label class="text-sm text-slate-300">이름*</label>
+        <input v-model.trim="name" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
+
+      <div>
+        <label class="text-sm text-slate-300">생년월일 YYYY-MM-DD*</label>
+        <input v-model.trim="birthDate" placeholder="YYYY-MM-DD" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="text-sm text-slate-300">비밀번호*</label>
+          <input v-model="password" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="text-sm text-slate-300">비밀번호확인*</label>
+          <input v-model="passwordConfirm" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-300">은행계좌</label>
+        <div class="mt-1 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+          <input
+            v-model.trim="bankAccount"
+            placeholder="은행계좌"
+            class="w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
+          />
+          <select
+            v-model="bankName"
+            class="w-full rounded-lg bg-white/5 px-3 py-2 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          >
+            <option disabled value="">선택(아래화살표)</option>
+            <option v-for="bank in banks" :key="bank" :value="bank">{{ bank }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-300">예금주*</label>
+        <input
+          v-model.trim="accountHolder"
+          placeholder="예금주를 입력해 주세요"
+          class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
+        />
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-300">추천코드</label>
+        <input v-model.trim="referralCode" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+        <label class="flex items-center gap-3 text-sm text-slate-200">
+          <input v-model="agreedToTerms" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
+          <span>약관에 동의합니다. *</span>
+          <button type="button" class="text-indigo-300 underline underline-offset-2 hover:text-indigo-200" @click="termsOpen = true">이용약관</button>
+        </label>
+      </div>
+
       <button
         class="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-70"
         :disabled="loading"
       >
         <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-        <span>{{ loading ? '가입 처리 중...' : '가입하기' }}</span>
+        <span>{{ loading ? '가입 처리 중...' : '회원가입' }}</span>
       </button>
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
 
-    <div class="mt-4 text-sm text-slate-400">
-      이미 계정이 있나요?
-      <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>
+    <div class="mt-5 text-center text-sm text-slate-400">
+      <NuxtLink to="/auth/find-password" class="underline underline-offset-4 hover:text-indigo-300">이미 계정이 있으신가요?</NuxtLink>
     </div>
   </div>
 
@@ -51,6 +106,18 @@
           </div>
         </div>
       </div>
+
+      <div v-if="termsOpen" class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/65 px-4" @click.self="termsOpen = false">
+        <div class="max-h-[78vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+          <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <h2 class="text-base font-semibold text-slate-100">이용약관</h2>
+            <button type="button" class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" @click="termsOpen = false">닫기</button>
+          </div>
+          <div class="max-h-[60vh] overflow-auto px-5 py-4 text-[11px] leading-6 text-slate-400">
+            <p v-for="(line, idx) in termsLines" :key="`terms-${idx}`" class="mb-3">{{ line }}</p>
+          </div>
+        </div>
+      </div>
     </Teleport>
   </ClientOnly>
 </template>
@@ -59,19 +126,58 @@
 const { refresh } = useMe()
 
 const username = ref('')
+const name = ref('')
+const birthDate = ref('')
 const password = ref('')
+const passwordConfirm = ref('')
+const bankAccount = ref('')
+const bankName = ref('')
+const accountHolder = ref('')
+const referralCode = ref('')
+const agreedToTerms = ref(false)
+const termsOpen = ref(false)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const loadingTitle = ref('가입 처리 중입니다...')
 const loadingDesc = ref('계정을 만들고 있습니다.')
 
+const banks = [
+  '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
+  '수협은행', 'SC제일은행', '씨티은행', '부산은행', '대구은행', '경남은행', '광주은행', '전북은행', '제주은행', '우체국'
+]
+
+const termsLines = [
+  '본 약관은 회원가입 시 제공된 아이디, 이름, 생년월일, 은행계좌, 예금주, 추천코드 등의 정보를 회사가 서비스 운영과 법령상 의무 이행, 고객 응대, 이상 거래 탐지, 분쟁 대응, 내부 감사, 민원 처리 목적 범위 안에서 수집·보관·이용하는 내용 등을 포함합니다.',
+  '회원정보는 관련 법령 및 내부 보관 기준에 따라 원칙적으로 서비스 종료 또는 탈퇴 요청 처리 후 지체 없이 파기하되, 거래 내역·정산 자료·민원 처리 기록과 같이 보존이 필요한 정보는 통상 1년 이상 분리 보관될 수 있으며, 관계 법령이 더 긴 기간을 요구하는 경우 그 기간 동안 보관될 수 있습니다.',
+  '회원은 언제든지 정보 열람·수정·탈퇴를 요청할 수 있으나, 미정산 거래, 보안 점검, 본인 확인 미완료, 분쟁·조사 진행, 법령상 의무 보관 사유가 있는 경우 일부 요청은 즉시 처리되지 않을 수 있으며, 이 경우 회사는 처리 지연 사유를 합리적인 범위에서 안내할 수 있습니다.',
+  '비밀번호 분실 등 보안 이슈가 발생한 경우 회사는 본인 확인을 위해 추가 자료를 요구할 수 있고, 운영자 승인 후 비밀번호를 초기화할 수 있으며, 초기화된 비밀번호는 회사가 정한 임시 기준으로 재설정된 뒤 회원이 즉시 변경해야 합니다.',
+  '서비스 이용 과정에서 접속기록, IP, 브라우저 정보, 기기 정보, 거래 요청 기록 등 보안 관련 정보가 자동으로 수집될 수 있으며, 비정상 접근 또는 부정 이용 탐지 목적 범위 안에서 활용될 수 있습니다.',
+  '회원은 타인의 정보를 도용하거나 허위 정보를 입력해서는 안 되며, 허위 정보 기재로 인해 서비스 제한, 거래 취소, 계정 정지, 민형사상 책임이 발생할 수 있습니다. 회사는 서비스 안정성과 회원 보호를 위해 필요한 범위 안에서 본 약관을 개정할 수 있습니다.'
+]
+
 async function onSubmit() {
   loading.value = true
   error.value = null
   try {
+    if (password.value !== passwordConfirm.value) {
+      throw new Error('비밀번호 확인이 일치하지 않습니다.')
+    }
     loadingTitle.value = '가입 처리 중입니다...'
     loadingDesc.value = '계정을 생성하고 있습니다.'
-    await $fetch('/api/auth/register', { method: 'POST', body: { username: username.value, password: password.value } })
+    await $fetch('/api/auth/register', {
+      method: 'POST',
+      body: {
+        username: username.value,
+        name: name.value,
+        birthDate: birthDate.value,
+        password: password.value,
+        bankName: bankName.value,
+        bankAccount: bankAccount.value,
+        accountHolder: accountHolder.value,
+        referralCode: referralCode.value,
+        agreedToTerms: agreedToTerms.value
+      }
+    })
 
     loadingTitle.value = '인증 확인 중입니다...'
     loadingDesc.value = '세션을 적용하고 있습니다.'
@@ -81,7 +187,7 @@ async function onSubmit() {
     loadingDesc.value = '잠시만 기다려주세요.'
     await navigateTo('/exchange/SAMSUNGUSDT')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '회원가입에 실패했습니다.'
+    error.value = e?.data?.statusMessage || e?.message || '회원가입에 실패했습니다.'
   } finally {
     loading.value = false
   }

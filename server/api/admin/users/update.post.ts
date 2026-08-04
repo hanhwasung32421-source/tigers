@@ -7,7 +7,12 @@ import { getSupabaseAdminClient } from '../../../utils/supabase'
 const BodySchema = z.object({
   userId: z.number().int().positive(),
   usdt: z.number().nonnegative().optional(),
-  role: z.enum(['user', 'super_admin', 'branch_admin']).optional()
+  role: z.enum(['user', 'super_admin', 'branch_admin']).optional(),
+  name: z.string().trim().min(1).max(40).optional(),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  bankName: z.string().trim().min(1).max(40).optional(),
+  bankAccount: z.string().trim().min(1).max(80).optional(),
+  accountHolder: z.string().trim().min(1).max(40).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -41,6 +46,23 @@ export default defineEventHandler(async (event) => {
       if (error) throw error
     }
 
+    if (
+      typeof body.name === 'string' ||
+      typeof body.birthDate === 'string' ||
+      typeof body.bankName === 'string' ||
+      typeof body.bankAccount === 'string' ||
+      typeof body.accountHolder === 'string'
+    ) {
+      const patch: any = { updated_at: new Date().toISOString() }
+      if (typeof body.name === 'string') patch.name = body.name.trim()
+      if (typeof body.birthDate === 'string') patch.birth_date = body.birthDate
+      if (typeof body.bankName === 'string') patch.bank_name = body.bankName.trim()
+      if (typeof body.bankAccount === 'string') patch.bank_account = body.bankAccount.trim()
+      if (typeof body.accountHolder === 'string') patch.account_holder = body.accountHolder.trim()
+      const { error } = await supa.from('trae_users').update(patch).eq('id', body.userId)
+      if (error) throw error
+    }
+
     return { ok: true }
   }
 
@@ -68,6 +90,35 @@ export default defineEventHandler(async (event) => {
 
     db.prepare('UPDATE users SET role = ?, permissions = ? WHERE id = ?').run(body.role, permissions, body.userId)
 
+    const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
+    await syncUserToSupabase(userRow)
+  }
+
+  if (
+    typeof body.name === 'string' ||
+    typeof body.birthDate === 'string' ||
+    typeof body.bankName === 'string' ||
+    typeof body.bankAccount === 'string' ||
+    typeof body.accountHolder === 'string'
+  ) {
+    db.prepare(
+      `UPDATE users
+       SET name = COALESCE(?, name),
+           birth_date = COALESCE(?, birth_date),
+           bank_name = COALESCE(?, bank_name),
+           bank_account = COALESCE(?, bank_account),
+           account_holder = COALESCE(?, account_holder),
+           updated_at = ?
+       WHERE id = ?`
+    ).run(
+      typeof body.name === 'string' ? body.name.trim() : null,
+      typeof body.birthDate === 'string' ? body.birthDate : null,
+      typeof body.bankName === 'string' ? body.bankName.trim() : null,
+      typeof body.bankAccount === 'string' ? body.bankAccount.trim() : null,
+      typeof body.accountHolder === 'string' ? body.accountHolder.trim() : null,
+      new Date().toISOString(),
+      body.userId
+    )
     const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
     await syncUserToSupabase(userRow)
   }
