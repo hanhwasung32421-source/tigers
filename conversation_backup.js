@@ -1218,7 +1218,21 @@ export const conversationBackup = {
       adminBellFlowFixed: {
         adminUnreadEnabled: true,
         adminBellRouteToMessages: true,
-        version: '2026년 8월 4일 (화) - 36'
+        version: '2026년 8월 4일 (화) - 37'
+      }
+    },
+    {
+      timestamp: '2026-08-04T16:42:31+09:00',
+      type: 'conversation',
+      userMessage: '고객센터 메뉴도 종 아이콘과 동일하게 바로 쪽지 기능으로 연결 요청',
+      assistantWorkSummary: [
+        '기본/트레이딩 레이아웃의 `고객센터` 메뉴가 고정 `/support`로 남아 있던 부분을 역할별 경로로 변경함',
+        '이제 회원은 `고객센터`와 종 아이콘이 모두 `/support`로, 운영자는 둘 다 `/admin/messages`로 이동함',
+        '빌드 통과를 확인하고 버전을 2026년 8월 4일 (화) - 37 로 갱신함'
+      ],
+      supportAndBellTargetsUnified: {
+        supportTargetUnifiedWithBell: true,
+        version: '2026년 8월 4일 (화) - 37'
       }
     },
     {

@@ -21,7 +21,7 @@
           <NuxtLink to="/exchange/SAMSUNGUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">선물거래</NuxtLink>
           <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/wallet')">내 지갑</NuxtLink>
           <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
-          <NuxtLink to="/support" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/support')">고객센터</NuxtLink>
+          <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
           <div v-if="isAdmin" class="group relative">
             <NuxtLink to="/admin" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin')">관리자</NuxtLink>
             <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
@@ -92,6 +92,7 @@ if (me.value) {
 }
 
 const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+const supportTarget = computed(() => (isAdmin.value ? '/admin/messages' : '/support'))
 const bellTarget = computed(() => (isAdmin.value ? '/admin/messages' : '/support'))
 
 function startNavLoading(target?: string) {
