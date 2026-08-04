@@ -40,10 +40,10 @@
           />
           <select
             v-model="bankName"
-            class="w-full rounded-lg bg-white/5 px-3 py-2 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            class="w-full rounded-lg bg-black/70 px-3 py-2 text-white outline-none ring-1 ring-white/20 focus:ring-indigo-500"
           >
-            <option disabled value="">선택(아래화살표)</option>
-            <option v-for="bank in banks" :key="bank" :value="bank">{{ bank }}</option>
+            <option disabled value="" class="bg-black text-white">선택(아래화살표)</option>
+            <option v-for="bank in banks" :key="bank" :value="bank" class="bg-black text-white">{{ bank }}</option>
           </select>
         </div>
       </div>
