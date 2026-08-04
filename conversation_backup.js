@@ -1152,6 +1152,50 @@ export const conversationBackup = {
         labels: ['강제청산', '수익', '손실'],
         version: '2026년 7월 22일 (수) - 32'
       }
+    },
+    {
+      timestamp: '2026-08-04T15:48:22+09:00',
+      type: 'conversation',
+      userMessage: '회원목록 > 누적수익 클릭 시 거래내역이 없습니다 + server error / `/api/admin/trades` 500 수정 요청',
+      assistantWorkSummary: [
+        '관리자 회원별 거래내역 조회에서 특정 회원 거래가 없거나 `user_id` 값이 비정상인 경우에도 `/api/admin/trades`가 500을 내지 않도록 서버 방어 로직을 추가함',
+        'Supabase 거래내역 조회 후 결과가 비어 있으면 즉시 빈 배열을 반환하고, `userIds`가 비정상적으로 비어도 기본 사용자 표시값으로 안전하게 응답하도록 보완함',
+        '빌드가 정상 통과하는 것도 확인함',
+        '버전을 2026년 8월 4일 (화) - 33 으로 갱신함'
+      ],
+      adminMemberTradeHistoryGuarded: {
+        safeEmptyTradeResponse: true,
+        safeInvalidUserIdFallback: true,
+        version: '2026년 8월 4일 (화) - 33'
+      }
+    },
+    {
+      timestamp: '2026-07-24T00:00:00+09:00',
+      type: 'conversation',
+      userMessage: 'hooking2.0와 coinbreaker3를 확인해서 스크린샷 크롭 이미지 1개와 문구 1개를 텔레그램 창마다 순서대로 보내는 자동화 계획 요청',
+      assistantWorkSummary: [
+        '`C:\\trae\\hooking2.0` 경로의 AHK 프로젝트 구조와 `Hooking.ahk`, `module/actions.ahk`, `module/message_store.ahk`, `module/quick_paste.ahk`를 확인함',
+        '`C:\\trae\\coinbreaker3` 경로의 웹 프로젝트 구조와 `app.js`의 스크린샷 크롭/클립보드 복사 로직, 프리셋 문구 생성 로직을 확인함',
+        '`hooking2.0`는 이미 텔레그램 창 감지, 창별 순회, 텍스트 전송, 클립보드 보존 로직이 있어 전송 엔진 재사용이 가능하다고 판단함',
+        '`coinbreaker3`는 이미지 클립보드 복사는 구현돼 있지만 프리셋 문구는 선택만 하고 실제 텍스트 클립보드 복사는 하지 않아 연결 고리가 하나 비어 있음을 확인함',
+        '추천 방향을 `AHK 중심 + coinbreaker3 최소 수정`으로 정리하고, 대안으로 `Python 오케스트레이터` 방식도 검토함'
+      ],
+      automationPlanDraft: {
+        recommendedApproach: 'AutoHotkey 중심',
+        reuseTargets: [
+          'hooking2.0의 창별 텔레그램 순회 로직',
+          'hooking2.0의 클립보드 백업/복구 패턴',
+          'coinbreaker3의 캡처 크롭 및 이미지 클립보드 복사 로직',
+          'coinbreaker3의 프리셋 문구 생성 로직'
+        ],
+        missingLink: 'coinbreaker3에서 생성된 문구를 명시적으로 복사하거나 외부가 읽을 수 있게 내보내는 단계',
+        sendSequence: [
+          '웹에서 크롭 이미지 생성 및 클립보드 복사',
+          'hooking2.0가 각 텔레그램 창에 이미지 1회 전송',
+          '같은 창에 대응 문구 1회 전송',
+          '다음 텔레그램 창으로 이동'
+        ]
+      }
     }
   ]
 }

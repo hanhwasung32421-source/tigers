@@ -41,7 +41,39 @@ export default defineEventHandler(async (event) => {
       e1a && isMissingColumnError(e1a, 'liquidation') ? await runQuery(selectBase) : { data: trades1, error: e1a }
     if (e1) throw e1
 
+    // 특정 회원의 거래내역이 비어 있으면 users/sessions in([]) 조회를 타지 않고 바로 빈 결과 반환
+    if (!trades || trades.length === 0) {
+      return { items: [], hasMore: false }
+    }
+
     const userIds = Array.from(new Set((trades || []).map((t: any) => Number(t.user_id)).filter(Boolean)))
+    if (userIds.length === 0) {
+      const items = (trades || []).map((t: any) => {
+        const entry = Number(t.entry_price || 0)
+        const qty = Number(t.qty || 0)
+        const lev = Number(t.leverage || 1)
+        return {
+          id: Number(t.id),
+          created_at: String(t.created_at || ''),
+          user_id: Number(t.user_id || 0),
+          username: '—',
+          name: '—',
+          affiliateName: '—',
+          symbol: String(t.symbol || ''),
+          orderType: '청산',
+          positionSide: String(t.side || '').toUpperCase(),
+          leverage: lev,
+          price: Number(t.exit_price || 0),
+          qty,
+          pnl: Number(t.pnl || 0),
+          liquidation: Boolean((t as any).liquidation),
+          fee: calcTotalFee(entry, qty, lev),
+          online: false
+        }
+      })
+      return { items, hasMore: (trades || []).length === limit }
+    }
+
     const nowIso = new Date().toISOString()
     const { data: users, error: e2 } = await supa.from('trae_users').select('id, username, role').in('id', userIds)
     if (e2) throw e2
