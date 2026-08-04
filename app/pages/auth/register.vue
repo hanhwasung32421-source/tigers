@@ -6,12 +6,19 @@
     <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
       <div>
         <label class="text-sm text-slate-300">아이디<span class="text-rose-400">*</span></label>
-        <input v-model.trim="username" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+        <input
+          v-model.trim="username"
+          inputmode="latin"
+          autocomplete="off"
+          class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+        />
+        <p v-if="username && !usernameValid" class="mt-1 text-xs text-rose-400">영문만 사용 가능합니다</p>
       </div>
 
       <div>
         <label class="text-sm text-slate-300">이름<span class="text-rose-400">*</span></label>
         <input v-model.trim="name" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+        <p v-if="name && !nameValid" class="mt-1 text-xs text-rose-400">한국어만 사용 가능합니다</p>
       </div>
 
       <div>
@@ -31,11 +38,22 @@
       <div class="grid gap-4 md:grid-cols-2">
         <div>
           <label class="text-sm text-slate-300">비밀번호<span class="text-rose-400">*</span></label>
-          <input v-model="password" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+          <input
+            :value="password"
+            type="password"
+            class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            @input="onPasswordInput"
+          />
+          <p v-if="password && password.length < 4" class="mt-1 text-xs text-rose-400">비밀번호는 4글자 이상만 가능합니다</p>
         </div>
         <div>
           <label class="text-sm text-slate-300">비밀번호확인<span class="text-rose-400">*</span></label>
-          <input v-model="passwordConfirm" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+          <input
+            :value="passwordConfirm"
+            type="password"
+            class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            @input="onPasswordConfirmInput"
+          />
         </div>
       </div>
 
@@ -43,9 +61,11 @@
         <label class="text-sm text-slate-300">은행계좌<span class="text-rose-400">*</span></label>
         <div class="mt-1 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
           <input
-            v-model.trim="bankAccount"
+            v-model="bankAccount"
+            inputmode="numeric"
             placeholder="은행계좌"
             class="w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
+            @input="onBankAccountInput"
           />
           <select
             v-model="bankName"
@@ -64,6 +84,7 @@
           placeholder="예금주를 입력해 주세요"
           class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
         />
+        <p v-if="accountHolder && !accountHolderValid" class="mt-1 text-xs text-rose-400">한국어만 사용 가능합니다</p>
       </div>
 
       <div>
@@ -183,19 +204,33 @@ const birthDateValid = computed(() => {
 
 const passwordsMatch = computed(() => String(password.value || '') === String(passwordConfirm.value || ''))
 
+const usernameValid = computed(() => /^[A-Za-z]+$/.test(username.value.trim()))
+const nameValid = computed(() => /^[가-힣\s]+$/.test(name.value.trim()))
+const accountHolderValid = computed(() => /^[가-힣\s]+$/.test(accountHolder.value.trim()))
+
 const canSubmit = computed(() => {
   if (!username.value.trim()) return false
+  if (!usernameValid.value) return false
   if (!name.value.trim()) return false
+  if (!nameValid.value) return false
   if (!birthDateValid.value) return false
   if (!password.value) return false
+  if (password.value.length < 4) return false
   if (!passwordConfirm.value) return false
   if (!passwordsMatch.value) return false
   if (!bankAccount.value.trim()) return false
   if (!bankName.value) return false
   if (!accountHolder.value.trim()) return false
+  if (!accountHolderValid.value) return false
   if (!agreedToTerms.value) return false
   return true
 })
+
+function onBankAccountInput(e: Event) {
+  const raw = String((e.target as HTMLInputElement)?.value || '')
+  const digits = raw.replace(/\D/g, '')
+  bankAccount.value = digits
+}
 
 function onBirthInput(e: Event) {
   const raw = String((e.target as HTMLInputElement)?.value || '')
@@ -207,6 +242,92 @@ function onBirthInput(e: Event) {
   if (m) out += `-${m}`
   if (d) out += `-${d}`
   birthDate.value = out
+}
+
+// 2벌식 한글 입력을 영문 QWERTY로 변환 (예: ㅁㄴㅇ -> asd)
+function hangulToQwerty(input: string) {
+  const CHO = [
+    'r', 'R', 's', 'e', 'E', 'f', 'a', 'q', 'Q', 't', 'T', 'd', 'w', 'W', 'c', 'z', 'x', 'v', 'g'
+  ]
+  const JUNG = [
+    'k', 'o', 'i', 'O', 'j', 'p', 'u', 'P', 'h', 'hk', 'ho', 'hl', 'y', 'n', 'nj', 'np', 'nl', 'b', 'm', 'ml', 'l'
+  ]
+  const JONG = [
+    '', 'r', 'R', 'rt', 's', 'sw', 'sg', 'e', 'f', 'fr', 'fa', 'fq', 'ft', 'fx', 'fv', 'fg', 'a', 'q', 'qt', 't',
+    'T', 'd', 'w', 'c', 'z', 'x', 'v', 'g'
+  ]
+  const JAMO_SINGLE: Record<string, string> = {
+    'ㄱ': 'r',
+    'ㄲ': 'R',
+    'ㄴ': 's',
+    'ㄷ': 'e',
+    'ㄸ': 'E',
+    'ㄹ': 'f',
+    'ㅁ': 'a',
+    'ㅂ': 'q',
+    'ㅃ': 'Q',
+    'ㅅ': 't',
+    'ㅆ': 'T',
+    'ㅇ': 'd',
+    'ㅈ': 'w',
+    'ㅉ': 'W',
+    'ㅊ': 'c',
+    'ㅋ': 'z',
+    'ㅌ': 'x',
+    'ㅍ': 'v',
+    'ㅎ': 'g',
+    'ㅏ': 'k',
+    'ㅐ': 'o',
+    'ㅑ': 'i',
+    'ㅒ': 'O',
+    'ㅓ': 'j',
+    'ㅔ': 'p',
+    'ㅕ': 'u',
+    'ㅖ': 'P',
+    'ㅗ': 'h',
+    'ㅘ': 'hk',
+    'ㅙ': 'ho',
+    'ㅚ': 'hl',
+    'ㅛ': 'y',
+    'ㅜ': 'n',
+    'ㅝ': 'nj',
+    'ㅞ': 'np',
+    'ㅟ': 'nl',
+    'ㅠ': 'b',
+    'ㅡ': 'm',
+    'ㅢ': 'ml',
+    'ㅣ': 'l'
+  }
+  const out: string[] = []
+  for (const ch of input) {
+    const code = ch.charCodeAt(0)
+    // 한글 음절
+    if (code >= 0xac00 && code <= 0xd7a3) {
+      const sIndex = code - 0xac00
+      const cho = Math.floor(sIndex / 588)
+      const jung = Math.floor((sIndex % 588) / 28)
+      const jong = sIndex % 28
+      out.push(CHO[cho] + JUNG[jung] + JONG[jong])
+      continue
+    }
+    // 한글 자모(단일)
+    if (JAMO_SINGLE[ch]) {
+      out.push(JAMO_SINGLE[ch])
+      continue
+    }
+    out.push(ch)
+  }
+  return out.join('')
+}
+
+function onPasswordInput(e: Event) {
+  const raw = String((e.target as HTMLInputElement)?.value || '')
+  password.value = hangulToQwerty(raw)
+}
+
+function onPasswordConfirmInput(e: Event) {
+  const raw = String((e.target as HTMLInputElement)?.value || '')
+  passwordConfirm.value = hangulToQwerty(raw)
 }
 
 async function onSubmit() {

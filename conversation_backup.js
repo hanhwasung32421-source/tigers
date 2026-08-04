@@ -1322,7 +1322,28 @@ export const conversationBackup = {
         resetPasswordTo1234: true,
         oneTimeResetNoticePopup: true,
         profilePasswordChange: true,
-        version: '2026년 8월 4일 (화) - 42'
+        version: '2026년 8월 4일 (화) - 43'
+      }
+    },
+    {
+      timestamp: '2026-08-04T18:26:03+09:00',
+      type: 'conversation',
+      userMessage: '회원가입 입력 제한(아이디 영문만, 이름/예금주 한글만, 비밀번호 4자+ 한글입력시 영문변환, 은행계좌 숫자만) 요청',
+      assistantWorkSummary: [
+        '회원가입 화면에서 아이디는 영문(A-Z/a-z)만 허용하고, 위반 시 빨간 문구 `영문만 사용 가능합니다`를 표시하며 버튼이 비활성화되도록 처리함',
+        '이름/예금주는 한국어만 허용하고, 위반 시 빨간 문구 `한국어만 사용 가능합니다`를 표시하며 버튼이 비활성화되도록 처리함',
+        '비밀번호는 4글자 이상을 안내하고, 2벌식 한글 입력을 영문 QWERTY로 자동 변환되도록 처리함',
+        '은행계좌는 숫자만 입력되도록 자동 필터링 처리함',
+        '서버 회원가입 API에서도 동일한 검증을 추가해 우회 입력을 막음',
+        '버전을 2026년 8월 4일 (화) - 43 로 갱신함'
+      ],
+      registerInputRestrictionsAdded: {
+        usernameEnglishOnly: true,
+        nameKoreanOnly: true,
+        accountHolderKoreanOnly: true,
+        passwordHangulToQwerty: true,
+        bankAccountDigitsOnly: true,
+        version: '2026년 8월 4일 (화) - 43'
       }
     },
     {

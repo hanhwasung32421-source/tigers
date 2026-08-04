@@ -26,6 +26,20 @@ export default defineEventHandler(async (event) => {
   }
   const useSupa = supabaseAppDbEnabled()
 
+  // 입력 제한 (프론트와 동일 규칙)
+  if (!/^[A-Za-z]+$/.test(String(body.username || '').trim())) {
+    throw createError({ statusCode: 400, statusMessage: '아이디는 영문만 사용 가능합니다' })
+  }
+  if (!/^[가-힣\s]+$/.test(String(body.name || '').trim())) {
+    throw createError({ statusCode: 400, statusMessage: '이름은 한국어만 사용 가능합니다' })
+  }
+  if (!/^\d+$/.test(String(body.bankAccount || '').trim())) {
+    throw createError({ statusCode: 400, statusMessage: '은행계좌는 숫자만 입력해 주세요' })
+  }
+  if (!/^[가-힣\s]+$/.test(String(body.accountHolder || '').trim())) {
+    throw createError({ statusCode: 400, statusMessage: '예금주는 한국어만 사용 가능합니다' })
+  }
+
   // 배포/서버리스: Supabase를 단일 진실 소스로 사용 (가입 즉시 Supabase에 반영)
   if (useSupa) {
     const cfg = useRuntimeConfig()
