@@ -35,6 +35,12 @@ export const restoreIndex = [
     file: 'c:\\trae\\거래소\\conversation_restore_points\\js5.js',
     note: '관리자: 킬UP/킬DOWN(차트표시 ±1% 1초) 버튼 추가',
   },
+  {
+    id: 'js6',
+    createdAt: '2026-08-05T16:55:40+09:00',
+    file: 'c:\\trae\\거래소\\conversation_restore_points\\js6.js',
+    note: '킬버튼 전파 여부 질의 응답 기록(현재: 로컬 표시만)',
+  },
 ]
 
 export function getRestorePointMeta(id) {
