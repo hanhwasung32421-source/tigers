@@ -1,0 +1,25 @@
+/**
+ * 대화 Restore Point 인덱스
+ * - 각 대화마다 `conversation_restore_points/jsN.js`를 추가하고 여기에도 누적한다.
+ * - 사용자는 원하는 시점의 jsN 파일을 열어서 당시 상태/규칙을 기준으로 되돌리거나 이어서 작업하면 된다.
+ */
+
+export const restoreIndex = [
+  {
+    id: 'js1',
+    createdAt: '2026-08-04T17:27:30+09:00',
+    file: 'c:\\trae\\거래소\\conversation_restore_points\\js1.js',
+    note: 'conversation_backup.js 기반 전체 이해 완료 스냅샷',
+  },
+  {
+    id: 'js2',
+    createdAt: '2026-08-05T16:04:53+09:00',
+    file: 'c:\\trae\\거래소\\conversation_restore_points\\js2.js',
+    note: '관리자 > 포지션 목록: 박스/가로스크롤 제거',
+  },
+]
+
+export function getRestorePointMeta(id) {
+  return restoreIndex.find((x) => x.id === id) || null
+}
+
