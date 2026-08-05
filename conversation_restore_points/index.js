@@ -29,6 +29,12 @@ export const restoreIndex = [
     file: 'c:\\trae\\거래소\\conversation_restore_points\\js4.js',
     note: '차트 도구 저장 불가 재수정: 기기 단위 v2 키로 저장/복원',
   },
+  {
+    id: 'js5',
+    createdAt: '2026-08-05T16:51:04+09:00',
+    file: 'c:\\trae\\거래소\\conversation_restore_points\\js5.js',
+    note: '관리자: 킬UP/킬DOWN(차트표시 ±1% 1초) 버튼 추가',
+  },
 ]
 
 export function getRestorePointMeta(id) {
