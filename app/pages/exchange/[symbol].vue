@@ -52,7 +52,7 @@
             <div class="flex items-center gap-2">
               <span class="text-base font-semibold text-white">{{ symbol }}</span>
               <span class="font-mono text-base font-semibold" :class="currentCandleMeta.up ? 'text-[#22ab94]' : 'text-[#f23645]'">
-                {{ lastPrice ? fmtPrice(lastPrice) : '—' }}
+                {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}
               </span>
               <span class="font-mono" :class="currentCandleMeta.up ? 'text-[#22ab94]' : 'text-[#f23645]'">
                 {{ currentCandleMeta.changeText }}
@@ -63,6 +63,25 @@
             <div class="text-[#868993]">저가 <span class="ml-1 font-mono text-[#f23645]">{{ currentCandleMeta.low }}</span></div>
             <div class="text-[#868993]">거래량 <span class="ml-1 font-mono text-[#d1d4dc]">{{ vol24 ? fmtNum(vol24) : '—' }}</span></div>
             <div class="ml-auto flex items-center gap-2 text-[11px]">
+              <div v-if="isAdminUser" class="mr-2 flex items-center gap-1">
+                <button
+                  type="button"
+                  class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
+                  :disabled="adminKillBusy"
+                  @click="adminKill('up')"
+                >
+                  킬UP
+                </button>
+                <button
+                  type="button"
+                  class="rounded bg-sky-500/15 px-2 py-1 font-semibold text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40"
+                  :disabled="adminKillBusy"
+                  @click="adminKill('down')"
+                >
+                  킬DOWN
+                </button>
+                <span class="hidden text-[10px] text-[#868993] md:inline">연습용(차트표시)</span>
+              </div>
               <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
                 <span class="h-1.5 w-1.5 rounded-full" :class="wsStatus === 'open' ? 'bg-[#22ab94]' : 'bg-[#f23645]'" />
                 {{ wsStatus === 'open' ? '실시간' : '끊김' }}
@@ -1034,6 +1053,13 @@ const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
 const chartPrefsHydrated = ref(false)
 let saveChartPrefsTimer: any = null
+// 관리자 연습용: 차트 표시를 잠깐 위/아래로 "튀게" 하는 버튼 (실제 정산/청산에는 영향 없음)
+const adminKillUiOverride = ref<number | null>(null)
+const adminKillBusy = ref(false)
+let adminKillFreezeUntil = 0
+let adminKillTimer: any = null
+
+const displayLastPrice = computed(() => adminKillUiOverride.value ?? lastPrice.value ?? null)
 const chartPrefs = reactive<{
   indicators: { sma7: boolean; sma25: boolean }
   drawings: Array<{ id: string; type: 'trend' | 'hline'; color?: string; price?: number; points?: Array<{ time: any; price: number }> }>
@@ -1371,6 +1397,8 @@ function barSeconds(tf: TimeframeValue) {
 }
 
 function updateLiveCandle(price: number, tsMs: number) {
+  // 관리자 킬 버튼 동작 중에는 실시간 업데이트로 "튀는 효과"가 즉시 덮어써지지 않게 잠깐 멈춤
+  if (adminKillFreezeUntil && Date.now() < adminKillFreezeUntil) return
   if (!candleSeries) return
   const p = Number(price)
   if (!Number.isFinite(p) || p <= 0) return
@@ -1410,6 +1438,42 @@ function updateLiveCandle(price: number, tsMs: number) {
     value: 0,
     color: p >= updated.open ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'
   })
+}
+
+function adminKill(dir: 'up' | 'down') {
+  if (!process.client) return
+  if (!isAdminUser.value) return
+  if (adminKillBusy.value) return
+  const base = Number(lastPrice.value || liveLastCandle.value?.close || candleData.value[candleData.value.length - 1]?.close || 0)
+  if (!Number.isFinite(base) || base <= 0) return
+
+  adminKillBusy.value = true
+  const shock = dir === 'up' ? 0.01 : -0.01
+  const shocked = base * (1 + shock)
+  adminKillUiOverride.value = shocked
+  adminKillFreezeUntil = Date.now() + 1100
+
+  // 차트 표시만 순간적으로 튀게: series에만 update(reactive candleData/liveLastCandle에는 손대지 않음)
+  try {
+    const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
+    const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
+    candleSeries?.update({
+      time,
+      open: base,
+      high: Math.max(base, shocked),
+      low: Math.min(base, shocked),
+      close: shocked
+    } as any)
+  } catch {}
+
+  if (adminKillTimer) clearTimeout(adminKillTimer)
+  adminKillTimer = setTimeout(async () => {
+    adminKillUiOverride.value = null
+    adminKillFreezeUntil = 0
+    adminKillBusy.value = false
+    // 1초 효과 후에는 네트워크 데이터로 즉시 동기화해 원래 차트로 되돌림
+    await reloadCandles().catch(() => {})
+  }, 1000)
 }
 
 type DepthRow = { price: number; qty: number; qtyText: string; total: number; totalText: string; depthPct: number }
