@@ -23,6 +23,12 @@ export const restoreIndex = [
     file: 'c:\\trae\\거래소\\conversation_restore_points\\js3.js',
     note: '차트 도구(수평선/추세선): F5/재접속에도 로컬 캐시로 유지',
   },
+  {
+    id: 'js4',
+    createdAt: '2026-08-05T16:46:23+09:00',
+    file: 'c:\\trae\\거래소\\conversation_restore_points\\js4.js',
+    note: '차트 도구 저장 불가 재수정: 기기 단위 v2 키로 저장/복원',
+  },
 ]
 
 export function getRestorePointMeta(id) {
