@@ -1767,12 +1767,16 @@ function applyPriceFormatForSymbol(sym: string) {
 }
 
 function scheduleSaveChartPrefs() {
-  if (!chartPrefsHydrated.value || !me.value) return
+  // 로컬(같은 기기/브라우저) 캐시는 "서버 설정 로드 여부"와 무관하게 항상 저장한다.
+  // 그래야 F5/재접속 후에도 수평선/추세선이 유지된다.
   if (process.client) {
     try {
       localStorage.setItem(chartDrawingStorageKey(), JSON.stringify(chartPrefs.drawings || []))
     } catch {}
   }
+
+  // 서버 저장은 로그인/하이드레이션 이후에만 수행(서버 장애/스키마 문제여도 로컬 캐시는 유지됨)
+  if (!chartPrefsHydrated.value || !me.value) return
   if (saveChartPrefsTimer) clearTimeout(saveChartPrefsTimer)
   saveChartPrefsTimer = setTimeout(async () => {
     await $fetch('/api/settings/chart', {
@@ -2494,6 +2498,13 @@ async function loadAccount() {
     chartPrefs.indicators.sma7 = !!cp?.indicators?.sma7
     chartPrefs.indicators.sma25 = !!cp?.indicators?.sma25
     chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? (Array.isArray(cp?.drawings) ? cp.drawings : [])
+    chartPrefsHydrated.value = true
+  }
+
+  // 서버에서 chartPrefs가 내려오지 않는 경우에도,
+  // 로컬 캐시가 있으면 우선 복원해서 F5/재접속 시 도구가 유지되게 한다.
+  if (!chartPrefsHydrated.value) {
+    chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? []
     chartPrefsHydrated.value = true
   }
 
