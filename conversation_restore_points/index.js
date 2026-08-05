@@ -17,9 +17,14 @@ export const restoreIndex = [
     file: 'c:\\trae\\거래소\\conversation_restore_points\\js2.js',
     note: '관리자 > 포지션 목록: 박스/가로스크롤 제거',
   },
+  {
+    id: 'js3',
+    createdAt: '2026-08-05T16:15:01+09:00',
+    file: 'c:\\trae\\거래소\\conversation_restore_points\\js3.js',
+    note: '차트 도구(수평선/추세선): F5/재접속에도 로컬 캐시로 유지',
+  },
 ]
 
 export function getRestorePointMeta(id) {
   return restoreIndex.find((x) => x.id === id) || null
 }
-
