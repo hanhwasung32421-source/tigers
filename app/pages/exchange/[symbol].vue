@@ -1042,9 +1042,26 @@ const chartPrefs = reactive<{
   drawings: []
 })
 
-function chartDrawingStorageKey(sym = symbol.value) {
+// 차트 드로잉(수평선/추세선)은 "같은 기기/브라우저"에서 유지되는 것이 핵심이라
+// 유저 로드 타이밍(me.value)과 무관하게 안정적으로 복원되도록 "기기 단위 키(v2)"로 저장한다.
+// (기존 v1 키: trae:chart-drawings:{uid|guest}:{symbol})
+function chartDrawingStorageKeyV2(sym = symbol.value) {
+  return `trae:chart-drawings:v2:${String(sym || '').toUpperCase()}`
+}
+
+function chartDrawingStorageKeyV1(sym = symbol.value, uid: number | string = 'guest') {
+  return `trae:chart-drawings:${uid}:${String(sym || '').toUpperCase()}`
+}
+
+function getChartDrawingStorageKeys(sym = symbol.value) {
+  const s = String(sym || '').toUpperCase()
+  const keys: string[] = []
+  keys.push(chartDrawingStorageKeyV2(s))
+  // v1 legacy: uid / guest 둘 다 탐색(로그인 로딩 타이밍 차이로 guest에 저장되었을 수 있음)
   const uid = Number((me.value as any)?.id || 0)
-  return `trae:chart-drawings:${uid || 'guest'}:${String(sym || '').toUpperCase()}`
+  if (uid) keys.push(chartDrawingStorageKeyV1(s, uid))
+  keys.push(chartDrawingStorageKeyV1(s, 'guest'))
+  return keys
 }
 
 const currentCandleMeta = computed(() => {
@@ -1771,7 +1788,11 @@ function scheduleSaveChartPrefs() {
   // 그래야 F5/재접속 후에도 수평선/추세선이 유지된다.
   if (process.client) {
     try {
-      localStorage.setItem(chartDrawingStorageKey(), JSON.stringify(chartPrefs.drawings || []))
+      // v2(기기 단위) 저장
+      localStorage.setItem(chartDrawingStorageKeyV2(), JSON.stringify(chartPrefs.drawings || []))
+      // v1(legacy)도 같이 저장해두면, 예전 키로 저장된 사용자들도 자연스럽게 이어진다.
+      const uid = Number((me.value as any)?.id || 0)
+      if (uid) localStorage.setItem(chartDrawingStorageKeyV1(symbol.value, uid), JSON.stringify(chartPrefs.drawings || []))
     } catch {}
   }
 
@@ -1792,10 +1813,13 @@ function scheduleSaveChartPrefs() {
 function loadLocalChartDrawings(sym = symbol.value) {
   if (!process.client) return null
   try {
-    const raw = localStorage.getItem(chartDrawingStorageKey(sym))
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : null
+    for (const key of getChartDrawingStorageKeys(sym)) {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed
+    }
+    return null
   } catch {
     return null
   }
