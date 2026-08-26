@@ -2572,8 +2572,9 @@ async function loadAccount() {
   if (!me.value) return
   if (accountSyncing.value) return
   accountSyncing.value = true
+  let data: any = null
   try {
-    const data = await $fetch<any>('/api/account')
+    data = await $fetch<any>('/api/account')
     const hadPendingOpen = pendingOpenJobs.value.length > 0
     const hadPendingClose = pendingCloseJobs.value.length > 0
     const serverBalance = Number(data?.balance?.usdt || 0)
