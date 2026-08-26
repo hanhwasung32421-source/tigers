@@ -6,7 +6,7 @@ import { supabaseAppDbEnabled, syncBalanceToSupabase, syncTradeToSupabase } from
 import { getSupabaseAdminClient, isMissingColumnError, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 
 const FEE_RATE = 0.04
-const LIQUIDATION_TRIGGER_ROE = -50
+const LIQUIDATION_TRIGGER_ROE = -40
 
 const BodySchema = z.object({
   positionId: z.number().int().positive(),
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
     const gross = Number(pos.margin)
     const net = netMarginFromGross(gross)
-    // -50% 도달 시 전액 강제청산(증거금 전액 손실)
+    // -40% 도달 시 전액 강제청산(증거금 전액 손실)
     const pnl = clampPnlToLiquidation(pnlUnclamped, net)
 
     const balRow = await supaSelectOne<{ usdt: number }>('trae_balances', { user_id: user.id })

@@ -274,7 +274,7 @@
                 <button type="button" class="font-mono text-sm text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
               </div>
               <div class="mt-3 flex items-center justify-between text-xs text-slate-300">
-                <span class="text-slate-400">레버리지 배율</span>
+                <span class="break-keep text-slate-400">레버리지 배율</span>
                 <div class="flex items-center gap-2">
                   <div class="h-2 w-36 overflow-hidden rounded bg-black/30 ring-1 ring-white/10">
                     <div class="h-full bg-cyan-400/60" :style="{ width: leveragePct + '%' }" />
@@ -646,7 +646,7 @@
 
         <div class="mt-8 rounded-xl border border-white/15 bg-[#0f151b] px-4 py-3">
           <div class="flex items-center gap-2 text-lg">
-            <span class="text-slate-200">레버리지 배율</span>
+            <span class="break-keep text-slate-200">레버리지 배율</span>
             <span class="font-mono font-semibold text-white">{{ leverageDraft }}</span>
           </div>
         </div>
@@ -921,8 +921,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const tradeMsg = ref<string | null>(null)
 const TRADE_FEE_RATE = 0.04
-const LIQUIDATION_TRIGGER_ROE = -50
-const LIQUIDATION_TRIGGER_FRACTION = 0.5
+const LIQUIDATION_TRIGGER_ROE = -40
+const LIQUIDATION_TRIGGER_FRACTION = 0.4
 const isAdminUser = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
 const positionEditModal = reactive<{
   open: boolean
@@ -1693,7 +1693,7 @@ function calcLiqPrice(p: any) {
   const entry = Number(p.entry_price)
   const lev = Number(p.leverage || 1)
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
-  // -50% ROE에서 전액 강제청산 기준
+  // -40% ROE에서 전액 강제청산 기준
   if (p.side === 'short') return entry * (1 + LIQUIDATION_TRIGGER_FRACTION / lev)
   return entry * (1 - LIQUIDATION_TRIGGER_FRACTION / lev)
 }
@@ -1706,7 +1706,7 @@ function unrealized(p: any) {
   const margin = netMarginFromGross(grossMargin)
   // 방어 로직:
   // - lastPrice가 0/비정상일 때 ROE 폭주 방지
-  // - 강제청산 트리거는 -50%지만, 실제 손실은 증거금 전액 손실로 처리
+  // - 강제청산 트리거는 -40%지만, 실제 손실은 증거금 전액 손실로 처리
   if (![mark, entry, qty, margin].every(Number.isFinite)) return { pnl: 0, roe: 0 }
   if (mark <= 0 || entry <= 0 || qty <= 0 || margin <= 0) return { pnl: 0, roe: 0 }
   const raw = (mark - entry) * qty

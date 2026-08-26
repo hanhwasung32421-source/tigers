@@ -96,7 +96,8 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const appName = config.public.appName
-const appVersion = config.public.appVersion
+const { data: versionData } = await useFetch<{ version: string }>('/api/version', { key: 'app-version' })
+const appVersion = computed(() => versionData.value?.version || '')
 const route = useRoute()
 const navLoading = useState<boolean>('global_nav_loading', () => false)
 

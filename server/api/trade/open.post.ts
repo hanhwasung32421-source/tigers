@@ -7,7 +7,7 @@ import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, sy
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 
 const FEE_RATE = 0.04
-const LIQUIDATION_TRIGGER_ROE = -50
+const LIQUIDATION_TRIGGER_ROE = -40
 
 const BodySchema = z.object({
   symbol: z.string().min(1),

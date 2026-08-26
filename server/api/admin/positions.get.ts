@@ -6,7 +6,7 @@ import { getOkxLastPrice } from '../../utils/okx'
 
 function calcLiqPrice(side: string, entry: number, lev: number) {
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
-  return side === 'short' ? entry * (1 + 0.5 / lev) : entry * (1 - 0.5 / lev)
+  return side === 'short' ? entry * (1 + 0.4 / lev) : entry * (1 - 0.4 / lev)
 }
 
 function calcPnlRoe(side: string, entry: number, mark: number, qty: number, margin: number) {
@@ -15,9 +15,9 @@ function calcPnlRoe(side: string, entry: number, mark: number, qty: number, marg
   const raw = (mark - entry) * qty
   const pnl = side === 'short' ? -raw : raw
   const roeRaw = (pnl / margin) * 100
-  const hitLiquidation = roeRaw <= -50
+  const hitLiquidation = roeRaw <= -40
   const pnlClamped = hitLiquidation ? -margin : pnl
-  const roe = hitLiquidation ? -50 : roeRaw
+  const roe = hitLiquidation ? -40 : roeRaw
   return { pnl: pnlClamped, roe }
 }
 
