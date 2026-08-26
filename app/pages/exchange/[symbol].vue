@@ -179,6 +179,21 @@
                 +
               </div>
             </div>
+            <div
+              v-if="measureBoxView"
+              class="pointer-events-none absolute z-30 flex items-center justify-center rounded border text-sm font-semibold"
+              :class="measureBoxView.positive
+                ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200'
+                : 'border-rose-400/50 bg-rose-400/15 text-rose-200'"
+              :style="{
+                left: measureBoxView.left + 'px',
+                top: measureBoxView.top + 'px',
+                width: measureBoxView.width + 'px',
+                height: measureBoxView.height + 'px'
+              }"
+            >
+              {{ measureBoxView.positive ? '+' : '' }}{{ measureBoxView.pct.toFixed(2) }}%
+            </div>
           </div>
 
           <div class="flex w-[44px] shrink-0 flex-col items-center gap-1 border-l border-[#2a2e39] bg-[#131722] px-1 py-2">
@@ -1079,6 +1094,23 @@ const activeTool = ref<'cursor' | 'trend' | 'hline'>('cursor')
 const pendingTrendStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
+// 선(수평선/추세선) 선택 상태: 커서 도구에서 클릭하면 선택되고, 끝점을 드래그하거나 Delete로 삭제 가능
+const selectedDrawingId = ref<string | null>(null)
+type DrawingHit =
+  | { id: string; kind: 'trend-point'; pointIndex: 0 | 1 }
+  | { id: string; kind: 'trend-line' }
+  | { id: string; kind: 'hline' }
+let drawingDragCleanup: (() => void) | null = null
+// Shift+클릭 수익률 측정 박스
+const measureBox = ref<{
+  startX: number
+  startY: number
+  startPrice: number
+  startTime: any
+  endX: number
+  endY: number
+  endPrice: number
+} | null>(null)
 const chartPrefsHydrated = ref(false)
 let saveChartPrefsTimer: any = null
 // 관리자 연습용: 차트 표시를 잠깐 위/아래로 "튀게" 하는 버튼 (실제 정산/청산에는 영향 없음)
@@ -1419,6 +1451,207 @@ function barSeconds(tf: TimeframeValue) {
   if (tf === '1W') return 604800
   return 2592000
 }
+
+function timeToUnixSeconds(t: any): number {
+  if (typeof t === 'number') return t
+  if (t && typeof t === 'object' && 'year' in t) {
+    return Math.floor(Date.UTC(t.year, t.month - 1, t.day) / 1000)
+  }
+  return 0
+}
+
+// 현재가(마지막 봉) 오른쪽 여백처럼 실제 데이터가 없는 구간은 timeToCoordinate가 null을 주기 때문에,
+// 봉 간격을 이용해 로지컬 좌표로 보정한다.
+function resolveXForTime(time: any): number | null {
+  if (!chart) return null
+  const ts = chart.timeScale()
+  const direct = ts.timeToCoordinate(time)
+  if (direct !== null) return direct
+  const last = candleData.value[candleData.value.length - 1]
+  if (!last) return null
+  const lastIndex = candleData.value.length - 1
+  const interval = barSeconds(timeframe.value)
+  if (!interval) return null
+  const lastUnix = timeToUnixSeconds(last.time)
+  const targetUnix = timeToUnixSeconds(time)
+  const diffBars = (targetUnix - lastUnix) / interval
+  return ts.logicalToCoordinate((lastIndex + diffBars) as any)
+}
+
+// 클릭/드래그 좌표 -> 시간. 데이터 범위 밖(현재가 오른쪽 등)이면 로지컬 좌표에서 역산.
+function resolveTimeAtX(paramTime: any, x: number): any | null {
+  if (paramTime) return paramTime
+  if (!chart) return null
+  const ts = chart.timeScale()
+  const direct = ts.coordinateToTime(x)
+  if (direct !== null) return direct
+  const logical = ts.coordinateToLogical(x)
+  if (logical === null || !Number.isFinite(logical)) return null
+  const last = candleData.value[candleData.value.length - 1]
+  if (!last) return null
+  const lastIndex = candleData.value.length - 1
+  const interval = barSeconds(timeframe.value)
+  if (!interval) return null
+  const lastUnix = timeToUnixSeconds(last.time)
+  const diffBars = Number(logical) - lastIndex
+  return Math.round(lastUnix + diffBars * interval)
+}
+
+function distToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const lenSq = dx * dx + dy * dy
+  let t = lenSq > 0 ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0
+  t = Math.max(0, Math.min(1, t))
+  const cx = x1 + t * dx
+  const cy = y1 + t * dy
+  return Math.hypot(px - cx, py - cy)
+}
+
+function hitTestDrawings(x: number, y: number): DrawingHit | null {
+  if (!chart || !candleSeries) return null
+  const HANDLE_R = 9
+  const LINE_TOL = 6
+  for (let i = chartPrefs.drawings.length - 1; i >= 0; i--) {
+    const d = chartPrefs.drawings[i]
+    if (d.type === 'trend' && d.points?.length === 2) {
+      const x1 = resolveXForTime(d.points[0].time)
+      const y1 = candleSeries.priceToCoordinate(Number(d.points[0].price))
+      const x2 = resolveXForTime(d.points[1].time)
+      const y2 = candleSeries.priceToCoordinate(Number(d.points[1].price))
+      if (x1 === null || y1 === null || x2 === null || y2 === null) continue
+      if (Math.hypot(x - x1, y - y1) <= HANDLE_R) return { id: d.id, kind: 'trend-point', pointIndex: 0 }
+      if (Math.hypot(x - x2, y - y2) <= HANDLE_R) return { id: d.id, kind: 'trend-point', pointIndex: 1 }
+      if (distToSegment(x, y, x1, y1, x2, y2) <= LINE_TOL) return { id: d.id, kind: 'trend-line' }
+    } else if (d.type === 'hline' && Number.isFinite(Number(d.price))) {
+      const y0 = candleSeries.priceToCoordinate(Number(d.price))
+      if (y0 === null) continue
+      if (Math.abs(y - y0) <= LINE_TOL) return { id: d.id, kind: 'hline' }
+    }
+  }
+  return null
+}
+
+function onChartMouseDown(e: MouseEvent) {
+  if (e.button !== 0) return
+  if (!chartEl.value || !chart || !candleSeries) return
+  const rect = chartEl.value.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+
+  // Shift+클릭: 수익률 측정 박스 시작/종료 (커서 도구일 때만)
+  if (e.shiftKey && activeTool.value === 'cursor') {
+    e.preventDefault()
+    e.stopPropagation()
+    if (measureBox.value) {
+      measureBox.value = null
+      return
+    }
+    const price = candleSeries.coordinateToPrice(y)
+    const time = resolveTimeAtX(null, x)
+    if (price === null || time === null) return
+    measureBox.value = {
+      startX: x,
+      startY: y,
+      startPrice: Number(price),
+      startTime: time,
+      endX: x,
+      endY: y,
+      endPrice: Number(price)
+    }
+    return
+  }
+
+  if (activeTool.value !== 'cursor') return
+  const hit = hitTestDrawings(x, y)
+  if (!hit) {
+    if (selectedDrawingId.value) {
+      selectedDrawingId.value = null
+      renderSavedDrawings()
+    }
+    return
+  }
+
+  e.preventDefault()
+  e.stopPropagation()
+  selectedDrawingId.value = hit.id
+  renderSavedDrawings()
+
+  if (hit.kind === 'trend-line') return // 몸통은 선택만, 드래그는 끝점(원)에서만
+
+  const drawing = chartPrefs.drawings.find((d) => d.id === hit.id)
+  if (!drawing) return
+
+  const onMove = (ev: MouseEvent) => {
+    if (!candleSeries) return
+    const mx = ev.clientX - rect.left
+    const my = ev.clientY - rect.top
+    if (hit.kind === 'trend-point' && drawing.points) {
+      const price = candleSeries.coordinateToPrice(my)
+      const time = resolveTimeAtX(null, mx)
+      if (price !== null && time !== null) {
+        drawing.points[hit.pointIndex] = { time, price: Number(price) }
+        renderSavedDrawings()
+      }
+    } else if (hit.kind === 'hline') {
+      const price = candleSeries.coordinateToPrice(my)
+      if (price !== null) {
+        drawing.price = Number(price)
+        renderSavedDrawings()
+      }
+    }
+  }
+  const onUp = () => {
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    drawingDragCleanup = null
+    scheduleSaveChartPrefs()
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+  drawingDragCleanup = onUp
+}
+
+function onDrawingKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && measureBox.value) {
+    measureBox.value = null
+    return
+  }
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return
+  if (!selectedDrawingId.value) return
+  const tag = (e.target as HTMLElement)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return
+  const idx = chartPrefs.drawings.findIndex((d) => d.id === selectedDrawingId.value)
+  if (idx === -1) return
+  chartPrefs.drawings.splice(idx, 1)
+  selectedDrawingId.value = null
+  renderSavedDrawings()
+  scheduleSaveChartPrefs()
+}
+
+function onMeasureBoxMouseMove(e: MouseEvent) {
+  if (!measureBox.value || !chartEl.value || !candleSeries) return
+  const rect = chartEl.value.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  const price = candleSeries.coordinateToPrice(y)
+  if (price === null) return
+  measureBox.value.endX = x
+  measureBox.value.endY = y
+  measureBox.value.endPrice = Number(price)
+}
+
+const measureBoxView = computed(() => {
+  const m = measureBox.value
+  if (!m) return null
+  const left = Math.min(m.startX, m.endX)
+  const top = Math.min(m.startY, m.endY)
+  const width = Math.abs(m.endX - m.startX)
+  const height = Math.abs(m.endY - m.startY)
+  const pct = m.startPrice > 0 ? ((m.endPrice - m.startPrice) / m.startPrice) * 100 : 0
+  const positive = pct >= 0
+  return { left, top, width, height, pct, positive }
+})
 
 function updateLiveCandle(price: number, tsMs: number) {
   // 관리자 킬 버튼 동작 중에는 실시간 업데이트로 "튀는 효과"가 즉시 덮어써지지 않게 잠깐 멈춤
@@ -2001,7 +2234,7 @@ function renderDrawingPreview() {
       candleSeries,
       { time: pendingTrendStart.value.time, price: Number(pendingTrendStart.value.price) },
       { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
-      { lineColor: '#facc15', width: 1 }
+      { lineColor: '#facc15', width: 1, resolveX: resolveXForTime }
     )
     candleSeries.attachPrimitive(previewTrendPrimitive)
   }
@@ -2011,11 +2244,12 @@ function renderSavedDrawings() {
   if (!chart || !candleSeries) return
   clearDrawingVisuals()
   for (const d of chartPrefs.drawings) {
+    const isSelected = d.id === selectedDrawingId.value
     if (d.type === 'hline' && Number.isFinite(Number(d.price))) {
       const pl = candleSeries.createPriceLine({
         price: Number(d.price),
         color: d.color || '#2962ff',
-        lineWidth: 1,
+        lineWidth: isSelected ? 3 : 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
         axisLabelColor: d.color || '#2962ff',
@@ -2029,7 +2263,12 @@ function renderSavedDrawings() {
         candleSeries,
         { time: d.points[0].time, price: Number(d.points[0].price) },
         { time: d.points[1].time, price: Number(d.points[1].price) },
-        { lineColor: d.color || '#facc15', width: 2 }
+        {
+          lineColor: d.color || '#facc15',
+          width: isSelected ? 3 : 2,
+          resolveX: resolveXForTime,
+          showHandles: isSelected
+        }
       )
       candleSeries.attachPrimitive(primitive)
       trendLinePrimitives.push(primitive)
@@ -2079,7 +2318,7 @@ function onChartClick(param: any) {
   if (!chart || !candleSeries || !param?.point) return
   if (activeTool.value === 'cursor') return
   const price = candleSeries.coordinateToPrice(param.point.y)
-  const time = param.time ?? chart.timeScale().coordinateToTime(param.point.x)
+  const time = resolveTimeAtX(param.time, param.point.x)
   if (!Number.isFinite(Number(price)) || !time) return
 
   if (activeTool.value === 'hline') {
@@ -2140,7 +2379,7 @@ function onCrosshairMove(param: any) {
   }
 
   const price = candleSeries.coordinateToPrice(param.point.y)
-  const time = param.time ?? chart.timeScale().coordinateToTime(param.point.x)
+  const time = resolveTimeAtX(param.time, param.point.x)
   if (!Number.isFinite(Number(price)) || !time) {
     liveDrawingPoint.value = null
     clearDrawingPreviewVisuals()
@@ -2236,6 +2475,8 @@ function initChart() {
       borderColor: 'rgba(255,255,255,0.12)',
       timeVisible: true,
       secondsVisible: false,
+      // 현재가(마지막 봉) 오른쪽에도 추세선/수직선을 그릴 수 있게 여백을 남겨둔다.
+      rightOffset: 24,
       tickMarkFormatter: (time: any) => formatAxisTick(time)
     },
     crosshair: {
@@ -2292,6 +2533,12 @@ function initChart() {
   chart.subscribeCrosshairMove(onCrosshairMove)
   renderIndicators()
   renderSavedDrawings()
+
+  // 선 선택/끝점 드래그/삭제 + Shift+클릭 수익률 측정 박스
+  // capture 단계에서 붙여서, 선/핸들을 잡았을 때 차트 자체의 팬(pan) 동작보다 먼저 가로챈다.
+  chartEl.value.addEventListener('mousedown', onChartMouseDown, true)
+  chartEl.value.addEventListener('mousemove', onMeasureBoxMouseMove)
+  window.addEventListener('keydown', onDrawingKeydown)
 
   // ResizeObserver
   const ro = new ResizeObserver(() => {
@@ -3031,6 +3278,12 @@ onBeforeUnmount(() => {
     try { chart.unsubscribeClick(onChartClick) } catch {}
     try { chart.unsubscribeCrosshairMove(onCrosshairMove as any) } catch {}
   }
+  if (chartEl.value) {
+    chartEl.value.removeEventListener('mousedown', onChartMouseDown, true)
+    chartEl.value.removeEventListener('mousemove', onMeasureBoxMouseMove)
+  }
+  window.removeEventListener('keydown', onDrawingKeydown)
+  drawingDragCleanup?.()
 })
 </script>
 
