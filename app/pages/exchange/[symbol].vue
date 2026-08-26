@@ -1843,7 +1843,7 @@ function toInstId(sym: string) {
 function applyPriceFormatForSymbol(sym: string) {
   if (!candleSeries) return
   candleSeries.applyOptions({
-    priceFormat: { type: 'price', precision: 5, minMove: 0.00001 }
+    priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
   })
 }
 
