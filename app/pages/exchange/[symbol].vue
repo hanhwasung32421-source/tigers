@@ -860,12 +860,14 @@ const orderType = ref<'market'>('market')
 // 요구사항: 포지션테이블에서 지정가/예약 탭 삭제
 const bottomTab = ref<'positions' | 'fills'>('positions')
 
-function selectFillsTab() {
+async function selectFillsTab() {
   bottomTab.value = 'fills'
+  if (fills.value.length === 0) {
+    await loadFills(true).catch(() => {})
+  }
   if (!process.client) return
-  nextTick(() => {
-    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'auto' })
-  })
+  await nextTick()
+  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'auto' })
 }
 
 // 주문 UI 상태(첨부 스타일)
