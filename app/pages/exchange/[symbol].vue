@@ -63,12 +63,12 @@
             <div class="text-[#868993]">저가 <span class="ml-1 font-mono text-[#f23645]">{{ currentCandleMeta.low }}</span></div>
             <div class="text-[#868993]">거래량 <span class="ml-1 font-mono text-[#d1d4dc]">{{ vol24 ? fmtNum(vol24) : '—' }}</span></div>
             <div class="ml-auto flex items-center gap-2 text-[11px]">
-              <div v-if="isAdminUser" class="mr-2 flex items-center gap-1">
+              <div v-if="isSuperAdminUser" class="mr-2 flex items-center gap-1">
                 <button
                   type="button"
                   class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
                   :disabled="adminKillBusy"
-                  @click="adminKill('up')"
+                  @click="openKillModal('up')"
                 >
                   킬UP
                 </button>
@@ -76,11 +76,10 @@
                   type="button"
                   class="rounded bg-sky-500/15 px-2 py-1 font-semibold text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40"
                   :disabled="adminKillBusy"
-                  @click="adminKill('down')"
+                  @click="openKillModal('down')"
                 >
                   킬DOWN
                 </button>
-                <span class="hidden text-[10px] text-[#868993] md:inline">연습용(차트표시)</span>
               </div>
               <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
                 <span class="h-1.5 w-1.5 rounded-full" :class="wsStatus === 'open' ? 'bg-[#22ab94]' : 'bg-[#f23645]'" />
@@ -193,6 +192,25 @@
               }"
             >
               {{ measureBoxView.positive ? '+' : '' }}{{ measureBoxView.pct.toFixed(2) }}%
+            </div>
+            <div
+              v-for="b in entryBadges"
+              :key="b.id"
+              class="pointer-events-none absolute left-1.5 z-[25] flex -translate-y-1/2 items-center overflow-hidden rounded shadow"
+              :style="{ top: b.y + 'px' }"
+            >
+              <span
+                class="whitespace-nowrap px-1.5 py-0.5 text-[11px] font-bold"
+                :class="b.isLong ? 'bg-rose-950 text-rose-300' : 'bg-blue-950 text-blue-300'"
+              >
+                {{ b.label }}
+              </span>
+              <span
+                class="whitespace-nowrap px-1.5 py-0.5 text-[11px] font-bold"
+                :class="b.positive ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'"
+              >
+                {{ b.pctText }}
+              </span>
             </div>
           </div>
 
@@ -701,6 +719,55 @@
       </div>
     </div>
 
+    <div
+      v-if="killModalOpen"
+      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+      @click.self="closeKillModal"
+    >
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-semibold tracking-tight text-slate-100">
+            킬{{ killModalDirection === 'up' ? 'UP' : 'DOWN' }} 실행
+          </h3>
+          <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeKillModal">
+            ✕
+          </button>
+        </div>
+        <p class="mt-2 text-sm text-slate-400">
+          현재가에서 몇 % {{ killModalDirection === 'up' ? '올렸다가' : '내렸다가' }} 바로 복귀시킬지 입력하세요.
+          이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다.
+        </p>
+        <div class="mt-5 flex items-center gap-2">
+          <input
+            v-model.number="killPercentDraft"
+            type="number"
+            min="1"
+            max="90"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+          <span class="text-sm text-slate-400">%</span>
+        </div>
+        <p v-if="killError" class="mt-3 text-sm text-red-300">{{ killError }}</p>
+        <div class="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-[#252f39]"
+            @click="closeKillModal"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-[#0aa37f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="adminKillBusy"
+            @click="confirmKillModal"
+          >
+            실행
+          </button>
+        </div>
+      </div>
+    </div>
+
     <Transition name="close-card-pop">
       <div
         v-if="closeSummary"
@@ -818,6 +885,7 @@
 <script setup lang="ts">
 import {
   createChart,
+  createSeriesMarkers,
   CandlestickSeries,
   HistogramSeries,
   LineSeries,
@@ -826,7 +894,8 @@ import {
   type IChartApi,
   type ISeriesApi,
   type CandlestickData,
-  type HistogramData
+  type HistogramData,
+  type ISeriesMarkersPluginApi
 } from 'lightweight-charts'
 import { TrendLinePrimitive } from '../../utils/chart/trendLinePrimitive'
 import { calculateMovingAverageLineData } from '../../utils/chart/movingAverage'
@@ -967,6 +1036,8 @@ function startLiquidationSettingsPolling() {
   }, 5000)
 }
 const isAdminUser = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+// 킬UP/킬DOWN은 총관리자만
+const isSuperAdminUser = computed(() => me.value?.role === 'super_admin')
 const positionEditModal = reactive<{
   open: boolean
   positionId: number
@@ -1083,6 +1154,7 @@ let volumeSeries: ISeriesApi<'Histogram'> | null = null
 let sma7Series: ISeriesApi<'Line'> | null = null
 let sma25Series: ISeriesApi<'Line'> | null = null
 const priceLines: any[] = []
+const entryBadges = ref<Array<{ id: number; y: number; isLong: boolean; label: string; pctText: string; positive: boolean }>>([])
 const drawingPriceLines: any[] = []
 const trendLinePrimitives: TrendLinePrimitive[] = []
 let previewPriceLine: any = null
@@ -1113,11 +1185,29 @@ const measureBox = ref<{
 } | null>(null)
 const chartPrefsHydrated = ref(false)
 let saveChartPrefsTimer: any = null
-// 관리자 연습용: 차트 표시를 잠깐 위/아래로 "튀게" 하는 버튼 (실제 정산/청산에는 영향 없음)
+// 관리자 킬UP/킬DOWN: 지정한 %만큼 순간적으로 움직였다가 복귀. 실제 청산가에 닿으면 그 포지션은 실제로 강제청산됨.
 const adminKillUiOverride = ref<number | null>(null)
 const adminKillBusy = ref(false)
 let adminKillFreezeUntil = 0
 let adminKillTimer: any = null
+
+type KillEvent = {
+  id: number
+  symbol: string
+  direction: 'up' | 'down'
+  percent: number
+  basePrice: number
+  shockedPrice: number
+  createdAt: string
+}
+const killModalOpen = ref(false)
+const killModalDirection = ref<'up' | 'down'>('down')
+const killPercentDraft = ref(5)
+const killError = ref<string | null>(null)
+const killHistory = ref<KillEvent[]>([])
+let killSeriesMarkers: ISeriesMarkersPluginApi<any> | null = null
+let lastSeenKillEventId = 0
+let killPollTimer: any = null
 
 const displayLastPrice = computed(() => adminKillUiOverride.value ?? lastPrice.value ?? null)
 const chartPrefs = reactive<{
@@ -1201,6 +1291,7 @@ async function refreshMarks() {
   try {
     const res = await $fetch<any>('/api/okx/marks', { method: 'POST', body: { symbols: syms } })
     markPrices.value = { ...(markPrices.value || {}), ...(res?.prices || {}) }
+    updateEntryBadges()
     await checkAutoLiquidations().catch(() => {})
   } finally {
     markPolling = false
@@ -1716,17 +1807,95 @@ function updateLiveCandle(price: number, tsMs: number) {
   })
 }
 
-function adminKill(dir: 'up' | 'down') {
+function openKillModal(dir: 'up' | 'down') {
+  if (!isSuperAdminUser.value) return
+  killModalDirection.value = dir
+  killPercentDraft.value = 5
+  killError.value = null
+  killModalOpen.value = true
+}
+
+function closeKillModal() {
+  killModalOpen.value = false
+}
+
+async function confirmKillModal() {
+  const percent = Math.round(Number(killPercentDraft.value))
+  if (!Number.isFinite(percent) || percent < 1 || percent > 90) {
+    killError.value = '1~90 사이의 숫자를 입력해주세요.'
+    return
+  }
+  adminKillBusy.value = true
+  killError.value = null
+  try {
+    const res = await $fetch<{ ok: boolean; event: KillEvent; liquidatedCount: number }>('/api/admin/kill', {
+      method: 'POST',
+      body: { symbol: symbol.value, direction: killModalDirection.value, percent }
+    })
+    killModalOpen.value = false
+    if (res?.event) {
+      lastSeenKillEventId = Math.max(lastSeenKillEventId, res.event.id)
+      await runKillAnimation(res.event)
+    }
+  } catch (e: any) {
+    killError.value = e?.data?.statusMessage || '킬 실행 실패'
+    adminKillBusy.value = false
+  }
+}
+
+function recordKillEvent(ev: KillEvent) {
+  if (killHistory.value.some((k) => k.id === ev.id)) return
+  killHistory.value = [...killHistory.value, ev]
+  if (String(ev.symbol).toUpperCase() === String(symbol.value).toUpperCase()) {
+    renderKillMarkers()
+  }
+}
+
+function renderKillMarkers() {
+  if (!candleSeries) return
+  if (!killSeriesMarkers) killSeriesMarkers = createSeriesMarkers(candleSeries, [])
+  const bs = barSeconds(timeframe.value)
+  const markers = killHistory.value
+    .map((k) => {
+      const unix = Math.floor(new Date(k.createdAt).getTime() / 1000)
+      const bucket = Math.floor(unix / bs) * bs
+      return {
+        time: bucket as any,
+        position: (k.direction === 'up' ? 'aboveBar' : 'belowBar') as 'aboveBar' | 'belowBar',
+        color: k.direction === 'up' ? '#38bdf8' : '#f43f5e',
+        shape: (k.direction === 'up' ? 'arrowUp' : 'arrowDown') as 'arrowUp' | 'arrowDown',
+        text: `킬${k.direction === 'up' ? 'UP' : 'DOWN'} ${Math.round(k.percent)}%`
+      }
+    })
+    .sort((a, b) => Number(a.time) - Number(b.time))
+  killSeriesMarkers.setMarkers(markers)
+}
+
+async function loadKillHistory() {
+  try {
+    const res = await $fetch<{ items: KillEvent[] }>('/api/kill/history', { query: { symbol: symbol.value, limit: 50 } })
+    killHistory.value = res?.items || []
+    if (killHistory.value.length) {
+      lastSeenKillEventId = Math.max(...killHistory.value.map((k) => k.id))
+    }
+    renderKillMarkers()
+  } catch {
+    // ignore
+  }
+}
+
+async function runKillAnimation(ev: KillEvent) {
   if (!process.client) return
-  if (!isAdminUser.value) return
-  if (adminKillBusy.value) return
-  const base = Number(lastPrice.value || liveLastCandle.value?.close || candleData.value[candleData.value.length - 1]?.close || 0)
-  if (!Number.isFinite(base) || base <= 0) return
+  recordKillEvent(ev)
+
+  if (String(ev.symbol).toUpperCase() !== String(symbol.value).toUpperCase()) {
+    // 다른 심볼 킬이면 애니메이션은 생략하고, 내 계정(잔고/포지션)만 동기화
+    await loadAccount().catch(() => {})
+    return
+  }
 
   adminKillBusy.value = true
-  const shock = dir === 'up' ? 0.01 : -0.01
-  const shocked = base * (1 + shock)
-  adminKillUiOverride.value = shocked
+  adminKillUiOverride.value = ev.shockedPrice
   adminKillFreezeUntil = Date.now() + 1100
 
   // 차트 표시만 순간적으로 튀게: series에만 update(reactive candleData/liveLastCandle에는 손대지 않음)
@@ -1735,10 +1904,10 @@ function adminKill(dir: 'up' | 'down') {
     const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
     candleSeries?.update({
       time,
-      open: base,
-      high: Math.max(base, shocked),
-      low: Math.min(base, shocked),
-      close: shocked
+      open: ev.basePrice,
+      high: Math.max(ev.basePrice, ev.shockedPrice),
+      low: Math.min(ev.basePrice, ev.shockedPrice),
+      close: ev.shockedPrice
     } as any)
   } catch {}
 
@@ -1747,9 +1916,33 @@ function adminKill(dir: 'up' | 'down') {
     adminKillUiOverride.value = null
     adminKillFreezeUntil = 0
     adminKillBusy.value = false
-    // 1초 효과 후에는 네트워크 데이터로 즉시 동기화해 원래 차트로 되돌림
+    // 1초 효과 후에는 네트워크 데이터로 즉시 동기화해 원래 차트로 되돌리고,
+    // 킬로 인해 청산된 내 포지션이 있으면 계정도 함께 갱신
     await reloadCandles().catch(() => {})
+    await loadAccount().catch(() => {})
   }, 1000)
+}
+
+async function pollKillEvents() {
+  if (!me.value) return
+  try {
+    const res = await $fetch<{ event: KillEvent | null }>('/api/kill/latest', { query: { symbol: symbol.value } })
+    const ev = res?.event
+    if (ev && ev.id > lastSeenKillEventId) {
+      lastSeenKillEventId = ev.id
+      await runKillAnimation(ev)
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function startKillPolling() {
+  if (!process.client) return
+  if (killPollTimer) clearInterval(killPollTimer)
+  killPollTimer = setInterval(() => {
+    pollKillEvents()
+  }, 1500)
 }
 
 type DepthRow = { price: number; qty: number; qtyText: string; total: number; totalText: string; depthPct: number }
@@ -2550,6 +2743,8 @@ function initChart() {
   volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } })
   chart.subscribeClick(onChartClick)
   chart.subscribeCrosshairMove(onCrosshairMove)
+  // 확대/축소/스크롤로 가격축 스케일이 바뀔 때도 진입가 뱃지 위치를 다시 계산
+  chart.timeScale().subscribeVisibleLogicalRangeChange(() => updateEntryBadges())
   renderIndicators()
   renderSavedDrawings()
 
@@ -2564,6 +2759,7 @@ function initChart() {
     if (!chartEl.value || !chart) return
     const r = chartEl.value.getBoundingClientRect()
     chart.applyOptions({ width: Math.floor(r.width), height: Math.floor(r.height) })
+    updateEntryBadges()
   })
   ro.observe(chartEl.value)
 }
@@ -2593,7 +2789,6 @@ function renderEntryLines() {
     if (!Number.isFinite(price)) continue
     const isLong = p.side === 'long'
     const color = isLong ? '#089981' : '#f23645'
-    const title = `${isLong ? 'LONG' : 'SHORT'} ${fmtPrice(price)}`
     const pl = candleSeries.createPriceLine({
       price,
       color,
@@ -2602,10 +2797,37 @@ function renderEntryLines() {
       axisLabelVisible: true,
       axisLabelColor: color,
       axisLabelTextColor: '#ffffff',
-      title
+      // 왼쪽 라벨은 커스텀 뱃지(entryBadges)로 대체
+      title: ''
     })
     priceLines.push(pl)
   }
+  updateEntryBadges()
+}
+
+function updateEntryBadges() {
+  if (!candleSeries) {
+    entryBadges.value = []
+    return
+  }
+  const list: typeof entryBadges.value = []
+  for (const p of currentPositions.value) {
+    const price = Number(p.entry_price)
+    if (!Number.isFinite(price)) continue
+    const y = candleSeries.priceToCoordinate(price)
+    if (y === null) continue
+    const isLong = p.side === 'long'
+    const { roe } = unrealized(p)
+    list.push({
+      id: Number(p.id),
+      y,
+      isLong,
+      label: `${isLong ? '롱' : '숏'} ${fmtPrice(price)}`,
+      pctText: `${roe >= 0 ? '▲' : '▼'} ${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%`,
+      positive: roe >= 0
+    })
+  }
+  entryBadges.value = list
 }
 
 async function fetchCandles() {
@@ -3214,6 +3436,7 @@ watch([() => symbol.value, timeframe], async () => {
   await fetchCandles().catch(() => {})
   connectWs()
   await loadAccount()
+  await loadKillHistory()
 })
 
 watch(
@@ -3241,6 +3464,8 @@ onMounted(async () => {
   await fetchCandles().catch(() => {})
   connectWs()
   await loadAccount()
+  await loadKillHistory()
+  startKillPolling()
 
   // 기본은 시장가 탭
   selectOrderType('market')
@@ -3265,6 +3490,7 @@ watch(
     if (chartPrefs.indicators.sma7 || chartPrefs.indicators.sma25) {
       renderIndicators()
     }
+    updateEntryBadges()
     checkAutoLiquidations().catch(() => {})
   }
 )
@@ -3280,6 +3506,10 @@ onBeforeUnmount(() => {
   markPollTimer = null
   if (liquidationSettingsPollTimer) clearInterval(liquidationSettingsPollTimer)
   liquidationSettingsPollTimer = null
+  if (killPollTimer) clearInterval(killPollTimer)
+  killPollTimer = null
+  if (adminKillTimer) clearTimeout(adminKillTimer)
+  adminKillTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
   if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)

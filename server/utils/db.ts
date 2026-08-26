@@ -150,6 +150,16 @@ export function getDb() {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS kill_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      symbol TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      percent REAL NOT NULL,
+      base_price REAL NOT NULL,
+      shocked_price REAL NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS password_reset_requests (
       id INTEGER PRIMARY KEY,
       user_id INTEGER NOT NULL,
