@@ -9,9 +9,24 @@ const DrawingPointSchema = z.object({
   price: z.coerce.number()
 })
 
+const BolPrefsSchema = z.union([
+  z.boolean(),
+  z.object({
+    enabled: z.boolean().optional().default(false),
+    length: z.coerce.number().positive().optional().default(20),
+    stdDev: z.coerce.number().positive().optional().default(2),
+    showBasis: z.boolean().optional().default(true),
+    showUpper: z.boolean().optional().default(true),
+    showLower: z.boolean().optional().default(true),
+    basisColor: z.string().optional().default('#f59e0b'),
+    upperColor: z.string().optional().default('#2563eb'),
+    lowerColor: z.string().optional().default('#38bdf8')
+  })
+])
+
 const ChartPrefsSchema = z.object({
   indicators: z.object({
-    bol: z.boolean().optional().default(false)
+    bol: BolPrefsSchema.optional().default(false)
   }).default({}),
   drawings: z.array(
     z.object({

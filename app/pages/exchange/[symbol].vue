@@ -123,7 +123,7 @@
             <button
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[10px] transition"
-              :class="chartPrefs.indicators.bol ? 'bg-[#f59e0b] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="chartPrefs.indicators.bol.enabled ? 'bg-[#f59e0b] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               title="볼린저밴드(20, 2)"
               @click="toggleIndicator('bol')"
             >
@@ -169,21 +169,34 @@
                 +
               </div>
             </div>
-            <div
-              v-if="measureBoxView"
-              class="pointer-events-none absolute z-30 flex items-center justify-center rounded border text-sm font-semibold"
-              :class="measureBoxView.positive
-                ? 'border-blue-400/50 bg-blue-400/15 text-blue-200'
-                : 'border-rose-400/50 bg-rose-400/15 text-rose-200'"
-              :style="{
-                left: measureBoxView.left + 'px',
-                top: measureBoxView.top + 'px',
-                width: measureBoxView.width + 'px',
-                height: measureBoxView.height + 'px'
-              }"
-            >
-              {{ measureBoxView.positive ? '+' : '' }}{{ measureBoxView.pct.toFixed(2) }}%
-            </div>
+            <template v-if="measureBoxView">
+              <div
+                class="pointer-events-none absolute z-30 whitespace-nowrap rounded px-3 py-1.5 text-sm font-bold text-white"
+                :class="measureBoxView.positive ? 'bg-[#2962ff]' : 'bg-[#f23645]'"
+                :style="{
+                  left: measureBoxView.left + measureBoxView.width / 2 + 'px',
+                  top: measureBoxView.top - 34 + 'px',
+                  transform: 'translateX(-50%)'
+                }"
+              >
+                {{ measureBoxView.tooltipText }}
+              </div>
+              <div
+                class="pointer-events-none absolute z-30 flex items-center justify-center border"
+                :class="measureBoxView.positive
+                  ? 'border-blue-400/60 bg-blue-500/25'
+                  : 'border-rose-400/60 bg-rose-500/25'"
+                :style="{
+                  left: measureBoxView.left + 'px',
+                  top: measureBoxView.top + 'px',
+                  width: measureBoxView.width + 'px',
+                  height: measureBoxView.height + 'px'
+                }"
+              >
+                <span class="absolute top-1 left-1/2 -translate-x-1/2 text-lg font-bold text-white/90">{{ measureBoxView.vArrow }}</span>
+                <span class="absolute bottom-1 right-1 text-lg font-bold text-white/90">{{ measureBoxView.hArrow }}</span>
+              </div>
+            </template>
             <div
               v-for="b in entryBadges"
               :key="b.id"
@@ -757,6 +770,97 @@
       </div>
     </div>
 
+    <div
+      v-if="bolModalOpen"
+      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+      @click.self="closeBolSettings"
+    >
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#131722] p-5 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-slate-100">BB</h3>
+          <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeBolSettings">
+            ✕
+          </button>
+        </div>
+
+        <div class="mt-4 flex items-center gap-4 border-b border-white/10 text-sm">
+          <button
+            type="button"
+            class="border-b-2 pb-2 font-semibold transition"
+            :class="bolModalTab === 'input' ? 'border-[#2962ff] text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
+            @click="bolModalTab = 'input'"
+          >
+            인풋
+          </button>
+          <button
+            type="button"
+            class="border-b-2 pb-2 font-semibold transition"
+            :class="bolModalTab === 'style' ? 'border-[#2962ff] text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
+            @click="bolModalTab = 'style'"
+          >
+            모습
+          </button>
+        </div>
+
+        <div v-if="bolModalTab === 'input'" class="mt-5 space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <label class="text-sm text-slate-300">길이</label>
+            <input
+              v-model.number="bolDraft.length"
+              type="number"
+              min="1"
+              class="w-28 rounded-md bg-white/5 px-3 py-1.5 text-sm text-right outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            />
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <label class="text-sm text-slate-300">곱</label>
+            <input
+              v-model.number="bolDraft.stdDev"
+              type="number"
+              min="0.1"
+              step="0.1"
+              class="w-28 rounded-md bg-white/5 px-3 py-1.5 text-sm text-right outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div v-else class="mt-5 space-y-3">
+          <div class="flex items-center gap-3">
+            <input v-model="bolDraft.showBasis" type="checkbox" class="h-4 w-4 accent-[#2962ff]" />
+            <span class="w-16 text-sm text-slate-300">중앙값</span>
+            <input v-model="bolDraft.basisColor" type="color" class="h-6 w-10 cursor-pointer rounded bg-transparent" />
+          </div>
+          <div class="flex items-center gap-3">
+            <input v-model="bolDraft.showUpper" type="checkbox" class="h-4 w-4 accent-[#2962ff]" />
+            <span class="w-16 text-sm text-slate-300">어퍼</span>
+            <input v-model="bolDraft.upperColor" type="color" class="h-6 w-10 cursor-pointer rounded bg-transparent" />
+          </div>
+          <div class="flex items-center gap-3">
+            <input v-model="bolDraft.showLower" type="checkbox" class="h-4 w-4 accent-[#2962ff]" />
+            <span class="w-16 text-sm text-slate-300">로우어</span>
+            <input v-model="bolDraft.lowerColor" type="color" class="h-6 w-10 cursor-pointer rounded bg-transparent" />
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-[#252f39]"
+            @click="closeBolSettings"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-[#2962ff] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1e4fd6]"
+            @click="applyBolSettings"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+
     <Transition name="close-card-pop">
       <div
         v-if="closeSummary"
@@ -1200,13 +1304,49 @@ let lastSeenKillEventId = 0
 let killPollTimer: any = null
 
 const displayLastPrice = computed(() => adminKillUiOverride.value ?? lastPrice.value ?? null)
+
+type BolPrefs = {
+  enabled: boolean
+  length: number
+  stdDev: number
+  showBasis: boolean
+  showUpper: boolean
+  showLower: boolean
+  basisColor: string
+  upperColor: string
+  lowerColor: string
+}
+function defaultBolPrefs(): BolPrefs {
+  return {
+    enabled: false,
+    length: 20,
+    stdDev: 2,
+    showBasis: true,
+    showUpper: true,
+    showLower: true,
+    basisColor: '#f59e0b',
+    upperColor: '#2563eb',
+    lowerColor: '#38bdf8'
+  }
+}
+
 const chartPrefs = reactive<{
-  indicators: { bol: boolean }
+  indicators: { bol: BolPrefs }
   drawings: Array<{ id: string; type: 'trend' | 'hline'; color?: string; price?: number; points?: Array<{ time: any; price: number }> }>
 }>({
-  indicators: { bol: false },
+  indicators: { bol: defaultBolPrefs() },
   drawings: []
 })
+
+// BOL 더블클릭 설정 팝업 + 클릭 선택(Delete로 삭제)
+const bolModalOpen = ref(false)
+const bolModalTab = ref<'input' | 'style'>('input')
+const bolDraft = reactive<BolPrefs>(defaultBolPrefs())
+const bolSelected = ref(false)
+let bolTimes: any[] = []
+let bolBasisValues: Array<number | undefined> = []
+let bolUpperValues: Array<number | undefined> = []
+let bolLowerValues: Array<number | undefined> = []
 
 // 차트 드로잉(수평선/추세선)은 "같은 기기/브라우저"에서 유지되는 것이 핵심이라
 // 유저 로드 타이밍(me.value)과 무관하게 안정적으로 복원되도록 "기기 단위 키(v2)"로 저장한다.
@@ -1665,8 +1805,17 @@ function onChartMouseDown(e: MouseEvent) {
   if (activeTool.value !== 'cursor') return
   const hit = hitTestDrawings(x, y)
   if (!hit) {
-    if (selectedDrawingId.value) {
+    if (hitTestBol(x, y)) {
+      if (selectedDrawingId.value) {
+        selectedDrawingId.value = null
+        renderSavedDrawings()
+      }
+      bolSelected.value = true
+      return
+    }
+    if (selectedDrawingId.value || bolSelected.value) {
       selectedDrawingId.value = null
+      bolSelected.value = false
       renderSavedDrawings()
     }
     return
@@ -1674,6 +1823,7 @@ function onChartMouseDown(e: MouseEvent) {
 
   e.preventDefault()
   e.stopPropagation()
+  bolSelected.value = false
   selectedDrawingId.value = hit.id
   renderSavedDrawings()
 
@@ -1718,9 +1868,18 @@ function onDrawingKeydown(e: KeyboardEvent) {
     return
   }
   if (e.key !== 'Delete' && e.key !== 'Backspace') return
-  if (!selectedDrawingId.value) return
   const tag = (e.target as HTMLElement)?.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
+  if (bolSelected.value) {
+    chartPrefs.indicators.bol.enabled = false
+    bolSelected.value = false
+    renderIndicators()
+    scheduleSaveChartPrefs()
+    return
+  }
+
+  if (!selectedDrawingId.value) return
   const idx = chartPrefs.drawings.findIndex((d) => d.id === selectedDrawingId.value)
   if (idx === -1) return
   chartPrefs.drawings.splice(idx, 1)
@@ -1763,9 +1922,13 @@ const measureBoxView = computed(() => {
   const top = Math.min(m.startY, m.endY)
   const width = Math.abs(m.endX - m.startX)
   const height = Math.abs(m.endY - m.startY)
-  const pct = m.startPrice > 0 ? ((m.endPrice - m.startPrice) / m.startPrice) * 100 : 0
+  const diff = m.endPrice - m.startPrice
+  const pct = m.startPrice > 0 ? (diff / m.startPrice) * 100 : 0
   const positive = pct >= 0
-  return { left, top, width, height, pct, positive }
+  const vArrow = m.endY <= m.startY ? '↑' : '↓'
+  const hArrow = m.endX >= m.startX ? '→' : '←'
+  const tooltipText = `${positive ? '+' : ''}${fmtPrice(diff)} (${positive ? '+' : ''}${pct.toFixed(2)}%) , ${fmtPrice(m.endPrice)}`
+  return { left, top, width, height, pct, positive, vArrow, hArrow, tooltipText }
 })
 
 function updateLiveCandle(price: number, tsMs: number) {
@@ -2381,33 +2544,112 @@ function clearIndicatorSeries() {
 function renderIndicators() {
   if (!chart) return
   clearIndicatorSeries()
-  if (chartPrefs.indicators.bol) {
-    // 볼린저밴드: 이동평균선(기간) 20일, 표준편차(D1) 2, 적용 가격 종가(Close)
-    const { basis, upper, lower } = calculateBollingerBands(candleData.value || [], 20, 2)
+  const b = chartPrefs.indicators.bol
+  if (!b.enabled) {
+    bolTimes = []
+    bolBasisValues = []
+    bolUpperValues = []
+    bolLowerValues = []
+    return
+  }
+  // 볼린저밴드: 이동평균선(기간)/표준편차(곱)은 사용자가 팝업에서 조정 가능, 적용 가격은 종가(Close)
+  const { basis, upper, lower } = calculateBollingerBands(candleData.value || [], b.length, b.stdDev)
+  bolTimes = basis.map((p: any) => p.time)
+  bolBasisValues = basis.map((p: any) => p.value)
+  bolUpperValues = upper.map((p: any) => p.value)
+  bolLowerValues = lower.map((p: any) => p.value)
+
+  if (b.showBasis) {
     bolBasisSeries = chart.addSeries(LineSeries, {
-      color: '#f59e0b',
+      color: b.basisColor,
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
     })
     bolBasisSeries.setData(basis as any)
+  }
+  if (b.showUpper) {
     bolUpperSeries = chart.addSeries(LineSeries, {
-      color: 'rgba(245,158,11,0.6)',
+      color: b.upperColor,
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
     })
     bolUpperSeries.setData(upper as any)
+  }
+  if (b.showLower) {
     bolLowerSeries = chart.addSeries(LineSeries, {
-      color: 'rgba(245,158,11,0.6)',
+      color: b.lowerColor,
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
     })
     bolLowerSeries.setData(lower as any)
+  }
+}
+
+function hitTestBol(x: number, y: number): boolean {
+  if (!chart || !candleSeries) return false
+  const b = chartPrefs.indicators.bol
+  if (!b.enabled || !bolTimes.length) return false
+  const time = resolveTimeAtX(null, x)
+  if (time === null) return false
+  const targetUnix = timeToUnixSeconds(time)
+  let idx = -1
+  let best = Infinity
+  for (let i = 0; i < bolTimes.length; i++) {
+    const d = Math.abs(timeToUnixSeconds(bolTimes[i]) - targetUnix)
+    if (d < best) {
+      best = d
+      idx = i
+    }
+  }
+  if (idx < 0) return false
+  const TOL = 6
+  const checks: Array<[boolean, number | undefined]> = [
+    [b.showBasis, bolBasisValues[idx]],
+    [b.showUpper, bolUpperValues[idx]],
+    [b.showLower, bolLowerValues[idx]]
+  ]
+  for (const [show, v] of checks) {
+    if (!show || v === undefined || !Number.isFinite(v)) continue
+    const ly = candleSeries.priceToCoordinate(v)
+    if (ly !== null && Math.abs(ly - y) <= TOL) return true
+  }
+  return false
+}
+
+function openBolSettings() {
+  Object.assign(bolDraft, chartPrefs.indicators.bol)
+  bolModalTab.value = 'input'
+  bolModalOpen.value = true
+}
+
+function closeBolSettings() {
+  bolModalOpen.value = false
+}
+
+function applyBolSettings() {
+  const length = Math.max(1, Math.round(Number(bolDraft.length) || 20))
+  const stdDev = Math.max(0.1, Number(bolDraft.stdDev) || 2)
+  Object.assign(chartPrefs.indicators.bol, bolDraft, { length, stdDev, enabled: true })
+  renderIndicators()
+  scheduleSaveChartPrefs()
+  bolModalOpen.value = false
+}
+
+function onChartDoubleClick(e: MouseEvent) {
+  if (!chartEl.value) return
+  const rect = chartEl.value.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  if (hitTestBol(x, y)) {
+    e.preventDefault()
+    e.stopPropagation()
+    openBolSettings()
   }
 }
 
@@ -2506,7 +2748,7 @@ function renderSavedDrawings() {
 }
 
 function toggleIndicator(key: 'bol') {
-  chartPrefs.indicators[key] = !chartPrefs.indicators[key]
+  chartPrefs.indicators[key].enabled = !chartPrefs.indicators[key].enabled
   renderIndicators()
   scheduleSaveChartPrefs()
 }
@@ -2769,6 +3011,7 @@ function initChart() {
   // capture 단계에서 붙여서, 선/핸들을 잡았을 때 차트 자체의 팬(pan) 동작보다 먼저 가로챈다.
   chartEl.value.addEventListener('mousedown', onChartMouseDown, true)
   chartEl.value.addEventListener('mousemove', onChartAreaMouseMove)
+  chartEl.value.addEventListener('dblclick', onChartDoubleClick)
   window.addEventListener('keydown', onDrawingKeydown)
 
   // ResizeObserver
@@ -3113,7 +3356,11 @@ async function loadAccount() {
 
   if (!chartPrefsHydrated.value && data?.settings?.chartPrefs) {
     const cp = data.settings.chartPrefs || {}
-    chartPrefs.indicators.bol = !!cp?.indicators?.bol
+    if (cp?.indicators?.bol && typeof cp.indicators.bol === 'object') {
+      Object.assign(chartPrefs.indicators.bol, defaultBolPrefs(), cp.indicators.bol)
+    } else {
+      chartPrefs.indicators.bol.enabled = !!cp?.indicators?.bol
+    }
     chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? (Array.isArray(cp?.drawings) ? cp.drawings : [])
     chartPrefsHydrated.value = true
   }
@@ -3503,7 +3750,7 @@ watch([percent, leverage], () => {
 watch(
   () => liveLastCandle.value?.close,
   () => {
-    if (chartPrefs.indicators.bol) {
+    if (chartPrefs.indicators.bol.enabled) {
       renderIndicators()
     }
     updateEntryBadges()
@@ -3546,6 +3793,7 @@ onBeforeUnmount(() => {
   if (chartEl.value) {
     chartEl.value.removeEventListener('mousedown', onChartMouseDown, true)
     chartEl.value.removeEventListener('mousemove', onChartAreaMouseMove)
+    chartEl.value.removeEventListener('dblclick', onChartDoubleClick)
   }
   window.removeEventListener('keydown', onDrawingKeydown)
   drawingDragCleanup?.()
