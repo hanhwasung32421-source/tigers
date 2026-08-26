@@ -522,14 +522,12 @@
               </td>
               <td class="py-1" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
                 <span
-                  class="rounded px-2 py-1 ring-1"
-                  :class="[
+                  class="rounded px-2 py-1 text-[14px] ring-1"
+                  :class="
                     p.side === 'long'
                       ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30'
-                      : 'bg-[#34181d] text-[#f23645] ring-[#f23645]/30',
-                    // 요구사항: 포지션 목록에서 숏 글자를 1.5배 크게
-                    p.side === 'short' ? 'text-[17px]' : 'text-[12px]'
-                  ]"
+                      : 'bg-[#34181d] text-[#f23645] ring-[#f23645]/30'
+                  "
                 >
                   {{ p.side === 'long' ? '롱' : '숏' }}
                 </span>

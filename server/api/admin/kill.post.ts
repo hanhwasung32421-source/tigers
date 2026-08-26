@@ -98,7 +98,15 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const killEvent = await createKillEvent({ symbol, direction: body.direction, percent: body.percent, basePrice, shockedPrice })
-
-  return { ok: true, event: killEvent, liquidatedCount }
+  try {
+    const killEvent = await createKillEvent({ symbol, direction: body.direction, percent: body.percent, basePrice, shockedPrice })
+    return { ok: true, event: killEvent, liquidatedCount }
+  } catch (e: any) {
+    // 청산 자체는 이미 위에서 실제로 처리됨. 이벤트 기록/공유만 실패한 경우 원인을 명확히 알려준다.
+    throw createError({
+      statusCode: 500,
+      statusMessage:
+        'Supabase에 trae_kill_events 테이블이 없어 킬 기록 저장에 실패했습니다. SUPABASE_TRAE_DB_patch_kill_events.sql을 Supabase SQL Editor에서 먼저 실행해주세요. (해당 구간의 강제청산 처리 자체는 이미 반영되었습니다.)'
+    })
+  }
 })
