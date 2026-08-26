@@ -1551,8 +1551,23 @@ function timeToUnixSeconds(t: any): number {
   return 0
 }
 
+// 두 개의 실제 봉 좌표로부터 "봉 1개당 픽셀 폭"을 구한다.
+// coordinateToLogical/logicalToCoordinate는 데이터 범위를 얼마나 벗어나든 항상 값을 주는 게
+// 보장되지 않는 것으로 보여, 실제 두 봉의 timeToCoordinate 차이로 직접 선형 외삽한다.
+function pixelsPerBar(): number | null {
+  if (!chart) return null
+  const n = candleData.value.length
+  if (n < 2) return null
+  const ts = chart.timeScale()
+  const xLast = ts.timeToCoordinate(candleData.value[n - 1].time)
+  const xPrev = ts.timeToCoordinate(candleData.value[n - 2].time)
+  if (xLast === null || xPrev === null) return null
+  const d = xLast - xPrev
+  return d !== 0 ? d : null
+}
+
 // 현재가(마지막 봉) 오른쪽 여백처럼 실제 데이터가 없는 구간은 timeToCoordinate가 null을 주기 때문에,
-// 봉 간격을 이용해 로지컬 좌표로 보정한다.
+// 봉 간격(픽셀)을 이용해 선형 외삽한다. 마우스가 얼마나 멀리 가든(차트 영역 안이면) 항상 값을 반환한다.
 function resolveXForTime(time: any): number | null {
   if (!chart) return null
   const ts = chart.timeScale()
@@ -1560,32 +1575,32 @@ function resolveXForTime(time: any): number | null {
   if (direct !== null) return direct
   const last = candleData.value[candleData.value.length - 1]
   if (!last) return null
-  const lastIndex = candleData.value.length - 1
+  const xLast = ts.timeToCoordinate(last.time)
+  const ppb = pixelsPerBar()
   const interval = barSeconds(timeframe.value)
-  if (!interval) return null
+  if (xLast === null || !ppb || !interval) return null
   const lastUnix = timeToUnixSeconds(last.time)
   const targetUnix = timeToUnixSeconds(time)
-  const diffBars = (targetUnix - lastUnix) / interval
-  return ts.logicalToCoordinate((lastIndex + diffBars) as any)
+  const barsBeyond = (targetUnix - lastUnix) / interval
+  return xLast + barsBeyond * ppb
 }
 
-// 클릭/드래그 좌표 -> 시간. 데이터 범위 밖(현재가 오른쪽 등)이면 로지컬 좌표에서 역산.
+// 클릭/드래그 좌표 -> 시간. 데이터 범위 밖(현재가 오른쪽 등)이면 봉 간격(픽셀)에서 역산.
 function resolveTimeAtX(paramTime: any, x: number): any | null {
   if (paramTime) return paramTime
   if (!chart) return null
   const ts = chart.timeScale()
   const direct = ts.coordinateToTime(x)
   if (direct !== null) return direct
-  const logical = ts.coordinateToLogical(x)
-  if (logical === null || !Number.isFinite(logical)) return null
   const last = candleData.value[candleData.value.length - 1]
   if (!last) return null
-  const lastIndex = candleData.value.length - 1
+  const xLast = ts.timeToCoordinate(last.time)
+  const ppb = pixelsPerBar()
   const interval = barSeconds(timeframe.value)
-  if (!interval) return null
+  if (xLast === null || !ppb || !interval) return null
   const lastUnix = timeToUnixSeconds(last.time)
-  const diffBars = Number(logical) - lastIndex
-  return Math.round(lastUnix + diffBars * interval)
+  const barsBeyond = (x - xLast) / ppb
+  return Math.round(lastUnix + barsBeyond * interval)
 }
 
 function distToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
@@ -2788,12 +2803,12 @@ function renderEntryLines() {
     const price = Number(p.entry_price)
     if (!Number.isFinite(price)) continue
     const isLong = p.side === 'long'
-    const color = isLong ? '#089981' : '#f23645'
+    const color = isLong ? '#fb7185' : '#60a5fa'
     const pl = candleSeries.createPriceLine({
       price,
       color,
       lineWidth: 2,
-      lineStyle: LineStyle.Solid,
+      lineStyle: LineStyle.Dashed,
       axisLabelVisible: true,
       axisLabelColor: color,
       axisLabelTextColor: '#ffffff',
