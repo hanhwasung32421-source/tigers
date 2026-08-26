@@ -183,7 +183,7 @@
               v-if="measureBoxView"
               class="pointer-events-none absolute z-30 flex items-center justify-center rounded border text-sm font-semibold"
               :class="measureBoxView.positive
-                ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200'
+                ? 'border-blue-400/50 bg-blue-400/15 text-blue-200'
                 : 'border-rose-400/50 bg-rose-400/15 text-rose-200'"
               :style="{
                 left: measureBoxView.left + 'px',
@@ -1539,14 +1539,10 @@ function onChartMouseDown(e: MouseEvent) {
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
 
-  // Shift+클릭: 수익률 측정 박스 시작/종료 (커서 도구일 때만)
+  // Shift+클릭: 수익률 측정 박스 시작(이미 떠 있으면 새로 다시 시작)
   if (e.shiftKey && activeTool.value === 'cursor') {
     e.preventDefault()
     e.stopPropagation()
-    if (measureBox.value) {
-      measureBox.value = null
-      return
-    }
     const price = candleSeries.coordinateToPrice(y)
     const time = resolveTimeAtX(null, x)
     if (price === null || time === null) return
@@ -1559,6 +1555,14 @@ function onChartMouseDown(e: MouseEvent) {
       endY: y,
       endPrice: Number(price)
     }
+    return
+  }
+
+  // 박스가 떠 있는 상태에서 (Shift 없이) 그냥 클릭하면 닫기
+  if (measureBox.value) {
+    e.preventDefault()
+    e.stopPropagation()
+    measureBox.value = null
     return
   }
 
