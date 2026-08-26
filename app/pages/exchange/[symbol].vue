@@ -1633,16 +1633,31 @@ function onDrawingKeydown(e: KeyboardEvent) {
   scheduleSaveChartPrefs()
 }
 
-function onMeasureBoxMouseMove(e: MouseEvent) {
-  if (!measureBox.value || !chartEl.value || !candleSeries) return
+// 수익률 측정 박스 + 그리기 미리보기(수평선/추세선)를 라이브 갱신.
+// subscribeCrosshairMove와 별도로 chartEl에 직접 붙여서, 어떤 상황에서도 확실히 따라다니게 한다.
+function onChartAreaMouseMove(e: MouseEvent) {
+  if (!chartEl.value || !chart || !candleSeries) return
   const rect = chartEl.value.getBoundingClientRect()
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
-  const price = candleSeries.coordinateToPrice(y)
-  if (price === null) return
-  measureBox.value.endX = x
-  measureBox.value.endY = y
-  measureBox.value.endPrice = Number(price)
+
+  if (measureBox.value) {
+    const price = candleSeries.coordinateToPrice(y)
+    if (price !== null) {
+      measureBox.value.endX = x
+      measureBox.value.endY = y
+      measureBox.value.endPrice = Number(price)
+    }
+  }
+
+  if (activeTool.value === 'hline' || (activeTool.value === 'trend' && pendingTrendStart.value)) {
+    const price = candleSeries.coordinateToPrice(y)
+    const time = resolveTimeAtX(null, x)
+    if (price !== null && time !== null) {
+      liveDrawingPoint.value = { time, price: Number(price) }
+      renderDrawingPreview()
+    }
+  }
 }
 
 const measureBoxView = computed(() => {
@@ -2541,7 +2556,7 @@ function initChart() {
   // 선 선택/끝점 드래그/삭제 + Shift+클릭 수익률 측정 박스
   // capture 단계에서 붙여서, 선/핸들을 잡았을 때 차트 자체의 팬(pan) 동작보다 먼저 가로챈다.
   chartEl.value.addEventListener('mousedown', onChartMouseDown, true)
-  chartEl.value.addEventListener('mousemove', onMeasureBoxMouseMove)
+  chartEl.value.addEventListener('mousemove', onChartAreaMouseMove)
   window.addEventListener('keydown', onDrawingKeydown)
 
   // ResizeObserver
@@ -3284,7 +3299,7 @@ onBeforeUnmount(() => {
   }
   if (chartEl.value) {
     chartEl.value.removeEventListener('mousedown', onChartMouseDown, true)
-    chartEl.value.removeEventListener('mousemove', onMeasureBoxMouseMove)
+    chartEl.value.removeEventListener('mousemove', onChartAreaMouseMove)
   }
   window.removeEventListener('keydown', onDrawingKeydown)
   drawingDragCleanup?.()
