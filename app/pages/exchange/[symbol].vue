@@ -26,7 +26,7 @@
                 </button>
               </div>
               <div class="hidden h-5 w-px bg-[#2a2e39] md:block" />
-              <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="toggleIndicator('sma7')">
+              <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="toggleIndicator('bol')">
                 지표
               </button>
               <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllDrawings">
@@ -123,20 +123,11 @@
             <button
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[10px] transition"
-              :class="chartPrefs.indicators.sma7 ? 'bg-[#089981] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="SMA7"
-              @click="toggleIndicator('sma7')"
+              :class="chartPrefs.indicators.bol ? 'bg-[#f59e0b] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              title="볼린저밴드(20, 2)"
+              @click="toggleIndicator('bol')"
             >
-              7
-            </button>
-            <button
-              type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[10px] transition"
-              :class="chartPrefs.indicators.sma25 ? 'bg-[#9c27b0] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="SMA25"
-              @click="toggleIndicator('sma25')"
-            >
-              25
+              BOL
             </button>
             <div class="mt-auto flex flex-col gap-1">
               <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" title="전체보기" @click="fitChartContent">
@@ -896,7 +887,7 @@ import {
   type ISeriesMarkersPluginApi
 } from 'lightweight-charts'
 import { TrendLinePrimitive } from '../../utils/chart/trendLinePrimitive'
-import { calculateMovingAverageLineData } from '../../utils/chart/movingAverage'
+import { calculateBollingerBands } from '../../utils/chart/movingAverage'
 
 definePageMeta({ middleware: ['auth'], layout: 'trading' })
 
@@ -1149,8 +1140,9 @@ const chartEl = ref<HTMLElement | null>(null)
 let chart: IChartApi | null = null
 let candleSeries: ISeriesApi<'Candlestick'> | null = null
 let volumeSeries: ISeriesApi<'Histogram'> | null = null
-let sma7Series: ISeriesApi<'Line'> | null = null
-let sma25Series: ISeriesApi<'Line'> | null = null
+let bolBasisSeries: ISeriesApi<'Line'> | null = null
+let bolUpperSeries: ISeriesApi<'Line'> | null = null
+let bolLowerSeries: ISeriesApi<'Line'> | null = null
 const priceLines: any[] = []
 const entryBadges = ref<Array<{ id: number; y: number; isLong: boolean; label: string; pctText: string; positive: boolean }>>([])
 const drawingPriceLines: any[] = []
@@ -1209,10 +1201,10 @@ let killPollTimer: any = null
 
 const displayLastPrice = computed(() => adminKillUiOverride.value ?? lastPrice.value ?? null)
 const chartPrefs = reactive<{
-  indicators: { sma7: boolean; sma25: boolean }
+  indicators: { bol: boolean }
   drawings: Array<{ id: string; type: 'trend' | 'hline'; color?: string; price?: number; points?: Array<{ time: any; price: number }> }>
 }>({
-  indicators: { sma7: false, sma25: false },
+  indicators: { bol: false },
   drawings: []
 })
 
@@ -2372,38 +2364,50 @@ function loadLocalChartDrawings(sym = symbol.value) {
 }
 
 function clearIndicatorSeries() {
-  if (chart && sma7Series) {
-    try { chart.removeSeries(sma7Series) } catch {}
-    sma7Series = null
+  if (chart && bolBasisSeries) {
+    try { chart.removeSeries(bolBasisSeries) } catch {}
+    bolBasisSeries = null
   }
-  if (chart && sma25Series) {
-    try { chart.removeSeries(sma25Series) } catch {}
-    sma25Series = null
+  if (chart && bolUpperSeries) {
+    try { chart.removeSeries(bolUpperSeries) } catch {}
+    bolUpperSeries = null
+  }
+  if (chart && bolLowerSeries) {
+    try { chart.removeSeries(bolLowerSeries) } catch {}
+    bolLowerSeries = null
   }
 }
 
 function renderIndicators() {
   if (!chart) return
   clearIndicatorSeries()
-  if (chartPrefs.indicators.sma7) {
-    sma7Series = chart.addSeries(LineSeries, {
-      color: '#60a5fa',
+  if (chartPrefs.indicators.bol) {
+    // 볼린저밴드: 이동평균선(기간) 20일, 표준편차(D1) 2, 적용 가격 종가(Close)
+    const { basis, upper, lower } = calculateBollingerBands(candleData.value || [], 20, 2)
+    bolBasisSeries = chart.addSeries(LineSeries, {
+      color: '#f59e0b',
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
     })
-    sma7Series.setData(calculateMovingAverageLineData(candleData.value || [], 7) as any)
-  }
-  if (chartPrefs.indicators.sma25) {
-    sma25Series = chart.addSeries(LineSeries, {
-      color: '#c084fc',
-      lineWidth: 2,
+    bolBasisSeries.setData(basis as any)
+    bolUpperSeries = chart.addSeries(LineSeries, {
+      color: 'rgba(245,158,11,0.6)',
+      lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
     })
-    sma25Series.setData(calculateMovingAverageLineData(candleData.value || [], 25) as any)
+    bolUpperSeries.setData(upper as any)
+    bolLowerSeries = chart.addSeries(LineSeries, {
+      color: 'rgba(245,158,11,0.6)',
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false
+    })
+    bolLowerSeries.setData(lower as any)
   }
 }
 
@@ -2501,7 +2505,7 @@ function renderSavedDrawings() {
   }
 }
 
-function toggleIndicator(key: 'sma7' | 'sma25') {
+function toggleIndicator(key: 'bol') {
   chartPrefs.indicators[key] = !chartPrefs.indicators[key]
   renderIndicators()
   scheduleSaveChartPrefs()
@@ -3109,8 +3113,7 @@ async function loadAccount() {
 
   if (!chartPrefsHydrated.value && data?.settings?.chartPrefs) {
     const cp = data.settings.chartPrefs || {}
-    chartPrefs.indicators.sma7 = !!cp?.indicators?.sma7
-    chartPrefs.indicators.sma25 = !!cp?.indicators?.sma25
+    chartPrefs.indicators.bol = !!cp?.indicators?.bol
     chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? (Array.isArray(cp?.drawings) ? cp.drawings : [])
     chartPrefsHydrated.value = true
   }
@@ -3500,7 +3503,7 @@ watch([percent, leverage], () => {
 watch(
   () => liveLastCandle.value?.close,
   () => {
-    if (chartPrefs.indicators.sma7 || chartPrefs.indicators.sma25) {
+    if (chartPrefs.indicators.bol) {
       renderIndicators()
     }
     updateEntryBadges()

@@ -11,8 +11,7 @@ const DrawingPointSchema = z.object({
 
 const ChartPrefsSchema = z.object({
   indicators: z.object({
-    sma7: z.boolean().optional().default(false),
-    sma25: z.boolean().optional().default(false)
+    bol: z.boolean().optional().default(false)
   }).default({}),
   drawings: z.array(
     z.object({
