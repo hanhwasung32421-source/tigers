@@ -274,13 +274,8 @@
                 <button type="button" class="font-mono text-sm text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
               </div>
               <div class="mt-3 flex items-center justify-between text-xs text-slate-300">
-                <span class="break-keep text-slate-400">레버리지 배율</span>
-                <div class="flex items-center gap-2">
-                  <div class="h-2 w-36 overflow-hidden rounded bg-black/30 ring-1 ring-white/10">
-                    <div class="h-full bg-cyan-400/60" :style="{ width: leveragePct + '%' }" />
-                  </div>
-                  <span class="font-mono text-slate-200">x{{ leverage }}</span>
-                </div>
+                <span class="whitespace-nowrap text-slate-400">레버리지 배율</span>
+                <span class="font-mono text-slate-200">x{{ leverage }}</span>
               </div>
               <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
                 <span>최대 레버리지</span>
@@ -1377,10 +1372,6 @@ const balanceDisplay = computed(() => {
 })
 
 const KRW_RATE = 1350
-const leveragePct = computed(() => {
-  const v = Math.max(0, Math.min(100, Number(leverage.value || 0)))
-  return v
-})
 
 function setLeverage(v: number) {
   leverage.value = Math.max(1, Math.min(100, Math.round(Number(v) || 1)))
