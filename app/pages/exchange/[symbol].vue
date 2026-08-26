@@ -441,7 +441,7 @@
               :class="bottomTab === 'fills'
                 ? 'bg-cyan-500/18 text-cyan-100 ring-cyan-300/40 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.16),0_6px_18px_rgba(8,145,178,0.18)]'
                 : 'bg-[#031019] text-slate-300 ring-white/10 hover:bg-white/5'"
-              @click="bottomTab = 'fills'"
+              @click="selectFillsTab"
             >
               거래내역
             </button>
@@ -582,7 +582,7 @@
               <td class="px-3 py-3 text-slate-100">{{ shortSymbol(t.symbol) }}</td>
               <td class="px-3 py-3">
                 <span
-                  class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
+                  class="rounded px-2 py-1 text-xs font-semibold ring-1"
                   :class="tradeResultBadgeClass(t)"
                 >
                   {{ tradeResultLabel(t) }}
@@ -859,6 +859,14 @@ const chartMode = ref<'built'>('built')
 const orderType = ref<'market'>('market')
 // 요구사항: 포지션테이블에서 지정가/예약 탭 삭제
 const bottomTab = ref<'positions' | 'fills'>('positions')
+
+function selectFillsTab() {
+  bottomTab.value = 'fills'
+  if (!process.client) return
+  nextTick(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'auto' })
+  })
+}
 
 // 주문 UI 상태(첨부 스타일)
 const percent = ref<number>(50)
