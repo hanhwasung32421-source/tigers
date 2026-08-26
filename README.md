@@ -106,7 +106,8 @@ bun run dev
 회원/잔고/포지션/거래 데이터를 Supabase에 항상 저장(미러/복원)하려면:
 
 1. Supabase SQL Editor에서 `SUPABASE_TRAE_DB.sql` 실행 (테이블명 `trae_` prefix)
-2. 배포 환경변수 추가:
+2. `SUPABASE_TRAE_DB_patch_system_settings.sql` 실행 (강제청산 기준(%) 저장용 `trae_system_settings` 테이블)
+3. 배포 환경변수 추가:
    - `SUPABASE_SERVICE_ROLE_KEY` (서버 전용)
    - `SUPABASE_APP_DB_ENABLED=1`
 
@@ -114,6 +115,13 @@ bun run dev
 
 - 서버 시작 시 Supabase → 앱 DB로 항상 덮어쓰기 동기화
 - 주요 변경(회원가입/입금/포지션/청산/설정 변경)은 Supabase에도 같이 기록
+
+## 강제청산 기준(%) 설정
+
+- 관리자 대시보드(`/admin`, 총관리자만 수정 가능)에서 강제청산 ROE 기준(%)을 조정할 수 있습니다.
+- 저장하면 Supabase(`trae_system_settings`, `SUPABASE_APP_DB_ENABLED=1`일 때) 또는 로컬 SQLite에 저장되고,
+  모든 유저의 거래 화면이 5초 주기로 이 값을 다시 불러와 실시간으로 반영합니다.
+- Supabase 저장을 쓰려면 `SUPABASE_TRAE_DB_patch_system_settings.sql`을 먼저 실행해야 합니다.
 
 ## GitHub 자동 푸시
 

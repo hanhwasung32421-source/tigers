@@ -144,6 +144,12 @@ export function getDb() {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS system_settings (
+      id INTEGER PRIMARY KEY,
+      liquidation_roe REAL NOT NULL DEFAULT -40,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS password_reset_requests (
       id INTEGER PRIMARY KEY,
       user_id INTEGER NOT NULL,
@@ -192,6 +198,12 @@ export function getDb() {
   const userSettingsCols = (db.prepare(`PRAGMA table_info(user_settings)`).all() as any[]).map((r) => String(r.name))
   if (!userSettingsCols.includes('chart_prefs')) {
     db.exec(`ALTER TABLE user_settings ADD COLUMN chart_prefs TEXT NOT NULL DEFAULT '{}'`)
+  }
+
+  // 강제청산 기준(%) 기본값 시드: 관리자 설정이 없으면 -40%
+  const sysRow = db.prepare('SELECT id FROM system_settings WHERE id = 1').get() as { id?: number } | undefined
+  if (!sysRow?.id) {
+    db.prepare('INSERT INTO system_settings (id, liquidation_roe, updated_at) VALUES (1, -40, ?)').run(nowIso())
   }
 
   // 총관리자 기본 계정 생성: admin / 1121

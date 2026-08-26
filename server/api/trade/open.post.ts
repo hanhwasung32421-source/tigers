@@ -5,9 +5,9 @@ import { getOkxLastPrice } from '../../utils/okx'
 import { logBuy } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
+import { getLiquidationRoe } from '../../utils/system-settings'
 
 const FEE_RATE = 0.04
-const LIQUIDATION_TRIGGER_ROE = -40
 
 const BodySchema = z.object({
   symbol: z.string().min(1),
@@ -30,10 +30,10 @@ function netMarginFromGross(gross: number) {
   return g * (1 - FEE_RATE)
 }
 
-function clampPnlToLiquidation(pnl: number, netMargin: number) {
+function clampPnlToLiquidation(pnl: number, netMargin: number, liquidationTriggerRoe: number) {
   if (!Number.isFinite(pnl) || !Number.isFinite(netMargin) || netMargin <= 0) return 0
   const roeRaw = (pnl / netMargin) * 100
-  if (roeRaw <= LIQUIDATION_TRIGGER_ROE) return -netMargin
+  if (roeRaw <= liquidationTriggerRoe) return -netMargin
   return pnl
 }
 
@@ -80,6 +80,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const body = BodySchema.parse(await readBody(event))
   const useSupa = supabaseAppDbEnabled()
+  const liquidationTriggerRoe = await getLiquidationRoe()
 
   const symbol = body.symbol.toUpperCase()
   const entry = body.price ?? (await getOkxLastPrice(symbol)).last
@@ -100,7 +101,7 @@ export default defineEventHandler(async (event) => {
       const pnlUnclamped = String(existing.side) === 'long' ? pnlRaw : -pnlRaw
       const gross0 = Number(existing.margin)
       const net0 = netMarginFromGross(gross0)
-      const pnl = clampPnlToLiquidation(pnlUnclamped, net0)
+      const pnl = clampPnlToLiquidation(pnlUnclamped, net0, liquidationTriggerRoe)
       const { settlementAfterFee } = calcSettlementAfterSellFee(gross0, pnl)
 
       // 포지션 제거
@@ -224,7 +225,7 @@ export default defineEventHandler(async (event) => {
     const pnlUnclamped = String(existing.side) === 'long' ? pnlRaw : -pnlRaw
     const gross0 = Number(existing.margin)
     const net0 = netMarginFromGross(gross0)
-    const pnl = clampPnlToLiquidation(pnlUnclamped, net0)
+    const pnl = clampPnlToLiquidation(pnlUnclamped, net0, liquidationTriggerRoe)
     const { settlementAfterFee } = calcSettlementAfterSellFee(gross0, pnl)
 
     db.prepare('UPDATE balances SET usdt = usdt + ? WHERE user_id = ?').run(settlementAfterFee, user.id)

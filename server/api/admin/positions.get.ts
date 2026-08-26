@@ -3,21 +3,23 @@ import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { getOkxLastPrice } from '../../utils/okx'
+import { getLiquidationRoe } from '../../utils/system-settings'
 
-function calcLiqPrice(side: string, entry: number, lev: number) {
+function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
-  return side === 'short' ? entry * (1 + 0.4 / lev) : entry * (1 - 0.4 / lev)
+  const fraction = Math.abs(liquidationRoe) / 100
+  return side === 'short' ? entry * (1 + fraction / lev) : entry * (1 - fraction / lev)
 }
 
-function calcPnlRoe(side: string, entry: number, mark: number, qty: number, margin: number) {
+function calcPnlRoe(side: string, entry: number, mark: number, qty: number, margin: number, liquidationRoe: number) {
   if (![entry, mark, qty, margin].every(Number.isFinite)) return { pnl: 0, roe: 0 }
   if (entry <= 0 || mark <= 0 || qty <= 0 || margin <= 0) return { pnl: 0, roe: 0 }
   const raw = (mark - entry) * qty
   const pnl = side === 'short' ? -raw : raw
   const roeRaw = (pnl / margin) * 100
-  const hitLiquidation = roeRaw <= -40
+  const hitLiquidation = roeRaw <= liquidationRoe
   const pnlClamped = hitLiquidation ? -margin : pnl
-  const roe = hitLiquidation ? -40 : roeRaw
+  const roe = hitLiquidation ? liquidationRoe : roeRaw
   return { pnl: pnlClamped, roe }
 }
 
@@ -29,6 +31,7 @@ function roleToAffiliate(role: string) {
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
+  const liquidationRoe = await getLiquidationRoe()
 
   let positions: any[] = []
   let users: any[] = []
@@ -90,7 +93,7 @@ export default defineEventHandler(async (event) => {
     const lev = Number(p.leverage || 1)
     const margin = Number(p.margin || 0)
     const mark = Number(priceMap.get(symbol) || 0)
-    const { pnl, roe } = calcPnlRoe(String(p.side || 'long'), entry, mark, qty, margin)
+    const { pnl, roe } = calcPnlRoe(String(p.side || 'long'), entry, mark, qty, margin, liquidationRoe)
     const fee = Number.isFinite(margin) && margin > 0 ? margin * 0.04 : 0
     return {
       id: Number(p.id),
@@ -104,7 +107,7 @@ export default defineEventHandler(async (event) => {
       leverage: lev,
       entryPrice: entry,
       qty,
-      liqPrice: calcLiqPrice(String(p.side || 'long'), entry, lev),
+      liqPrice: calcLiqPrice(String(p.side || 'long'), entry, lev, liquidationRoe),
       pnl,
       roe,
       // 현재는 매수 수수료(4%)만 표시. (정산 수수료는 청산 시에만 발생)

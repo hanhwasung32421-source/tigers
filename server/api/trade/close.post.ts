@@ -4,9 +4,9 @@ import { getDb } from '../../utils/db'
 import { getOkxLastPrice } from '../../utils/okx'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, isMissingColumnError, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
+import { getLiquidationRoe } from '../../utils/system-settings'
 
 const FEE_RATE = 0.04
-const LIQUIDATION_TRIGGER_ROE = -40
 
 const BodySchema = z.object({
   positionId: z.number().int().positive(),
@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const body = BodySchema.parse(await readBody(event))
   const useSupa = supabaseAppDbEnabled()
+  const liquidationTriggerRoe = await getLiquidationRoe()
 
   const netMarginFromGross = (gross: number) => {
     const g = Number(gross)
@@ -29,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const clampPnlToLiquidation = (pnl: number, netMargin: number) => {
     if (!Number.isFinite(pnl) || !Number.isFinite(netMargin) || netMargin <= 0) return 0
     const roeRaw = (pnl / netMargin) * 100
-    if (roeRaw <= LIQUIDATION_TRIGGER_ROE) return -netMargin
+    if (roeRaw <= liquidationTriggerRoe) return -netMargin
     return pnl
   }
   // 수수료 정책:
@@ -65,7 +66,7 @@ export default defineEventHandler(async (event) => {
     const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
     const gross = Number(pos.margin)
     const net = netMarginFromGross(gross)
-    // -40% 도달 시 전액 강제청산(증거금 전액 손실)
+    // 관리자 설정 ROE 도달 시 전액 강제청산(증거금 전액 손실)
     const pnl = clampPnlToLiquidation(pnlUnclamped, net)
 
     const balRow = await supaSelectOne<{ usdt: number }>('trae_balances', { user_id: user.id })

@@ -21,6 +21,38 @@
       <div class="mt-1 font-medium">{{ me?.username }} ({{ me?.role }})</div>
     </div>
 
+    <!-- 강제청산 기준(%) 설정 -->
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <h2 class="text-lg font-semibold">강제청산 기준 설정</h2>
+      <p class="mt-1 text-sm text-slate-400">
+        손실률(ROE)이 이 값 이하로 떨어지면 모든 유저의 포지션이 실시간으로 자동 강제청산됩니다.
+      </p>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <input
+            v-model.number="liquidationPercentDraft"
+            type="number"
+            min="1"
+            max="99"
+            step="1"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            :disabled="me?.role !== 'super_admin'"
+          />
+          <span class="text-sm text-slate-400">% 손실 시 강제청산</span>
+        </div>
+        <button
+          class="rounded-md bg-indigo-500 px-4 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="me?.role !== 'super_admin' || liquidationSettingSaving"
+          @click="saveLiquidationSetting"
+        >
+          저장
+        </button>
+        <span class="text-sm text-slate-400">현재 적용값: -{{ liquidationPercent }}%</span>
+      </div>
+      <p v-if="liquidationSettingError" class="mt-3 text-sm text-red-300">{{ liquidationSettingError }}</p>
+      <p v-if="liquidationSettingMsg" class="mt-3 text-sm text-emerald-300">{{ liquidationSettingMsg }}</p>
+    </div>
+
     <!-- 유저/권한 관리 + 잔고 수정: 대시보드에 바로 표시 -->
     <div class="space-y-3">
       <div class="flex items-end justify-between gap-3">
@@ -111,6 +143,47 @@ const roleDraft = reactive<Record<number, string>>({})
 const canEditRole = computed(() => me.value?.role === 'super_admin')
 const canEditBalance = computed(() => me.value?.role === 'super_admin' || me.value?.permissions?.canCredit)
 
+const liquidationPercent = ref(40)
+const liquidationPercentDraft = ref(40)
+const liquidationSettingSaving = ref(false)
+const liquidationSettingError = ref<string | null>(null)
+const liquidationSettingMsg = ref<string | null>(null)
+
+async function loadLiquidationSetting() {
+  try {
+    const data = await $fetch<{ liquidationRoe: number }>('/api/settings/system')
+    const percent = Math.abs(Number(data.liquidationRoe) || 40)
+    liquidationPercent.value = percent
+    liquidationPercentDraft.value = percent
+  } catch {
+    // 기본값 유지
+  }
+}
+
+async function saveLiquidationSetting() {
+  const percent = Math.round(Number(liquidationPercentDraft.value))
+  if (!Number.isFinite(percent) || percent < 1 || percent > 99) {
+    liquidationSettingError.value = '1~99 사이의 숫자를 입력해주세요.'
+    return
+  }
+  liquidationSettingSaving.value = true
+  liquidationSettingError.value = null
+  liquidationSettingMsg.value = null
+  try {
+    const res = await $fetch<{ liquidationRoe: number }>('/api/admin/settings/system', {
+      method: 'POST',
+      body: { liquidationRoe: -percent }
+    })
+    liquidationPercent.value = Math.abs(res.liquidationRoe)
+    liquidationPercentDraft.value = liquidationPercent.value
+    liquidationSettingMsg.value = '저장되었습니다. 모든 유저에게 실시간으로 반영됩니다.'
+  } catch (e: any) {
+    liquidationSettingError.value = e?.data?.statusMessage || '저장 실패'
+  } finally {
+    liquidationSettingSaving.value = false
+  }
+}
+
 async function load() {
   loading.value = true
   error.value = null
@@ -153,4 +226,5 @@ async function updateRole(userId: number) {
 }
 
 await load()
+await loadLiquidationSetting()
 </script>

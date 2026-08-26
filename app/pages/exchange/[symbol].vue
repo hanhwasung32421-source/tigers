@@ -921,8 +921,31 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const tradeMsg = ref<string | null>(null)
 const TRADE_FEE_RATE = 0.04
-const LIQUIDATION_TRIGGER_ROE = -40
-const LIQUIDATION_TRIGGER_FRACTION = 0.4
+// 관리자 대시보드에서 설정한 값으로 실시간 갱신됨(refreshLiquidationSettings 참고)
+let LIQUIDATION_TRIGGER_ROE = -40
+let LIQUIDATION_TRIGGER_FRACTION = 0.4
+let liquidationSettingsPollTimer: any = null
+
+async function refreshLiquidationSettings() {
+  try {
+    const res = await $fetch<{ liquidationRoe: number }>('/api/settings/system')
+    const roe = Number(res?.liquidationRoe)
+    if (Number.isFinite(roe) && roe < 0) {
+      LIQUIDATION_TRIGGER_ROE = roe
+      LIQUIDATION_TRIGGER_FRACTION = Math.abs(roe) / 100
+    }
+  } catch {
+    // 네트워크 실패 시 이전 값 유지
+  }
+}
+
+function startLiquidationSettingsPolling() {
+  if (!process.client) return
+  if (liquidationSettingsPollTimer) clearInterval(liquidationSettingsPollTimer)
+  liquidationSettingsPollTimer = setInterval(() => {
+    refreshLiquidationSettings()
+  }, 5000)
+}
 const isAdminUser = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
 const positionEditModal = reactive<{
   open: boolean
@@ -1693,7 +1716,7 @@ function calcLiqPrice(p: any) {
   const entry = Number(p.entry_price)
   const lev = Number(p.leverage || 1)
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
-  // -40% ROE에서 전액 강제청산 기준
+  // 관리자 설정 ROE(기본 -40%)에서 전액 강제청산 기준
   if (p.side === 'short') return entry * (1 + LIQUIDATION_TRIGGER_FRACTION / lev)
   return entry * (1 - LIQUIDATION_TRIGGER_FRACTION / lev)
 }
@@ -1706,7 +1729,7 @@ function unrealized(p: any) {
   const margin = netMarginFromGross(grossMargin)
   // 방어 로직:
   // - lastPrice가 0/비정상일 때 ROE 폭주 방지
-  // - 강제청산 트리거는 -40%지만, 실제 손실은 증거금 전액 손실로 처리
+  // - 강제청산 트리거는 관리자 설정 ROE(기본 -40%)지만, 실제 손실은 증거금 전액 손실로 처리
   if (![mark, entry, qty, margin].every(Number.isFinite)) return { pnl: 0, roe: 0 }
   if (mark <= 0 || entry <= 0 || qty <= 0 || margin <= 0) return { pnl: 0, roe: 0 }
   const raw = (mark - entry) * qty
@@ -2938,6 +2961,8 @@ onMounted(async () => {
   chartClockTimer = setInterval(() => {
     chartNow.value = Date.now()
   }, 1000)
+  await refreshLiquidationSettings()
+  startLiquidationSettingsPolling()
   loadPendingCloseJobs()
   startPendingCloseRecovery()
   startAccountAutoRefresh()
@@ -2985,6 +3010,8 @@ onBeforeUnmount(() => {
   closeSummaryTimer = null
   if (markPollTimer) clearInterval(markPollTimer)
   markPollTimer = null
+  if (liquidationSettingsPollTimer) clearInterval(liquidationSettingsPollTimer)
+  liquidationSettingsPollTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
   if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)
