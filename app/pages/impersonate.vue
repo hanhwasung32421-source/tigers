@@ -20,6 +20,6 @@ if (process.client) {
     }
     await refresh()
   }
-  await navigateTo('/', { replace: true })
+  await navigateTo('/exchange/SAMSUNGUSDT', { replace: true })
 }
 </script>
