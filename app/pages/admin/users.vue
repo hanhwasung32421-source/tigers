@@ -37,7 +37,7 @@
                   :disabled="!canEditRole"
                   @change="updateRole(u.id)"
                 >
-                  <option value="user">일반 유저 (user)</option>
+                  <option value="user">회원 (user)</option>
                   <option v-for="r in roleOptions" :key="r.id" :value="r.id">{{ r.label }} ({{ r.id }})</option>
                   <option value="super_admin">최고관리자 (super_admin)</option>
                 </select>

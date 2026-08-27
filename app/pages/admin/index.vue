@@ -128,7 +128,7 @@
                       class="w-40 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                       @change="saveUserRow(u.id)"
                     >
-                      <option value="user">일반 유저 (user)</option>
+                      <option value="user">회원 (user)</option>
                       <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.label }} ({{ r.id }})</option>
                       <option value="super_admin">최고관리자 (super_admin)</option>
                     </select>

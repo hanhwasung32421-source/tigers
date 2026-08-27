@@ -497,7 +497,7 @@ function canEditRate(u: MemberRow) {
 const rateDraft = reactive<Record<number, string>>({})
 const grantingId = ref<number | null>(null)
 
-// 코드부여: "일반유저" 상태일 때 클릭하면 드롭다운이 뜨고, 고르면 바로 저장된다(별도 버튼 없음).
+// 코드부여: "회원" 상태일 때 클릭하면 드롭다운이 뜨고, 고르면 바로 저장된다(별도 버튼 없음).
 // 드롭다운에는 내가 실제로 부여할 수 있는(나보다 서열이 낮은) 역할만 나온다.
 type RoleOption = { id: string; label: string }
 const grantableRoles = ref<RoleOption[]>([])
