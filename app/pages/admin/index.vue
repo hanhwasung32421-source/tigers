@@ -70,7 +70,7 @@
 
       <div>
         <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
-        <div v-else class="overflow-auto">
+        <div v-else>
           <table class="w-full text-sm">
             <thead class="border-b border-[#12314a] text-[11px] text-slate-500">
               <tr>
