@@ -10,18 +10,23 @@ const BodySchema = z.object({
   usdt: z.number().nonnegative().optional(),
   role: z.enum(['user', 'super_admin', 'branch_admin']).optional(),
   username: z.string().trim().min(3).max(20).optional(),
-  name: z.string().trim().min(1).max(40).optional(),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  bankName: z.string().trim().min(1).max(40).optional(),
-  bankAccount: z.string().trim().min(1).max(80).optional(),
-  accountHolder: z.string().trim().min(1).max(40).optional(),
+  // 이름/계좌정보는 아직 등록되지 않았을 수 있는 선택 항목이라 빈 값 저장을 허용한다.
+  name: z.string().trim().max(40).optional(),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')).optional(),
+  bankName: z.string().trim().max(40).optional(),
+  bankAccount: z.string().trim().max(80).optional(),
+  accountHolder: z.string().trim().max(40).optional(),
   referralCode: z.string().trim().max(32).optional(),
   settlementType: z.enum(['loss', 'referral']).optional()
 })
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
-  const body = BodySchema.parse(await readBody(event))
+  const parsed = BodySchema.safeParse(await readBody(event))
+  if (!parsed.success) {
+    throw createError({ statusCode: 400, statusMessage: parsed.error.issues[0]?.message || '입력값이 올바르지 않습니다.' })
+  }
+  const body = parsed.data
   const useSupa = supabaseAppDbEnabled()
 
   if (useSupa) {
