@@ -49,6 +49,15 @@
         </div>
       </div>
 
+      <div v-if="referralFilter" class="flex items-center gap-2 text-sm text-slate-300">
+        <span class="rounded-md bg-indigo-500/15 px-3 py-1.5 text-indigo-200 ring-1 ring-indigo-400/30">
+          하부보기: 추천코드 "{{ referralFilter }}"
+        </span>
+        <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="referralFilter = null">
+          필터 해제
+        </button>
+      </div>
+
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
         <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
         <div v-else class="overflow-auto">
@@ -57,11 +66,14 @@
               <tr>
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('username')">아이디{{ sortArrow('username') }}</th>
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('name')">이름{{ sortArrow('name') }}</th>
+                <th class="py-2">계좌정보</th>
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('usdt')">USDT잔액{{ sortArrow('usdt') }}</th>
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('referralCode')">추천코드{{ sortArrow('referralCode') }}</th>
-                <th class="py-2">저장</th>
-                <th class="py-2">초기화</th>
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('role')">역할{{ sortArrow('role') }}</th>
+                <th class="py-2">하부보기</th>
+                <th class="py-2">저장</th>
+                <th class="py-2">비밀번호 초기화</th>
+                <th class="py-2">로그인</th>
               </tr>
             </thead>
             <tbody>
@@ -80,6 +92,11 @@
                     />
                   </td>
                   <td class="py-2">
+                    <button class="rounded-md bg-white/10 px-3 py-1 text-sm hover:bg-white/15" @click="openAccountModal(u)">
+                      계좌정보
+                    </button>
+                  </td>
+                  <td class="py-2">
                     <input
                       v-model.number="userDraft[u.id].usdt"
                       type="number"
@@ -93,6 +110,21 @@
                       v-model.trim="userDraft[u.id].referralCode"
                       class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
                     />
+                  </td>
+                  <td class="py-2">
+                    <select
+                      v-model="userDraft[u.id].role"
+                      class="w-40 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                    >
+                      <option value="user">일반 유저 (user)</option>
+                      <option value="branch_admin">부어드민 (branch_admin)</option>
+                      <option value="super_admin">최고관리자 (super_admin)</option>
+                    </select>
+                  </td>
+                  <td class="py-2">
+                    <button class="rounded-md bg-white/10 px-3 py-1 text-sm hover:bg-white/15" @click="referralFilter = u.username">
+                      하부보기
+                    </button>
                   </td>
                   <td class="py-2">
                     <button
@@ -113,14 +145,13 @@
                     </button>
                   </td>
                   <td class="py-2">
-                    <select
-                      v-model="userDraft[u.id].role"
-                      class="w-40 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                    <button
+                      class="rounded-md bg-emerald-500/15 px-3 py-1 text-sm text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      :disabled="loggingInAs === u.id"
+                      @click="loginAsUser(u.id)"
                     >
-                      <option value="user">일반 유저 (user)</option>
-                      <option value="branch_admin">부어드민 (branch_admin)</option>
-                      <option value="super_admin">최고관리자 (super_admin)</option>
-                    </select>
+                      로그인
+                    </button>
                   </td>
                 </template>
               </tr>
@@ -129,6 +160,49 @@
         </div>
         <p v-if="error" class="mt-3 text-sm text-red-300">{{ error }}</p>
         <p v-if="msg" class="mt-3 text-sm text-emerald-300">{{ msg }}</p>
+      </div>
+    </div>
+
+    <!-- 계좌정보 팝업 -->
+    <div
+      v-if="accountModalOpen"
+      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+      @click.self="closeAccountModal"
+    >
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#10171d] p-6 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-slate-100">{{ accountModalTarget?.username }} 계좌정보</h3>
+          <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeAccountModal">✕</button>
+        </div>
+        <div class="mt-4 space-y-3">
+          <div>
+            <label class="text-sm text-slate-300">은행명</label>
+            <select v-model="accountDraft.bankName" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-indigo-500">
+              <option v-for="bank in banks" :key="bank" :value="bank">{{ bank }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm text-slate-300">계좌번호</label>
+            <input v-model.trim="accountDraft.bankAccount" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-300">예금주</label>
+            <input v-model.trim="accountDraft.accountHolder" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+          </div>
+        </div>
+        <p v-if="accountModalError" class="mt-3 text-sm text-red-300">{{ accountModalError }}</p>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button class="rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10" @click="closeAccountModal">
+            취소
+          </button>
+          <button
+            class="rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+            :disabled="accountModalSaving"
+            @click="saveAccountModal"
+          >
+            저장
+          </button>
+        </div>
       </div>
     </div>
 
@@ -305,7 +379,18 @@ const tabs: Array<{ key: TabKey; label: string }> = [
 ]
 const activeTab = ref<TabKey>('users')
 
-type AdminUserRow = { id: number; username: string; name: string; referralCode: string; role: string; usdt: number; created_at: string }
+type AdminUserRow = {
+  id: number
+  username: string
+  name: string
+  referralCode: string
+  bankName: string
+  bankAccount: string
+  accountHolder: string
+  role: string
+  usdt: number
+  created_at: string
+}
 type UserDraft = { username: string; name: string; usdt: number; referralCode: string; role: string }
 
 const users = ref<AdminUserRow[]>([])
@@ -315,9 +400,16 @@ const msg = ref<string | null>(null)
 const userDraft = reactive<Record<number, UserDraft>>({})
 const userSaving = ref<number | null>(null)
 const userResetting = ref<number | null>(null)
+const loggingInAs = ref<number | null>(null)
 const userSearch = ref('')
+const referralFilter = ref<string | null>(null)
 const sortKey = ref<'username' | 'name' | 'usdt' | 'referralCode' | 'role'>('username')
 const sortDir = ref<'asc' | 'desc'>('asc')
+
+const banks = [
+  '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
+  '수협은행', 'SC제일은행', '씨티은행', '부산은행', '대구은행', '경남은행', '광주은행', '전북은행', '제주은행', '우체국'
+]
 
 function toggleSort(key: typeof sortKey.value) {
   if (sortKey.value === key) {
@@ -334,9 +426,12 @@ function sortArrow(key: typeof sortKey.value) {
 
 const sortedUsers = computed(() => {
   const q = userSearch.value.trim().toLowerCase()
-  const filtered = q
+  let filtered = q
     ? users.value.filter((u) => [u.username, u.name, String(u.id)].some((v) => String(v || '').toLowerCase().includes(q)))
     : users.value.slice()
+  if (referralFilter.value) {
+    filtered = filtered.filter((u) => u.referralCode === referralFilter.value)
+  }
   const dir = sortDir.value === 'asc' ? 1 : -1
   return filtered.sort((a, b) => {
     const key = sortKey.value
@@ -386,6 +481,64 @@ async function resetUserPassword(userId: number) {
     error.value = e?.data?.statusMessage || '초기화 실패'
   } finally {
     userResetting.value = null
+  }
+}
+
+async function loginAsUser(userId: number) {
+  if (process.client && !window.confirm('이 유저 계정으로 바로 로그인할까요? (현재 관리자 세션은 이 브라우저에서 그 유저 세션으로 전환됩니다)')) return
+  loggingInAs.value = userId
+  error.value = null
+  try {
+    await $fetch('/api/admin/users/login-as', { method: 'POST', body: { userId } })
+    if (process.client) window.location.href = '/'
+  } catch (e: any) {
+    error.value = e?.data?.statusMessage || '로그인 실패'
+  } finally {
+    loggingInAs.value = null
+  }
+}
+
+// 계좌정보 팝업
+const accountModalOpen = ref(false)
+const accountModalTarget = ref<AdminUserRow | null>(null)
+const accountDraft = reactive({ bankName: banks[0], bankAccount: '', accountHolder: '' })
+const accountModalSaving = ref(false)
+const accountModalError = ref<string | null>(null)
+
+function openAccountModal(u: AdminUserRow) {
+  accountModalTarget.value = u
+  accountDraft.bankName = u.bankName || banks[0]
+  accountDraft.bankAccount = u.bankAccount || ''
+  accountDraft.accountHolder = u.accountHolder || ''
+  accountModalError.value = null
+  accountModalOpen.value = true
+}
+
+function closeAccountModal() {
+  accountModalOpen.value = false
+  accountModalTarget.value = null
+}
+
+async function saveAccountModal() {
+  if (!accountModalTarget.value) return
+  accountModalSaving.value = true
+  accountModalError.value = null
+  try {
+    await $fetch('/api/admin/users/update', {
+      method: 'POST',
+      body: {
+        userId: accountModalTarget.value.id,
+        bankName: accountDraft.bankName,
+        bankAccount: accountDraft.bankAccount,
+        accountHolder: accountDraft.accountHolder
+      }
+    })
+    await load()
+    closeAccountModal()
+  } catch (e: any) {
+    accountModalError.value = e?.data?.statusMessage || '저장 실패'
+  } finally {
+    accountModalSaving.value = false
   }
 }
 

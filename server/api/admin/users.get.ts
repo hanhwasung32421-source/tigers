@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
     const { data: users, error: e1 } = await supa
       .from('trae_users')
-      .select('id, username, name, referral_code, role, created_at')
+      .select('id, username, name, referral_code, bank_name, bank_account, account_holder, role, created_at')
       .order('id', { ascending: false })
     if (e1) throw e1
 
@@ -54,6 +54,9 @@ export default defineEventHandler(async (event) => {
         username: String(u.username || ''),
         name: String(u.name || ''),
         referralCode: String(u.referral_code || ''),
+        bankName: String(u.bank_name || ''),
+        bankAccount: String(u.bank_account || ''),
+        accountHolder: String(u.account_holder || ''),
         role: String(u.role || 'user'),
         created_at: String(u.created_at || ''),
         usdt: balMap.get(id) ?? 0,
@@ -70,13 +73,24 @@ export default defineEventHandler(async (event) => {
   const rows = db
     .prepare(
       `
-      SELECT u.id, u.username, u.name, u.referral_code, u.role, u.created_at, b.usdt
+      SELECT u.id, u.username, u.name, u.referral_code, u.bank_name, u.bank_account, u.account_holder, u.role, u.created_at, b.usdt
       FROM users u
       LEFT JOIN balances b ON b.user_id = u.id
       ORDER BY u.id DESC
       `
     )
-    .all() as Array<{ id: number; username: string; name: string; referral_code: string; role: string; created_at: string; usdt: number }>
+    .all() as Array<{
+    id: number
+    username: string
+    name: string
+    referral_code: string
+    bank_name: string
+    bank_account: string
+    account_holder: string
+    role: string
+    created_at: string
+    usdt: number
+  }>
 
   return {
     users: rows.map((u) => ({
@@ -84,6 +98,9 @@ export default defineEventHandler(async (event) => {
       username: u.username,
       name: u.name || '',
       referralCode: u.referral_code || '',
+      bankName: u.bank_name || '',
+      bankAccount: u.bank_account || '',
+      accountHolder: u.account_holder || '',
       role: u.role,
       created_at: u.created_at,
       usdt: u.usdt
