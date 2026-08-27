@@ -131,28 +131,15 @@
                     </select>
                   </td>
                   <td class="py-2">
-                    <div v-if="u.role === 'branch_admin'" class="flex flex-col gap-1 text-xs text-slate-300">
-                      <label class="flex items-center gap-1.5">
-                        <input
-                          v-model="userDraft[u.id].settlementTypes"
-                          type="checkbox"
-                          value="loss"
-                          class="h-3.5 w-3.5 accent-indigo-500"
-                          @change="saveUserRow(u.id)"
-                        />
-                        손실정산
-                      </label>
-                      <label class="flex items-center gap-1.5">
-                        <input
-                          v-model="userDraft[u.id].settlementTypes"
-                          type="checkbox"
-                          value="referral"
-                          class="h-3.5 w-3.5 accent-indigo-500"
-                          @change="saveUserRow(u.id)"
-                        />
-                        레퍼럴정산
-                      </label>
-                    </div>
+                    <select
+                      v-if="u.role === 'branch_admin'"
+                      v-model="userDraft[u.id].settlementType"
+                      class="w-32 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      @change="saveUserRow(u.id)"
+                    >
+                      <option value="loss">손실정산</option>
+                      <option value="referral">레퍼럴정산</option>
+                    </select>
                     <span v-else class="text-xs text-slate-500">-</span>
                   </td>
                   <td class="py-2">
@@ -475,9 +462,16 @@ type AdminUserRow = {
   role: string
   usdt: number
   created_at: string
-  settlementTypes: string[]
+  settlementType: 'loss' | 'referral'
 }
-type UserDraft = { username: string; name: string; usdt: number; referralCode: string; role: string; settlementTypes: string[] }
+type UserDraft = {
+  username: string
+  name: string
+  usdt: number
+  referralCode: string
+  role: string
+  settlementType: 'loss' | 'referral'
+}
 
 const users = ref<AdminUserRow[]>([])
 const loading = ref(false)
@@ -544,7 +538,7 @@ async function saveUserRow(userId: number) {
         usdt: Number(draft.usdt) || 0,
         referralCode: draft.referralCode,
         role: draft.role,
-        ...(draft.role === 'branch_admin' ? { settlementTypes: draft.settlementTypes } : {})
+        ...(draft.role === 'branch_admin' ? { settlementType: draft.settlementType } : {})
       }
     })
     await load()
@@ -808,7 +802,7 @@ async function load() {
         usdt: Number(u.usdt ?? 0),
         referralCode: u.referralCode || '',
         role: u.role || 'user',
-        settlementTypes: Array.isArray(u.settlementTypes) ? [...u.settlementTypes] : []
+        settlementType: u.settlementType === 'referral' ? 'referral' : 'loss'
       }
     }
   } catch (e: any) {

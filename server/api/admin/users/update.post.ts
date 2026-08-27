@@ -16,7 +16,7 @@ const BodySchema = z.object({
   bankAccount: z.string().trim().min(1).max(80).optional(),
   accountHolder: z.string().trim().min(1).max(40).optional(),
   referralCode: z.string().trim().max(32).optional(),
-  settlementTypes: z.array(z.enum(['loss', 'referral'])).optional()
+  settlementType: z.enum(['loss', 'referral']).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -103,11 +103,12 @@ export default defineEventHandler(async (event) => {
       if (error) throw error
     }
 
-    if (Array.isArray(body.settlementTypes)) {
-      // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만
+    if (typeof body.settlementType === 'string') {
+      // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만. 부관리자 1명당 하나만 배정된다.
       await requireSuperAdmin(event)
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
-      const permissions = { ...(current?.permissions || {}), settlementTypes: body.settlementTypes }
+      const { settlementTypes: _drop, ...prevRest } = current?.permissions || {}
+      const permissions = { ...prevRest, settlementType: body.settlementType }
       const { error } = await supa
         .from('trae_users')
         .update({ permissions, updated_at: new Date().toISOString() })
@@ -204,8 +205,8 @@ export default defineEventHandler(async (event) => {
     await syncUserToSupabase(userRow)
   }
 
-  if (Array.isArray(body.settlementTypes)) {
-    // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만
+  if (typeof body.settlementType === 'string') {
+    // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만. 부관리자 1명당 하나만 배정된다.
     await requireSuperAdmin(event)
     const row = db.prepare('SELECT permissions FROM users WHERE id = ?').get(body.userId) as { permissions?: string } | undefined
     let prevPermissions: any = {}
@@ -214,7 +215,8 @@ export default defineEventHandler(async (event) => {
     } catch {
       prevPermissions = {}
     }
-    const permissions = { ...prevPermissions, settlementTypes: body.settlementTypes }
+    delete prevPermissions.settlementTypes
+    const permissions = { ...prevPermissions, settlementType: body.settlementType }
     db.prepare('UPDATE users SET permissions = ?, updated_at = ? WHERE id = ?').run(JSON.stringify(permissions), new Date().toISOString(), body.userId)
     const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
     await syncUserToSupabase(userRow)

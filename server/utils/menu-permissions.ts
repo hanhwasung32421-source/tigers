@@ -18,13 +18,17 @@ export const MENU_META: Record<AdminMenuKey, { label: string; editable: boolean;
 export type SettlementType = 'loss' | 'referral'
 export const SETTLEMENT_TYPES: SettlementType[] = ['loss', 'referral']
 
-// 부관리자가 정산내역에서 볼 수 있는 정산 유형(손실정산/레퍼럴정산). 총관리자는 항상 둘 다.
+// 부관리자 1명당 정산유형은 손실정산/레퍼럴정산 중 하나만 배정된다(양립 불가). 미설정 시 기본값은 손실정산.
+export function settlementTypeOf(user: { role?: string; permissions?: any } | null | undefined): SettlementType {
+  const raw = user?.permissions?.settlementType
+  return raw === 'referral' ? 'referral' : 'loss'
+}
+
+// 정산내역 조회 시 허용되는 정산유형 목록. 총관리자는 둘 다, 부관리자는 배정된 유형 1개만.
 export function settlementTypesOf(user: { role?: string; permissions?: any } | null | undefined): SettlementType[] {
   if (!user) return []
   if (user.role === 'super_admin') return [...SETTLEMENT_TYPES]
-  const raw = user.permissions?.settlementTypes
-  if (!Array.isArray(raw)) return [...SETTLEMENT_TYPES] // 미설정 시 기본값: 둘 다 허용
-  return raw.filter((v): v is SettlementType => SETTLEMENT_TYPES.includes(v))
+  return [settlementTypeOf(user)]
 }
 
 export type MenuPermission = { view: boolean; edit: boolean }

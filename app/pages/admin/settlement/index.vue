@@ -129,9 +129,8 @@ await refresh()
 
 function settlementTypesOf() {
   if (me.value?.role === 'super_admin') return ['loss', 'referral'] as const
-  const raw = (me.value as any)?.permissions?.settlementTypes
-  if (!Array.isArray(raw) || raw.length === 0) return ['loss', 'referral'] as const
-  return raw as ('loss' | 'referral')[]
+  const raw = (me.value as any)?.permissions?.settlementType
+  return [raw === 'referral' ? 'referral' : 'loss'] as ('loss' | 'referral')[]
 }
 
 const allowedTypes = ref(settlementTypesOf())

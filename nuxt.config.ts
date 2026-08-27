@@ -29,7 +29,7 @@ export default defineNuxtConfig({
     // 서버 전용: 앱 DB를 Supabase로 동기화(복원/미러)할지 여부
     supabaseAppDbEnabled: process.env.SUPABASE_APP_DB_ENABLED || '',
     public: {
-      appName: 'UsdtTrade',
+      appName: 'UsdeTrade',
       supabaseUrl: process.env.SUPABASE_URL || 'https://dyfycrmltqosezmsufup.supabase.co',
       supabaseAnonKey:
         process.env.SUPABASE_ANON_KEY ||

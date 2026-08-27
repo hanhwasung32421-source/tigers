@@ -2,7 +2,7 @@ import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
-import { settlementTypesOf } from '../../utils/menu-permissions'
+import { settlementTypeOf } from '../../utils/menu-permissions'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
         usdt: balMap.get(id) ?? 0,
         online: onlineSet.has(id),
         last_ip: ipMap.get(id) ?? null,
-        settlementTypes: settlementTypesOf({ role: String(u.role || 'user'), permissions: u.permissions || {} })
+        settlementType: settlementTypeOf({ role: String(u.role || 'user'), permissions: u.permissions || {} })
       }
     })
 
@@ -114,7 +114,7 @@ export default defineEventHandler(async (event) => {
         role: u.role,
         created_at: u.created_at,
         usdt: u.usdt,
-        settlementTypes: settlementTypesOf({ role: u.role, permissions })
+        settlementType: settlementTypeOf({ role: u.role, permissions })
       }
     })
   }
