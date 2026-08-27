@@ -3882,9 +3882,6 @@ onMounted(async () => {
   await initKillEventBaseline()
   startKillPolling()
   startKillResync()
-
-  // 기본은 시장가 탭
-  selectOrderType('market')
 })
 
 watch(

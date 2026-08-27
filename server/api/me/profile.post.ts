@@ -6,17 +6,23 @@ import { supabaseAppDbEnabled, syncUserToSupabase } from '../../utils/supa-appdb
 import { getSupabaseAdminClient } from '../../utils/supabase'
 
 const BodySchema = z.object({
-  name: z.string().trim().min(1).max(40),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  bankName: z.string().trim().min(1).max(40),
-  bankAccount: z.string().trim().min(1).max(80),
-  accountHolder: z.string().trim().min(1).max(40),
+  // 관리자 계정처럼 이름/생년월일/계좌정보가 아직 없는 경우에도(예: 총관리자 admin/1234)
+  // 비밀번호만 바꿀 수 있어야 하므로 빈 값 저장을 허용한다.
+  name: z.string().trim().max(40).optional().default(''),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')).optional().default(''),
+  bankName: z.string().trim().max(40).optional().default(''),
+  bankAccount: z.string().trim().max(80).optional().default(''),
+  accountHolder: z.string().trim().max(40).optional().default(''),
   newPassword: z.string().trim().min(4).max(50).optional()
 })
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  const body = BodySchema.parse(await readBody(event))
+  const parsed = BodySchema.safeParse(await readBody(event))
+  if (!parsed.success) {
+    throw createError({ statusCode: 400, statusMessage: parsed.error.issues[0]?.message || '입력값이 올바르지 않습니다.' })
+  }
+  const body = parsed.data
   const now = new Date().toISOString()
 
   const patch: any = {
