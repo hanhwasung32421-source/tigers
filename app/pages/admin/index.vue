@@ -572,14 +572,26 @@ async function resetUserPassword(userId: number) {
 }
 
 async function loginAsUser(userId: number) {
-  if (process.client && !window.confirm('이 유저 계정으로 바로 로그인할까요? (현재 관리자 세션은 이 브라우저에서 그 유저 세션으로 전환됩니다)')) return
+  if (process.client && !window.confirm('이 유저 계정으로 새 창에서 로그인할까요? (관리자 세션은 이 창에 그대로 유지됩니다)')) return
+  // 팝업 차단을 피하려면 window.open은 클릭 핸들러 안에서 await 전에(동기적으로) 호출해야 한다.
+  const win = process.client ? window.open('about:blank', '_blank') : null
   loggingInAs.value = userId
   error.value = null
   try {
-    await $fetch('/api/admin/users/login-as', { method: 'POST', body: { userId } })
-    if (process.client) window.location.href = '/'
+    const res = await $fetch<{ ok: true; username: string; token: string }>('/api/admin/users/login-as', {
+      method: 'POST',
+      body: { userId }
+    })
+    if (win) {
+      if (res?.token) {
+        win.location.href = `/impersonate?token=${encodeURIComponent(res.token)}`
+      } else {
+        win.close()
+      }
+    }
   } catch (e: any) {
     error.value = e?.data?.statusMessage || '로그인 실패'
+    win?.close()
   } finally {
     loggingInAs.value = null
   }

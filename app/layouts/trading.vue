@@ -110,6 +110,8 @@
 </template>
 
 <script setup lang="ts">
+import { IMPERSONATE_STORAGE_KEY } from '../plugins/impersonation.client'
+
 const config = useRuntimeConfig()
 const appName = config.public.appName
 const { data: versionData } = await useFetch<{ date: string; build: number }>('/api/version', { key: 'app-version' })
@@ -187,6 +189,13 @@ watch(
 
 async function logout() {
   await $fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+  if (process.client) {
+    try {
+      sessionStorage.removeItem(IMPERSONATE_STORAGE_KEY)
+    } catch {
+      // ignore
+    }
+  }
   unread.value = 0
   resetNoticeHidden.value = false
   await refresh()

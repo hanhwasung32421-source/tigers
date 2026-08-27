@@ -1,11 +1,15 @@
 import { randomBytes } from 'node:crypto'
 import bcrypt from 'bcryptjs'
-import { getCookie, setCookie, deleteCookie, H3Event } from 'h3'
+import { getCookie, setCookie, deleteCookie, getHeader, H3Event } from 'h3'
 import { getDb, isoPlusDays } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne, supaInsertStrict } from './supabase'
 
 const COOKIE_NAME = 'session_token'
+// "다른 계정으로 로그인" 새 창 전용 헤더. sessionStorage는 탭마다 독립적이므로,
+// 이 헤더가 실려오면(=탭이 스스로 sessionStorage에서 읽어 붙인 것) 쿠키(관리자 세션)
+// 대신 이 토큰으로 세션을 조회한다 — 관리자 탭의 쿠키는 전혀 건드리지 않는다.
+const IMPERSONATE_HEADER = 'x-impersonate-token'
 
 export type Role = 'user' | 'super_admin' | 'branch_admin'
 
@@ -32,7 +36,9 @@ export function verifyPassword(password: string, hash: string) {
   return bcrypt.compareSync(password, hash)
 }
 
-export async function createSession(event: H3Event, userId: number) {
+// 세션 행만 만들고 토큰/만료시각을 돌려준다(쿠키는 건드리지 않음) — "다른 계정으로 로그인"
+// 새 창에서 쓰기 위한 것으로, 현재 요청의 쿠키 기반 세션(관리자)에는 영향이 없다.
+export async function createSessionToken(userId: number): Promise<{ token: string; expiresAt: string }> {
   const token = randomBytes(24).toString('hex')
   const createdAt = new Date().toISOString()
   const expiresAt = isoPlusDays(7)
@@ -47,6 +53,11 @@ export async function createSession(event: H3Event, userId: number) {
     const db = getDb()
     db.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').run(token, userId, createdAt, expiresAt)
   }
+  return { token, expiresAt }
+}
+
+export async function createSession(event: H3Event, userId: number) {
+  const { token, expiresAt } = await createSessionToken(userId)
 
   setCookie(event, COOKIE_NAME, token, {
     httpOnly: true,
@@ -58,7 +69,8 @@ export async function createSession(event: H3Event, userId: number) {
 }
 
 export async function clearAuthSession(event: H3Event) {
-  const token = getCookie(event, COOKIE_NAME)
+  const impersonateToken = getHeader(event, IMPERSONATE_HEADER)
+  const token = impersonateToken || getCookie(event, COOKIE_NAME)
   if (token) {
     if (supabaseAppDbEnabled()) {
       try {
@@ -72,11 +84,14 @@ export async function clearAuthSession(event: H3Event) {
       db.prepare('DELETE FROM sessions WHERE token = ?').run(token)
     }
   }
-  deleteCookie(event, COOKIE_NAME, { path: '/' })
+  // 임퍼스네이션 헤더로 들어온 로그아웃이면 관리자 탭의 쿠키(=관리자 세션)는 절대 건드리지 않는다.
+  if (!impersonateToken) {
+    deleteCookie(event, COOKIE_NAME, { path: '/' })
+  }
 }
 
 export async function getSessionUser(event: H3Event): Promise<SessionUser | null> {
-  const token = getCookie(event, COOKIE_NAME)
+  const token = getHeader(event, IMPERSONATE_HEADER) || getCookie(event, COOKIE_NAME)
   if (!token) return null
 
   if (supabaseAppDbEnabled()) {
