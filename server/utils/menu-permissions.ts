@@ -1,7 +1,7 @@
 // 부관리자별로 총관리자가 관리자 메뉴 접근/수정 권한을 조정할 수 있게 하는 스키마.
 // 기존 permissions JSON 컬럼(canViewUsers/canCredit 등)과 함께 permissions.menus 아래에 저장한다.
 
-export const ADMIN_MENU_KEYS = ['members', 'online', 'trades', 'transfers', 'positions', 'messages', 'settlement'] as const
+export const ADMIN_MENU_KEYS = ['members', 'online', 'trades', 'transfers', 'positions', 'messages', 'settlement', 'deposits'] as const
 export type AdminMenuKey = (typeof ADMIN_MENU_KEYS)[number]
 
 // 메뉴별로 "수정" 권한 토글이 의미 있는 항목만 editable: true
@@ -12,7 +12,8 @@ export const MENU_META: Record<AdminMenuKey, { label: string; editable: boolean;
   transfers: { label: '입출금 내역', editable: false },
   positions: { label: '포지션 목록', editable: true, editLabel: '포지션 수정' },
   messages: { label: '쪽지관리', editable: false },
-  settlement: { label: '정산내역', editable: true, editLabel: '입금 승인/거절' }
+  settlement: { label: '정산내역', editable: false },
+  deposits: { label: '입금내역', editable: true, editLabel: '입금 승인/거절' }
 }
 
 export type SettlementType = 'loss' | 'referral'

@@ -630,8 +630,8 @@ async function saveAccountModal() {
 }
 
 // 부관리자 메뉴 권한
-type MenuKey = 'members' | 'online' | 'trades' | 'transfers' | 'positions' | 'messages' | 'settlement'
-const menuKeys: MenuKey[] = ['members', 'online', 'trades', 'transfers', 'positions', 'messages', 'settlement']
+type MenuKey = 'members' | 'online' | 'trades' | 'transfers' | 'positions' | 'messages' | 'settlement' | 'deposits'
+const menuKeys: MenuKey[] = ['members', 'online', 'trades', 'transfers', 'positions', 'messages', 'settlement', 'deposits']
 const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: string }> = {
   members: { label: '회원 목록', editable: true, editLabel: '보유금액 수정' },
   online: { label: '실시간 접속', editable: false },
@@ -639,7 +639,8 @@ const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: 
   transfers: { label: '입출금 내역', editable: false },
   positions: { label: '포지션 목록', editable: true, editLabel: '포지션 수정' },
   messages: { label: '쪽지관리', editable: false },
-  settlement: { label: '정산내역', editable: true, editLabel: '입금 승인/거절' }
+  settlement: { label: '정산내역', editable: false },
+  deposits: { label: '입금내역', editable: true, editLabel: '입금 승인/거절' }
 }
 type BranchAdminRow = { id: number; username: string; menus: Record<MenuKey, { view: boolean; edit: boolean }> }
 const branchAdmins = ref<BranchAdminRow[]>([])
@@ -654,7 +655,8 @@ const menuPermDraft = reactive<Record<MenuKey, { view: boolean; edit: boolean }>
   transfers: { view: true, edit: false },
   positions: { view: true, edit: false },
   messages: { view: true, edit: false },
-  settlement: { view: true, edit: false }
+  settlement: { view: true, edit: false },
+  deposits: { view: true, edit: false }
 })
 const menuPermSaving = ref(false)
 const menuPermError = ref<string | null>(null)

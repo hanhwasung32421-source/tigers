@@ -29,9 +29,9 @@ const error = useError()
 const { me, refresh } = useMe()
 await refresh()
 
-const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+const isSuperAdmin = computed(() => me.value?.role === 'super_admin')
 
-if (!isAdmin.value) {
+if (!isSuperAdmin.value) {
   await clearError({ redirect: '/' })
 }
 

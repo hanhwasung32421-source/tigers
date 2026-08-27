@@ -14,7 +14,7 @@ const BodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
-  if (!canEditMenu(admin, 'settlement')) {
+  if (!canEditMenu(admin, 'deposits')) {
     throw createError({ statusCode: 403, statusMessage: '입금 승인/거절 권한이 없습니다.' })
   }
 

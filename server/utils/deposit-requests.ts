@@ -59,19 +59,13 @@ export async function createDepositRequest(userId: number, krwAmount: number): P
   }
 }
 
-// 정산내역 표에서 "입금" 칸에 표시할, 유저별 가장 최근 입금요청 1건
-export async function latestDepositRequestsByUser(userIds: number[]): Promise<Map<number, DepositRequest>> {
-  const map = new Map<number, DepositRequest>()
-  if (!userIds.length) return map
+// 입금내역 화면용: 지정된 유저들의 입금요청 전체(건당 1행), 최신 신청 순으로 정렬
+export async function listDepositRequests(userIds: number[]): Promise<DepositRequest[]> {
+  if (!userIds.length) return []
 
   if (supabaseAppDbEnabled()) {
     const rows = await supaSelectWhere<any>({ table: T_DEPOSIT_REQUESTS, orderBy: 'id', ascending: false })
-    for (const row of rows) {
-      const uid = Number(row.user_id)
-      if (!userIds.includes(uid) || map.has(uid)) continue
-      map.set(uid, rowToDepositRequest(row))
-    }
-    return map
+    return rows.filter((row) => userIds.includes(Number(row.user_id))).map(rowToDepositRequest)
   }
 
   const db = getDb()
@@ -79,12 +73,7 @@ export async function latestDepositRequestsByUser(userIds: number[]): Promise<Ma
   const rows = db
     .prepare(`SELECT * FROM deposit_requests WHERE user_id IN (${placeholders}) ORDER BY id DESC`)
     .all(...userIds) as any[]
-  for (const row of rows) {
-    const uid = Number(row.user_id)
-    if (map.has(uid)) continue
-    map.set(uid, rowToDepositRequest(row))
-  }
-  return map
+  return rows.map(rowToDepositRequest)
 }
 
 export async function getDepositRequest(id: number): Promise<DepositRequest | null> {

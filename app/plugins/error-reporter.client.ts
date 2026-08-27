@@ -1,0 +1,62 @@
+export type ClientErrorEntry = {
+  at: string
+  type: 'fetch' | 'fetch-network' | 'vue' | 'window' | 'promise'
+  url?: string
+  method?: string
+  statusCode?: number
+  statusMessage?: string
+  message?: string
+  stack?: string
+  data?: any
+}
+
+// 총관리자 전용 에러 배너(app/components/AdminErrorConsole.vue)에서 읽는 전역 상태.
+// 여기서 잡은 원본 에러는 저장만 하고 그대로 다시 던지므로, 각 페이지의 기존
+// try/catch(친절한 한글 메시지 표시)는 지금까지와 동일하게 동작한다.
+export default defineNuxtPlugin((nuxtApp) => {
+  const lastError = useState<ClientErrorEntry | null>('client_last_error', () => null)
+
+  function record(entry: Omit<ClientErrorEntry, 'at'>) {
+    lastError.value = { at: new Date().toISOString(), ...entry }
+  }
+
+  const original = globalThis.$fetch as any
+  if (original && !original.__wrappedForErrorLog__) {
+    const wrapped = original.create({
+      onResponseError(ctx: any) {
+        record({
+          type: 'fetch',
+          url: String(ctx.request),
+          method: ctx.options?.method || 'GET',
+          statusCode: ctx.response?.status,
+          statusMessage: ctx.response?.statusText,
+          message: ctx.response?._data?.statusMessage || ctx.response?._data?.message || ctx.error?.message,
+          data: ctx.response?._data
+        })
+      },
+      onRequestError(ctx: any) {
+        record({
+          type: 'fetch-network',
+          url: String(ctx.request),
+          method: ctx.options?.method || 'GET',
+          message: ctx.error?.message
+        })
+      }
+    })
+    wrapped.__wrappedForErrorLog__ = true
+    globalThis.$fetch = wrapped
+  }
+
+  nuxtApp.vueApp.config.errorHandler = (err: any, _instance, info) => {
+    record({ type: 'vue', message: err?.message || String(err), stack: err?.stack, data: { info } })
+    console.error(err)
+  }
+
+  window.addEventListener('error', (e) => {
+    record({ type: 'window', message: e.message, stack: e.error?.stack, url: e.filename })
+  })
+  window.addEventListener('unhandledrejection', (e) => {
+    const reason: any = e.reason
+    record({ type: 'promise', message: reason?.message || String(reason), stack: reason?.stack })
+  })
+})

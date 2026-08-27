@@ -2,9 +2,8 @@ import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
-import { canEditMenu, canViewMenu, settlementTypesOf, type SettlementType } from '../../utils/menu-permissions'
+import { canViewMenu, settlementTypesOf, type SettlementType } from '../../utils/menu-permissions'
 import { getSystemSettingsExtra } from '../../utils/system-settings'
-import { latestDepositRequestsByUser } from '../../utils/deposit-requests'
 
 const FEE_RATE = 0.04
 
@@ -53,7 +52,6 @@ export default defineEventHandler(async (event) => {
   const extra = await getSystemSettingsExtra()
   const percent = type === 'loss' ? extra.lossSettlementPercent : extra.referralSettlementPercent
 
-  const canEditDeposit = canEditMenu(admin, 'settlement')
   const scopeToReferral = admin.role === 'branch_admin' ? admin.username : null
 
   if (supabaseAppDbEnabled()) {
@@ -90,26 +88,22 @@ export default defineEventHandler(async (event) => {
       netPnlMap.set(uid, (netPnlMap.get(uid) ?? 0) + pnl - fee)
     }
 
-    const depositMap = await latestDepositRequestsByUser(ids)
-
     const items = (users || []).map((u: any) => {
       const id = Number(u.id)
       const feeSum = feeMap.get(id) ?? 0
       const netPnl = netPnlMap.get(id) ?? 0
       const settlementAmount = type === 'loss' ? (netPnl < 0 ? (-netPnl * percent) / 100 : 0) : (feeSum * percent) / 100
-      const dep = depositMap.get(id) || null
       return {
         id,
         username: String(u.username || ''),
         name: String(u.name || ''),
         balanceUsdt: balanceMap.get(id) ?? 0,
-        settlementAmount,
-        deposit: dep ? { id: dep.id, krwAmount: dep.krwAmount, status: dep.status } : null
+        settlementAmount
       }
     })
 
     const total = items.reduce((sum, it) => sum + it.settlementAmount, 0)
-    return { items, total, percent, from, to, canEditDeposit }
+    return { items, total, percent, from, to }
   }
 
   const db = getDb()
@@ -118,7 +112,7 @@ export default defineEventHandler(async (event) => {
     : (db.prepare("SELECT id, username, name, referral_code FROM users WHERE role = 'user'").all() as any[])
 
   const ids = users.map((u: any) => Number(u.id))
-  if (!ids.length) return { items: [], total: 0, percent, from, to, canEditDeposit }
+  if (!ids.length) return { items: [], total: 0, percent, from, to }
 
   const balances = db.prepare('SELECT user_id, usdt FROM balances').all() as any[]
   const balanceMap = new Map(balances.map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
@@ -141,24 +135,20 @@ export default defineEventHandler(async (event) => {
     netPnlMap.set(uid, (netPnlMap.get(uid) ?? 0) + pnl - fee)
   }
 
-  const depositMap = await latestDepositRequestsByUser(ids)
-
   const items = users.map((u: any) => {
     const id = Number(u.id)
     const feeSum = feeMap.get(id) ?? 0
     const netPnl = netPnlMap.get(id) ?? 0
     const settlementAmount = type === 'loss' ? (netPnl < 0 ? (-netPnl * percent) / 100 : 0) : (feeSum * percent) / 100
-    const dep = depositMap.get(id) || null
     return {
       id,
       username: String(u.username || ''),
       name: String(u.name || ''),
       balanceUsdt: balanceMap.get(id) ?? 0,
-      settlementAmount,
-      deposit: dep ? { id: dep.id, krwAmount: dep.krwAmount, status: dep.status } : null
+      settlementAmount
     }
   })
 
   const total = items.reduce((sum, it) => sum + it.settlementAmount, 0)
-  return { items, total, percent, from, to, canEditDeposit }
+  return { items, total, percent, from, to }
 })
