@@ -62,14 +62,14 @@
         <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
         <div v-else class="overflow-auto">
           <table class="w-full min-w-[980px] text-sm">
-            <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
+            <thead class="border-b border-[#12314a] text-[11px] text-slate-500">
               <tr>
-                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디{{ sortArrow('username') }}</th>
-                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름{{ sortArrow('name') }}</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
                 <th class="whitespace-nowrap px-3 py-3 text-left">계좌정보</th>
-                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('usdt')">USDT잔액{{ sortArrow('usdt') }}</th>
-                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드{{ sortArrow('referralCode') }}</th>
-                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">역할{{ sortArrow('role') }}</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('usdt')">USDT잔액<span class="sort-icon">{{ sortArrow('usdt') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">역할<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
                 <th class="whitespace-nowrap px-3 py-3 text-left">정산유형</th>
                 <th class="whitespace-nowrap px-3 py-3 text-center">하부보기</th>
                 <th class="whitespace-nowrap px-3 py-3 text-center">비밀번호</th>
@@ -869,3 +869,21 @@ await loadMiscSettings()
 await loadKillEvents()
 await loadBranchAdmins()
 </script>
+
+<style scoped>
+.sortable-th {
+  color: rgb(203 213 225 / 0.9); /* slate-300, brighter than the default slate-500 header text */
+  transition: color 0.15s ease;
+}
+.sortable-th:hover {
+  color: #fff;
+}
+.sortable-th .sort-icon {
+  margin-left: 2px;
+  font-size: 10px;
+  color: rgb(148 163 184 / 0.6);
+}
+.sortable-th:hover .sort-icon {
+  color: rgb(203 213 225 / 0.9);
+}
+</style>
