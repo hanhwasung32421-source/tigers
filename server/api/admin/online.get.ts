@@ -2,9 +2,13 @@ import { requireAdmin } from '../../utils/auth'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { getDb } from '../../utils/db'
+import { canViewMenu } from '../../utils/menu-permissions'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const admin = await requireAdmin(event)
+  if (!canViewMenu(admin, 'online')) {
+    throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
+  }
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()

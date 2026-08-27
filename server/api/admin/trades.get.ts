@@ -1,7 +1,8 @@
 import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
-import { getSupabaseAdminClient } from '../../utils/supabase'
+import { getSupabaseAdminClient, supaSelectOne } from '../../utils/supabase'
+import { canViewMenu } from '../../utils/menu-permissions'
 
 const FEE_RATE = 0.04
 
@@ -14,12 +15,27 @@ function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const admin = await requireAdmin(event)
 
   const q = getQuery(event)
   const limit = Math.min(200, Math.max(1, Number(q.limit ?? 50)))
   const offset = Math.max(0, Number(q.offset ?? 0))
   const userId = Number(q.userId ?? 0)
+
+  if (userId > 0) {
+    // 특정 회원의 거래내역 보기(회원목록에서 진입): 부관리자는 자기 추천코드로 가입한 회원만 가능
+    if (admin.role === 'branch_admin') {
+      const referralCode = supabaseAppDbEnabled()
+        ? String((await supaSelectOne<any>('trae_users', { id: userId }))?.referral_code || '')
+        : String((getDb().prepare('SELECT referral_code FROM users WHERE id = ?').get(userId) as any)?.referral_code || '')
+      if (referralCode.trim() !== admin.username) {
+        throw createError({ statusCode: 403, statusMessage: '이 회원의 거래내역을 볼 권한이 없습니다.' })
+      }
+    }
+  } else if (!canViewMenu(admin, 'trades')) {
+    // 전체 거래내역(거래내역 메뉴)은 별도 view 권한으로 통제
+    throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
+  }
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()

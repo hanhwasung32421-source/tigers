@@ -4,6 +4,7 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { getOkxLastPrice } from '../../utils/okx'
 import { getLiquidationRoe } from '../../utils/system-settings'
+import { canViewMenu } from '../../utils/menu-permissions'
 
 function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
@@ -30,7 +31,10 @@ function roleToAffiliate(role: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const admin = await requireAdmin(event)
+  if (!canViewMenu(admin, 'positions')) {
+    throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
+  }
   const liquidationRoe = await getLiquidationRoe()
 
   let positions: any[] = []

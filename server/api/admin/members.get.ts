@@ -2,6 +2,7 @@ import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
+import { canViewMenu } from '../../utils/menu-permissions'
 
 const FEE_RATE = 0.04
 
@@ -20,6 +21,9 @@ function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
 
 export default defineEventHandler(async (event) => {
   const me = await requireAdmin(event)
+  if (!canViewMenu(me, 'members')) {
+    throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
+  }
   // 부관리자(총판)는 자기 추천코드(=아이디)로 가입한 회원만 볼 수 있음
   const scopeToReferral = me.role === 'branch_admin' ? me.username : null
 

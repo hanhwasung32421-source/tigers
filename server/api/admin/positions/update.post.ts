@@ -3,6 +3,7 @@ import { requireAdmin } from '../../../utils/auth'
 import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled } from '../../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../../utils/supabase'
+import { canEditMenu } from '../../../utils/menu-permissions'
 
 const BodySchema = z.object({
   positionId: z.coerce.number().int().positive(),
@@ -11,7 +12,10 @@ const BodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const admin = await requireAdmin(event)
+  if (!canEditMenu(admin, 'positions')) {
+    throw createError({ statusCode: 403, statusMessage: '포지션 수정 권한이 없습니다.' })
+  }
   const body = BodySchema.parse(await readBody(event))
 
   const patch: Record<string, number> = {

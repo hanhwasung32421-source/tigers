@@ -2,9 +2,13 @@ import { requireAdmin } from '../../utils/auth'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { getDb } from '../../utils/db'
+import { canViewMenu } from '../../utils/menu-permissions'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const admin = await requireAdmin(event)
+  if (!canViewMenu(admin, 'transfers')) {
+    throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
+  }
 
   // 현재 시스템에서 입출금 내역은 "관리자 가상 입금(app_admin_credits)"만 기록됩니다.
   if (supabaseAppDbEnabled()) {

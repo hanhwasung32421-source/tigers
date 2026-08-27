@@ -436,7 +436,12 @@ const banks = [
 ]
 let pollTimer: any = null
 let loadingNow = false
-const canEditBalance = computed(() => me.value?.role === 'super_admin' || (me.value as any)?.permissions?.canCredit)
+// 총관리자는 항상 가능, 부관리자는 총관리자가 부여한 "회원 목록" 수정 권한이 있을 때만
+const canEditBalance = computed(() => {
+  if (me.value?.role === 'super_admin') return true
+  if (me.value?.role === 'branch_admin') return Boolean((me.value as any)?.permissions?.menus?.members?.edit)
+  return false
+})
 const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpen.value || profileModalOpen.value)
 const pageSize = computed(() => {
   const n = Number(pageSizeInput.value || 20)
