@@ -2124,7 +2124,8 @@ async function runKillAnimation(ev: KillEvent) {
 
   if (adminKillTimer) clearTimeout(adminKillTimer)
   adminKillBusy.value = true
-  adminKillFreezeUntil = Date.now() + durationMs + KILL_HOLD_MS + 300
+  // 원위치로 되돌아갈 때도 동일한 속도(n틱)로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
+  adminKillFreezeUntil = Date.now() + durationMs * 2 + KILL_HOLD_MS + 300
 
   // 스파이크를 실제 캔들 데이터(candleData/liveLastCandle)에 반영한다.
   // 고가/저가는 이후에도 실제 기록으로 영구히 남아야 하므로, 화면(series)만 바꾸는 게 아니라
@@ -2149,28 +2150,42 @@ async function runKillAnimation(ev: KillEvent) {
     try { candleSeries?.update(spiked as any) } catch {}
   }
 
+  // 원위치로 돌아올 때도 킬 실행 때와 동일한 속도(n틱에 걸쳐)로 서서히 복귀한다(1틱에 즉시 X).
+  // 종가만 실제(현재) 가격 쪽으로 서서히 움직이고, 스파이크로 늘어난 고가/저가(꼬리)는 실제 봉의
+  // 일부로 그대로 남는다(재조회로 지우지 않음 — 지우면 킬 효과가 흔적 없이 사라져 버림).
   const revert = async () => {
-    adminKillUiOverride.value = null
-    adminKillFreezeUntil = 0
-    adminKillBusy.value = false
-
-    // 종가만 실제(현재) 가격으로 되돌린다. 스파이크로 늘어난 고가/저가(꼬리)는 실제 봉의
-    // 일부로 그대로 남는다(재조회로 지우지 않음 — 지우면 킬 효과가 흔적 없이 사라져 버림).
     const nowLast = liveLastCandle.value || candleData.value[candleData.value.length - 1]
     const realPrice = Number(lastPrice.value || (nowLast as any)?.close || ev.basePrice)
-    const reverted: CandlestickData = {
-      time: (nowLast as any).time,
-      open: Number((nowLast as any).open),
-      high: Math.max(Number((nowLast as any).high), realPrice),
-      low: Math.min(Number((nowLast as any).low), realPrice),
-      close: realPrice
-    }
-    liveLastCandle.value = reverted
-    if (candleData.value.length) candleData.value[candleData.value.length - 1] = reverted
-    try { candleSeries?.update(reverted as any) } catch {}
+    const revertHigh = Math.max(priorHigh, ev.basePrice, ev.shockedPrice, realPrice)
+    const revertLow = Math.min(priorLow, ev.basePrice, ev.shockedPrice, realPrice)
 
-    // 킬로 인해 청산된 내 포지션이 있으면 계정도 함께 갱신
-    await loadAccount().catch(() => {})
+    let revertIndex = 0
+    const revertTick = () => {
+      revertIndex += 1
+      const progress = revertIndex / tickCount
+      const price = ev.shockedPrice + (realPrice - ev.shockedPrice) * progress
+      const reverted: CandlestickData = {
+        time,
+        open: openPrice,
+        high: Math.max(revertHigh, price),
+        low: Math.min(revertLow, price),
+        close: price
+      }
+      liveLastCandle.value = reverted
+      if (candleData.value.length) candleData.value[candleData.value.length - 1] = reverted
+      try { candleSeries?.update(reverted as any) } catch {}
+
+      if (revertIndex < tickCount) {
+        adminKillTimer = setTimeout(revertTick, tickMs)
+      } else {
+        adminKillUiOverride.value = null
+        adminKillFreezeUntil = 0
+        adminKillBusy.value = false
+        // 킬로 인해 청산된 내 포지션이 있으면 계정도 함께 갱신
+        loadAccount().catch(() => {})
+      }
+    }
+    revertTick()
   }
 
   let tickIndex = 0

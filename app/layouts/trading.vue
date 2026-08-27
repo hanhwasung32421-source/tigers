@@ -174,7 +174,10 @@ const orderedAdminMenuKeys = ref<string[]>([...DEFAULT_ADMIN_MENU_ORDER])
 async function loadAdminMenuOrder() {
   if (!isAdmin.value) return
   try {
-    const data = await $fetch<{ order: string[] }>('/api/admin/menu-order')
+    // SSR에서는 브라우저 쿠키가 자동으로 전달되지 않으므로 명시적으로 넘겨야
+    // 로그인 상태로 조회되어 저장된 순서가 새로고침 직후에도 바로 반영된다.
+    const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+    const data = await $fetch<{ order: string[] }>('/api/admin/menu-order', { headers, credentials: 'include' })
     const known = new Set(DEFAULT_ADMIN_MENU_ORDER)
     const fromServer = (data.order || []).filter((k) => known.has(k))
     const missing = DEFAULT_ADMIN_MENU_ORDER.filter((k) => !fromServer.includes(k))
