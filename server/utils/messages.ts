@@ -62,25 +62,68 @@ export async function listMessageRecipientsForAdmin() {
     const supa = getSupabaseAdminClient()
     const { data, error } = await supa
       .from('trae_users')
-      .select('id, username, role, created_at')
+      .select('id, username, name, role, created_at')
       .eq('role', 'user')
       .order('id', { ascending: false })
     if (error) throw error
-    return (data || []).map((u: any) => ({
-      id: Number(u.id),
-      username: String(u.username || ''),
-      role: String(u.role || 'user'),
-      created_at: String(u.created_at || '')
-    }))
+    const ids = (data || []).map((u: any) => Number(u.id)).filter(Boolean)
+    if (!ids.length) return []
+
+    const nowIsoStr = nowIso()
+    const { data: balances } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
+    const balMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
+
+    const { data: sessions } = await supa.from('trae_sessions').select('user_id, expires_at').in('user_id', ids).gt('expires_at', nowIsoStr)
+    const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
+
+    const { data: events } = await supa
+      .from('app_login_events')
+      .select('local_user_id, created_at')
+      .in('local_user_id', ids)
+      .order('created_at', { ascending: false })
+      .limit(500)
+    const lastLoginMap = new Map<number, string>()
+    for (const ev of events || []) {
+      const uid = Number((ev as any).local_user_id)
+      if (!uid || lastLoginMap.has(uid)) continue
+      lastLoginMap.set(uid, String((ev as any).created_at || ''))
+    }
+
+    return (data || []).map((u: any) => {
+      const id = Number(u.id)
+      return {
+        id,
+        username: String(u.username || ''),
+        name: String(u.name || ''),
+        role: String(u.role || 'user'),
+        created_at: String(u.created_at || ''),
+        usdt: balMap.get(id) ?? 0,
+        online: onlineSet.has(id),
+        lastLoginAt: lastLoginMap.get(id) ?? null
+      }
+    })
   }
 
   const db = getDb()
-  const rows = db.prepare(`SELECT id, username, role, created_at FROM users WHERE role = 'user' ORDER BY id DESC`).all() as any[]
+  const rows = db
+    .prepare(
+      `SELECT u.id, u.username, u.name, u.role, u.created_at, b.usdt
+       FROM users u
+       LEFT JOIN balances b ON b.user_id = u.id
+       WHERE u.role = 'user'
+       ORDER BY u.id DESC`
+    )
+    .all() as any[]
   return rows.map((u) => ({
     id: Number(u.id),
     username: String(u.username || ''),
+    name: String(u.name || ''),
     role: String(u.role || 'user'),
-    created_at: String(u.created_at || '')
+    created_at: String(u.created_at || ''),
+    usdt: Number(u.usdt ?? 0),
+    // SQLite 모드는 세션 기반 온라인/최근 로그인 추적이 없어 기본값으로 채운다
+    online: false,
+    lastLoginAt: null as string | null
   }))
 }
 

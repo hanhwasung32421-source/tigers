@@ -40,22 +40,46 @@
             placeholder="회원 검색"
             :disabled="sendToAll"
           />
-          <div class="max-h-72 space-y-2 overflow-auto rounded-xl border border-white/10 bg-[#06101b] p-3">
-            <label
-              v-for="user in filteredRecipients"
-              :key="user.id"
-              class="flex items-center justify-between gap-3 rounded-lg border border-white/5 px-3 py-2 text-sm"
-              :class="sendToAll ? 'opacity-50' : 'hover:bg-white/5'"
-            >
-              <div class="flex items-center gap-3">
-                <input v-model="selectedRecipientIds" :value="user.id" type="checkbox" class="rounded border-white/20 bg-white/5" :disabled="sendToAll" />
-                <div>
-                  <div class="font-medium text-slate-100">{{ user.username }}</div>
-                  <div class="text-[11px] text-slate-500">#{{ user.id }}</div>
-                </div>
-              </div>
-            </label>
-            <div v-if="filteredRecipients.length === 0" class="px-2 py-6 text-center text-sm text-slate-500">선택 가능한 회원이 없습니다.</div>
+          <div class="max-h-80 overflow-auto rounded-xl border border-white/10 bg-[#06101b]">
+            <table class="w-full text-xs">
+              <thead class="sticky top-0 bg-[#06101b] text-slate-400">
+                <tr>
+                  <th class="px-2 py-2"></th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('id')">아이디{{ recipientSortArrow('id') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-right" @click="toggleRecipientSort('usdt')">지갑잔액{{ recipientSortArrow('usdt') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('created_at')">가입일자{{ recipientSortArrow('created_at') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('lastLoginAt')">최근로그인{{ recipientSortArrow('lastLoginAt') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('online')">접속상태{{ recipientSortArrow('online') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="user in sortedRecipients"
+                  :key="user.id"
+                  class="border-t border-white/5"
+                  :class="sendToAll ? 'opacity-50' : 'hover:bg-white/5'"
+                >
+                  <td class="px-2 py-2">
+                    <input v-model="selectedRecipientIds" :value="user.id" type="checkbox" class="rounded border-white/20 bg-white/5" :disabled="sendToAll" />
+                  </td>
+                  <td class="px-2 py-2 text-slate-100">{{ user.username }}{{ user.name ? `(${user.name})` : '' }}</td>
+                  <td class="px-2 py-2 text-right font-mono text-slate-300">{{ Number(user.usdt || 0).toFixed(2) }}</td>
+                  <td class="px-2 py-2 font-mono text-slate-400">{{ dateOnly(user.created_at) }}</td>
+                  <td class="px-2 py-2 font-mono text-slate-400">{{ user.lastLoginAt ? formatDateTime(user.lastLoginAt) : '—' }}</td>
+                  <td class="px-2 py-2">
+                    <span
+                      class="rounded px-2 py-0.5 text-[10px] font-semibold ring-1"
+                      :class="user.online ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-white/5 text-slate-400 ring-white/10'"
+                    >
+                      {{ user.online ? '접속' : '미접속' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="sortedRecipients.length === 0">
+                  <td colspan="6" class="px-2 py-6 text-center text-sm text-slate-500">선택 가능한 회원이 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -176,7 +200,16 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['admin'] })
 
-type Recipient = { id: number; username: string; role: string; created_at: string }
+type Recipient = {
+  id: number
+  username: string
+  name: string
+  role: string
+  created_at: string
+  usdt: number
+  online: boolean
+  lastLoginAt: string | null
+}
 type ThreadSummary = {
   threadKey: string
   userId: number
@@ -231,8 +264,47 @@ const sendMessageText = ref<string | null>(null)
 
 const filteredRecipients = computed(() => {
   const q = recipientKeyword.value.trim().toLowerCase()
-  return recipients.value.filter((u) => !q || [u.username, String(u.id)].some((v) => String(v).toLowerCase().includes(q)))
+  return recipients.value.filter((u) => !q || [u.username, u.name, String(u.id)].some((v) => String(v || '').toLowerCase().includes(q)))
 })
+
+type RecipientSortKey = 'id' | 'usdt' | 'created_at' | 'lastLoginAt' | 'online'
+const recipientSortKey = ref<RecipientSortKey>('id')
+const recipientSortDir = ref<'asc' | 'desc'>('desc')
+
+function toggleRecipientSort(key: RecipientSortKey) {
+  if (recipientSortKey.value === key) {
+    recipientSortDir.value = recipientSortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    recipientSortKey.value = key
+    recipientSortDir.value = 'asc'
+  }
+}
+function recipientSortArrow(key: RecipientSortKey) {
+  if (recipientSortKey.value !== key) return ''
+  return recipientSortDir.value === 'asc' ? ' ▲' : ' ▼'
+}
+
+const sortedRecipients = computed(() => {
+  const dir = recipientSortDir.value === 'asc' ? 1 : -1
+  const key = recipientSortKey.value
+  return filteredRecipients.value.slice().sort((a, b) => {
+    if (key === 'usdt') return (Number(a.usdt || 0) - Number(b.usdt || 0)) * dir
+    if (key === 'online') return (Number(a.online) - Number(b.online)) * dir
+    if (key === 'id') return (a.id - b.id) * dir
+    // created_at / lastLoginAt: 날짜 문자열 비교(빈 값은 항상 뒤로)
+    const av = String((a as any)[key] || '')
+    const bv = String((b as any)[key] || '')
+    if (!av && !bv) return 0
+    if (!av) return 1
+    if (!bv) return -1
+    return av.localeCompare(bv) * dir
+  })
+})
+
+function dateOnly(v: string) {
+  const s = String(v || '')
+  return s ? s.slice(0, 10) : '—'
+}
 
 const filteredThreads = computed(() => {
   const q = threadKeyword.value.trim().toLowerCase()

@@ -10,6 +10,14 @@
         </div>
       </div>
     </Transition>
+    <Transition name="nav-loading-fade">
+      <div v-if="toast?.visible" class="fixed inset-x-0 top-3 z-[130] flex justify-center px-4">
+        <div class="flex items-center gap-2 rounded-full border border-amber-400/30 bg-[#0b1220]/95 px-4 py-2 text-sm text-amber-100 shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
+          <span>🔔</span>
+          <span>{{ toast.text }}</span>
+        </div>
+      </div>
+    </Transition>
     <header class="sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/92 backdrop-blur">
       <div class="mx-auto flex max-w-[1920px] items-center justify-between gap-3 px-3 py-3">
         <NuxtLink to="/" class="font-semibold tracking-tight text-white" @click="startNavLoading('/')">
@@ -107,13 +115,20 @@ const navLoading = useState<boolean>('global_nav_loading', () => false)
 
 const { me, refresh } = useMe()
 await refresh()
-const { unread, refreshUnread } = useMessages()
+const { unread, toast, refreshUnread, startUnreadPolling, stopUnreadPolling } = useMessages()
 const resetNoticeHidden = ref(false)
 if (me.value) {
   await refreshUnread()
 } else {
   unread.value = 0
 }
+
+onMounted(() => {
+  if (me.value) startUnreadPolling()
+})
+onBeforeUnmount(() => {
+  stopUnreadPolling()
+})
 
 const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
 // 관리자 대시보드(/admin)는 총관리자 전용. 부관리자는 회원 목록으로 바로 이동.
