@@ -22,7 +22,8 @@
     <div class="grid gap-4 md:grid-cols-3">
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
         <div class="text-sm text-slate-400">USDT 잔고</div>
-        <div class="mt-1 font-mono text-2xl">{{ balance.toFixed(2) }}</div>
+        <div class="mt-1 font-mono text-2xl">{{ fmtKrw(balance) }}</div>
+        <div class="mt-0.5 font-mono text-sm text-slate-400">{{ balance.toFixed(2) }} USDT</div>
       </div>
 
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
@@ -38,10 +39,11 @@
           />
           <span class="whitespace-nowrap text-sm text-slate-400">원</span>
         </div>
+        <div class="mt-1 text-xs text-slate-500">≈ {{ usdtPreview(krwInput) }} USDT</div>
         <button
           type="button"
           class="mt-3 w-full rounded-md bg-[#1d4ed8] px-3 py-2 text-sm font-medium text-white hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="!canSubmit || submitting"
+          :disabled="!canSubmitDeposit || submittingDeposit"
           @click="submitDepositRequest"
         >
           입금요청
@@ -49,8 +51,27 @@
       </div>
 
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-        <div class="text-sm text-slate-400">출금</div>
-        <div class="mt-1 text-sm text-slate-200">준비중</div>
+        <div class="text-sm text-slate-400">출금요청 (원화)</div>
+        <div class="mt-2 flex items-center gap-2">
+          <input
+            v-model="krwWithdrawInput"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="출금할 금액(원)"
+            class="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/40"
+          />
+          <span class="whitespace-nowrap text-sm text-slate-400">원</span>
+        </div>
+        <div class="mt-1 text-xs text-slate-500">≈ {{ usdtPreview(krwWithdrawInput) }} USDT</div>
+        <button
+          type="button"
+          class="mt-3 w-full rounded-md bg-[#1d4ed8] px-3 py-2 text-sm font-medium text-white hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="!canSubmitWithdraw || submittingWithdraw"
+          @click="submitWithdrawRequest"
+        >
+          출금요청
+        </button>
       </div>
     </div>
 
@@ -69,7 +90,7 @@
           >
             ✕
           </button>
-          <h2 class="pr-6 text-lg font-semibold text-slate-100">입금요청되었습니다.</h2>
+          <h2 class="pr-6 text-lg font-semibold text-slate-100">{{ modalKind === 'withdraw' ? '출금요청되었습니다.' : '입금요청되었습니다.' }}</h2>
           <p class="mt-2 text-sm leading-6 text-slate-300">고객센터로 텔레그램 남겨주세요.</p>
           <button
             type="button"
@@ -103,9 +124,13 @@ const TelegramIcon = {
 
 const balance = ref(0)
 const krwInput = ref('')
-const submitting = ref(false)
+const krwWithdrawInput = ref('')
+const submittingDeposit = ref(false)
+const submittingWithdraw = ref(false)
 const showModal = ref(false)
+const modalKind = ref<'deposit' | 'withdraw'>('deposit')
 const telegramUrl = ref('')
+const krwPerUsdt = ref(0)
 
 const data = await $fetch<any>('/api/account')
 balance.value = data.balance.usdt
@@ -117,7 +142,24 @@ try {
   telegramUrl.value = ''
 }
 
-const canSubmit = computed(() => Number(krwInput.value) > 0)
+try {
+  const rateData = await $fetch<any>('/api/settings/krw-rate')
+  krwPerUsdt.value = Number(rateData?.rate || 0)
+} catch {
+  krwPerUsdt.value = 0
+}
+
+function fmtKrw(usdtValue: number) {
+  return `${Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()}원`
+}
+function usdtPreview(krwValue: string) {
+  const krw = Number(krwValue)
+  if (!(krw > 0) || !(krwPerUsdt.value > 0)) return '0.00'
+  return (krw / krwPerUsdt.value).toFixed(2)
+}
+
+const canSubmitDeposit = computed(() => Number(krwInput.value) > 0)
+const canSubmitWithdraw = computed(() => Number(krwWithdrawInput.value) > 0)
 
 function openTelegram() {
   if (!telegramUrl.value) return
@@ -132,19 +174,39 @@ function contactSupport() {
 
 async function submitDepositRequest() {
   const krwAmount = Number(krwInput.value)
-  if (!(krwAmount > 0) || submitting.value) return
-  submitting.value = true
+  if (!(krwAmount > 0) || submittingDeposit.value) return
+  submittingDeposit.value = true
   try {
     await $fetch('/api/wallet/deposit-request', {
       method: 'POST',
       body: { krwAmount }
     })
     krwInput.value = ''
+    modalKind.value = 'deposit'
     showModal.value = true
   } catch (e: any) {
     alert(e?.data?.statusMessage || '입금요청 중 오류가 발생했습니다.')
   } finally {
-    submitting.value = false
+    submittingDeposit.value = false
+  }
+}
+
+async function submitWithdrawRequest() {
+  const krwAmount = Number(krwWithdrawInput.value)
+  if (!(krwAmount > 0) || submittingWithdraw.value) return
+  submittingWithdraw.value = true
+  try {
+    await $fetch('/api/wallet/withdraw-request', {
+      method: 'POST',
+      body: { krwAmount }
+    })
+    krwWithdrawInput.value = ''
+    modalKind.value = 'withdraw'
+    showModal.value = true
+  } catch (e: any) {
+    alert(e?.data?.statusMessage || '출금요청 중 오류가 발생했습니다.')
+  } finally {
+    submittingWithdraw.value = false
   }
 }
 </script>

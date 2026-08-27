@@ -2,8 +2,8 @@
   <div class="space-y-5">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">입금내역</h1>
-        <p class="mt-1 text-sm text-slate-400">회원들의 입금요청을 신청일 최신순으로 확인하고 처리합니다.</p>
+        <h1 class="text-xl font-semibold">입금/출금 내역</h1>
+        <p class="mt-1 text-sm text-slate-400">회원들의 입금/출금 요청을 신청일 최신순으로 확인하고 처리합니다.</p>
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
@@ -19,20 +19,29 @@
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
+              <th class="px-3 py-3 text-center">구분</th>
               <th class="px-3 py-3 text-left">회원 아이디</th>
               <th class="px-3 py-3 text-left">이름</th>
               <th class="px-3 py-3 text-right">잔액</th>
-              <th class="px-3 py-3 text-right">입금액수</th>
+              <th class="px-3 py-3 text-right">금액</th>
               <th class="px-3 py-3 text-left">신청날짜</th>
-              <th class="px-3 py-3 text-left">입금날짜</th>
-              <th class="px-3 py-3 text-center">입금상태</th>
+              <th class="px-3 py-3 text-left">처리날짜</th>
+              <th class="px-3 py-3 text-center">상태</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="items.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="7" class="px-3 py-8 text-center text-slate-500">입금요청 내역이 없습니다.</td>
+              <td colspan="8" class="px-3 py-8 text-center text-slate-500">입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in items" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
+              <td class="px-3 py-3 text-center">
+                <span
+                  class="rounded px-2 py-1 text-[11px] font-semibold ring-1"
+                  :class="it.type === 'withdrawal' ? 'bg-rose-500/10 text-rose-300 ring-rose-400/20' : 'bg-cyan-500/10 text-cyan-200 ring-cyan-400/20'"
+                >
+                  {{ it.type === 'withdrawal' ? '출금' : '입금' }}
+                </span>
+              </td>
               <td class="px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
               <td class="px-3 py-3 text-slate-200">{{ it.name }}</td>
               <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(it.balanceUsdt) }}</td>
@@ -61,7 +70,7 @@
                   class="rounded px-2 py-1 text-[11px] font-semibold ring-1"
                   :class="statusBadgeClass(it.status)"
                 >
-                  {{ statusLabel(it.status) }}
+                  {{ statusLabel(it) }}
                 </span>
               </td>
             </tr>
@@ -79,6 +88,7 @@ definePageMeta({ middleware: ['admin'] })
 
 type DepositRow = {
   id: number
+  type: 'deposit' | 'withdrawal'
   username: string
   name: string
   balanceUsdt: number
@@ -115,10 +125,10 @@ function formatDateTime(v: string) {
     hour12: false
   }).format(d)
 }
-function statusLabel(status: DepositRow['status']) {
-  if (status === 'completed') return '완료'
-  if (status === 'rejected') return '거절'
-  return '입금요청'
+function statusLabel(it: DepositRow) {
+  if (it.status === 'completed') return '완료'
+  if (it.status === 'rejected') return '거절'
+  return it.type === 'withdrawal' ? '출금요청' : '입금요청'
 }
 function statusBadgeClass(status: DepositRow['status']) {
   if (status === 'completed') return 'bg-emerald-500/10 text-emerald-200 ring-emerald-400/20'
@@ -134,7 +144,7 @@ async function load() {
     canEdit.value = Boolean(res.canEdit)
     error.value = null
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '입금내역을 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || '입금/출금 내역을 불러오지 못했습니다.'
   } finally {
     loading.value = false
   }

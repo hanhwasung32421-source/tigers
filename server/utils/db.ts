@@ -160,6 +160,7 @@ export function getDb() {
     CREATE TABLE IF NOT EXISTS deposit_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'deposit',
       krw_amount REAL NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       usdt_amount REAL,
@@ -228,6 +229,14 @@ export function getDb() {
     if (!sysCols.includes('krw_auto_rate')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_auto_rate REAL NOT NULL DEFAULT 0;')
     if (!sysCols.includes('krw_auto_rate_day')) db.exec("ALTER TABLE system_settings ADD COLUMN krw_auto_rate_day TEXT NOT NULL DEFAULT '';")
     if (!sysCols.includes('krw_auto_rate_updated_at')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_auto_rate_updated_at TEXT NULL;')
+  } catch {
+    // ignore
+  }
+
+  // 마이그레이션: deposit_requests에 type(deposit/withdrawal) 컬럼 추가
+  try {
+    const depositReqCols = (db.prepare("PRAGMA table_info('deposit_requests')").all() as any[]).map((c) => String(c?.name))
+    if (!depositReqCols.includes('type')) db.exec("ALTER TABLE deposit_requests ADD COLUMN type TEXT NOT NULL DEFAULT 'deposit';")
   } catch {
     // ignore
   }

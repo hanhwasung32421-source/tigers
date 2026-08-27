@@ -44,11 +44,10 @@
                 <NuxtLink v-if="canViewAdminMenu('members')" to="/admin/members" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/members')">회원 목록</NuxtLink>
                 <NuxtLink v-if="canViewAdminMenu('online')" to="/admin/online" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/online')">실시간 접속</NuxtLink>
                 <NuxtLink v-if="canViewAdminMenu('trades')" to="/admin/trades" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/trades')">거래 내역</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('transfers')" to="/admin/transfers" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/transfers')">입출금 내역</NuxtLink>
                 <NuxtLink v-if="canViewAdminMenu('positions')" to="/admin/positions" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/positions')">포지션 목록</NuxtLink>
                 <NuxtLink v-if="canViewAdminMenu('messages')" to="/admin/messages" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/messages')">쪽지관리</NuxtLink>
                 <NuxtLink v-if="canViewAdminMenu('settlement')" to="/admin/settlement" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/settlement')">정산내역</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('deposits')" to="/admin/deposits" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/deposits')">입금내역</NuxtLink>
+                <NuxtLink v-if="canViewAdminMenu('deposits')" to="/admin/deposits" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/deposits')">입금/출금 내역</NuxtLink>
               </div>
             </div>
           </div>

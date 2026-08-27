@@ -4,9 +4,12 @@ import { getSupabaseAdminClient, supaInsertStrict, supaSelectWhere } from './sup
 
 const T_DEPOSIT_REQUESTS = 'trae_deposit_requests'
 
+export type TransferRequestType = 'deposit' | 'withdrawal'
+
 export type DepositRequest = {
   id: number
   userId: number
+  type: TransferRequestType
   krwAmount: number
   status: 'pending' | 'rejected' | 'completed'
   usdtAmount: number | null
@@ -19,6 +22,7 @@ function rowToDepositRequest(row: any): DepositRequest {
   return {
     id: Number(row.id),
     userId: Number(row.user_id),
+    type: row.type === 'withdrawal' ? 'withdrawal' : 'deposit',
     krwAmount: Number(row.krw_amount),
     status: (row.status as any) || 'pending',
     usdtAmount: row.usdt_amount === null || row.usdt_amount === undefined ? null : Number(row.usdt_amount),
@@ -28,7 +32,11 @@ function rowToDepositRequest(row: any): DepositRequest {
   }
 }
 
-export async function createDepositRequest(userId: number, krwAmount: number): Promise<DepositRequest> {
+export async function createDepositRequest(
+  userId: number,
+  krwAmount: number,
+  type: TransferRequestType = 'deposit'
+): Promise<DepositRequest> {
   const createdAt = new Date().toISOString()
 
   if (supabaseAppDbEnabled()) {
@@ -36,20 +44,22 @@ export async function createDepositRequest(userId: number, krwAmount: number): P
     await supaInsertStrict(T_DEPOSIT_REQUESTS, {
       id,
       user_id: userId,
+      type,
       krw_amount: krwAmount,
       status: 'pending',
       created_at: createdAt
     })
-    return { id, userId, krwAmount, status: 'pending', usdtAmount: null, rateUsed: null, createdAt, resolvedAt: null }
+    return { id, userId, type, krwAmount, status: 'pending', usdtAmount: null, rateUsed: null, createdAt, resolvedAt: null }
   }
 
   const db = getDb()
   const result = db
-    .prepare('INSERT INTO deposit_requests (user_id, krw_amount, status, created_at) VALUES (?, ?, ?, ?)')
-    .run(userId, krwAmount, 'pending', createdAt)
+    .prepare('INSERT INTO deposit_requests (user_id, type, krw_amount, status, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(userId, type, krwAmount, 'pending', createdAt)
   return {
     id: Number(result.lastInsertRowid),
     userId,
+    type,
     krwAmount,
     status: 'pending',
     usdtAmount: null,
@@ -59,7 +69,7 @@ export async function createDepositRequest(userId: number, krwAmount: number): P
   }
 }
 
-// 입금내역 화면용: 지정된 유저들의 입금요청 전체(건당 1행), 최신 신청 순으로 정렬
+// 입금/출금 내역 화면용: 지정된 유저들의 요청 전체(건당 1행), 최신 신청 순으로 정렬
 export async function listDepositRequests(userIds: number[]): Promise<DepositRequest[]> {
   if (!userIds.length) return []
 

@@ -35,6 +35,7 @@ export default defineEventHandler(async (event) => {
       const u = userMap.get(r.userId)
       return {
         id: r.id,
+        type: r.type,
         username: String(u?.username || ''),
         name: String(u?.name || ''),
         balanceUsdt: balanceMap.get(r.userId) ?? 0,
@@ -65,6 +66,7 @@ export default defineEventHandler(async (event) => {
     const u = userMap.get(r.userId)
     return {
       id: r.id,
+      type: r.type,
       username: String(u?.username || ''),
       name: String(u?.name || ''),
       balanceUsdt: balanceMap.get(r.userId) ?? 0,
