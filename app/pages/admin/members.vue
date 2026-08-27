@@ -78,7 +78,32 @@
               <td class="px-3 py-3 font-mono text-slate-300">{{ u.referralCode || '—' }}</td>
               <td class="px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
               <td class="px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmtRate(u.affiliateRate) }}</td>
+              <td class="px-3 py-3 text-right">
+                <div v-if="u.role === '회원' && isDirectChildOfMe(u)" class="flex justify-end">
+                  <button
+                    type="button"
+                    class="whitespace-nowrap rounded bg-cyan-500/15 px-2 py-1 text-[11px] font-semibold text-cyan-100 ring-1 ring-cyan-400/20 hover:bg-cyan-500/25 disabled:opacity-40"
+                    :disabled="grantingId === u.id"
+                    @click="grantBranchAdmin(u)"
+                  >
+                    코드부여
+                  </button>
+                </div>
+                <input
+                  v-else-if="u.role === '총판' && canEditRate(u)"
+                  v-model="rateDraft[u.id]"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  placeholder="기본값"
+                  :data-rate-id="u.id"
+                  class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right font-mono text-slate-200 outline-none focus:border-cyan-400/60"
+                  @blur="saveRate(u)"
+                  @keyup.enter="saveRate(u)"
+                />
+                <span v-else class="font-mono text-slate-300">{{ fmtRate(u.affiliateRate) }}</span>
+              </td>
               <td class="px-3 py-3 text-right font-mono">
                 <button
                   type="button"
@@ -372,7 +397,7 @@ type MemberRow = {
   referralCode: string
   affiliateName: string
   affiliateParent: string
-  affiliateRate: number
+  affiliateRate: number | null
   balanceUsdt: number
   cumulativeProfit: number
   created_at: string
@@ -443,6 +468,62 @@ const canEditBalance = computed(() => {
   return false
 })
 const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpen.value || profileModalOpen.value)
+
+// 영업 조직 구조: "코드부여"(승격)와 정산비율 수정은 총관리자는 누구에게나,
+// 부관리자는 자기 코드로 가입한 직속 하부에게만 할 수 있다.
+function isDirectChildOfMe(u: MemberRow) {
+  if (!me.value) return false
+  if (me.value.role === 'super_admin') return true
+  if (me.value.role === 'branch_admin') return u.referralCode.trim() === me.value.username
+  return false
+}
+function canEditRate(u: MemberRow) {
+  return isDirectChildOfMe(u)
+}
+
+const rateDraft = reactive<Record<number, string>>({})
+const grantingId = ref<number | null>(null)
+
+function syncRateDraft(list: MemberRow[]) {
+  for (const u of list) {
+    if (rateDraft[u.id] === undefined || document.activeElement?.getAttribute('data-rate-id') !== String(u.id)) {
+      rateDraft[u.id] = typeof u.affiliateRate === 'number' ? String(u.affiliateRate) : ''
+    }
+  }
+}
+
+async function saveRate(u: MemberRow) {
+  const raw = (rateDraft[u.id] ?? '').trim()
+  const settlementPercent = raw === '' ? null : Number(raw)
+  if (settlementPercent !== null && (!Number.isFinite(settlementPercent) || settlementPercent < 0 || settlementPercent > 100)) {
+    return
+  }
+  try {
+    await $fetch('/api/admin/users/update', {
+      method: 'POST',
+      body: { userId: u.id, settlementPercent }
+    })
+    await load(true)
+  } catch (e: any) {
+    alert(e?.data?.statusMessage || '정산비율 저장에 실패했습니다.')
+  }
+}
+
+async function grantBranchAdmin(u: MemberRow) {
+  if (process.client && !window.confirm(`${u.username} 님에게 부관리자 코드를 부여할까요? (관리자 페이지 접근 권한이 생깁니다)`)) return
+  grantingId.value = u.id
+  try {
+    await $fetch('/api/admin/users/update', {
+      method: 'POST',
+      body: { userId: u.id, role: 'branch_admin' }
+    })
+    await load(true)
+  } catch (e: any) {
+    alert(e?.data?.statusMessage || '코드부여에 실패했습니다.')
+  } finally {
+    grantingId.value = null
+  }
+}
 const pageSize = computed(() => {
   const n = Number(pageSizeInput.value || 20)
   return Math.max(1, Math.min(500, Number.isFinite(n) ? Math.floor(n) : 20))
@@ -459,8 +540,8 @@ function signedProfitText(v: number) {
   const n = Number(v || 0)
   return `${n >= 0 ? '+' : '-'}${fmt2(Math.abs(n))}`
 }
-function fmtRate(v: number) {
-  return `${Number(v || 0).toFixed(2)}`
+function fmtRate(v: number | null) {
+  return typeof v === 'number' ? `${v.toFixed(2)}` : '—'
 }
 function fmtPrice(v: number) {
   return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })
@@ -552,6 +633,7 @@ async function load(silent = false) {
   try {
     const res = await $fetch<{ items: MemberRow[] }>('/api/admin/members')
     items.value = res.items || []
+    syncRateDraft(items.value)
     if (selectedMember.value) {
       const fresh = (res.items || []).find((u) => Number(u.id) === Number(selectedMember.value?.id))
       if (fresh) selectedMember.value = fresh

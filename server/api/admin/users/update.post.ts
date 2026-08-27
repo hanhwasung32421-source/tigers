@@ -68,7 +68,16 @@ export default defineEventHandler(async (event) => {
       //  메뉴 권한/정산유형이 매 저장마다 지워져 버린다.)
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
       if (current && String(current.role) !== body.role) {
-        await requireSuperAdmin(event)
+        // 영업 조직 구조: 부관리자는 "본인 코드로 가입한(직속) 일반회원"을 부관리자로
+        // 코드부여(승격)할 수 있다. 그 외의 모든 역할 변경은 총관리자만 가능.
+        const isSelfServicePromotion =
+          admin.role === 'branch_admin' &&
+          body.role === 'branch_admin' &&
+          String(current.role) === 'user' &&
+          String(current.referral_code || '').trim() === admin.username
+        if (!isSelfServicePromotion) {
+          await requireSuperAdmin(event)
+        }
         const permissions =
           body.role === 'branch_admin'
             ? { canViewUsers: true, canCredit: false }
@@ -124,9 +133,13 @@ export default defineEventHandler(async (event) => {
     }
 
     if (body.settlementPercent !== undefined) {
-      // 부관리자별 정산 비율 지정은 총관리자만
-      await requireSuperAdmin(event)
+      // 정산 비율 지정: 총관리자는 누구든, 부관리자는 자기 직속 하부(본인 코드로 가입한 부관리자)만 가능.
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
+      const isDirectChild =
+        admin.role === 'branch_admin' && String(current?.referral_code || '').trim() === admin.username
+      if (!isDirectChild) {
+        await requireSuperAdmin(event)
+      }
       const permissions = { ...(current?.permissions || {}), settlementPercent: body.settlementPercent }
       const { error } = await supa
         .from('trae_users')
@@ -166,9 +179,20 @@ export default defineEventHandler(async (event) => {
 
   if (body.role) {
     // 역할이 실제로 바뀔 때만 권한(permissions)을 역할 기본값으로 초기화한다(위 Supabase 분기와 동일한 이유).
-    const current = db.prepare('SELECT role FROM users WHERE id = ?').get(body.userId) as { role?: string } | undefined
+    const current = db.prepare('SELECT role, referral_code FROM users WHERE id = ?').get(body.userId) as
+      | { role?: string; referral_code?: string }
+      | undefined
     if (current && String(current.role) !== body.role) {
-      await requireSuperAdmin(event)
+      // 영업 조직 구조: 부관리자는 "본인 코드로 가입한(직속) 일반회원"을 부관리자로
+      // 코드부여(승격)할 수 있다. 그 외의 모든 역할 변경은 총관리자만 가능.
+      const isSelfServicePromotion =
+        admin.role === 'branch_admin' &&
+        body.role === 'branch_admin' &&
+        String(current.role) === 'user' &&
+        String(current.referral_code || '').trim() === admin.username
+      if (!isSelfServicePromotion) {
+        await requireSuperAdmin(event)
+      }
       const permissions =
         body.role === 'branch_admin'
           ? JSON.stringify({ canViewUsers: true, canCredit: false })
@@ -242,8 +266,13 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.settlementPercent !== undefined) {
-    // 부관리자별 정산 비율 지정은 총관리자만
-    await requireSuperAdmin(event)
+    // 정산 비율 지정: 총관리자는 누구든, 부관리자는 자기 직속 하부(본인 코드로 가입한 부관리자)만 가능.
+    const targetRow = db.prepare('SELECT referral_code FROM users WHERE id = ?').get(body.userId) as { referral_code?: string } | undefined
+    const isDirectChild =
+      admin.role === 'branch_admin' && String(targetRow?.referral_code || '').trim() === admin.username
+    if (!isDirectChild) {
+      await requireSuperAdmin(event)
+    }
     const row = db.prepare('SELECT permissions FROM users WHERE id = ?').get(body.userId) as { permissions?: string } | undefined
     let prevPermissions: any = {}
     try {
