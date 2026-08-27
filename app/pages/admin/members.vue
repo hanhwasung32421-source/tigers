@@ -48,6 +48,7 @@
               <th class="px-3 py-3 text-left">승인상태</th>
               <th class="px-3 py-3 text-left">아이디</th>
               <th class="px-3 py-3 text-left">회원이름</th>
+              <th class="px-3 py-3 text-left">추천코드</th>
               <th class="px-3 py-3 text-left">총판이름</th>
               <th class="px-3 py-3 text-left">총판부모</th>
               <th class="px-3 py-3 text-right">총판수율</th>
@@ -59,7 +60,7 @@
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="11" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
+              <td colspan="12" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
             </tr>
             <tr v-for="u in paged" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3">
@@ -74,6 +75,7 @@
                 </button>
               </td>
               <td class="px-3 py-3 text-slate-200">{{ u.name }}</td>
+              <td class="px-3 py-3 font-mono text-slate-300">{{ u.referralCode || '—' }}</td>
               <td class="px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
               <td class="px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
               <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmtRate(u.affiliateRate) }}</td>
@@ -180,7 +182,11 @@
             </div>
             <div>
               <label class="text-sm text-slate-300">추천코드</label>
-              <input :value="selectedMember.referralCode" disabled class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-slate-500 outline-none ring-1 ring-white/10" />
+              <input
+                v-model.trim="profileDraft.referralCode"
+                :disabled="me?.role !== 'super_admin'"
+                class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-cyan-500 disabled:text-slate-500"
+              />
             </div>
           </div>
 
@@ -421,7 +427,8 @@ const profileDraft = reactive({
   birthDate: '',
   bankName: '국민은행',
   bankAccount: '',
-  accountHolder: ''
+  accountHolder: '',
+  referralCode: ''
 })
 const banks = [
   '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
@@ -599,6 +606,7 @@ function openProfileModal(member: MemberRow) {
   profileDraft.bankName = member.bankName || banks[0]
   profileDraft.bankAccount = member.bankAccount || ''
   profileDraft.accountHolder = member.accountHolder || ''
+  profileDraft.referralCode = member.referralCode || ''
   profileError.value = null
   profileModalOpen.value = true
 }
@@ -651,7 +659,8 @@ async function saveProfile() {
         birthDate: profileDraft.birthDate,
         bankName: profileDraft.bankName,
         bankAccount: profileDraft.bankAccount,
-        accountHolder: profileDraft.accountHolder
+        accountHolder: profileDraft.accountHolder,
+        ...(me?.role === 'super_admin' ? { referralCode: profileDraft.referralCode } : {})
       }
     })
     await load(true)

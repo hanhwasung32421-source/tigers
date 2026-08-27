@@ -19,7 +19,9 @@ function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const me = await requireAdmin(event)
+  // 부관리자(총판)는 자기 추천코드(=아이디)로 가입한 회원만 볼 수 있음
+  const scopeToReferral = me.role === 'branch_admin' ? me.username : null
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
@@ -104,7 +106,8 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    return { items: rows }
+    const scoped = scopeToReferral ? rows.filter((r) => r.referralCode.trim() === scopeToReferral) : rows
+    return { items: scoped }
   }
 
   const db = getDb()

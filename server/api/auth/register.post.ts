@@ -26,6 +26,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '필수 항목을 모두 올바르게 입력해 주세요.' })
   }
   const useSupa = supabaseAppDbEnabled()
+  // 추천코드를 비워두고 가입하면 기본 총관리자(admin) 추천으로 처리
+  const referralCode = (body.referralCode || '').trim() || 'admin'
 
   // 입력 제한 (프론트와 동일 규칙)
   if (!/^[A-Za-z0-9]+$/.test(String(body.username || '').trim())) {
@@ -75,7 +77,7 @@ export default defineEventHandler(async (event) => {
           bank_name: body.bankName.trim(),
           bank_account: body.bankAccount.trim(),
           account_holder: body.accountHolder.trim(),
-          referral_code: (body.referralCode || '').trim(),
+          referral_code: referralCode,
           terms_agreed_at: now,
           role: 'user',
           permissions: {},
@@ -149,7 +151,7 @@ export default defineEventHandler(async (event) => {
     body.bankName.trim(),
     body.bankAccount.trim(),
     body.accountHolder.trim(),
-    (body.referralCode || '').trim(),
+    referralCode,
     new Date().toISOString(),
     'user',
     JSON.stringify({}),

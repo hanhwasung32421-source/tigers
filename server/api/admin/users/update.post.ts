@@ -12,7 +12,8 @@ const BodySchema = z.object({
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   bankName: z.string().trim().min(1).max(40).optional(),
   bankAccount: z.string().trim().min(1).max(80).optional(),
-  accountHolder: z.string().trim().min(1).max(40).optional()
+  accountHolder: z.string().trim().min(1).max(40).optional(),
+  referralCode: z.string().trim().max(32).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -60,6 +61,16 @@ export default defineEventHandler(async (event) => {
       if (typeof body.bankAccount === 'string') patch.bank_account = body.bankAccount.trim()
       if (typeof body.accountHolder === 'string') patch.account_holder = body.accountHolder.trim()
       const { error } = await supa.from('trae_users').update(patch).eq('id', body.userId)
+      if (error) throw error
+    }
+
+    if (typeof body.referralCode === 'string') {
+      // 추천코드 수정은 총관리자만
+      await requireSuperAdmin(event)
+      const { error } = await supa
+        .from('trae_users')
+        .update({ referral_code: body.referralCode.trim(), updated_at: new Date().toISOString() })
+        .eq('id', body.userId)
       if (error) throw error
     }
 
@@ -116,6 +127,18 @@ export default defineEventHandler(async (event) => {
       typeof body.bankName === 'string' ? body.bankName.trim() : null,
       typeof body.bankAccount === 'string' ? body.bankAccount.trim() : null,
       typeof body.accountHolder === 'string' ? body.accountHolder.trim() : null,
+      new Date().toISOString(),
+      body.userId
+    )
+    const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
+    await syncUserToSupabase(userRow)
+  }
+
+  if (typeof body.referralCode === 'string') {
+    // 추천코드 수정은 총관리자만
+    await requireSuperAdmin(event)
+    db.prepare('UPDATE users SET referral_code = ?, updated_at = ? WHERE id = ?').run(
+      body.referralCode.trim(),
       new Date().toISOString(),
       body.userId
     )

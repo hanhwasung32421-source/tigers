@@ -154,6 +154,7 @@
 
 <script setup lang="ts">
 const { refresh } = useMe()
+const route = useRoute()
 
 const username = ref('')
 const name = ref('')
@@ -163,7 +164,8 @@ const passwordConfirm = ref('')
 const bankAccount = ref('')
 const bankName = ref('')
 const accountHolder = ref('')
-const referralCode = ref('')
+// 추천가입링크(?ref=코드)로 들어오면 추천코드를 미리 채워둔다
+const referralCode = ref(String(route.query.ref || ''))
 const agreedToTerms = ref(false)
 const termsOpen = ref(false)
 const loading = ref(false)

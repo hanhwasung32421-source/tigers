@@ -22,9 +22,16 @@
           <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
           <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
           <div v-if="isAdmin" class="group relative">
-            <NuxtLink to="/admin" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin')">관리자</NuxtLink>
+            <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
             <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
               <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
+                <button
+                  type="button"
+                  class="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                  @click="copyReferralLink"
+                >
+                  {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
+                </button>
                 <NuxtLink to="/admin/members" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/members')">회원 목록</NuxtLink>
                 <NuxtLink to="/admin/online" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/online')">실시간 접속</NuxtLink>
                 <NuxtLink to="/admin/trades" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/trades')">거래 내역</NuxtLink>
@@ -112,6 +119,22 @@ if (me.value) {
 }
 
 const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+// 관리자 대시보드(/admin)는 총관리자 전용. 부관리자는 회원 목록으로 바로 이동.
+const adminHomeTarget = computed(() => (me.value?.role === 'super_admin' ? '/admin' : '/admin/members'))
+const referralLinkCopied = ref(false)
+async function copyReferralLink() {
+  if (!me.value?.username || !process.client) return
+  const link = `${window.location.origin}/auth/register?ref=${encodeURIComponent(me.value.username)}`
+  try {
+    await navigator.clipboard.writeText(link)
+    referralLinkCopied.value = true
+    setTimeout(() => {
+      referralLinkCopied.value = false
+    }, 1500)
+  } catch {
+    // ignore
+  }
+}
 const supportTarget = computed(() => (isAdmin.value ? '/admin/messages' : '/support'))
 const bellTarget = computed(() => (isAdmin.value ? '/admin/messages' : '/support'))
 const showResetNotice = computed(

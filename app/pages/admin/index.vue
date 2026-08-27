@@ -182,7 +182,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: ['admin'] })
+definePageMeta({ middleware: ['admin', 'super-admin'] })
 const { me, refresh } = useMe()
 await refresh()
 
