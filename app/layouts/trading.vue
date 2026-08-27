@@ -41,13 +41,16 @@
                 >
                   {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
                 </button>
-                <NuxtLink v-if="canViewAdminMenu('members')" to="/admin/members" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/members')">회원 목록</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('online')" to="/admin/online" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/online')">실시간 접속</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('trades')" to="/admin/trades" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/trades')">거래 내역</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('positions')" to="/admin/positions" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/positions')">포지션 목록</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('messages')" to="/admin/messages" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/messages')">쪽지관리</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('settlement')" to="/admin/settlement" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/settlement')">정산내역</NuxtLink>
-                <NuxtLink v-if="canViewAdminMenu('deposits')" to="/admin/deposits" class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/admin/deposits')">입금/출금 내역</NuxtLink>
+                <template v-for="key in orderedAdminMenuKeys" :key="key">
+                  <NuxtLink
+                    v-if="canViewAdminMenu(key)"
+                    :to="ADMIN_MENU_ROUTES[key]"
+                    class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                    @click="startNavLoading(ADMIN_MENU_ROUTES[key])"
+                  >
+                    {{ ADMIN_MENU_LABELS[key] }}
+                  </NuxtLink>
+                </template>
               </div>
             </div>
           </div>
@@ -147,6 +150,41 @@ function canViewAdminMenu(key: string) {
   if (me.value?.role === 'super_admin') return true
   return (me.value as any)?.permissions?.menus?.[key]?.view !== false
 }
+
+const ADMIN_MENU_ROUTES: Record<string, string> = {
+  members: '/admin/members',
+  online: '/admin/online',
+  trades: '/admin/trades',
+  positions: '/admin/positions',
+  messages: '/admin/messages',
+  settlement: '/admin/settlement',
+  deposits: '/admin/deposits'
+}
+const ADMIN_MENU_LABELS: Record<string, string> = {
+  members: '회원 목록',
+  online: '실시간 접속',
+  trades: '거래 내역',
+  positions: '포지션 목록',
+  messages: '쪽지관리',
+  settlement: '정산내역',
+  deposits: '입금/출금 내역'
+}
+const DEFAULT_ADMIN_MENU_ORDER = Object.keys(ADMIN_MENU_ROUTES)
+const orderedAdminMenuKeys = ref<string[]>([...DEFAULT_ADMIN_MENU_ORDER])
+async function loadAdminMenuOrder() {
+  if (!isAdmin.value) return
+  try {
+    const data = await $fetch<{ order: string[] }>('/api/admin/menu-order')
+    const known = new Set(DEFAULT_ADMIN_MENU_ORDER)
+    const fromServer = (data.order || []).filter((k) => known.has(k))
+    const missing = DEFAULT_ADMIN_MENU_ORDER.filter((k) => !fromServer.includes(k))
+    orderedAdminMenuKeys.value = [...fromServer, ...missing]
+  } catch {
+    // 기본 순서 유지
+  }
+}
+if (isAdmin.value) await loadAdminMenuOrder()
+
 const referralLinkCopied = ref(false)
 async function copyReferralLink() {
   if (!me.value?.username || !process.client) return

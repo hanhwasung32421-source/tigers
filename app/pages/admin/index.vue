@@ -321,6 +321,39 @@
           <p class="mt-1 text-xs text-slate-500">부관리자별 개별 비율을 지정하지 않았을 때 사용되는 기본값입니다.</p>
         </div>
       </div>
+
+      <div class="mt-6 border-t border-white/10 pt-5">
+        <h3 class="text-sm font-semibold text-slate-200">관리자 메뉴 순서</h3>
+        <p class="mt-1 text-xs text-slate-400">상단 관리자 메뉴가 보이는 순서를 바꿉니다. 화살표로 위/아래로 옮기세요.</p>
+        <div class="mt-3 space-y-1.5">
+          <div
+            v-for="(key, idx) in miscDraft.menuOrder"
+            :key="key"
+            class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+          >
+            <span class="text-sm text-slate-200">{{ menuMeta[key]?.label || key }}</span>
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                class="rounded bg-white/10 px-2 py-1 text-xs hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                :disabled="idx === 0"
+                @click="moveMenuOrder(idx, -1)"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                class="rounded bg-white/10 px-2 py-1 text-xs hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                :disabled="idx === miscDraft.menuOrder.length - 1"
+                @click="moveMenuOrder(idx, 1)"
+              >
+                ▼
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="mt-4 flex items-center gap-3">
         <button
           class="rounded-md bg-indigo-500 px-4 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
@@ -982,8 +1015,16 @@ const miscDraft = reactive({
   telegramUrl: '',
   krwPerUsdt: 0,
   lossSettlementPercent: 0,
-  referralSettlementPercent: 0
+  referralSettlementPercent: 0,
+  menuOrder: menuKeys.filter((k) => k !== 'transfers') as string[]
 })
+
+function moveMenuOrder(idx: number, dir: -1 | 1) {
+  const next = idx + dir
+  if (next < 0 || next >= miscDraft.menuOrder.length) return
+  const arr = miscDraft.menuOrder
+  ;[arr[idx], arr[next]] = [arr[next], arr[idx]]
+}
 const miscSaving = ref(false)
 const miscError = ref<string | null>(null)
 const miscMsg = ref<string | null>(null)
@@ -1001,6 +1042,12 @@ async function loadMiscSettings() {
     miscDraft.krwPerUsdt = Number(data.krwPerUsdt || 0)
     miscDraft.lossSettlementPercent = Number(data.lossSettlementPercent || 0)
     miscDraft.referralSettlementPercent = Number(data.referralSettlementPercent || 0)
+    if (Array.isArray(data.menuOrder) && data.menuOrder.length) {
+      const known = new Set(menuKeys.filter((k) => k !== 'transfers'))
+      const fromServer = data.menuOrder.filter((k: string) => known.has(k as MenuKey))
+      const missing = menuKeys.filter((k) => k !== 'transfers' && !fromServer.includes(k))
+      miscDraft.menuOrder = [...fromServer, ...missing]
+    }
     dailyKrwRate.value = Number(data.dailyKrwRate || 0)
     dailyKrwRateDay.value = String(data.dailyKrwRateDay || '')
   } catch {
@@ -1019,7 +1066,8 @@ async function saveMiscSettings() {
         telegramUrl: miscDraft.telegramUrl,
         krwPerUsdt: Number(miscDraft.krwPerUsdt) || 0,
         lossSettlementPercent: Number(miscDraft.lossSettlementPercent) || 0,
-        referralSettlementPercent: Number(miscDraft.referralSettlementPercent) || 0
+        referralSettlementPercent: Number(miscDraft.referralSettlementPercent) || 0,
+        menuOrder: miscDraft.menuOrder
       }
     })
     miscMsg.value = '저장되었습니다.'

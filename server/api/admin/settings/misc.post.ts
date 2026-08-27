@@ -6,7 +6,8 @@ const BodySchema = z.object({
   telegramUrl: z.string().trim().max(300).optional(),
   krwPerUsdt: z.number().nonnegative().optional(),
   lossSettlementPercent: z.number().min(0).max(100).optional(),
-  referralSettlementPercent: z.number().min(0).max(100).optional()
+  referralSettlementPercent: z.number().min(0).max(100).optional(),
+  menuOrder: z.array(z.string()).optional()
 })
 
 export default defineEventHandler(async (event) => {

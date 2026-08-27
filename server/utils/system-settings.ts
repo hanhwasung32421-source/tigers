@@ -42,27 +42,50 @@ export async function setLiquidationRoe(value: number): Promise<number> {
   return v
 }
 
+// 상단 관리자 메뉴 표시 순서(입출금 내역은 숨김 처리되어 있어 대상에서 뺀다).
+export const REORDERABLE_MENU_KEYS = ['members', 'online', 'trades', 'positions', 'messages', 'settlement', 'deposits'] as const
+export type ReorderableMenuKey = (typeof REORDERABLE_MENU_KEYS)[number]
+
 export type SystemSettingsExtra = {
   telegramUrl: string
   krwPerUsdt: number
   lossSettlementPercent: number
   referralSettlementPercent: number
+  menuOrder: string[]
 }
 
 const DEFAULT_EXTRA: SystemSettingsExtra = {
   telegramUrl: '',
   krwPerUsdt: 0,
   lossSettlementPercent: 0,
-  referralSettlementPercent: 0
+  referralSettlementPercent: 0,
+  menuOrder: [...REORDERABLE_MENU_KEYS]
+}
+
+// 저장된 값이 없거나 최근에 메뉴가 추가/삭제되어 목록이 어긋나도 항상 유효한 순서를 돌려준다.
+function normalizeMenuOrder(raw: any): string[] {
+  const known = new Set<string>(REORDERABLE_MENU_KEYS)
+  const fromRaw = Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string' && known.has(k)) : []
+  const missing = REORDERABLE_MENU_KEYS.filter((k) => !fromRaw.includes(k))
+  return [...fromRaw, ...missing]
 }
 
 function rowToExtra(row: any): SystemSettingsExtra {
   if (!row) return { ...DEFAULT_EXTRA }
+  let menuOrderRaw: any = row.menu_order
+  if (typeof menuOrderRaw === 'string') {
+    try {
+      menuOrderRaw = JSON.parse(menuOrderRaw)
+    } catch {
+      menuOrderRaw = null
+    }
+  }
   return {
     telegramUrl: String(row.telegram_url || ''),
     krwPerUsdt: Number(row.krw_per_usdt || 0),
     lossSettlementPercent: Number(row.loss_settlement_percent || 0),
-    referralSettlementPercent: Number(row.referral_settlement_percent || 0)
+    referralSettlementPercent: Number(row.referral_settlement_percent || 0),
+    menuOrder: normalizeMenuOrder(menuOrderRaw)
   }
 }
 
@@ -77,13 +100,17 @@ export async function getSystemSettingsExtra(): Promise<SystemSettingsExtra> {
     }
   }
   const db = getDb()
-  const row = db.prepare('SELECT telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent FROM system_settings WHERE id = 1').get()
+  const row = db.prepare('SELECT telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order FROM system_settings WHERE id = 1').get()
   return rowToExtra(row)
 }
 
 export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExtra>): Promise<SystemSettingsExtra> {
   const current = await getSystemSettingsExtra()
-  const next: SystemSettingsExtra = { ...current, ...patch }
+  const next: SystemSettingsExtra = {
+    ...current,
+    ...patch,
+    menuOrder: patch.menuOrder ? normalizeMenuOrder(patch.menuOrder) : current.menuOrder
+  }
   const now = new Date().toISOString()
 
   if (supabaseAppDbEnabled()) {
@@ -95,6 +122,7 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
         krw_per_usdt: next.krwPerUsdt,
         loss_settlement_percent: next.lossSettlementPercent,
         referral_settlement_percent: next.referralSettlementPercent,
+        menu_order: next.menuOrder,
         updated_at: now
       },
       'id'
@@ -104,15 +132,16 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
 
   const db = getDb()
   db.prepare(
-    `INSERT INTO system_settings (id, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, updated_at)
-     VALUES (1, ?, ?, ?, ?, ?)
+    `INSERT INTO system_settings (id, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, updated_at)
+     VALUES (1, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        telegram_url = excluded.telegram_url,
        krw_per_usdt = excluded.krw_per_usdt,
        loss_settlement_percent = excluded.loss_settlement_percent,
        referral_settlement_percent = excluded.referral_settlement_percent,
+       menu_order = excluded.menu_order,
        updated_at = excluded.updated_at`
-  ).run(next.telegramUrl, next.krwPerUsdt, next.lossSettlementPercent, next.referralSettlementPercent, now)
+  ).run(next.telegramUrl, next.krwPerUsdt, next.lossSettlementPercent, next.referralSettlementPercent, JSON.stringify(next.menuOrder), now)
   return next
 }
 

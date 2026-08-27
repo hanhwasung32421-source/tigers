@@ -154,6 +154,7 @@ export function getDb() {
       krw_auto_rate REAL NOT NULL DEFAULT 0,
       krw_auto_rate_day TEXT NOT NULL DEFAULT '',
       krw_auto_rate_updated_at TEXT NULL,
+      menu_order TEXT NOT NULL DEFAULT '',
       updated_at TEXT NOT NULL
     );
 
@@ -236,6 +237,7 @@ export function getDb() {
     if (!sysCols.includes('krw_auto_rate')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_auto_rate REAL NOT NULL DEFAULT 0;')
     if (!sysCols.includes('krw_auto_rate_day')) db.exec("ALTER TABLE system_settings ADD COLUMN krw_auto_rate_day TEXT NOT NULL DEFAULT '';")
     if (!sysCols.includes('krw_auto_rate_updated_at')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_auto_rate_updated_at TEXT NULL;')
+    if (!sysCols.includes('menu_order')) db.exec("ALTER TABLE system_settings ADD COLUMN menu_order TEXT NOT NULL DEFAULT '';")
   } catch {
     // ignore
   }
