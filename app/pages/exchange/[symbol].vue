@@ -1427,11 +1427,11 @@ const currentCandleMeta = computed(() => {
 
 function fmtPrice(v: number) {
   if (!Number.isFinite(v)) return '—'
-  return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 5 })
+  return v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 5 })
 }
 function fmtNum(v: number) {
   if (!Number.isFinite(v)) return '—'
-  return v.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  return v.toLocaleString('en-US', { maximumFractionDigits: 2 })
 }
 
 function markOf(sym: string) {
@@ -1665,7 +1665,7 @@ function startPendingCloseRecovery() {
 
 const balanceDisplay = computed(() => {
   const v = Number(balance.value || 0)
-  return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 5 })
+  return v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 5 })
 })
 
 const KRW_RATE = 1350
@@ -1682,7 +1682,7 @@ const totalAssetsUsdt = computed(() => {
 })
 
 const totalAssetsDisplay = computed(() =>
-  Number(totalAssetsUsdt.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  Number(totalAssetsUsdt.value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 )
 
 const availableWonText = computed(() => Math.round(Number(balance.value || 0) * KRW_RATE).toLocaleString())
@@ -2474,7 +2474,7 @@ const leverageCapacityText = computed(() => {
   const base = Number(balance.value || 0)
   const lev = Number(leverageDraft.value || 1)
   const cap = base * lev
-  return cap.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  return cap.toLocaleString('en-US', { maximumFractionDigits: 0 })
 })
 
 function openLeverageModal() {

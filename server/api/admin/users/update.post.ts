@@ -40,6 +40,19 @@ async function resolveRolePermissions(role: string): Promise<any> {
 }
 
 export default defineEventHandler(async (event) => {
+  try {
+    return await handleUpdate(event)
+  } catch (e: any) {
+    // createError로 던진 에러(로그인/권한/검증 실패 등)는 이미 statusMessage가 있으므로 그대로 전달.
+    // 그 외(예: DB/네트워크 예외)는 클라이언트에 "저장 실패"만 보이고 원인을 알 수 없게 되므로,
+    // 서버 로그에 원인을 남기고 statusMessage에도 실제 메시지를 담아 내려준다.
+    if (e && typeof e.statusCode === 'number') throw e
+    console.error('[admin/users/update] unexpected error:', e)
+    throw createError({ statusCode: 500, statusMessage: e?.message || '저장 중 알 수 없는 오류가 발생했습니다.' })
+  }
+})
+
+async function handleUpdate(event: any) {
   const admin = await requireAdmin(event)
   const parsed = BodySchema.safeParse(await readBody(event))
   if (!parsed.success) {
@@ -287,4 +300,4 @@ export default defineEventHandler(async (event) => {
   }
 
   return { ok: true }
-})
+}

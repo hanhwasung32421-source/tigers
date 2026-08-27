@@ -152,10 +152,10 @@ const page = ref(1)
 const pageSize = 10
 
 function fmt2(v: number) {
-  return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 function fmtPrice(v: number) {
-  return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+  return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 }
 function formatDateTime(v: string) {
   const d = new Date(v)

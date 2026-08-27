@@ -141,10 +141,10 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 function fmt2(v: number) {
-  return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 function fmt0(v: number) {
-  return Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })
+  return Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
 // 모든 수치는 원화로 먼저 보여주고, 기존(USDT) 수치는 괄호 안에 표기한다.
 function fmtKrw(usdtValue: number) {

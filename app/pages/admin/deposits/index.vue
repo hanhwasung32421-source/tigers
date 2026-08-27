@@ -108,10 +108,10 @@ const error = ref<string | null>(null)
 const resolvingId = ref<number | null>(null)
 
 function fmt2(v: number) {
-  return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 function fmt0(v: number) {
-  return Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })
+  return Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
 function formatDateTime(v: string) {
   const d = new Date(v)

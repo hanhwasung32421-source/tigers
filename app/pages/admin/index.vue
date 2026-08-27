@@ -1147,7 +1147,7 @@ const dailyKrwRate = ref(0)
 const dailyKrwRateDay = ref('')
 
 function fmt0(v: number) {
-  return Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })
+  return Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
 
 async function loadMiscSettings() {
