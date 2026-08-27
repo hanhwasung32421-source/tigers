@@ -41,7 +41,7 @@
           <input
             v-model.trim="userSearch"
             placeholder="아이디/이름 검색"
-            class="w-48 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            class="w-48 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-indigo-400/60"
           />
           <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="load">
             새로고침
@@ -58,71 +58,74 @@
         </button>
       </div>
 
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
         <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
         <div v-else class="overflow-auto">
-          <table class="w-full text-sm">
-            <thead class="text-left text-slate-400">
+          <table class="w-full min-w-[980px] text-sm">
+            <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
               <tr>
-                <th class="cursor-pointer select-none py-2" @click="toggleSort('username')">아이디{{ sortArrow('username') }}</th>
-                <th class="cursor-pointer select-none py-2" @click="toggleSort('name')">이름{{ sortArrow('name') }}</th>
-                <th class="py-2">계좌정보</th>
-                <th class="cursor-pointer select-none py-2" @click="toggleSort('usdt')">USDT잔액{{ sortArrow('usdt') }}</th>
-                <th class="cursor-pointer select-none py-2" @click="toggleSort('referralCode')">추천코드{{ sortArrow('referralCode') }}</th>
-                <th class="cursor-pointer select-none py-2" @click="toggleSort('role')">역할{{ sortArrow('role') }}</th>
-                <th class="py-2">정산유형</th>
-                <th class="py-2">하부보기</th>
-                <th class="py-2">비밀번호 초기화</th>
-                <th class="py-2">로그인</th>
+                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디{{ sortArrow('username') }}</th>
+                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름{{ sortArrow('name') }}</th>
+                <th class="whitespace-nowrap px-3 py-3 text-left">계좌정보</th>
+                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('usdt')">USDT잔액{{ sortArrow('usdt') }}</th>
+                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드{{ sortArrow('referralCode') }}</th>
+                <th class="cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">역할{{ sortArrow('role') }}</th>
+                <th class="whitespace-nowrap px-3 py-3 text-left">정산유형</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">하부보기</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">비밀번호</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">로그인</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="u in sortedUsers" :key="u.id" class="border-t border-white/10">
+              <tr v-for="u in sortedUsers" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
                 <template v-if="userDraft[u.id]">
-                  <td class="py-2">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].username"
-                      class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="py-2">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].name"
-                      class="w-24 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      class="w-24 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="py-2">
-                    <button class="rounded-md bg-white/10 px-3 py-1 text-sm hover:bg-white/15" @click="openAccountModal(u)">
+                  <td class="px-3 py-2.5">
+                    <button
+                      class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
+                      @click="openAccountModal(u)"
+                    >
                       계좌정보
                     </button>
                   </td>
-                  <td class="py-2">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.number="userDraft[u.id].usdt"
                       type="number"
                       min="0"
                       step="0.01"
-                      class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="py-2">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].referralCode"
-                      class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="py-2">
+                  <td class="px-3 py-2.5">
                     <select
                       v-model="userDraft[u.id].role"
-                      class="w-40 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      class="w-40 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                       @change="saveUserRow(u.id)"
                     >
                       <option value="user">일반 유저 (user)</option>
@@ -130,35 +133,38 @@
                       <option value="super_admin">최고관리자 (super_admin)</option>
                     </select>
                   </td>
-                  <td class="py-2">
+                  <td class="px-3 py-2.5">
                     <select
                       v-if="u.role === 'branch_admin'"
                       v-model="userDraft[u.id].settlementType"
-                      class="w-32 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      class="w-32 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                       @change="saveUserRow(u.id)"
                     >
                       <option value="loss">손실정산</option>
                       <option value="referral">레퍼럴정산</option>
                     </select>
-                    <span v-else class="text-xs text-slate-500">-</span>
+                    <span v-else class="text-xs text-slate-600">—</span>
                   </td>
-                  <td class="py-2">
-                    <button class="rounded-md bg-white/10 px-3 py-1 text-sm hover:bg-white/15" @click="referralFilter = u.username">
+                  <td class="px-3 py-2.5 text-center">
+                    <button
+                      class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
+                      @click="referralFilter = u.username"
+                    >
                       하부보기
                     </button>
                   </td>
-                  <td class="py-2">
+                  <td class="px-3 py-2.5 text-center">
                     <button
-                      class="rounded-md bg-amber-500/15 px-3 py-1 text-sm text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="whitespace-nowrap rounded-md bg-amber-500/15 px-3 py-1.5 text-sm text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="userResetting === u.id"
                       @click="resetUserPassword(u.id)"
                     >
                       초기화
                     </button>
                   </td>
-                  <td class="py-2">
+                  <td class="px-3 py-2.5 text-center">
                     <button
-                      class="rounded-md bg-emerald-500/15 px-3 py-1 text-sm text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="whitespace-nowrap rounded-md bg-emerald-500/15 px-3 py-1.5 text-sm text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="loggingInAs === u.id"
                       @click="loginAsUser(u.id)"
                     >
