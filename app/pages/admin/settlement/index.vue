@@ -43,8 +43,9 @@
         <button class="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10" @click="resetToThisWeek">이번주</button>
 
         <div class="ml-auto rounded-md border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
-          기간 총 정산금 <span class="font-mono text-base font-semibold">{{ fmt2(total) }}</span> USDT
-          <span class="ml-2 text-xs text-cyan-300/70">(정산비율 {{ percent }}%)</span>
+          기간 총 정산금 <span class="font-mono text-base font-semibold">{{ fmtKrw(total) }}</span
+          ><span class="ml-1 font-mono text-xs text-cyan-300/70">({{ fmt2(total) }})</span>
+          <span class="ml-2 text-xs text-cyan-300/70">(정산비율 {{ percent }}%, 환율 {{ fmt0(krwPerUsdt) }}원/USDT)</span>
         </div>
       </div>
 
@@ -66,9 +67,15 @@
             <tr v-for="it in items" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
               <td class="px-3 py-3 text-slate-200">{{ it.name }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(it.balanceUsdt) }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmt2(it.baseAmount) }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-100">{{ fmt2(it.settlementAmount) }}</td>
+              <td class="px-3 py-3 text-right font-mono text-slate-200">
+                {{ fmtKrw(it.balanceUsdt) }} <span class="text-slate-500">({{ fmt2(it.balanceUsdt) }})</span>
+              </td>
+              <td class="px-3 py-3 text-right font-mono text-slate-300">
+                {{ fmtKrw(it.baseAmount) }} <span class="text-slate-500">({{ fmt2(it.baseAmount) }})</span>
+              </td>
+              <td class="px-3 py-3 text-right font-mono text-slate-100">
+                {{ fmtKrw(it.settlementAmount) }} <span class="text-slate-500">({{ fmt2(it.settlementAmount) }})</span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -124,11 +131,19 @@ const toDate = ref(initRange.to)
 const items = ref<SettlementItem[]>([])
 const total = ref(0)
 const percent = ref(0)
+const krwPerUsdt = ref(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
 function fmt2(v: number) {
   return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+function fmt0(v: number) {
+  return Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })
+}
+// 모든 수치는 원화로 먼저 보여주고, 기존(USDT) 수치는 괄호 안에 표기한다.
+function fmtKrw(usdtValue: number) {
+  return `${Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()}원`
 }
 
 function resetToThisWeek() {
@@ -147,6 +162,7 @@ async function load() {
     items.value = res.items || []
     total.value = Number(res.total || 0)
     percent.value = Number(res.percent || 0)
+    krwPerUsdt.value = Number(res.krwPerUsdt || 0)
     error.value = null
   } catch (e: any) {
     error.value = e?.data?.statusMessage || '정산내역을 불러오지 못했습니다.'

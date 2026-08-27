@@ -3,7 +3,7 @@ import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canViewMenu, settlementTypesOf, type SettlementType } from '../../utils/menu-permissions'
-import { getSystemSettingsExtra } from '../../utils/system-settings'
+import { getSystemSettingsExtra, resolveKrwPerUsdtRate } from '../../utils/system-settings'
 
 const FEE_RATE = 0.04
 
@@ -51,6 +51,7 @@ export default defineEventHandler(async (event) => {
 
   const extra = await getSystemSettingsExtra()
   const percent = type === 'loss' ? extra.lossSettlementPercent : extra.referralSettlementPercent
+  const krwPerUsdt = await resolveKrwPerUsdtRate()
 
   const scopeToReferral = admin.role === 'branch_admin' ? admin.username : null
 
@@ -63,7 +64,7 @@ export default defineEventHandler(async (event) => {
     if (e1) throw e1
 
     const ids = (users || []).map((u: any) => Number(u.id)).filter(Boolean)
-    if (!ids.length) return { items: [], total: 0, percent, from, to }
+    if (!ids.length) return { items: [], total: 0, percent, from, to, krwPerUsdt }
 
     const { data: balances, error: e2 } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
     if (e2) throw e2
@@ -105,7 +106,7 @@ export default defineEventHandler(async (event) => {
     })
 
     const total = items.reduce((sum, it) => sum + it.settlementAmount, 0)
-    return { items, total, percent, from, to }
+    return { items, total, percent, from, to, krwPerUsdt }
   }
 
   const db = getDb()
@@ -114,7 +115,7 @@ export default defineEventHandler(async (event) => {
     : (db.prepare("SELECT id, username, name, referral_code FROM users WHERE role = 'user'").all() as any[])
 
   const ids = users.map((u: any) => Number(u.id))
-  if (!ids.length) return { items: [], total: 0, percent, from, to }
+  if (!ids.length) return { items: [], total: 0, percent, from, to, krwPerUsdt }
 
   const balances = db.prepare('SELECT user_id, usdt FROM balances').all() as any[]
   const balanceMap = new Map(balances.map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
@@ -154,5 +155,5 @@ export default defineEventHandler(async (event) => {
   })
 
   const total = items.reduce((sum, it) => sum + it.settlementAmount, 0)
-  return { items, total, percent, from, to }
+  return { items, total, percent, from, to, krwPerUsdt }
 })
