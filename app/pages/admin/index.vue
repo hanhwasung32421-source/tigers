@@ -92,7 +92,8 @@
                   <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].username"
-                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                      :disabled="isLockedUser(u)"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
@@ -100,14 +101,16 @@
                   <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].name"
-                      class="w-24 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                      :disabled="isLockedUser(u)"
+                      class="w-24 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
                   <td class="px-3 py-2.5">
                     <button
-                      class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
+                      class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+                      :disabled="isLockedUser(u)"
                       @click="openAccountModal(u)"
                     >
                       계좌정보
@@ -119,7 +122,8 @@
                       type="number"
                       min="0"
                       step="0.01"
-                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                      :disabled="isLockedUser(u)"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
@@ -127,7 +131,8 @@
                   <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].referralCode"
-                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                      :disabled="isLockedUser(u)"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
@@ -135,7 +140,8 @@
                   <td class="px-3 py-2.5">
                     <select
                       v-model="userDraft[u.id].role"
-                      class="w-40 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                      :disabled="isLockedUser(u)"
+                      class="w-40 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @change="saveUserRow(u.id)"
                     >
                       <option value="user">회원 (user)</option>
@@ -180,7 +186,7 @@
                   <td class="px-3 py-2.5 text-center">
                     <button
                       class="whitespace-nowrap rounded-md bg-amber-500/15 px-3 py-1.5 text-sm text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="userResetting === u.id"
+                      :disabled="userResetting === u.id || isLockedUser(u)"
                       @click="resetUserPassword(u.id)"
                     >
                       초기화
@@ -663,6 +669,11 @@ const banks = [
   '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
   '수협은행', 'SC제일은행', '씨티은행', '부산은행', '대구은행', '경남은행', '광주은행', '전북은행', '제주은행', '우체국'
 ]
+
+// 최고관리자(super_admin) 계정은 실수 방지를 위해 이 화면에서 수정할 수 없다(승격은 계속 허용).
+function isLockedUser(u: AdminUserRow) {
+  return u.role === 'super_admin'
+}
 
 function toggleSort(key: typeof sortKey.value) {
   if (sortKey.value === key) {

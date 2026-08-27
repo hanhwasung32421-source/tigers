@@ -61,6 +61,16 @@ async function handleUpdate(event: any) {
   const body = parsed.data
   const useSupa = supabaseAppDbEnabled()
 
+  // 최고관리자(super_admin) 계정은 사고 방지를 위해 이 화면에서 더 이상 수정할 수 없다.
+  // (다른 계정을 super_admin으로 "승격"하는 것은 계속 허용하되, 이미 super_admin인 계정은
+  //  이후 어떤 필드도— 이름/잔액/역할/정산비율 등— 바꿀 수 없다.)
+  const targetRole = useSupa
+    ? String((await supaSelectOne<any>('trae_users', { id: body.userId }))?.role || '')
+    : String((getDb().prepare('SELECT role FROM users WHERE id = ?').get(body.userId) as { role?: string } | undefined)?.role || '')
+  if (targetRole === 'super_admin') {
+    throw createError({ statusCode: 403, statusMessage: '최고관리자 계정은 이 화면에서 수정할 수 없습니다.' })
+  }
+
   if (useSupa) {
     const supa = getSupabaseAdminClient()
 

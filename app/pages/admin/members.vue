@@ -69,7 +69,18 @@
             </tr>
             <tr v-for="u in paged" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3">
-                <span class="rounded bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">{{ u.role }}</span>
+                <select
+                  v-if="canEditRoleOf(u)"
+                  v-model="roleDraft[u.id]"
+                  class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-[11px] text-slate-200 outline-none"
+                  :disabled="grantingId === u.id"
+                  @change="onRoleSelectChange(u)"
+                >
+                  <option value="user">회원</option>
+                  <option v-for="r in grantableRoles" :key="r.id" :value="r.id">{{ r.label }}</option>
+                  <option v-if="me?.role === 'super_admin'" value="super_admin">최고관리자</option>
+                </select>
+                <span v-else class="rounded bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">{{ u.role }}</span>
               </td>
               <td class="px-3 py-3">
                 <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">승인</span>
@@ -84,30 +95,8 @@
               <td class="px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
               <td class="px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
               <td class="px-3 py-3 text-right">
-                <div v-if="u.roleId === 'user' && isDirectChildOfMe(u) && grantableRoles.length" class="flex justify-end">
-                  <select
-                    v-if="roleEditingId === u.id"
-                    :ref="(el) => focusSelectOnMount(el)"
-                    class="w-32 rounded-md border border-[#173753] bg-[#041425] px-1.5 py-1 text-[11px] text-slate-200 outline-none"
-                    :disabled="grantingId === u.id"
-                    @change="onGrantRoleSelect(u, $event)"
-                    @blur="roleEditingId = null"
-                  >
-                    <option value="" disabled selected>역할 선택</option>
-                    <option v-for="r in grantableRoles" :key="r.id" :value="r.id">{{ r.label }}</option>
-                  </select>
-                  <button
-                    v-else
-                    type="button"
-                    class="whitespace-nowrap rounded bg-white/10 px-2 py-1 text-[11px] font-semibold text-slate-100 ring-1 ring-white/15 hover:bg-white/15"
-                    :disabled="grantingId === u.id"
-                    @click="roleEditingId = u.id"
-                  >
-                    {{ u.role }}
-                  </button>
-                </div>
                 <input
-                  v-else-if="u.roleId !== 'user' && u.roleId !== 'super_admin' && canEditRate(u)"
+                  v-if="u.roleId !== 'user' && u.roleId !== 'super_admin' && canEditRate(u)"
                   v-model="rateDraft[u.id]"
                   type="number"
                   min="0"
@@ -500,13 +489,18 @@ function canEditRate(u: MemberRow) {
 }
 
 const rateDraft = reactive<Record<number, string>>({})
+const roleDraft = reactive<Record<number, string>>({})
 const grantingId = ref<number | null>(null)
 
-// 코드부여: "회원" 상태일 때 클릭하면 드롭다운이 뜨고, 고르면 바로 저장된다(별도 버튼 없음).
+// 역할 변경: 유저 및 권한 관리 화면과 동일하게, 드롭다운에서 바로 고르면 즉시 저장된다.
 // 드롭다운에는 내가 실제로 부여할 수 있는(나보다 서열이 낮은) 역할만 나온다.
+// 최고관리자(super_admin) 계정은 사고 방지를 위해 이 화면에서 역할을 바꿀 수 없다.
 type RoleOption = { id: string; label: string }
 const grantableRoles = ref<RoleOption[]>([])
-const roleEditingId = ref<number | null>(null)
+
+function canEditRoleOf(u: MemberRow) {
+  return isDirectChildOfMe(u) && u.roleId !== 'super_admin' && grantableRoles.value.length > 0
+}
 
 async function loadRoles() {
   try {
@@ -517,16 +511,16 @@ async function loadRoles() {
   }
 }
 
-function focusSelectOnMount(el: any) {
-  if (el && typeof el.focus === 'function') el.focus()
-}
-
-async function onGrantRoleSelect(u: MemberRow, event: Event) {
-  const roleId = (event.target as HTMLSelectElement).value
-  roleEditingId.value = null
-  if (!roleId) return
-  const roleLabel = grantableRoles.value.find((r) => r.id === roleId)?.label || roleId
-  if (process.client && !window.confirm(`${u.username} 님에게 "${roleLabel}" 코드를 부여할까요? (관리자 페이지 접근 권한이 생깁니다)`)) return
+async function onRoleSelectChange(u: MemberRow) {
+  const roleId = roleDraft[u.id]
+  const prevRoleId = u.roleId
+  if (!roleId || roleId === prevRoleId) return
+  const roleLabel =
+    roleId === 'user' ? '회원' : roleId === 'super_admin' ? '최고관리자' : grantableRoles.value.find((r) => r.id === roleId)?.label || roleId
+  if (process.client && !window.confirm(`${u.username} 님의 역할을 "${roleLabel}"(으)로 변경할까요?`)) {
+    roleDraft[u.id] = prevRoleId
+    return
+  }
   grantingId.value = u.id
   try {
     await $fetch('/api/admin/users/update', {
@@ -535,7 +529,8 @@ async function onGrantRoleSelect(u: MemberRow, event: Event) {
     })
     await load(true)
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '코드부여에 실패했습니다.')
+    alert(e?.data?.statusMessage || '역할 변경에 실패했습니다.')
+    roleDraft[u.id] = prevRoleId
   } finally {
     grantingId.value = null
   }
@@ -546,6 +541,7 @@ function syncRateDraft(list: MemberRow[]) {
     if (rateDraft[u.id] === undefined || document.activeElement?.getAttribute('data-rate-id') !== String(u.id)) {
       rateDraft[u.id] = typeof u.affiliateRate === 'number' ? String(u.affiliateRate) : ''
     }
+    roleDraft[u.id] = u.roleId
   }
 }
 
