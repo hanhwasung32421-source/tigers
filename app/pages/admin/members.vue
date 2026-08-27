@@ -1,8 +1,13 @@
 <template>
   <div class="space-y-5">
-    <div>
-      <h1 class="text-xl font-semibold">회원 목록</h1>
-      <p class="mt-1 text-sm text-slate-400">회원 목록을 조회합니다.</p>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">회원 목록</h1>
+        <p class="mt-1 text-sm text-slate-400">회원 목록을 조회합니다.</p>
+      </div>
+      <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
+        총 보유금액 <span class="font-mono text-base font-semibold">{{ fmt2(totalBalance) }}</span> USDT
+      </div>
     </div>
 
     <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
@@ -44,18 +49,18 @@
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
-              <th class="px-3 py-3 text-left">유저권한</th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('role')">유저권한<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
               <th class="px-3 py-3 text-left">승인상태</th>
-              <th class="px-3 py-3 text-left">아이디</th>
-              <th class="px-3 py-3 text-left">회원이름</th>
-              <th class="px-3 py-3 text-left">추천코드</th>
-              <th class="px-3 py-3 text-left">총판이름</th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('name')">회원이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('affiliateName')">총판이름<span class="sort-icon">{{ sortArrow('affiliateName') || ' ⇅' }}</span></th>
               <th class="px-3 py-3 text-left">총판부모</th>
-              <th class="px-3 py-3 text-right">총판수율</th>
-              <th class="px-3 py-3 text-right">보유금액</th>
-              <th class="px-3 py-3 text-right">누적수익</th>
-              <th class="px-3 py-3 text-left">가입일</th>
-              <th class="px-3 py-3 text-left">접속여부</th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('affiliateRate')">총판수율<span class="sort-icon">{{ sortArrow('affiliateRate') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">보유금액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('cumulativeProfit')">누적수익<span class="sort-icon">{{ sortArrow('cumulativeProfit') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('online')">접속여부<span class="sort-icon">{{ sortArrow('online') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -597,9 +602,36 @@ function formatDateTime(v: string) {
   }).format(d)
 }
 
+type SortKey =
+  | 'role'
+  | 'username'
+  | 'name'
+  | 'referralCode'
+  | 'affiliateName'
+  | 'affiliateRate'
+  | 'balanceUsdt'
+  | 'cumulativeProfit'
+  | 'created_at'
+  | 'online'
+const sortKey = ref<SortKey | null>(null)
+const sortDir = ref<'asc' | 'desc'>('asc')
+
+function toggleSort(key: SortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
+function sortArrow(key: SortKey) {
+  if (sortKey.value !== key) return ''
+  return sortDir.value === 'asc' ? ' ▲' : ' ▼'
+}
+
 const filtered = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  return items.value.filter((u) => {
+  const rows = items.value.filter((u) => {
     if (roleFilter.value === 'user' && u.roleId !== 'user') return false
     if (roleFilter.value === 'super_admin' && u.roleId !== 'super_admin') return false
     if (roleFilter.value === 'admin' && (u.roleId === 'user' || u.roleId === 'super_admin')) return false
@@ -618,7 +650,22 @@ const filtered = computed(() => {
     if (!q) return true
     return [u.username, u.name, u.affiliateName, String(u.id)].some((v) => String(v).toLowerCase().includes(q))
   })
+
+  if (!sortKey.value) return rows
+  const key = sortKey.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    if (key === 'online') return (Number(a.online) - Number(b.online)) * dir
+    const av = a[key]
+    const bv = b[key]
+    if (av === null || av === undefined) return bv === null || bv === undefined ? 0 : 1
+    if (bv === null || bv === undefined) return -1
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+    return String(av).localeCompare(String(bv)) * dir
+  })
 })
+
+const totalBalance = computed(() => items.value.reduce((sum, u) => sum + Number(u.balanceUsdt || 0), 0))
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
 const paged = computed(() => {
@@ -814,6 +861,22 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.sortable-th {
+  color: rgb(203 213 225 / 0.9);
+  transition: color 0.15s ease;
+}
+.sortable-th:hover {
+  color: #fff;
+}
+.sortable-th .sort-icon {
+  margin-left: 2px;
+  font-size: 10px;
+  color: rgb(148 163 184 / 0.6);
+}
+.sortable-th:hover .sort-icon {
+  color: rgb(203 213 225 / 0.9);
+}
+
 .date-input {
   position: relative;
   min-width: 140px;
