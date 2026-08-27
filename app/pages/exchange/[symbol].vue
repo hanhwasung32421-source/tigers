@@ -743,8 +743,9 @@
           <input
             v-model.number="killPercentDraft"
             type="number"
-            min="1"
+            min="0.1"
             max="90"
+            step="0.1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
           <span class="text-sm text-slate-400">%</span>
@@ -1294,7 +1295,7 @@ type KillEvent = {
 }
 const killModalOpen = ref(false)
 const killModalDirection = ref<'up' | 'down'>('down')
-const killPercentDraft = ref(5)
+const killPercentDraft = ref(0.5)
 const killError = ref<string | null>(null)
 let lastSeenKillEventId = 0
 let killPollTimer: any = null
@@ -1974,7 +1975,7 @@ function updateLiveCandle(price: number, tsMs: number) {
 function openKillModal(dir: 'up' | 'down') {
   if (!isSuperAdminUser.value) return
   killModalDirection.value = dir
-  killPercentDraft.value = 5
+  killPercentDraft.value = 0.5
   killError.value = null
   killModalOpen.value = true
 }
@@ -1984,9 +1985,9 @@ function closeKillModal() {
 }
 
 async function confirmKillModal() {
-  const percent = Math.round(Number(killPercentDraft.value))
-  if (!Number.isFinite(percent) || percent < 1 || percent > 90) {
-    killError.value = '1~90 사이의 숫자를 입력해주세요.'
+  const percent = Number(killPercentDraft.value)
+  if (!Number.isFinite(percent) || percent < 0.1 || percent > 90) {
+    killError.value = '0.1~90 사이의 숫자를 입력해주세요.'
     return
   }
   adminKillBusy.value = true
@@ -2020,6 +2021,11 @@ async function initKillEventBaseline() {
   }
 }
 
+// 킬 애니메이션 상수: 0.3초 간격으로 3틱(약 1초)에 걸쳐 목표 %까지 움직인 뒤, 잠깐 유지하다 복귀.
+const KILL_TICK_MS = 333
+const KILL_TICK_COUNT = 3
+const KILL_HOLD_MS = 250
+
 async function runKillAnimation(ev: KillEvent) {
   if (!process.client) return
 
@@ -2029,11 +2035,11 @@ async function runKillAnimation(ev: KillEvent) {
     return
   }
 
+  if (adminKillTimer) clearTimeout(adminKillTimer)
   adminKillBusy.value = true
-  adminKillUiOverride.value = ev.shockedPrice
-  adminKillFreezeUntil = Date.now() + 1100
+  adminKillFreezeUntil = Date.now() + KILL_TICK_MS * KILL_TICK_COUNT + KILL_HOLD_MS + 300
 
-  // 1단계: 스파이크를 실제 캔들 데이터(candleData/liveLastCandle)에 반영한다.
+  // 스파이크를 실제 캔들 데이터(candleData/liveLastCandle)에 반영한다.
   // 고가/저가는 이후에도 실제 기록으로 영구히 남아야 하므로, 화면(series)만 바꾸는 게 아니라
   // 반응형 상태 자체를 갱신한다(현재 봉을 그리는 updateLiveCandle과 동일한 방식).
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
@@ -2041,27 +2047,30 @@ async function runKillAnimation(ev: KillEvent) {
   const openPrice = last ? Number((last as any).open) : ev.basePrice
   const priorHigh = last ? Number((last as any).high) : ev.basePrice
   const priorLow = last ? Number((last as any).low) : ev.basePrice
-  const spiked: CandlestickData = {
-    time,
-    open: openPrice,
-    high: Math.max(priorHigh, ev.basePrice, ev.shockedPrice),
-    low: Math.min(priorLow, ev.basePrice, ev.shockedPrice),
-    close: ev.shockedPrice
-  }
-  liveLastCandle.value = spiked
-  if (candleData.value.length) candleData.value[candleData.value.length - 1] = spiked
-  try { candleSeries?.update(spiked as any) } catch {}
 
-  if (adminKillTimer) clearTimeout(adminKillTimer)
-  adminKillTimer = setTimeout(async () => {
+  const applyTick = (price: number) => {
+    adminKillUiOverride.value = price
+    const spiked: CandlestickData = {
+      time,
+      open: openPrice,
+      high: Math.max(priorHigh, ev.basePrice, price),
+      low: Math.min(priorLow, ev.basePrice, price),
+      close: price
+    }
+    liveLastCandle.value = spiked
+    if (candleData.value.length) candleData.value[candleData.value.length - 1] = spiked
+    try { candleSeries?.update(spiked as any) } catch {}
+  }
+
+  const revert = async () => {
     adminKillUiOverride.value = null
     adminKillFreezeUntil = 0
     adminKillBusy.value = false
 
-    // 2단계: 종가만 실제(현재) 가격으로 되돌린다. 스파이크로 늘어난 고가/저가는 실제 봉의
+    // 종가만 실제(현재) 가격으로 되돌린다. 스파이크로 늘어난 고가/저가(꼬리)는 실제 봉의
     // 일부로 그대로 남는다(재조회로 지우지 않음 — 지우면 킬 효과가 흔적 없이 사라져 버림).
-    const nowLast = liveLastCandle.value || candleData.value[candleData.value.length - 1] || spiked
-    const realPrice = Number(lastPrice.value || (nowLast as any).close || ev.basePrice)
+    const nowLast = liveLastCandle.value || candleData.value[candleData.value.length - 1]
+    const realPrice = Number(lastPrice.value || (nowLast as any)?.close || ev.basePrice)
     const reverted: CandlestickData = {
       time: (nowLast as any).time,
       open: Number((nowLast as any).open),
@@ -2075,7 +2084,22 @@ async function runKillAnimation(ev: KillEvent) {
 
     // 킬로 인해 청산된 내 포지션이 있으면 계정도 함께 갱신
     await loadAccount().catch(() => {})
-  }, 1000)
+  }
+
+  let tickIndex = 0
+  const tick = () => {
+    tickIndex += 1
+    const progress = tickIndex / KILL_TICK_COUNT
+    applyTick(ev.basePrice + (ev.shockedPrice - ev.basePrice) * progress)
+    if (tickIndex < KILL_TICK_COUNT) {
+      adminKillTimer = setTimeout(tick, KILL_TICK_MS)
+    } else {
+      adminKillTimer = setTimeout(() => {
+        revert()
+      }, KILL_HOLD_MS)
+    }
+  }
+  tick()
 }
 
 async function pollKillEvents() {

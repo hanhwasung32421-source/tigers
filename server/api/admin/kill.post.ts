@@ -12,8 +12,8 @@ const FEE_RATE = 0.04
 const BodySchema = z.object({
   symbol: z.string().min(1),
   direction: z.enum(['up', 'down']),
-  // 몇 % 움직일지(1~90)
-  percent: z.coerce.number().min(1).max(90)
+  // 몇 % 움직일지(0.1~90)
+  percent: z.coerce.number().min(0.1).max(90)
 })
 
 function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
