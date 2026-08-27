@@ -92,12 +92,14 @@ export default defineEventHandler(async (event) => {
       const id = Number(u.id)
       const feeSum = feeMap.get(id) ?? 0
       const netPnl = netPnlMap.get(id) ?? 0
-      const settlementAmount = type === 'loss' ? (netPnl < 0 ? (-netPnl * percent) / 100 : 0) : (feeSum * percent) / 100
+      const baseAmount = type === 'loss' ? (netPnl < 0 ? -netPnl : 0) : feeSum
+      const settlementAmount = (baseAmount * percent) / 100
       return {
         id,
         username: String(u.username || ''),
         name: String(u.name || ''),
         balanceUsdt: balanceMap.get(id) ?? 0,
+        baseAmount,
         settlementAmount
       }
     })
@@ -139,12 +141,14 @@ export default defineEventHandler(async (event) => {
     const id = Number(u.id)
     const feeSum = feeMap.get(id) ?? 0
     const netPnl = netPnlMap.get(id) ?? 0
-    const settlementAmount = type === 'loss' ? (netPnl < 0 ? (-netPnl * percent) / 100 : 0) : (feeSum * percent) / 100
+    const baseAmount = type === 'loss' ? (netPnl < 0 ? -netPnl : 0) : feeSum
+    const settlementAmount = (baseAmount * percent) / 100
     return {
       id,
       username: String(u.username || ''),
       name: String(u.name || ''),
       balanceUsdt: balanceMap.get(id) ?? 0,
+      baseAmount,
       settlementAmount
     }
   })

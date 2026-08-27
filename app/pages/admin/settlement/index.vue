@@ -55,17 +55,19 @@
               <th class="px-3 py-3 text-left">회원 아이디</th>
               <th class="px-3 py-3 text-left">이름</th>
               <th class="px-3 py-3 text-right">잔액</th>
+              <th class="px-3 py-3 text-right">{{ baseAmountLabel }}</th>
               <th class="px-3 py-3 text-right">정산금</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && items.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="4" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
+              <td colspan="5" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
             </tr>
             <tr v-for="it in items" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
               <td class="px-3 py-3 text-slate-200">{{ it.name }}</td>
               <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(it.balanceUsdt) }}</td>
+              <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmt2(it.baseAmount) }}</td>
               <td class="px-3 py-3 text-right font-mono text-slate-100">{{ fmt2(it.settlementAmount) }}</td>
             </tr>
           </tbody>
@@ -85,6 +87,7 @@ type SettlementItem = {
   username: string
   name: string
   balanceUsdt: number
+  baseAmount: number
   settlementAmount: number
 }
 
@@ -99,6 +102,7 @@ function settlementTypesOf() {
 
 const allowedTypes = ref(settlementTypesOf())
 const type = ref<'loss' | 'referral'>(allowedTypes.value[0] || 'loss')
+const baseAmountLabel = computed(() => (type.value === 'loss' ? '총 손실 금액' : '총 수수료'))
 
 function thisWeekRange() {
   const now = new Date()
