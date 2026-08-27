@@ -3093,12 +3093,16 @@ function updateEntryBadges() {
 async function fetchCandles() {
   const instId = toInstId(symbol.value)
   const bar = timeframe.value
-  const neededBars = Math.max(120, Math.ceil((7 * 24 * 60 * 60) / barSeconds(timeframe.value)) + 60)
+  // 최소 4일치는 보이도록: 분봉처럼 봉 간격이 짧으면 그만큼 더 많은 봉이 필요하다.
+  const neededBars = Math.max(120, Math.ceil((4 * 24 * 60 * 60) / barSeconds(timeframe.value)) + 60)
   const rows: string[][] = []
   let afterCursor: string | undefined
   let loops = 0
-  while (rows.length < neededBars && loops < 20) {
-    const batchSize = Math.min(300, neededBars - rows.length)
+  // 두 번째 페이지부터는 history-candles(1회 최대 100개)로 넘어가서, 1분봉 기준으로도
+  // 4일치를 채우려면 페이지 수가 꽤 필요하다(60회 안팎).
+  while (rows.length < neededBars && loops < 80) {
+    const pageMax = afterCursor ? 100 : 300
+    const batchSize = Math.min(pageMax, neededBars - rows.length)
     const res = await $fetch<any>('/api/okx/candles', {
       query: { instId, bar, limit: batchSize, ...(afterCursor ? { after: afterCursor } : {}) }
     })
