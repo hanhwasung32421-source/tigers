@@ -174,6 +174,7 @@ export function getDb() {
       id TEXT PRIMARY KEY,
       label TEXT NOT NULL,
       menus TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -246,6 +247,14 @@ export function getDb() {
   try {
     const depositReqCols = (db.prepare("PRAGMA table_info('deposit_requests')").all() as any[]).map((c) => String(c?.name))
     if (!depositReqCols.includes('type')) db.exec("ALTER TABLE deposit_requests ADD COLUMN type TEXT NOT NULL DEFAULT 'deposit';")
+  } catch {
+    // ignore
+  }
+
+  // 마이그레이션: admin_roles에 sort_order(서열 순서) 컬럼 추가
+  try {
+    const adminRoleCols = (db.prepare("PRAGMA table_info('admin_roles')").all() as any[]).map((c) => String(c?.name))
+    if (!adminRoleCols.includes('sort_order')) db.exec('ALTER TABLE admin_roles ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;')
   } catch {
     // ignore
   }

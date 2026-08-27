@@ -372,7 +372,10 @@
       <div class="flex items-end justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold">역할 관리</h2>
-          <p class="mt-1 text-sm text-slate-400">관리자 역할을 추가/삭제하고, 역할마다 관리자 메뉴에서 무엇을 볼 수 있고 무엇을 수정할 수 있는지 설정합니다.</p>
+          <p class="mt-1 text-sm text-slate-400">
+            관리자 역할을 추가/삭제하고, 역할마다 관리자 메뉴 권한을 설정합니다. 아래 목록의 위쪽일수록 서열이 높은 역할이며,
+            각 역할은 화살표로 순서를 바꿀 수 있고 자기보다 아래(서열이 낮은) 역할만 코드부여할 수 있습니다. 총관리자는 항상 최상위입니다.
+          </p>
         </div>
         <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadRoles">
           새로고침
@@ -410,10 +413,31 @@
         <div v-if="rolesLoading" class="text-sm text-slate-400">불러오는 중…</div>
         <div v-else-if="roles.length === 0" class="text-sm text-slate-400">등록된 역할이 없습니다.</div>
         <div v-else class="space-y-2">
-          <div v-for="r in roles" :key="r.id" class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-            <div>
-              <span class="text-sm font-semibold text-slate-100">{{ r.label }}</span>
-              <span class="ml-2 font-mono text-xs text-slate-500">{{ r.id }}</span>
+          <div v-for="(r, idx) in roles" :key="r.id" class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+            <div class="flex items-center gap-3">
+              <span class="w-6 text-center font-mono text-xs text-slate-500">{{ idx + 1 }}</span>
+              <div class="flex flex-col">
+                <button
+                  type="button"
+                  class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                  :disabled="idx === 0 || reorderingRoles"
+                  @click="moveRoleRank(idx, -1)"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                  :disabled="idx === roles.length - 1 || reorderingRoles"
+                  @click="moveRoleRank(idx, 1)"
+                >
+                  ▼
+                </button>
+              </div>
+              <div>
+                <span class="text-sm font-semibold text-slate-100">{{ r.label }}</span>
+                <span class="ml-2 font-mono text-xs text-slate-500">{{ r.id }}</span>
+              </div>
             </div>
             <div class="flex items-center gap-2">
               <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="openRoleModal(r)">
@@ -823,6 +847,27 @@ async function loadRoles() {
     rolesError.value = e?.data?.statusMessage || '역할 목록 불러오기 실패'
   } finally {
     rolesLoading.value = false
+  }
+}
+
+const reorderingRoles = ref(false)
+async function moveRoleRank(idx: number, dir: -1 | 1) {
+  const next = idx + dir
+  if (next < 0 || next >= roles.value.length || reorderingRoles.value) return
+  const arr = [...roles.value]
+  ;[arr[idx], arr[next]] = [arr[next], arr[idx]]
+  roles.value = arr
+  reorderingRoles.value = true
+  try {
+    await $fetch('/api/admin/roles/reorder', {
+      method: 'POST',
+      body: { order: arr.map((r) => r.id) }
+    })
+  } catch (e: any) {
+    rolesError.value = e?.data?.statusMessage || '순서 변경 실패'
+    await loadRoles()
+  } finally {
+    reorderingRoles.value = false
   }
 }
 

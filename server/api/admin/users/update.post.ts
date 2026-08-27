@@ -4,7 +4,7 @@ import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncUserToSupabase } from '../../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne } from '../../../utils/supabase'
 import { canEditMenu } from '../../../utils/menu-permissions'
-import { getRoleDefinition } from '../../../utils/roles'
+import { getRoleDefinition, canGrantRole } from '../../../utils/roles'
 
 const BodySchema = z.object({
   userId: z.number().int().positive(),
@@ -85,14 +85,12 @@ export default defineEventHandler(async (event) => {
       //  메뉴 권한/정산유형이 매 저장마다 지워져 버린다.)
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
       if (current && String(current.role) !== body.role) {
-        // 영업 조직 구조: 관리자 역할을 가진 계정은 "본인 코드로 가입한(직속) 일반회원"을
-        // 다른 관리자 역할로 코드부여(승격)할 수 있다. 그 외 모든 역할 변경은 총관리자만 가능.
-        const isSelfServicePromotion =
-          isAdminRole(admin.role) &&
-          isAdminRole(body.role) &&
-          String(current.role) === 'user' &&
-          String(current.referral_code || '').trim() === admin.username
-        if (!isSelfServicePromotion) {
+        // 영업 조직 구조: 관리자 역할을 가진 계정은 "본인 코드로 가입한(직속)" 회원의 역할을
+        // 자기보다 서열이 낮은 역할로만 부여/변경할 수 있다. 그 외(서열이 같거나 위, 또는
+        // 직속이 아닌 경우)는 총관리자만 가능.
+        const isDirectChild = String(current.referral_code || '').trim() === admin.username
+        const allowedByRank = isDirectChild && (await canGrantRole(admin.role, body.role))
+        if (!allowedByRank) {
           await requireSuperAdmin(event)
         }
         const permissions = await resolveRolePermissions(body.role)
@@ -194,14 +192,11 @@ export default defineEventHandler(async (event) => {
       | { role?: string; referral_code?: string }
       | undefined
     if (current && String(current.role) !== body.role) {
-      // 영업 조직 구조: 관리자 역할을 가진 계정은 "본인 코드로 가입한(직속) 일반회원"을
-      // 다른 관리자 역할로 코드부여(승격)할 수 있다. 그 외 모든 역할 변경은 총관리자만 가능.
-      const isSelfServicePromotion =
-        isAdminRole(admin.role) &&
-        isAdminRole(body.role) &&
-        String(current.role) === 'user' &&
-        String(current.referral_code || '').trim() === admin.username
-      if (!isSelfServicePromotion) {
+      // 영업 조직 구조: 관리자 역할을 가진 계정은 "본인 코드로 가입한(직속)" 회원의 역할을
+      // 자기보다 서열이 낮은 역할로만 부여/변경할 수 있다. 그 외는 총관리자만 가능.
+      const isDirectChild = String(current.referral_code || '').trim() === admin.username
+      const allowedByRank = isDirectChild && (await canGrantRole(admin.role, body.role))
+      if (!allowedByRank) {
         await requireSuperAdmin(event)
       }
       const permissions = JSON.stringify(await resolveRolePermissions(body.role))

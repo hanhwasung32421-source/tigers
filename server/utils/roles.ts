@@ -14,6 +14,7 @@ export type RoleDefinition = {
   id: string
   label: string
   menus: MenuPermissions
+  sortOrder: number
   createdAt: string
 }
 
@@ -30,6 +31,7 @@ function rowToRole(row: any): RoleDefinition {
     id: String(row.id),
     label: String(row.label || row.id),
     menus: normalizeMenuPermissions(menus),
+    sortOrder: Number(row.sort_order ?? 0),
     createdAt: String(row.created_at || '')
   }
 }
@@ -37,12 +39,12 @@ function rowToRole(row: any): RoleDefinition {
 async function fetchAllRoles(): Promise<RoleDefinition[]> {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const { data, error } = await supa.from(T_ADMIN_ROLES).select('*').order('created_at', { ascending: true })
+    const { data, error } = await supa.from(T_ADMIN_ROLES).select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: true })
     if (error) throw error
     return (data || []).map(rowToRole)
   }
   const db = getDb()
-  const rows = db.prepare('SELECT * FROM admin_roles ORDER BY created_at ASC').all() as any[]
+  const rows = db.prepare('SELECT * FROM admin_roles ORDER BY sort_order ASC, created_at ASC').all() as any[]
   return rows.map(rowToRole)
 }
 
@@ -54,13 +56,14 @@ async function seedDefaultIfEmpty(roles: RoleDefinition[]): Promise<RoleDefiniti
   const menus = defaultMenuPermissions()
   try {
     if (supabaseAppDbEnabled()) {
-      await supaInsertStrict(T_ADMIN_ROLES, { id: DEFAULT_ROLE_ID, label: DEFAULT_ROLE_LABEL, menus, created_at: now })
+      await supaInsertStrict(T_ADMIN_ROLES, { id: DEFAULT_ROLE_ID, label: DEFAULT_ROLE_LABEL, menus, sort_order: 0, created_at: now })
     } else {
       const db = getDb()
-      db.prepare('INSERT OR IGNORE INTO admin_roles (id, label, menus, created_at) VALUES (?, ?, ?, ?)').run(
+      db.prepare('INSERT OR IGNORE INTO admin_roles (id, label, menus, sort_order, created_at) VALUES (?, ?, ?, ?, ?)').run(
         DEFAULT_ROLE_ID,
         DEFAULT_ROLE_LABEL,
         JSON.stringify(menus),
+        0,
         now
       )
     }
@@ -77,6 +80,7 @@ function invalidateCache() {
   cache = null
 }
 
+// 목록 순서 = 조직 서열(위에 있을수록 상위 역할). 총관리자는 이 목록 밖에서 항상 최상위.
 export async function listRoles(forceRefresh = false): Promise<RoleDefinition[]> {
   if (!forceRefresh && cache && Date.now() - cache.at < CACHE_MS) return cache.roles
   let roles = await fetchAllRoles()
@@ -88,6 +92,31 @@ export async function listRoles(forceRefresh = false): Promise<RoleDefinition[]>
 export async function getRoleDefinition(id: string, forceRefresh = false): Promise<RoleDefinition | null> {
   const roles = await listRoles(forceRefresh)
   return roles.find((r) => r.id === id) || null
+}
+
+// 서열 순위. 낮을수록 상위. super_admin은 항상 -1(모두의 위), user는 항상 +Infinity(모두의 아래).
+export async function getRoleRank(roleId: string): Promise<number> {
+  if (roleId === 'super_admin') return -1
+  if (roleId === 'user') return Number.POSITIVE_INFINITY
+  const roles = await listRoles()
+  const idx = roles.findIndex((r) => r.id === roleId)
+  return idx === -1 ? Number.POSITIVE_INFINITY : idx
+}
+
+// actorRole 계정이 targetRole을 부여(코드부여/역할변경)할 수 있는지: 총관리자는 항상 가능,
+// 그 외에는 자기보다 서열이 낮은(더 아래) 역할만 부여할 수 있다.
+export async function canGrantRole(actorRole: string, targetRole: string): Promise<boolean> {
+  if (actorRole === 'super_admin') return true
+  const [actorRank, targetRank] = await Promise.all([getRoleRank(actorRole), getRoleRank(targetRole)])
+  return targetRank > actorRank
+}
+
+// 이 역할(actorRole)이 부여할 수 있는 하위 역할 전체 목록(랭킹 순서 그대로).
+export async function grantableRolesFor(actorRole: string): Promise<RoleDefinition[]> {
+  const roles = await listRoles()
+  if (actorRole === 'super_admin') return roles
+  const actorRank = await getRoleRank(actorRole)
+  return roles.filter((_, idx) => idx > actorRank)
 }
 
 async function countUsersWithRole(id: string): Promise<number> {
@@ -110,21 +139,29 @@ export async function createRole(id: string, label: string): Promise<RoleDefinit
   if (RESERVED_ROLE_IDS.has(cleanId)) {
     throw createError({ statusCode: 409, statusMessage: '이미 시스템에서 사용 중인 이름입니다.' })
   }
-  const existing = await getRoleDefinition(cleanId, true)
-  if (existing) {
+  const existingRoles = await listRoles(true)
+  if (existingRoles.some((r) => r.id === cleanId)) {
     throw createError({ statusCode: 409, statusMessage: '이미 존재하는 역할입니다.' })
   }
   const now = new Date().toISOString()
   const menus = defaultMenuPermissions()
   const cleanLabel = label.trim() || cleanId
+  // 새 역할은 서열 맨 아래(가장 낮은 우선순위)에 추가한다. 필요하면 화살표로 옮기면 된다.
+  const sortOrder = existingRoles.length ? Math.max(...existingRoles.map((r) => r.sortOrder)) + 1 : 0
   if (supabaseAppDbEnabled()) {
-    await supaInsertStrict(T_ADMIN_ROLES, { id: cleanId, label: cleanLabel, menus, created_at: now })
+    await supaInsertStrict(T_ADMIN_ROLES, { id: cleanId, label: cleanLabel, menus, sort_order: sortOrder, created_at: now })
   } else {
     const db = getDb()
-    db.prepare('INSERT INTO admin_roles (id, label, menus, created_at) VALUES (?, ?, ?, ?)').run(cleanId, cleanLabel, JSON.stringify(menus), now)
+    db.prepare('INSERT INTO admin_roles (id, label, menus, sort_order, created_at) VALUES (?, ?, ?, ?, ?)').run(
+      cleanId,
+      cleanLabel,
+      JSON.stringify(menus),
+      sortOrder,
+      now
+    )
   }
   invalidateCache()
-  return { id: cleanId, label: cleanLabel, menus, createdAt: now }
+  return { id: cleanId, label: cleanLabel, menus, sortOrder, createdAt: now }
 }
 
 export async function updateRole(id: string, patch: { label?: string; menus?: any }): Promise<RoleDefinition> {
@@ -145,6 +182,31 @@ export async function updateRole(id: string, patch: { label?: string; menus?: an
   }
   invalidateCache()
   return next
+}
+
+// 역할 관리 화면에서 화살표로 순서(서열)를 바꿀 때 쓴다. orderedIds는 위에서부터(최상위부터) 순서대로.
+export async function reorderRoles(orderedIds: string[]): Promise<RoleDefinition[]> {
+  const current = await listRoles(true)
+  const currentIds = new Set(current.map((r) => r.id))
+  const cleanOrder = orderedIds.filter((id) => currentIds.has(id))
+  // 빠진 게 있으면(클라이언트가 오래된 목록을 보냈을 수 있음) 끝에 붙여서 유실 방지
+  for (const r of current) {
+    if (!cleanOrder.includes(r.id)) cleanOrder.push(r.id)
+  }
+
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    for (let idx = 0; idx < cleanOrder.length; idx++) {
+      const { error } = await supa.from(T_ADMIN_ROLES).update({ sort_order: idx }).eq('id', cleanOrder[idx])
+      if (error) throw error
+    }
+  } else {
+    const db = getDb()
+    const stmt = db.prepare('UPDATE admin_roles SET sort_order = ? WHERE id = ?')
+    cleanOrder.forEach((id, idx) => stmt.run(idx, id))
+  }
+  invalidateCache()
+  return listRoles(true)
 }
 
 export async function deleteRole(id: string): Promise<void> {

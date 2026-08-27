@@ -79,21 +79,26 @@
               <td class="px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
               <td class="px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
               <td class="px-3 py-3 text-right">
-                <div v-if="u.roleId === 'user' && isDirectChildOfMe(u)" class="flex flex-col items-end gap-1">
+                <div v-if="u.roleId === 'user' && isDirectChildOfMe(u) && grantableRoles.length" class="flex justify-end">
                   <select
-                    v-if="roles.length > 1"
-                    v-model="grantRoleChoice[u.id]"
-                    class="w-28 rounded-md border border-[#173753] bg-[#041425] px-1.5 py-1 text-[11px] text-slate-200 outline-none"
+                    v-if="roleEditingId === u.id"
+                    :ref="(el) => focusSelectOnMount(el)"
+                    class="w-32 rounded-md border border-[#173753] bg-[#041425] px-1.5 py-1 text-[11px] text-slate-200 outline-none"
+                    :disabled="grantingId === u.id"
+                    @change="onGrantRoleSelect(u, $event)"
+                    @blur="roleEditingId = null"
                   >
-                    <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.label }}</option>
+                    <option value="" disabled selected>역할 선택</option>
+                    <option v-for="r in grantableRoles" :key="r.id" :value="r.id">{{ r.label }}</option>
                   </select>
                   <button
+                    v-else
                     type="button"
-                    class="whitespace-nowrap rounded bg-cyan-500/15 px-2 py-1 text-[11px] font-semibold text-cyan-100 ring-1 ring-cyan-400/20 hover:bg-cyan-500/25 disabled:opacity-40"
+                    class="whitespace-nowrap rounded bg-white/10 px-2 py-1 text-[11px] font-semibold text-slate-100 ring-1 ring-white/15 hover:bg-white/15"
                     :disabled="grantingId === u.id"
-                    @click="grantBranchAdmin(u)"
+                    @click="roleEditingId = u.id"
                   >
-                    코드부여
+                    {{ u.role }}
                   </button>
                 </div>
                 <input
@@ -492,25 +497,42 @@ function canEditRate(u: MemberRow) {
 const rateDraft = reactive<Record<number, string>>({})
 const grantingId = ref<number | null>(null)
 
-// 코드부여 시 어떤 관리자 역할을 줄지: 역할이 하나뿐이면 그걸로 바로 부여하고,
-// 여러 개면 회원 목록의 드롭다운에서 고른 값을 쓴다.
+// 코드부여: "일반유저" 상태일 때 클릭하면 드롭다운이 뜨고, 고르면 바로 저장된다(별도 버튼 없음).
+// 드롭다운에는 내가 실제로 부여할 수 있는(나보다 서열이 낮은) 역할만 나온다.
 type RoleOption = { id: string; label: string }
-const roles = ref<RoleOption[]>([])
-const grantRoleChoice = reactive<Record<number, string>>({})
+const grantableRoles = ref<RoleOption[]>([])
+const roleEditingId = ref<number | null>(null)
 
 async function loadRoles() {
   try {
-    const data = await $fetch<{ roles: RoleOption[] }>('/api/admin/roles')
-    roles.value = data.roles || []
+    const data = await $fetch<{ grantableRoles: RoleOption[] }>('/api/admin/roles')
+    grantableRoles.value = data.grantableRoles || []
   } catch {
-    roles.value = []
+    grantableRoles.value = []
   }
 }
 
-function syncGrantRoleChoice(list: MemberRow[]) {
-  if (!roles.value.length) return
-  for (const u of list) {
-    if (!grantRoleChoice[u.id]) grantRoleChoice[u.id] = roles.value[0].id
+function focusSelectOnMount(el: any) {
+  if (el && typeof el.focus === 'function') el.focus()
+}
+
+async function onGrantRoleSelect(u: MemberRow, event: Event) {
+  const roleId = (event.target as HTMLSelectElement).value
+  roleEditingId.value = null
+  if (!roleId) return
+  const roleLabel = grantableRoles.value.find((r) => r.id === roleId)?.label || roleId
+  if (process.client && !window.confirm(`${u.username} 님에게 "${roleLabel}" 코드를 부여할까요? (관리자 페이지 접근 권한이 생깁니다)`)) return
+  grantingId.value = u.id
+  try {
+    await $fetch('/api/admin/users/update', {
+      method: 'POST',
+      body: { userId: u.id, role: roleId }
+    })
+    await load(true)
+  } catch (e: any) {
+    alert(e?.data?.statusMessage || '코드부여에 실패했습니다.')
+  } finally {
+    grantingId.value = null
   }
 }
 
@@ -539,27 +561,6 @@ async function saveRate(u: MemberRow) {
   }
 }
 
-async function grantBranchAdmin(u: MemberRow) {
-  const roleId = grantRoleChoice[u.id] || roles.value[0]?.id
-  if (!roleId) {
-    alert('부여할 수 있는 관리자 역할이 없습니다. 총관리자 대시보드의 역할 관리에서 먼저 역할을 만들어주세요.')
-    return
-  }
-  const roleLabel = roles.value.find((r) => r.id === roleId)?.label || roleId
-  if (process.client && !window.confirm(`${u.username} 님에게 "${roleLabel}" 코드를 부여할까요? (관리자 페이지 접근 권한이 생깁니다)`)) return
-  grantingId.value = u.id
-  try {
-    await $fetch('/api/admin/users/update', {
-      method: 'POST',
-      body: { userId: u.id, role: roleId }
-    })
-    await load(true)
-  } catch (e: any) {
-    alert(e?.data?.statusMessage || '코드부여에 실패했습니다.')
-  } finally {
-    grantingId.value = null
-  }
-}
 const pageSize = computed(() => {
   const n = Number(pageSizeInput.value || 20)
   return Math.max(1, Math.min(500, Number.isFinite(n) ? Math.floor(n) : 20))
@@ -672,7 +673,6 @@ async function load(silent = false) {
     const res = await $fetch<{ items: MemberRow[] }>('/api/admin/members')
     items.value = res.items || []
     syncRateDraft(items.value)
-    syncGrantRoleChoice(items.value)
     if (selectedMember.value) {
       const fresh = (res.items || []).find((u) => Number(u.id) === Number(selectedMember.value?.id))
       if (fresh) selectedMember.value = fresh
