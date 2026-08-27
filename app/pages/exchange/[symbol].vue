@@ -2033,27 +2033,47 @@ async function runKillAnimation(ev: KillEvent) {
   adminKillUiOverride.value = ev.shockedPrice
   adminKillFreezeUntil = Date.now() + 1100
 
-  // 차트 표시만 순간적으로 튀게: series에만 update(reactive candleData/liveLastCandle에는 손대지 않음)
-  try {
-    const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
-    const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
-    candleSeries?.update({
-      time,
-      open: ev.basePrice,
-      high: Math.max(ev.basePrice, ev.shockedPrice),
-      low: Math.min(ev.basePrice, ev.shockedPrice),
-      close: ev.shockedPrice
-    } as any)
-  } catch {}
+  // 1단계: 스파이크를 실제 캔들 데이터(candleData/liveLastCandle)에 반영한다.
+  // 고가/저가는 이후에도 실제 기록으로 영구히 남아야 하므로, 화면(series)만 바꾸는 게 아니라
+  // 반응형 상태 자체를 갱신한다(현재 봉을 그리는 updateLiveCandle과 동일한 방식).
+  const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
+  const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
+  const openPrice = last ? Number((last as any).open) : ev.basePrice
+  const priorHigh = last ? Number((last as any).high) : ev.basePrice
+  const priorLow = last ? Number((last as any).low) : ev.basePrice
+  const spiked: CandlestickData = {
+    time,
+    open: openPrice,
+    high: Math.max(priorHigh, ev.basePrice, ev.shockedPrice),
+    low: Math.min(priorLow, ev.basePrice, ev.shockedPrice),
+    close: ev.shockedPrice
+  }
+  liveLastCandle.value = spiked
+  if (candleData.value.length) candleData.value[candleData.value.length - 1] = spiked
+  try { candleSeries?.update(spiked as any) } catch {}
 
   if (adminKillTimer) clearTimeout(adminKillTimer)
   adminKillTimer = setTimeout(async () => {
     adminKillUiOverride.value = null
     adminKillFreezeUntil = 0
     adminKillBusy.value = false
-    // 1초 효과 후에는 네트워크 데이터로 즉시 동기화해 원래 차트로 되돌리고,
+
+    // 2단계: 종가만 실제(현재) 가격으로 되돌린다. 스파이크로 늘어난 고가/저가는 실제 봉의
+    // 일부로 그대로 남는다(재조회로 지우지 않음 — 지우면 킬 효과가 흔적 없이 사라져 버림).
+    const nowLast = liveLastCandle.value || candleData.value[candleData.value.length - 1] || spiked
+    const realPrice = Number(lastPrice.value || (nowLast as any).close || ev.basePrice)
+    const reverted: CandlestickData = {
+      time: (nowLast as any).time,
+      open: Number((nowLast as any).open),
+      high: Math.max(Number((nowLast as any).high), realPrice),
+      low: Math.min(Number((nowLast as any).low), realPrice),
+      close: realPrice
+    }
+    liveLastCandle.value = reverted
+    if (candleData.value.length) candleData.value[candleData.value.length - 1] = reverted
+    try { candleSeries?.update(reverted as any) } catch {}
+
     // 킬로 인해 청산된 내 포지션이 있으면 계정도 함께 갱신
-    await reloadCandles().catch(() => {})
     await loadAccount().catch(() => {})
   }, 1000)
 }
@@ -3057,37 +3077,12 @@ function updateEntryBadges() {
   entryBadges.value = list
 }
 
-async function fetchCandles() {
-  const instId = toInstId(symbol.value)
-  const bar = timeframe.value
-  // 최소 4일치는 보이도록: 분봉처럼 봉 간격이 짧으면 그만큼 더 많은 봉이 필요하다.
-  const neededBars = Math.max(120, Math.ceil((4 * 24 * 60 * 60) / barSeconds(timeframe.value)) + 60)
-  const rows: string[][] = []
-  let afterCursor: string | undefined
-  let loops = 0
-  // 두 번째 페이지부터는 history-candles(1회 최대 100개)로 넘어가서, 1분봉 기준으로도
-  // 4일치를 채우려면 페이지 수가 꽤 필요하다(60회 안팎).
-  while (rows.length < neededBars && loops < 80) {
-    const pageMax = afterCursor ? 100 : 300
-    const batchSize = Math.min(pageMax, neededBars - rows.length)
-    const res = await $fetch<any>('/api/okx/candles', {
-      query: { instId, bar, limit: batchSize, ...(afterCursor ? { after: afterCursor } : {}) }
-    })
-    const batch = (res?.data || []) as string[][]
-    if (!batch.length) break
-    rows.push(...batch)
-    const last = batch[batch.length - 1]
-    const nextAfter = last?.[0] ? String(last[0]) : undefined
-    if (!nextAfter || nextAfter === afterCursor) break
-    afterCursor = nextAfter
-    if (batch.length < batchSize) break
-    loops += 1
-  }
+let candlesFetchToken = 0
 
-  const dedupedRows = Array.from(new Map(rows.map((r) => [String(r[0]), r])).values())
+function candleRowsToSeriesData(rows: string[][]) {
   const candles: CandlestickData[] = []
   const vols: HistogramData[] = []
-  dedupedRows
+  rows
     .slice()
     .reverse()
     .forEach((r) => {
@@ -3106,22 +3101,87 @@ async function fetchCandles() {
         color: c >= o ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)'
       })
     })
+  return { candles, vols }
+}
 
+// 과거 데이터를 화면이 뜬 뒤 백그라운드로 이어받아 채운다(4일치를 한 번에 순차 로딩하면 체감 로딩이 느려짐).
+// history-candles는 1회 최대 100개라 분봉 기준 페이지가 많아, 첫 화면을 막지 않기 위해 별도로 분리.
+async function backfillOlderCandles(
+  token: number,
+  instId: string,
+  bar: string,
+  firstBatch: string[][],
+  neededBars: number
+) {
+  let afterCursor = firstBatch[firstBatch.length - 1]?.[0] ? String(firstBatch[firstBatch.length - 1][0]) : undefined
+  if (!afterCursor) return
+  const olderRows: string[][] = []
+  let have = firstBatch.length
+  let loops = 0
+  while (have < neededBars && loops < 80) {
+    if (token !== candlesFetchToken) return // 그 사이 심볼/타임프레임이 바뀌면 중단
+    const batchSize = Math.min(100, neededBars - have)
+    const res = await $fetch<any>('/api/okx/candles', {
+      query: { instId, bar, limit: batchSize, after: afterCursor }
+    }).catch(() => null)
+    const batch = (res?.data || []) as string[][]
+    if (!batch.length) break
+    olderRows.push(...batch)
+    have += batch.length
+    const last = batch[batch.length - 1]
+    const nextAfter = last?.[0] ? String(last[0]) : undefined
+    if (!nextAfter || nextAfter === afterCursor) break
+    afterCursor = nextAfter
+    if (batch.length < batchSize) break
+    loops += 1
+  }
+
+  if (token !== candlesFetchToken || !olderRows.length) return
+
+  const merged = Array.from(new Map([...olderRows, ...firstBatch].map((r) => [String(r[0]), r])).values())
+  const { candles, vols } = candleRowsToSeriesData(merged)
+  candleSeries?.setData(candles)
+  volumeSeries?.setData(vols)
+  // fitContent()는 다시 호출하지 않는다 — 사용자가 보고 있는 화면(줌/스크롤)을 방해하지 않기 위함
+  candleData.value = candles
+  volumeData.value = vols
+  renderEntryLines()
+  renderIndicators()
+  renderSavedDrawings()
+}
+
+async function fetchCandles() {
+  const token = ++candlesFetchToken
+  const instId = toInstId(symbol.value)
+  const bar = timeframe.value
+  // 최소 4일치는 보이도록: 분봉처럼 봉 간격이 짧으면 그만큼 더 많은 봉이 필요하다.
+  const neededBars = Math.max(120, Math.ceil((4 * 24 * 60 * 60) / barSeconds(timeframe.value)) + 60)
+
+  // 1) 최신 봉부터 먼저 한 번에 받아 바로 그린다(체감 로딩 속도를 예전 수준으로 유지).
+  const firstRes = await $fetch<any>('/api/okx/candles', {
+    query: { instId, bar, limit: Math.min(300, neededBars) }
+  })
+  if (token !== candlesFetchToken) return
+  const firstBatch = (firstRes?.data || []) as string[][]
+
+  const { candles, vols } = candleRowsToSeriesData(firstBatch)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   chart?.timeScale().fitContent()
   candleData.value = candles
   volumeData.value = vols
   liveLastCandle.value = candles[candles.length - 1] || null
-
   if (candles.length) {
     lastPrice.value = candles[candles.length - 1].close
   }
-
-  // 데이터 갱신 후 진입 라인 다시 표시
   renderEntryLines()
   renderIndicators()
   renderSavedDrawings()
+
+  // 2) 나머지 과거 봉(4일치를 채우는 데 필요한 만큼)은 백그라운드에서 이어받는다.
+  if (firstBatch.length > 0 && firstBatch.length < neededBars) {
+    backfillOlderCandles(token, instId, bar, firstBatch, neededBars).catch(() => {})
+  }
 }
 
 async function reloadCandles() {
