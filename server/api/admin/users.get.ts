@@ -2,6 +2,7 @@ import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
+import { settlementTypesOf } from '../../utils/menu-permissions'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -12,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
     const { data: users, error: e1 } = await supa
       .from('trae_users')
-      .select('id, username, name, referral_code, bank_name, bank_account, account_holder, role, created_at')
+      .select('id, username, name, referral_code, bank_name, bank_account, account_holder, role, permissions, created_at')
       .order('id', { ascending: false })
     if (e1) throw e1
 
@@ -61,7 +62,8 @@ export default defineEventHandler(async (event) => {
         created_at: String(u.created_at || ''),
         usdt: balMap.get(id) ?? 0,
         online: onlineSet.has(id),
-        last_ip: ipMap.get(id) ?? null
+        last_ip: ipMap.get(id) ?? null,
+        settlementTypes: settlementTypesOf({ role: String(u.role || 'user'), permissions: u.permissions || {} })
       }
     })
 
@@ -73,7 +75,7 @@ export default defineEventHandler(async (event) => {
   const rows = db
     .prepare(
       `
-      SELECT u.id, u.username, u.name, u.referral_code, u.bank_name, u.bank_account, u.account_holder, u.role, u.created_at, b.usdt
+      SELECT u.id, u.username, u.name, u.referral_code, u.bank_name, u.bank_account, u.account_holder, u.role, u.permissions, u.created_at, b.usdt
       FROM users u
       LEFT JOIN balances b ON b.user_id = u.id
       ORDER BY u.id DESC
@@ -88,22 +90,32 @@ export default defineEventHandler(async (event) => {
     bank_account: string
     account_holder: string
     role: string
+    permissions: string
     created_at: string
     usdt: number
   }>
 
   return {
-    users: rows.map((u) => ({
-      id: u.id,
-      username: u.username,
-      name: u.name || '',
-      referralCode: u.referral_code || '',
-      bankName: u.bank_name || '',
-      bankAccount: u.bank_account || '',
-      accountHolder: u.account_holder || '',
-      role: u.role,
-      created_at: u.created_at,
-      usdt: u.usdt
-    }))
+    users: rows.map((u) => {
+      let permissions: any = {}
+      try {
+        permissions = JSON.parse(u.permissions || '{}')
+      } catch {
+        permissions = {}
+      }
+      return {
+        id: u.id,
+        username: u.username,
+        name: u.name || '',
+        referralCode: u.referral_code || '',
+        bankName: u.bank_name || '',
+        bankAccount: u.bank_account || '',
+        accountHolder: u.account_holder || '',
+        role: u.role,
+        created_at: u.created_at,
+        usdt: u.usdt,
+        settlementTypes: settlementTypesOf({ role: u.role, permissions })
+      }
+    })
   }
 })

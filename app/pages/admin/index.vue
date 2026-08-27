@@ -70,6 +70,7 @@
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('usdt')">USDT잔액{{ sortArrow('usdt') }}</th>
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('referralCode')">추천코드{{ sortArrow('referralCode') }}</th>
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('role')">역할{{ sortArrow('role') }}</th>
+                <th class="py-2">정산유형</th>
                 <th class="py-2">하부보기</th>
                 <th class="py-2">저장</th>
                 <th class="py-2">비밀번호 초기화</th>
@@ -120,6 +121,18 @@
                       <option value="branch_admin">부어드민 (branch_admin)</option>
                       <option value="super_admin">최고관리자 (super_admin)</option>
                     </select>
+                  </td>
+                  <td class="py-2">
+                    <div class="flex flex-col gap-1 text-xs text-slate-300">
+                      <label class="flex items-center gap-1.5">
+                        <input v-model="userDraft[u.id].settlementTypes" type="checkbox" value="loss" class="h-3.5 w-3.5 accent-indigo-500" />
+                        손실정산
+                      </label>
+                      <label class="flex items-center gap-1.5">
+                        <input v-model="userDraft[u.id].settlementTypes" type="checkbox" value="referral" class="h-3.5 w-3.5 accent-indigo-500" />
+                        레퍼럴정산
+                      </label>
+                    </div>
                   </td>
                   <td class="py-2">
                     <button class="rounded-md bg-white/10 px-3 py-1 text-sm hover:bg-white/15" @click="referralFilter = u.username">
@@ -235,6 +248,65 @@
       </div>
       <p v-if="liquidationSettingError" class="mt-3 text-sm text-red-300">{{ liquidationSettingError }}</p>
       <p v-if="liquidationSettingMsg" class="mt-3 text-sm text-emerald-300">{{ liquidationSettingMsg }}</p>
+    </div>
+
+    <!-- 정산/기타 설정 -->
+    <div v-show="activeTab === 'misc'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <h2 class="text-lg font-semibold">정산/기타 설정</h2>
+      <p class="mt-1 text-sm text-slate-400">고객센터 텔레그램 링크, 원/USDT 환율, 정산 비율을 설정합니다.</p>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="text-sm text-slate-300">고객센터 텔레그램 링크</label>
+          <input
+            v-model.trim="miscDraft.telegramUrl"
+            placeholder="https://t.me/..."
+            class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="text-sm text-slate-300">원/USDT 환율 (0 = 실시간 시세 사용)</label>
+          <input
+            v-model.number="miscDraft.krwPerUsdt"
+            type="number"
+            min="0"
+            step="0.01"
+            class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="text-sm text-slate-300">손실정산 비율 (%)</label>
+          <input
+            v-model.number="miscDraft.lossSettlementPercent"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="text-sm text-slate-300">레퍼럴정산 비율 (%)</label>
+          <input
+            v-model.number="miscDraft.referralSettlementPercent"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button
+          class="rounded-md bg-indigo-500 px-4 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="miscSaving"
+          @click="saveMiscSettings"
+        >
+          저장
+        </button>
+        <p v-if="miscError" class="text-sm text-red-300">{{ miscError }}</p>
+        <p v-if="miscMsg" class="text-sm text-emerald-300">{{ miscMsg }}</p>
+      </div>
     </div>
 
     <!-- 부관리자 메뉴 권한 -->
@@ -370,10 +442,11 @@ definePageMeta({ middleware: ['admin', 'super-admin'] })
 const { me, refresh } = useMe()
 await refresh()
 
-type TabKey = 'users' | 'liquidation' | 'branchPerms' | 'killEvents'
+type TabKey = 'users' | 'liquidation' | 'misc' | 'branchPerms' | 'killEvents'
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'users', label: '유저 및 권한 관리' },
   { key: 'liquidation', label: '강제청산 기준 설정' },
+  { key: 'misc', label: '정산/기타 설정' },
   { key: 'branchPerms', label: '부관리자 메뉴 권한' },
   { key: 'killEvents', label: '킬UP/킬DOWN 이력' }
 ]
@@ -390,8 +463,9 @@ type AdminUserRow = {
   role: string
   usdt: number
   created_at: string
+  settlementTypes: string[]
 }
-type UserDraft = { username: string; name: string; usdt: number; referralCode: string; role: string }
+type UserDraft = { username: string; name: string; usdt: number; referralCode: string; role: string; settlementTypes: string[] }
 
 const users = ref<AdminUserRow[]>([])
 const loading = ref(false)
@@ -457,7 +531,8 @@ async function saveUserRow(userId: number) {
         name: draft.name,
         usdt: Number(draft.usdt) || 0,
         referralCode: draft.referralCode,
-        role: draft.role
+        role: draft.role,
+        settlementTypes: draft.settlementTypes
       }
     })
     await load()
@@ -543,15 +618,16 @@ async function saveAccountModal() {
 }
 
 // 부관리자 메뉴 권한
-type MenuKey = 'members' | 'online' | 'trades' | 'transfers' | 'positions' | 'messages'
-const menuKeys: MenuKey[] = ['members', 'online', 'trades', 'transfers', 'positions', 'messages']
+type MenuKey = 'members' | 'online' | 'trades' | 'transfers' | 'positions' | 'messages' | 'settlement'
+const menuKeys: MenuKey[] = ['members', 'online', 'trades', 'transfers', 'positions', 'messages', 'settlement']
 const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: string }> = {
   members: { label: '회원 목록', editable: true, editLabel: '보유금액 수정' },
   online: { label: '실시간 접속', editable: false },
   trades: { label: '거래 내역', editable: false },
   transfers: { label: '입출금 내역', editable: false },
   positions: { label: '포지션 목록', editable: true, editLabel: '포지션 수정' },
-  messages: { label: '쪽지관리', editable: false }
+  messages: { label: '쪽지관리', editable: false },
+  settlement: { label: '정산내역', editable: true, editLabel: '입금 승인/거절' }
 }
 type BranchAdminRow = { id: number; username: string; menus: Record<MenuKey, { view: boolean; edit: boolean }> }
 const branchAdmins = ref<BranchAdminRow[]>([])
@@ -565,7 +641,8 @@ const menuPermDraft = reactive<Record<MenuKey, { view: boolean; edit: boolean }>
   trades: { view: true, edit: false },
   transfers: { view: true, edit: false },
   positions: { view: true, edit: false },
-  messages: { view: true, edit: false }
+  messages: { view: true, edit: false },
+  settlement: { view: true, edit: false }
 })
 const menuPermSaving = ref(false)
 const menuPermError = ref<string | null>(null)
@@ -718,7 +795,8 @@ async function load() {
         name: u.name || '',
         usdt: Number(u.usdt ?? 0),
         referralCode: u.referralCode || '',
-        role: u.role || 'user'
+        role: u.role || 'user',
+        settlementTypes: Array.isArray(u.settlementTypes) ? [...u.settlementTypes] : []
       }
     }
   } catch (e: any) {
@@ -728,8 +806,54 @@ async function load() {
   }
 }
 
+// 정산/기타 설정
+const miscDraft = reactive({
+  telegramUrl: '',
+  krwPerUsdt: 0,
+  lossSettlementPercent: 0,
+  referralSettlementPercent: 0
+})
+const miscSaving = ref(false)
+const miscError = ref<string | null>(null)
+const miscMsg = ref<string | null>(null)
+
+async function loadMiscSettings() {
+  try {
+    const data = await $fetch<typeof miscDraft>('/api/admin/settings/misc')
+    miscDraft.telegramUrl = data.telegramUrl || ''
+    miscDraft.krwPerUsdt = Number(data.krwPerUsdt || 0)
+    miscDraft.lossSettlementPercent = Number(data.lossSettlementPercent || 0)
+    miscDraft.referralSettlementPercent = Number(data.referralSettlementPercent || 0)
+  } catch {
+    // 기본값 유지
+  }
+}
+
+async function saveMiscSettings() {
+  miscSaving.value = true
+  miscError.value = null
+  miscMsg.value = null
+  try {
+    await $fetch('/api/admin/settings/misc', {
+      method: 'POST',
+      body: {
+        telegramUrl: miscDraft.telegramUrl,
+        krwPerUsdt: Number(miscDraft.krwPerUsdt) || 0,
+        lossSettlementPercent: Number(miscDraft.lossSettlementPercent) || 0,
+        referralSettlementPercent: Number(miscDraft.referralSettlementPercent) || 0
+      }
+    })
+    miscMsg.value = '저장되었습니다.'
+  } catch (e: any) {
+    miscError.value = e?.data?.statusMessage || '저장 실패'
+  } finally {
+    miscSaving.value = false
+  }
+}
+
 await load()
 await loadLiquidationSetting()
+await loadMiscSettings()
 await loadKillEvents()
 await loadBranchAdmins()
 </script>

@@ -147,7 +147,22 @@ export function getDb() {
     CREATE TABLE IF NOT EXISTS system_settings (
       id INTEGER PRIMARY KEY,
       liquidation_roe REAL NOT NULL DEFAULT -40,
+      telegram_url TEXT NOT NULL DEFAULT '',
+      krw_per_usdt REAL NOT NULL DEFAULT 0,
+      loss_settlement_percent REAL NOT NULL DEFAULT 0,
+      referral_settlement_percent REAL NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS deposit_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      krw_amount REAL NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      usdt_amount REAL,
+      rate_used REAL,
+      created_at TEXT NOT NULL,
+      resolved_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS kill_events (
@@ -196,6 +211,17 @@ export function getDb() {
     if (!killCols.includes('tick_count')) {
       db.exec('ALTER TABLE kill_events ADD COLUMN tick_count INTEGER NOT NULL DEFAULT 3;')
     }
+  } catch {
+    // ignore
+  }
+
+  // 마이그레이션: system_settings에 텔레그램/환율/정산 비율 컬럼 추가
+  try {
+    const sysCols = (db.prepare("PRAGMA table_info('system_settings')").all() as any[]).map((c) => String(c?.name))
+    if (!sysCols.includes('telegram_url')) db.exec("ALTER TABLE system_settings ADD COLUMN telegram_url TEXT NOT NULL DEFAULT '';")
+    if (!sysCols.includes('krw_per_usdt')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_per_usdt REAL NOT NULL DEFAULT 0;')
+    if (!sysCols.includes('loss_settlement_percent')) db.exec('ALTER TABLE system_settings ADD COLUMN loss_settlement_percent REAL NOT NULL DEFAULT 0;')
+    if (!sysCols.includes('referral_settlement_percent')) db.exec('ALTER TABLE system_settings ADD COLUMN referral_settlement_percent REAL NOT NULL DEFAULT 0;')
   } catch {
     // ignore
   }

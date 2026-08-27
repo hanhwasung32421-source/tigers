@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { requireAdmin, requireSuperAdmin } from '../../../utils/auth'
 import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncUserToSupabase } from '../../../utils/supa-appdb'
-import { getSupabaseAdminClient } from '../../../utils/supabase'
+import { getSupabaseAdminClient, supaSelectOne } from '../../../utils/supabase'
 import { canEditMenu } from '../../../utils/menu-permissions'
 
 const BodySchema = z.object({
@@ -15,7 +15,8 @@ const BodySchema = z.object({
   bankName: z.string().trim().min(1).max(40).optional(),
   bankAccount: z.string().trim().min(1).max(80).optional(),
   accountHolder: z.string().trim().min(1).max(40).optional(),
-  referralCode: z.string().trim().max(32).optional()
+  referralCode: z.string().trim().max(32).optional(),
+  settlementTypes: z.array(z.enum(['loss', 'referral'])).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -55,18 +56,24 @@ export default defineEventHandler(async (event) => {
     }
 
     if (body.role) {
-      await requireSuperAdmin(event)
-      const permissions =
-        body.role === 'branch_admin'
-          ? { canViewUsers: true, canCredit: false }
-          : body.role === 'super_admin'
-            ? { all: true, canCredit: true }
-            : {}
-      const { error } = await supa
-        .from('trae_users')
-        .update({ role: body.role, permissions })
-        .eq('id', body.userId)
-      if (error) throw error
+      // 역할이 실제로 바뀔 때만 권한(permissions)을 역할 기본값으로 초기화한다.
+      // (그렇지 않으면 다른 필드만 저장할 때마다 매번 role이 같이 전송되어 기존에 설정해둔
+      //  메뉴 권한/정산유형이 매 저장마다 지워져 버린다.)
+      const current = await supaSelectOne<any>('trae_users', { id: body.userId })
+      if (current && String(current.role) !== body.role) {
+        await requireSuperAdmin(event)
+        const permissions =
+          body.role === 'branch_admin'
+            ? { canViewUsers: true, canCredit: false }
+            : body.role === 'super_admin'
+              ? { all: true, canCredit: true }
+              : {}
+        const { error } = await supa
+          .from('trae_users')
+          .update({ role: body.role, permissions })
+          .eq('id', body.userId)
+        if (error) throw error
+      }
     }
 
     if (
@@ -92,6 +99,18 @@ export default defineEventHandler(async (event) => {
       const { error } = await supa
         .from('trae_users')
         .update({ referral_code: body.referralCode.trim(), updated_at: new Date().toISOString() })
+        .eq('id', body.userId)
+      if (error) throw error
+    }
+
+    if (Array.isArray(body.settlementTypes)) {
+      // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만
+      await requireSuperAdmin(event)
+      const current = await supaSelectOne<any>('trae_users', { id: body.userId })
+      const permissions = { ...(current?.permissions || {}), settlementTypes: body.settlementTypes }
+      const { error } = await supa
+        .from('trae_users')
+        .update({ permissions, updated_at: new Date().toISOString() })
         .eq('id', body.userId)
       if (error) throw error
     }
@@ -126,19 +145,22 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.role) {
-    // 역할 변경은 총관리자만
-    await requireSuperAdmin(event)
-    const permissions =
-      body.role === 'branch_admin'
-        ? JSON.stringify({ canViewUsers: true, canCredit: false })
-        : body.role === 'super_admin'
-          ? JSON.stringify({ all: true, canCredit: true })
-          : JSON.stringify({})
+    // 역할이 실제로 바뀔 때만 권한(permissions)을 역할 기본값으로 초기화한다(위 Supabase 분기와 동일한 이유).
+    const current = db.prepare('SELECT role FROM users WHERE id = ?').get(body.userId) as { role?: string } | undefined
+    if (current && String(current.role) !== body.role) {
+      await requireSuperAdmin(event)
+      const permissions =
+        body.role === 'branch_admin'
+          ? JSON.stringify({ canViewUsers: true, canCredit: false })
+          : body.role === 'super_admin'
+            ? JSON.stringify({ all: true, canCredit: true })
+            : JSON.stringify({})
 
-    db.prepare('UPDATE users SET role = ?, permissions = ? WHERE id = ?').run(body.role, permissions, body.userId)
+      db.prepare('UPDATE users SET role = ?, permissions = ? WHERE id = ?').run(body.role, permissions, body.userId)
 
-    const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
-    await syncUserToSupabase(userRow)
+      const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
+      await syncUserToSupabase(userRow)
+    }
   }
 
   if (
@@ -178,6 +200,22 @@ export default defineEventHandler(async (event) => {
       new Date().toISOString(),
       body.userId
     )
+    const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
+    await syncUserToSupabase(userRow)
+  }
+
+  if (Array.isArray(body.settlementTypes)) {
+    // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만
+    await requireSuperAdmin(event)
+    const row = db.prepare('SELECT permissions FROM users WHERE id = ?').get(body.userId) as { permissions?: string } | undefined
+    let prevPermissions: any = {}
+    try {
+      prevPermissions = JSON.parse(row?.permissions || '{}')
+    } catch {
+      prevPermissions = {}
+    }
+    const permissions = { ...prevPermissions, settlementTypes: body.settlementTypes }
+    db.prepare('UPDATE users SET permissions = ?, updated_at = ? WHERE id = ?').run(JSON.stringify(permissions), new Date().toISOString(), body.userId)
     const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
     await syncUserToSupabase(userRow)
   }

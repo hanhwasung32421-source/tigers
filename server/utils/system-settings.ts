@@ -41,3 +41,91 @@ export async function setLiquidationRoe(value: number): Promise<number> {
   ).run(v, now)
   return v
 }
+
+export type SystemSettingsExtra = {
+  telegramUrl: string
+  krwPerUsdt: number
+  lossSettlementPercent: number
+  referralSettlementPercent: number
+}
+
+const DEFAULT_EXTRA: SystemSettingsExtra = {
+  telegramUrl: '',
+  krwPerUsdt: 0,
+  lossSettlementPercent: 0,
+  referralSettlementPercent: 0
+}
+
+function rowToExtra(row: any): SystemSettingsExtra {
+  if (!row) return { ...DEFAULT_EXTRA }
+  return {
+    telegramUrl: String(row.telegram_url || ''),
+    krwPerUsdt: Number(row.krw_per_usdt || 0),
+    lossSettlementPercent: Number(row.loss_settlement_percent || 0),
+    referralSettlementPercent: Number(row.referral_settlement_percent || 0)
+  }
+}
+
+// 텔레그램 링크/원-USDT 환율/정산 비율 등, 관리자가 조정하는 그 외 전역 설정
+export async function getSystemSettingsExtra(): Promise<SystemSettingsExtra> {
+  if (supabaseAppDbEnabled()) {
+    try {
+      const row = await supaSelectOne<any>(T_SYSTEM_SETTINGS, { id: 1 })
+      return rowToExtra(row)
+    } catch {
+      return { ...DEFAULT_EXTRA }
+    }
+  }
+  const db = getDb()
+  const row = db.prepare('SELECT telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent FROM system_settings WHERE id = 1').get()
+  return rowToExtra(row)
+}
+
+export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExtra>): Promise<SystemSettingsExtra> {
+  const current = await getSystemSettingsExtra()
+  const next: SystemSettingsExtra = { ...current, ...patch }
+  const now = new Date().toISOString()
+
+  if (supabaseAppDbEnabled()) {
+    await supaUpsertStrict(
+      T_SYSTEM_SETTINGS,
+      {
+        id: 1,
+        telegram_url: next.telegramUrl,
+        krw_per_usdt: next.krwPerUsdt,
+        loss_settlement_percent: next.lossSettlementPercent,
+        referral_settlement_percent: next.referralSettlementPercent,
+        updated_at: now
+      },
+      'id'
+    )
+    return next
+  }
+
+  const db = getDb()
+  db.prepare(
+    `INSERT INTO system_settings (id, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, updated_at)
+     VALUES (1, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       telegram_url = excluded.telegram_url,
+       krw_per_usdt = excluded.krw_per_usdt,
+       loss_settlement_percent = excluded.loss_settlement_percent,
+       referral_settlement_percent = excluded.referral_settlement_percent,
+       updated_at = excluded.updated_at`
+  ).run(next.telegramUrl, next.krwPerUsdt, next.lossSettlementPercent, next.referralSettlementPercent, now)
+  return next
+}
+
+// 관리자가 원/USDT 비율을 0(또는 미설정)으로 두면, 빗썸 공개 시세로 실시간 환율을 가져온다.
+export async function resolveKrwPerUsdtRate(): Promise<number> {
+  const extra = await getSystemSettingsExtra()
+  if (extra.krwPerUsdt > 0) return extra.krwPerUsdt
+  try {
+    const res = await $fetch<any>('https://api.bithumb.com/public/ticker/USDT_KRW')
+    const price = Number(res?.data?.closing_price)
+    if (Number.isFinite(price) && price > 0) return price
+  } catch {
+    // ignore
+  }
+  return 0
+}
