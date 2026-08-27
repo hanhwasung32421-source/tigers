@@ -269,7 +269,7 @@
           />
         </div>
         <div>
-          <label class="text-sm text-slate-300">원/USDT 환율 (0 = 실시간 시세 사용)</label>
+          <label class="text-sm text-slate-300">원/USDT 환율 (0 = 매일 09시 자동 환율 사용)</label>
           <input
             v-model.number="miscDraft.krwPerUsdt"
             type="number"
@@ -277,6 +277,10 @@
             step="0.01"
             class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
+          <p class="mt-1 text-xs text-slate-500">
+            현재 자동 환율(매일 오전 9시 빗썸 기준 고정): <span class="font-mono text-slate-300">{{ dailyKrwRate ? `${fmt0(dailyKrwRate)}원` : '아직 없음' }}</span>
+            <span v-if="dailyKrwRateDay"> ({{ dailyKrwRateDay }} 갱신)</span>
+          </p>
         </div>
         <div>
           <label class="text-sm text-slate-300">손실정산 비율 (%)</label>
@@ -842,14 +846,22 @@ const miscDraft = reactive({
 const miscSaving = ref(false)
 const miscError = ref<string | null>(null)
 const miscMsg = ref<string | null>(null)
+const dailyKrwRate = ref(0)
+const dailyKrwRateDay = ref('')
+
+function fmt0(v: number) {
+  return Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })
+}
 
 async function loadMiscSettings() {
   try {
-    const data = await $fetch<typeof miscDraft>('/api/admin/settings/misc')
+    const data = await $fetch<any>('/api/admin/settings/misc')
     miscDraft.telegramUrl = data.telegramUrl || ''
     miscDraft.krwPerUsdt = Number(data.krwPerUsdt || 0)
     miscDraft.lossSettlementPercent = Number(data.lossSettlementPercent || 0)
     miscDraft.referralSettlementPercent = Number(data.referralSettlementPercent || 0)
+    dailyKrwRate.value = Number(data.dailyKrwRate || 0)
+    dailyKrwRateDay.value = String(data.dailyKrwRateDay || '')
   } catch {
     // 기본값 유지
   }

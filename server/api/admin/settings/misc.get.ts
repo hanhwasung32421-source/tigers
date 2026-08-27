@@ -1,7 +1,9 @@
 import { requireSuperAdmin } from '../../../utils/auth'
-import { getSystemSettingsExtra } from '../../../utils/system-settings'
+import { getSystemSettingsExtra, getDailyKrwRate } from '../../../utils/system-settings'
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
-  return await getSystemSettingsExtra()
+  const extra = await getSystemSettingsExtra()
+  const daily = await getDailyKrwRate()
+  return { ...extra, dailyKrwRate: daily.rate, dailyKrwRateDay: daily.day, dailyKrwRateUpdatedAt: daily.updatedAt }
 })

@@ -116,16 +116,78 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
   return next
 }
 
-// 관리자가 원/USDT 비율을 0(또는 미설정)으로 두면, 빗썸 공개 시세로 실시간 환율을 가져온다.
-export async function resolveKrwPerUsdtRate(): Promise<number> {
-  const extra = await getSystemSettingsExtra()
-  if (extra.krwPerUsdt > 0) return extra.krwPerUsdt
+// 매일 오전 9시(KST)에 한 번 빗썸 시세로 고정하는 자동 환율 캐시.
+// KST 09:00 = UTC 00:00 이므로, UTC 날짜(YYYY-MM-DD)가 그대로 "환율 갱신일" 키가 된다.
+function currentRateDayKey(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+type DailyRateRow = { rate: number; day: string; updatedAt: string | null }
+
+async function readDailyRateRow(): Promise<DailyRateRow> {
+  if (supabaseAppDbEnabled()) {
+    try {
+      const row = await supaSelectOne<any>(T_SYSTEM_SETTINGS, { id: 1 })
+      return {
+        rate: Number(row?.krw_auto_rate || 0),
+        day: String(row?.krw_auto_rate_day || ''),
+        updatedAt: row?.krw_auto_rate_updated_at ? String(row.krw_auto_rate_updated_at) : null
+      }
+    } catch {
+      return { rate: 0, day: '', updatedAt: null }
+    }
+  }
+  const db = getDb()
+  const row = db.prepare('SELECT krw_auto_rate, krw_auto_rate_day, krw_auto_rate_updated_at FROM system_settings WHERE id = 1').get() as any
+  return {
+    rate: Number(row?.krw_auto_rate || 0),
+    day: String(row?.krw_auto_rate_day || ''),
+    updatedAt: row?.krw_auto_rate_updated_at ? String(row.krw_auto_rate_updated_at) : null
+  }
+}
+
+async function writeDailyRateRow(rate: number, day: string): Promise<void> {
+  const now = new Date().toISOString()
+  if (supabaseAppDbEnabled()) {
+    await supaUpsertStrict(T_SYSTEM_SETTINGS, { id: 1, krw_auto_rate: rate, krw_auto_rate_day: day, krw_auto_rate_updated_at: now }, 'id')
+    return
+  }
+  const db = getDb()
+  db.prepare(
+    `INSERT INTO system_settings (id, krw_auto_rate, krw_auto_rate_day, krw_auto_rate_updated_at) VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       krw_auto_rate = excluded.krw_auto_rate,
+       krw_auto_rate_day = excluded.krw_auto_rate_day,
+       krw_auto_rate_updated_at = excluded.krw_auto_rate_updated_at`
+  ).run(rate, day, now)
+}
+
+// 그날(오전 9시 기준) 아직 갱신된 적이 없으면 빗썸에서 새로 받아와 고정하고, 있으면 캐시된 값을 그대로 쓴다.
+// Vercel Cron이 매일 09:00 KST에 /api/cron/refresh-krw-rate를 호출해 갱신하지만,
+// 혹시 그게 실패하더라도 이후 아무 요청에서나(정산내역 조회, 입금 승인 등) 이 함수가 알아서 갱신한다.
+export async function getDailyKrwRate(): Promise<{ rate: number; day: string; updatedAt: string | null }> {
+  const today = currentRateDayKey()
+  const cached = await readDailyRateRow()
+  if (cached.day === today && cached.rate > 0) return cached
+
   try {
     const res = await $fetch<any>('https://api.bithumb.com/public/ticker/USDT_KRW')
     const price = Number(res?.data?.closing_price)
-    if (Number.isFinite(price) && price > 0) return price
+    if (Number.isFinite(price) && price > 0) {
+      await writeDailyRateRow(price, today)
+      return { rate: price, day: today, updatedAt: new Date().toISOString() }
+    }
   } catch {
     // ignore
   }
-  return 0
+  // 갱신 실패 시 이전에 캐시된 값이라도 사용 (없으면 0)
+  return cached
+}
+
+// 관리자가 원/USDT 비율을 0(또는 미설정)으로 두면, 매일 09시(KST)에 고정한 빗썸 환율을 사용한다.
+export async function resolveKrwPerUsdtRate(): Promise<number> {
+  const extra = await getSystemSettingsExtra()
+  if (extra.krwPerUsdt > 0) return extra.krwPerUsdt
+  const daily = await getDailyKrwRate()
+  return daily.rate
 }

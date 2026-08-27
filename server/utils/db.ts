@@ -151,6 +151,9 @@ export function getDb() {
       krw_per_usdt REAL NOT NULL DEFAULT 0,
       loss_settlement_percent REAL NOT NULL DEFAULT 0,
       referral_settlement_percent REAL NOT NULL DEFAULT 0,
+      krw_auto_rate REAL NOT NULL DEFAULT 0,
+      krw_auto_rate_day TEXT NOT NULL DEFAULT '',
+      krw_auto_rate_updated_at TEXT NULL,
       updated_at TEXT NOT NULL
     );
 
@@ -222,6 +225,9 @@ export function getDb() {
     if (!sysCols.includes('krw_per_usdt')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_per_usdt REAL NOT NULL DEFAULT 0;')
     if (!sysCols.includes('loss_settlement_percent')) db.exec('ALTER TABLE system_settings ADD COLUMN loss_settlement_percent REAL NOT NULL DEFAULT 0;')
     if (!sysCols.includes('referral_settlement_percent')) db.exec('ALTER TABLE system_settings ADD COLUMN referral_settlement_percent REAL NOT NULL DEFAULT 0;')
+    if (!sysCols.includes('krw_auto_rate')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_auto_rate REAL NOT NULL DEFAULT 0;')
+    if (!sysCols.includes('krw_auto_rate_day')) db.exec("ALTER TABLE system_settings ADD COLUMN krw_auto_rate_day TEXT NOT NULL DEFAULT '';")
+    if (!sysCols.includes('krw_auto_rate_updated_at')) db.exec('ALTER TABLE system_settings ADD COLUMN krw_auto_rate_updated_at TEXT NULL;')
   } catch {
     // ignore
   }
