@@ -546,7 +546,7 @@ function syncRateDraft(list: MemberRow[]) {
 }
 
 async function saveRate(u: MemberRow) {
-  const raw = (rateDraft[u.id] ?? '').trim()
+  const raw = String(rateDraft[u.id] ?? '').trim()
   const settlementPercent = raw === '' ? null : Number(raw)
   if (settlementPercent !== null && (!Number.isFinite(settlementPercent) || settlementPercent < 0 || settlementPercent > 100)) {
     return

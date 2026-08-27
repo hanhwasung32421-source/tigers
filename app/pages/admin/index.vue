@@ -780,7 +780,7 @@ async function saveUserRow(userId: number) {
         ...(draft.role !== 'user' && draft.role !== 'super_admin'
           ? {
               settlementType: draft.settlementType,
-              settlementPercent: draft.settlementPercent.trim() === '' ? null : Number(draft.settlementPercent)
+              settlementPercent: String(draft.settlementPercent ?? '').trim() === '' ? null : Number(draft.settlementPercent)
             }
           : {})
       }
