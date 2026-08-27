@@ -77,3 +77,15 @@ export async function latestKillEvent(symbol: string): Promise<KillEvent | null>
   const row = db.prepare('SELECT * FROM kill_events WHERE symbol = ? ORDER BY id DESC LIMIT 1').get(sym) as any
   return row ? rowToKillEvent(row) : null
 }
+
+// 새로고침 후에도 킬로 생긴 봉의 고가/저가(꼬리)를 다시 그려 넣기 위해 과거 이벤트 목록이 필요하다.
+export async function listKillEvents(symbol: string, limit = 200): Promise<KillEvent[]> {
+  const sym = symbol.toUpperCase()
+  if (supabaseAppDbEnabled()) {
+    const rows = await supaSelectWhere<any>({ table: T_KILL_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit })
+    return rows.map(rowToKillEvent)
+  }
+  const db = getDb()
+  const rows = db.prepare('SELECT * FROM kill_events WHERE symbol = ? ORDER BY id DESC LIMIT ?').all(sym, limit) as any[]
+  return rows.map(rowToKillEvent)
+}

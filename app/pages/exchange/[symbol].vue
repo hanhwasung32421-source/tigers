@@ -3128,6 +3128,31 @@ function candleRowsToSeriesData(rows: string[][]) {
   return { candles, vols }
 }
 
+// 예전에 킬UP/킬DOWN으로 만들어진 고가/저가(꼬리)를, 새로고침 등으로 실제 데이터를 다시 받아온 뒤에도
+// 같은 자리에 다시 반영한다. 실제 시세(open/close)는 건드리지 않고 high/low만 확장한다.
+function applyKillWicks(candles: CandlestickData[], events: KillEvent[], intervalSeconds: number) {
+  if (!candles.length || !events.length || !intervalSeconds) return
+  const byTime = new Map<number, CandlestickData>()
+  for (const c of candles) byTime.set(Number((c as any).time), c)
+  for (const ev of events) {
+    const unix = Math.floor(new Date(ev.createdAt).getTime() / 1000)
+    const bucket = Math.floor(unix / intervalSeconds) * intervalSeconds
+    const c = byTime.get(bucket) as any
+    if (!c) continue
+    c.high = Math.max(Number(c.high), ev.basePrice, ev.shockedPrice)
+    c.low = Math.min(Number(c.low), ev.basePrice, ev.shockedPrice)
+  }
+}
+
+async function fetchKillEventsFor(sym: string): Promise<KillEvent[]> {
+  try {
+    const res = await $fetch<{ items: KillEvent[] }>('/api/kill/history', { query: { symbol: sym, limit: 200 } })
+    return res?.items || []
+  } catch {
+    return []
+  }
+}
+
 // 과거 데이터를 화면이 뜬 뒤 백그라운드로 이어받아 채운다(4일치를 한 번에 순차 로딩하면 체감 로딩이 느려짐).
 // history-candles는 1회 최대 100개라 분봉 기준 페이지가 많아, 첫 화면을 막지 않기 위해 별도로 분리.
 async function backfillOlderCandles(
@@ -3135,7 +3160,9 @@ async function backfillOlderCandles(
   instId: string,
   bar: string,
   firstBatch: string[][],
-  neededBars: number
+  neededBars: number,
+  killEvents: KillEvent[],
+  intervalSeconds: number
 ) {
   let afterCursor = firstBatch[firstBatch.length - 1]?.[0] ? String(firstBatch[firstBatch.length - 1][0]) : undefined
   if (!afterCursor) return
@@ -3162,8 +3189,12 @@ async function backfillOlderCandles(
 
   if (token !== candlesFetchToken || !olderRows.length) return
 
-  const merged = Array.from(new Map([...olderRows, ...firstBatch].map((r) => [String(r[0]), r])).values())
+  // 중요: firstBatch(최신)가 먼저, olderRows(그 다음 과거, 페이지를 거칠수록 더 과거)가 뒤에 와야
+  // 전체적으로 "최신 -> 과거" 내림차순이 유지된다. 순서가 뒤바뀌면 setData에 오름차순이 아닌
+  // 데이터가 들어가 차트가 통째로 비어버린다.
+  const merged = Array.from(new Map([...firstBatch, ...olderRows].map((r) => [String(r[0]), r])).values())
   const { candles, vols } = candleRowsToSeriesData(merged)
+  applyKillWicks(candles, killEvents, intervalSeconds)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   // fitContent()는 다시 호출하지 않는다 — 사용자가 보고 있는 화면(줌/스크롤)을 방해하지 않기 위함
@@ -3178,17 +3209,22 @@ async function fetchCandles() {
   const token = ++candlesFetchToken
   const instId = toInstId(symbol.value)
   const bar = timeframe.value
+  const sym = symbol.value
+  const intervalSeconds = barSeconds(timeframe.value)
   // 최소 4일치는 보이도록: 분봉처럼 봉 간격이 짧으면 그만큼 더 많은 봉이 필요하다.
-  const neededBars = Math.max(120, Math.ceil((4 * 24 * 60 * 60) / barSeconds(timeframe.value)) + 60)
+  const neededBars = Math.max(120, Math.ceil((4 * 24 * 60 * 60) / intervalSeconds) + 60)
 
   // 1) 최신 봉부터 먼저 한 번에 받아 바로 그린다(체감 로딩 속도를 예전 수준으로 유지).
-  const firstRes = await $fetch<any>('/api/okx/candles', {
-    query: { instId, bar, limit: Math.min(300, neededBars) }
-  })
+  //    킬 이벤트 목록도 같이 받아서, 예전 킬로 생긴 고가/저가(꼬리)를 다시 그려 넣는다.
+  const [firstRes, killEvents] = await Promise.all([
+    $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: Math.min(300, neededBars) } }),
+    fetchKillEventsFor(sym)
+  ])
   if (token !== candlesFetchToken) return
   const firstBatch = (firstRes?.data || []) as string[][]
 
   const { candles, vols } = candleRowsToSeriesData(firstBatch)
+  applyKillWicks(candles, killEvents, intervalSeconds)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   chart?.timeScale().fitContent()
@@ -3204,7 +3240,7 @@ async function fetchCandles() {
 
   // 2) 나머지 과거 봉(4일치를 채우는 데 필요한 만큼)은 백그라운드에서 이어받는다.
   if (firstBatch.length > 0 && firstBatch.length < neededBars) {
-    backfillOlderCandles(token, instId, bar, firstBatch, neededBars).catch(() => {})
+    backfillOlderCandles(token, instId, bar, firstBatch, neededBars, killEvents, intervalSeconds).catch(() => {})
   }
 }
 
