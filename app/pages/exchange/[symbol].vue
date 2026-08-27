@@ -978,7 +978,6 @@
 <script setup lang="ts">
 import {
   createChart,
-  createSeriesMarkers,
   CandlestickSeries,
   HistogramSeries,
   LineSeries,
@@ -987,8 +986,7 @@ import {
   type IChartApi,
   type ISeriesApi,
   type CandlestickData,
-  type HistogramData,
-  type ISeriesMarkersPluginApi
+  type HistogramData
 } from 'lightweight-charts'
 import { TrendLinePrimitive } from '../../utils/chart/trendLinePrimitive'
 import { calculateBollingerBands } from '../../utils/chart/movingAverage'
@@ -1298,8 +1296,6 @@ const killModalOpen = ref(false)
 const killModalDirection = ref<'up' | 'down'>('down')
 const killPercentDraft = ref(5)
 const killError = ref<string | null>(null)
-const killHistory = ref<KillEvent[]>([])
-let killSeriesMarkers: ISeriesMarkersPluginApi<any> | null = null
 let lastSeenKillEventId = 0
 let killPollTimer: any = null
 
@@ -2011,42 +2007,14 @@ async function confirmKillModal() {
   }
 }
 
-function recordKillEvent(ev: KillEvent) {
-  if (killHistory.value.some((k) => k.id === ev.id)) return
-  killHistory.value = [...killHistory.value, ev]
-  if (String(ev.symbol).toUpperCase() === String(symbol.value).toUpperCase()) {
-    renderKillMarkers()
-  }
-}
-
-function renderKillMarkers() {
-  if (!candleSeries) return
-  if (!killSeriesMarkers) killSeriesMarkers = createSeriesMarkers(candleSeries, [])
-  const bs = barSeconds(timeframe.value)
-  const markers = killHistory.value
-    .map((k) => {
-      const unix = Math.floor(new Date(k.createdAt).getTime() / 1000)
-      const bucket = Math.floor(unix / bs) * bs
-      return {
-        time: bucket as any,
-        position: (k.direction === 'up' ? 'aboveBar' : 'belowBar') as 'aboveBar' | 'belowBar',
-        color: k.direction === 'up' ? '#38bdf8' : '#f43f5e',
-        shape: (k.direction === 'up' ? 'arrowUp' : 'arrowDown') as 'arrowUp' | 'arrowDown',
-        text: `킬${k.direction === 'up' ? 'UP' : 'DOWN'} ${Math.round(k.percent)}%`
-      }
-    })
-    .sort((a, b) => Number(a.time) - Number(b.time))
-  killSeriesMarkers.setMarkers(markers)
-}
-
-async function loadKillHistory() {
+// 새로고침/재접속 직후에는 예전 이벤트를 "방금 일어난 일"로 재생하지 않도록 기준점만 맞춰둔다.
+// (차트에는 텍스트/마커를 남기지 않음 — 봉 자체가 튀었다가 돌아오는 것만 보이면 됨)
+async function initKillEventBaseline() {
   try {
-    const res = await $fetch<{ items: KillEvent[] }>('/api/kill/history', { query: { symbol: symbol.value, limit: 50 } })
-    killHistory.value = res?.items || []
-    if (killHistory.value.length) {
-      lastSeenKillEventId = Math.max(...killHistory.value.map((k) => k.id))
+    const res = await $fetch<{ event: KillEvent | null }>('/api/kill/latest', { query: { symbol: symbol.value } })
+    if (res?.event) {
+      lastSeenKillEventId = Math.max(lastSeenKillEventId, res.event.id)
     }
-    renderKillMarkers()
   } catch {
     // ignore
   }
@@ -2054,7 +2022,6 @@ async function loadKillHistory() {
 
 async function runKillAnimation(ev: KillEvent) {
   if (!process.client) return
-  recordKillEvent(ev)
 
   if (String(ev.symbol).toUpperCase() !== String(symbol.value).toUpperCase()) {
     // 다른 심볼 킬이면 애니메이션은 생략하고, 내 계정(잔고/포지션)만 동기화
@@ -3703,7 +3670,7 @@ watch([() => symbol.value, timeframe], async () => {
   await fetchCandles().catch(() => {})
   connectWs()
   await loadAccount()
-  await loadKillHistory()
+  await initKillEventBaseline()
 })
 
 watch(
@@ -3731,7 +3698,7 @@ onMounted(async () => {
   await fetchCandles().catch(() => {})
   connectWs()
   await loadAccount()
-  await loadKillHistory()
+  await initKillEventBaseline()
   startKillPolling()
 
   // 기본은 시장가 탭

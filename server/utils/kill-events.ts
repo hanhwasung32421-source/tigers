@@ -77,14 +77,3 @@ export async function latestKillEvent(symbol: string): Promise<KillEvent | null>
   const row = db.prepare('SELECT * FROM kill_events WHERE symbol = ? ORDER BY id DESC LIMIT 1').get(sym) as any
   return row ? rowToKillEvent(row) : null
 }
-
-export async function listKillEvents(symbol: string, limit = 50): Promise<KillEvent[]> {
-  const sym = symbol.toUpperCase()
-  if (supabaseAppDbEnabled()) {
-    const rows = await supaSelectWhere<any>({ table: T_KILL_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit })
-    return rows.map(rowToKillEvent).reverse()
-  }
-  const db = getDb()
-  const rows = db.prepare('SELECT * FROM kill_events WHERE symbol = ? ORDER BY id DESC LIMIT ?').all(sym, limit) as any[]
-  return rows.map(rowToKillEvent).reverse()
-}

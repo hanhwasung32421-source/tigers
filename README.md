@@ -130,7 +130,8 @@ bun run dev
 - 누르면 몇 % 움직였다가 복귀할지 입력하는 팝업이 뜨고, 확인하면:
   - 그 심볼을 보고 있는 모든 유저의 차트가 즉시(최대 1.5초 이내) 같이 튀었다가 복귀합니다(폴링 방식으로 전파).
   - 이동 구간에서 강제청산가에 닿은 포지션은 실제로 강제청산되어 거래내역/잔고에 반영됩니다.
-  - 이벤트는 Supabase(`trae_kill_events`, `SUPABASE_APP_DB_ENABLED=1`일 때) 또는 로컬 SQLite에 저장되어, 새로고침 후에도 차트에 화살표 마커로 남습니다.
+  - 차트에는 텍스트/마커를 남기지 않고, 봉 자체가 튀었다가 원래대로 돌아오는 것만 보입니다.
+  - 이벤트는 Supabase(`trae_kill_events`, `SUPABASE_APP_DB_ENABLED=1`일 때) 또는 로컬 SQLite에 잠깐 기록되어(실시간 전파용) 모든 유저에게 동일하게 보이지만, 새로고침 후에는 화면에 남는 흔적이 없습니다.
 - Supabase 저장을 쓰려면 `SUPABASE_TRAE_DB_patch_kill_events.sql`을 먼저 실행해야 합니다.
 
 ## GitHub 자동 푸시
