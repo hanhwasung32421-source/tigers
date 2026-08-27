@@ -157,6 +157,8 @@ export function getDb() {
       percent REAL NOT NULL,
       base_price REAL NOT NULL,
       shocked_price REAL NOT NULL,
+      duration_ms INTEGER NOT NULL DEFAULT 1000,
+      tick_count INTEGER NOT NULL DEFAULT 3,
       created_at TEXT NOT NULL
     );
 
@@ -180,6 +182,19 @@ export function getDb() {
     const hasLiquidation = cols.some((c) => String(c?.name) === 'liquidation')
     if (!hasLiquidation) {
       db.exec('ALTER TABLE trades ADD COLUMN liquidation INTEGER NOT NULL DEFAULT 0;')
+    }
+  } catch {
+    // ignore
+  }
+
+  // 마이그레이션: kill_events.duration_ms/tick_count 컬럼 추가(킬 애니메이션 속도 조절용)
+  try {
+    const killCols = (db.prepare("PRAGMA table_info('kill_events')").all() as any[]).map((c) => String(c?.name))
+    if (!killCols.includes('duration_ms')) {
+      db.exec('ALTER TABLE kill_events ADD COLUMN duration_ms INTEGER NOT NULL DEFAULT 1000;')
+    }
+    if (!killCols.includes('tick_count')) {
+      db.exec('ALTER TABLE kill_events ADD COLUMN tick_count INTEGER NOT NULL DEFAULT 3;')
     }
   } catch {
     // ignore

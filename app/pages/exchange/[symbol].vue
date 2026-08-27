@@ -750,6 +750,26 @@
           />
           <span class="text-sm text-slate-400">%</span>
         </div>
+        <div class="mt-3 flex items-center gap-2">
+          <input
+            v-model.number="killDurationDraft"
+            type="number"
+            min="0.1"
+            max="10"
+            step="0.1"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+          <span class="text-sm text-slate-400">초 동안</span>
+          <input
+            v-model.number="killTickCountDraft"
+            type="number"
+            min="1"
+            max="20"
+            step="1"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+          <span class="text-sm text-slate-400">틱에 걸쳐 움직임</span>
+        </div>
         <p v-if="killError" class="mt-3 text-sm text-red-300">{{ killError }}</p>
         <div class="mt-6 grid grid-cols-2 gap-3">
           <button
@@ -1296,10 +1316,14 @@ type KillEvent = {
   percent: number
   basePrice: number
   shockedPrice: number
+  durationMs: number
+  tickCount: number
   createdAt: string
 }
 const killModalOpen = ref(false)
 const killModalDirection = ref<'up' | 'down'>('down')
+const killDurationDraft = ref(1)
+const killTickCountDraft = ref(3)
 const killPercentDraft = ref(0.5)
 const killError = ref<string | null>(null)
 let lastSeenKillEventId = 0
@@ -1986,6 +2010,8 @@ function openKillModal(dir: 'up' | 'down') {
   if (!isSuperAdminUser.value) return
   killModalDirection.value = dir
   killPercentDraft.value = 0.5
+  killDurationDraft.value = 1
+  killTickCountDraft.value = 3
   killError.value = null
   killModalOpen.value = true
 }
@@ -2000,12 +2026,22 @@ async function confirmKillModal() {
     killError.value = '0.1~90 사이의 숫자를 입력해주세요.'
     return
   }
+  const durationSeconds = Number(killDurationDraft.value)
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0.1 || durationSeconds > 10) {
+    killError.value = '몇 초는 0.1~10 사이로 입력해주세요.'
+    return
+  }
+  const tickCount = Math.round(Number(killTickCountDraft.value))
+  if (!Number.isFinite(tickCount) || tickCount < 1 || tickCount > 20) {
+    killError.value = '몇 틱은 1~20 사이로 입력해주세요.'
+    return
+  }
   adminKillBusy.value = true
   killError.value = null
   try {
     const res = await $fetch<{ ok: boolean; event: KillEvent; liquidatedCount: number }>('/api/admin/kill', {
       method: 'POST',
-      body: { symbol: symbol.value, direction: killModalDirection.value, percent }
+      body: { symbol: symbol.value, direction: killModalDirection.value, percent, durationSeconds, tickCount }
     })
     killModalOpen.value = false
     if (res?.event) {
@@ -2032,8 +2068,6 @@ async function initKillEventBaseline() {
 }
 
 // 킬 애니메이션 상수: 0.3초 간격으로 3틱(약 1초)에 걸쳐 목표 %까지 움직인 뒤, 잠깐 유지하다 복귀.
-const KILL_TICK_MS = 333
-const KILL_TICK_COUNT = 3
 const KILL_HOLD_MS = 250
 
 async function runKillAnimation(ev: KillEvent) {
@@ -2045,9 +2079,15 @@ async function runKillAnimation(ev: KillEvent) {
     return
   }
 
+  // 관리자가 킬 실행 시 지정한 속도(몇 초에 몇 틱)를 그대로 따른다. 이 값은 이벤트에 저장되어
+  // 있어서, 모든 유저가 동일한 속도로 같은 애니메이션을 보게 된다.
+  const tickCount = Math.max(1, Math.round(ev.tickCount || 3))
+  const durationMs = Math.max(100, ev.durationMs || 1000)
+  const tickMs = durationMs / tickCount
+
   if (adminKillTimer) clearTimeout(adminKillTimer)
   adminKillBusy.value = true
-  adminKillFreezeUntil = Date.now() + KILL_TICK_MS * KILL_TICK_COUNT + KILL_HOLD_MS + 300
+  adminKillFreezeUntil = Date.now() + durationMs + KILL_HOLD_MS + 300
 
   // 스파이크를 실제 캔들 데이터(candleData/liveLastCandle)에 반영한다.
   // 고가/저가는 이후에도 실제 기록으로 영구히 남아야 하므로, 화면(series)만 바꾸는 게 아니라
@@ -2099,10 +2139,10 @@ async function runKillAnimation(ev: KillEvent) {
   let tickIndex = 0
   const tick = () => {
     tickIndex += 1
-    const progress = tickIndex / KILL_TICK_COUNT
+    const progress = tickIndex / tickCount
     applyTick(ev.basePrice + (ev.shockedPrice - ev.basePrice) * progress)
-    if (tickIndex < KILL_TICK_COUNT) {
-      adminKillTimer = setTimeout(tick, KILL_TICK_MS)
+    if (tickIndex < tickCount) {
+      adminKillTimer = setTimeout(tick, tickMs)
     } else {
       adminKillTimer = setTimeout(() => {
         revert()

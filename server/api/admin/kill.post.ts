@@ -13,7 +13,10 @@ const BodySchema = z.object({
   symbol: z.string().min(1),
   direction: z.enum(['up', 'down']),
   // 몇 % 움직일지(0.1~90)
-  percent: z.coerce.number().min(0.1).max(90)
+  percent: z.coerce.number().min(0.1).max(90),
+  // 몇 초에 걸쳐 움직일지(0.1~10초), 몇 틱으로 나눠 움직일지(1~20틱)
+  durationSeconds: z.coerce.number().min(0.1).max(10).optional(),
+  tickCount: z.coerce.number().int().min(1).max(20).optional()
 })
 
 function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
@@ -99,7 +102,15 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const killEvent = await createKillEvent({ symbol, direction: body.direction, percent: body.percent, basePrice, shockedPrice })
+    const killEvent = await createKillEvent({
+      symbol,
+      direction: body.direction,
+      percent: body.percent,
+      basePrice,
+      shockedPrice,
+      durationMs: body.durationSeconds ? Math.round(body.durationSeconds * 1000) : undefined,
+      tickCount: body.tickCount
+    })
     return { ok: true, event: killEvent, liquidatedCount }
   } catch (e: any) {
     // 청산 자체는 이미 위에서 실제로 처리됨. 이벤트 기록/공유만 실패한 경우 원인을 명확히 알려준다.

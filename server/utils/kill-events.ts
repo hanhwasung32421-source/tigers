@@ -1,8 +1,10 @@
 import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
-import { supaDelete, supaInsertStrict, supaSelectWhere } from './supabase'
+import { getSupabaseAdminClient, isMissingColumnError, supaDelete, supaSelectWhere } from './supabase'
 
 const T_KILL_EVENTS = 'trae_kill_events'
+const DEFAULT_DURATION_MS = 1000
+const DEFAULT_TICK_COUNT = 3
 
 export type KillEvent = {
   id: number
@@ -11,6 +13,8 @@ export type KillEvent = {
   percent: number
   basePrice: number
   shockedPrice: number
+  durationMs: number
+  tickCount: number
   createdAt: string
 }
 
@@ -22,6 +26,8 @@ function rowToKillEvent(row: any): KillEvent {
     percent: Number(row.percent),
     basePrice: Number(row.base_price),
     shockedPrice: Number(row.shocked_price),
+    durationMs: Number.isFinite(Number(row.duration_ms)) && Number(row.duration_ms) > 0 ? Number(row.duration_ms) : DEFAULT_DURATION_MS,
+    tickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) > 0 ? Number(row.tick_count) : DEFAULT_TICK_COUNT,
     createdAt: String(row.created_at)
   }
 }
@@ -32,30 +38,46 @@ export async function createKillEvent(input: {
   percent: number
   basePrice: number
   shockedPrice: number
+  durationMs?: number
+  tickCount?: number
 }): Promise<KillEvent> {
   const createdAt = new Date().toISOString()
   const symbol = input.symbol.toUpperCase()
+  const durationMs = input.durationMs && input.durationMs > 0 ? Math.round(input.durationMs) : DEFAULT_DURATION_MS
+  const tickCount = input.tickCount && input.tickCount > 0 ? Math.round(input.tickCount) : DEFAULT_TICK_COUNT
 
   if (supabaseAppDbEnabled()) {
     const id = Date.now() * 1000 + Math.floor(Math.random() * 1000)
-    await supaInsertStrict(T_KILL_EVENTS, {
+    const supa = getSupabaseAdminClient()
+    const payload: any = {
       id,
       symbol,
       direction: input.direction,
       percent: input.percent,
       base_price: input.basePrice,
       shocked_price: input.shockedPrice,
+      duration_ms: durationMs,
+      tick_count: tickCount,
       created_at: createdAt
-    })
-    return { id, symbol, direction: input.direction, percent: input.percent, basePrice: input.basePrice, shockedPrice: input.shockedPrice, createdAt }
+    }
+    let { error } = await supa.from(T_KILL_EVENTS).insert(payload)
+    if (error && (isMissingColumnError(error, 'duration_ms') || isMissingColumnError(error, 'tick_count'))) {
+      // SUPABASE_TRAE_DB_patch_kill_events_duration.sql 미적용: 새 컬럼 없이 재시도
+      delete payload.duration_ms
+      delete payload.tick_count
+      const retry = await supa.from(T_KILL_EVENTS).insert(payload)
+      error = retry.error
+    }
+    if (error) throw error
+    return { id, symbol, direction: input.direction, percent: input.percent, basePrice: input.basePrice, shockedPrice: input.shockedPrice, durationMs, tickCount, createdAt }
   }
 
   const db = getDb()
   const result = db
     .prepare(
-      'INSERT INTO kill_events (symbol, direction, percent, base_price, shocked_price, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+      'INSERT INTO kill_events (symbol, direction, percent, base_price, shocked_price, duration_ms, tick_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     )
-    .run(symbol, input.direction, input.percent, input.basePrice, input.shockedPrice, createdAt)
+    .run(symbol, input.direction, input.percent, input.basePrice, input.shockedPrice, durationMs, tickCount, createdAt)
   return {
     id: Number(result.lastInsertRowid),
     symbol,
@@ -63,6 +85,8 @@ export async function createKillEvent(input: {
     percent: input.percent,
     basePrice: input.basePrice,
     shockedPrice: input.shockedPrice,
+    durationMs,
+    tickCount,
     createdAt
   }
 }

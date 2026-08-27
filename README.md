@@ -108,7 +108,8 @@ bun run dev
 1. Supabase SQL Editor에서 `SUPABASE_TRAE_DB.sql` 실행 (테이블명 `trae_` prefix)
 2. `SUPABASE_TRAE_DB_patch_system_settings.sql` 실행 (강제청산 기준(%) 저장용 `trae_system_settings` 테이블)
 3. `SUPABASE_TRAE_DB_patch_kill_events.sql` 실행 (킬UP/킬DOWN 이력 공유용 `trae_kill_events` 테이블)
-4. 배포 환경변수 추가:
+4. `SUPABASE_TRAE_DB_patch_kill_events_duration.sql` 실행 (킬 애니메이션 속도(초/틱) 저장용 컬럼 추가)
+5. 배포 환경변수 추가:
    - `SUPABASE_SERVICE_ROLE_KEY` (서버 전용)
    - `SUPABASE_APP_DB_ENABLED=1`
 
@@ -127,8 +128,8 @@ bun run dev
 ## 킬UP / 킬DOWN (총관리자 전용)
 
 - 거래 화면 상단의 킬UP/킬DOWN 버튼은 **총관리자(super_admin)** 에게만 보입니다.
-- 누르면 몇 % 움직였다가 복귀할지 입력하는 팝업이 뜨고, 확인하면:
-  - 그 심볼을 보고 있는 모든 유저의 차트가 즉시(최대 1.5초 이내) 같이 튀었다가 복귀합니다(폴링 방식으로 전파).
+- 누르면 몇 %, 몇 초 동안, 몇 틱에 걸쳐 움직였다가 복귀할지 입력하는 팝업이 뜨고, 확인하면:
+  - 그 심볼을 보고 있는 모든 유저의 차트가 지정한 속도로 동일하게 같이 튀었다가 복귀합니다(폴링 방식으로 전파, 최대 1.5초 지연 후 시작).
   - 이동 구간에서 강제청산가에 닿은 포지션은 실제로 강제청산되어 거래내역/잔고에 반영됩니다.
   - 차트에는 텍스트/마커를 남기지 않고, 봉 자체가 튀었다가 원래대로 돌아오는 것만 보입니다.
   - 봉이 원래 자리로 돌아온 뒤에도, 그 순간 찍었던 고가/저가(꼬리)는 실제 봉 기록으로 남습니다.
