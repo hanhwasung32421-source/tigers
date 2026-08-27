@@ -15,6 +15,9 @@ export type RoleDefinition = {
   label: string
   menus: MenuPermissions
   sortOrder: number
+  // 실제 권한 서열(등급). sortOrder(화면 표시 순서)와 달리 여러 역할이 같은 tier를 가질 수 있다 —
+  // 같은 등급끼리는 서로 역할을 부여할 수 없고, tier가 자기보다 더 큰(아래) 역할만 부여할 수 있다.
+  tier: number
   createdAt: string
 }
 
@@ -32,6 +35,7 @@ function rowToRole(row: any): RoleDefinition {
     label: String(row.label || row.id),
     menus: normalizeMenuPermissions(menus),
     sortOrder: Number(row.sort_order ?? 0),
+    tier: Number(row.tier ?? row.sort_order ?? 0),
     createdAt: String(row.created_at || '')
   }
 }
@@ -56,13 +60,14 @@ async function seedDefaultIfEmpty(roles: RoleDefinition[]): Promise<RoleDefiniti
   const menus = defaultMenuPermissions()
   try {
     if (supabaseAppDbEnabled()) {
-      await supaInsertStrict(T_ADMIN_ROLES, { id: DEFAULT_ROLE_ID, label: DEFAULT_ROLE_LABEL, menus, sort_order: 0, created_at: now })
+      await supaInsertStrict(T_ADMIN_ROLES, { id: DEFAULT_ROLE_ID, label: DEFAULT_ROLE_LABEL, menus, sort_order: 0, tier: 0, created_at: now })
     } else {
       const db = getDb()
-      db.prepare('INSERT OR IGNORE INTO admin_roles (id, label, menus, sort_order, created_at) VALUES (?, ?, ?, ?, ?)').run(
+      db.prepare('INSERT OR IGNORE INTO admin_roles (id, label, menus, sort_order, tier, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
         DEFAULT_ROLE_ID,
         DEFAULT_ROLE_LABEL,
         JSON.stringify(menus),
+        0,
         0,
         now
       )
@@ -94,29 +99,30 @@ export async function getRoleDefinition(id: string, forceRefresh = false): Promi
   return roles.find((r) => r.id === id) || null
 }
 
-// 서열 순위. 낮을수록 상위. super_admin은 항상 -1(모두의 위), user는 항상 +Infinity(모두의 아래).
+// 서열 순위(= tier/등급). 낮을수록 상위. super_admin은 항상 -1(모두의 위), user는 항상 +Infinity(모두의 아래).
+// 같은 tier를 가진 역할끼리는 서로 부여할 수 없다(canGrantRole이 "더 큰"만 허용하므로 동률은 자동으로 제외됨).
 export async function getRoleRank(roleId: string): Promise<number> {
   if (roleId === 'super_admin') return -1
   if (roleId === 'user') return Number.POSITIVE_INFINITY
   const roles = await listRoles()
-  const idx = roles.findIndex((r) => r.id === roleId)
-  return idx === -1 ? Number.POSITIVE_INFINITY : idx
+  const role = roles.find((r) => r.id === roleId)
+  return role ? role.tier : Number.POSITIVE_INFINITY
 }
 
 // actorRole 계정이 targetRole을 부여(코드부여/역할변경)할 수 있는지: 총관리자는 항상 가능,
-// 그 외에는 자기보다 서열이 낮은(더 아래) 역할만 부여할 수 있다.
+// 그 외에는 자기보다 등급(tier)이 더 큰(더 아래) 역할만 부여할 수 있다. 같은 등급은 부여 불가.
 export async function canGrantRole(actorRole: string, targetRole: string): Promise<boolean> {
   if (actorRole === 'super_admin') return true
   const [actorRank, targetRank] = await Promise.all([getRoleRank(actorRole), getRoleRank(targetRole)])
   return targetRank > actorRank
 }
 
-// 이 역할(actorRole)이 부여할 수 있는 하위 역할 전체 목록(랭킹 순서 그대로).
+// 이 역할(actorRole)이 부여할 수 있는 하위 역할 전체 목록(등급이 자기보다 큰 것만, 같은 등급은 제외).
 export async function grantableRolesFor(actorRole: string): Promise<RoleDefinition[]> {
   const roles = await listRoles()
   if (actorRole === 'super_admin') return roles
   const actorRank = await getRoleRank(actorRole)
-  return roles.filter((_, idx) => idx > actorRank)
+  return roles.filter((r) => r.tier > actorRank)
 }
 
 async function countUsersWithRole(id: string): Promise<number> {
@@ -146,39 +152,43 @@ export async function createRole(id: string, label: string): Promise<RoleDefinit
   const now = new Date().toISOString()
   const menus = defaultMenuPermissions()
   const cleanLabel = label.trim() || cleanId
-  // 새 역할은 서열 맨 아래(가장 낮은 우선순위)에 추가한다. 필요하면 화살표로 옮기면 된다.
+  // 새 역할은 서열 맨 아래(가장 낮은 우선순위/등급)에 추가한다. 필요하면 화살표로 표시 순서를,
+  // 등급 입력으로 실제 권한 서열을 바꾸면 된다.
   const sortOrder = existingRoles.length ? Math.max(...existingRoles.map((r) => r.sortOrder)) + 1 : 0
+  const tier = existingRoles.length ? Math.max(...existingRoles.map((r) => r.tier)) + 1 : 0
   if (supabaseAppDbEnabled()) {
-    await supaInsertStrict(T_ADMIN_ROLES, { id: cleanId, label: cleanLabel, menus, sort_order: sortOrder, created_at: now })
+    await supaInsertStrict(T_ADMIN_ROLES, { id: cleanId, label: cleanLabel, menus, sort_order: sortOrder, tier, created_at: now })
   } else {
     const db = getDb()
-    db.prepare('INSERT INTO admin_roles (id, label, menus, sort_order, created_at) VALUES (?, ?, ?, ?, ?)').run(
+    db.prepare('INSERT INTO admin_roles (id, label, menus, sort_order, tier, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
       cleanId,
       cleanLabel,
       JSON.stringify(menus),
       sortOrder,
+      tier,
       now
     )
   }
   invalidateCache()
-  return { id: cleanId, label: cleanLabel, menus, sortOrder, createdAt: now }
+  return { id: cleanId, label: cleanLabel, menus, sortOrder, tier, createdAt: now }
 }
 
-export async function updateRole(id: string, patch: { label?: string; menus?: any }): Promise<RoleDefinition> {
+export async function updateRole(id: string, patch: { label?: string; menus?: any; tier?: number }): Promise<RoleDefinition> {
   const current = await getRoleDefinition(id, true)
   if (!current) throw createError({ statusCode: 404, statusMessage: '역할을 찾을 수 없습니다.' })
   const next: RoleDefinition = {
     ...current,
     label: typeof patch.label === 'string' ? patch.label.trim() || current.label : current.label,
-    menus: patch.menus ? normalizeMenuPermissions(patch.menus) : current.menus
+    menus: patch.menus ? normalizeMenuPermissions(patch.menus) : current.menus,
+    tier: typeof patch.tier === 'number' && Number.isFinite(patch.tier) ? Math.trunc(patch.tier) : current.tier
   }
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const { error } = await supa.from(T_ADMIN_ROLES).update({ label: next.label, menus: next.menus }).eq('id', id)
+    const { error } = await supa.from(T_ADMIN_ROLES).update({ label: next.label, menus: next.menus, tier: next.tier }).eq('id', id)
     if (error) throw error
   } else {
     const db = getDb()
-    db.prepare('UPDATE admin_roles SET label = ?, menus = ? WHERE id = ?').run(next.label, JSON.stringify(next.menus), id)
+    db.prepare('UPDATE admin_roles SET label = ?, menus = ?, tier = ? WHERE id = ?').run(next.label, JSON.stringify(next.menus), next.tier, id)
   }
   invalidateCache()
   return next

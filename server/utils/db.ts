@@ -175,6 +175,7 @@ export function getDb() {
       label TEXT NOT NULL,
       menus TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0,
+      tier INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -251,10 +252,15 @@ export function getDb() {
     // ignore
   }
 
-  // 마이그레이션: admin_roles에 sort_order(서열 순서) 컬럼 추가
+  // 마이그레이션: admin_roles에 sort_order(화면 표시 순서), tier(실제 권한 등급) 컬럼 추가
+  // tier는 sort_order와 달리 여러 역할이 같은 값을 가질 수 있다(같은 등급끼리는 서로 역할을 부여할 수 없음).
   try {
     const adminRoleCols = (db.prepare("PRAGMA table_info('admin_roles')").all() as any[]).map((c) => String(c?.name))
     if (!adminRoleCols.includes('sort_order')) db.exec('ALTER TABLE admin_roles ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;')
+    if (!adminRoleCols.includes('tier')) {
+      db.exec('ALTER TABLE admin_roles ADD COLUMN tier INTEGER NOT NULL DEFAULT 0;')
+      db.exec('UPDATE admin_roles SET tier = sort_order;')
+    }
   } catch {
     // ignore
   }

@@ -11,12 +11,13 @@ const MenuSchema = z.object({
 const BodySchema = z.object({
   id: z.string().trim().min(1),
   label: z.string().trim().min(1).max(40).optional(),
-  menus: z.record(z.enum(ADMIN_MENU_KEYS), MenuSchema).optional()
+  menus: z.record(z.enum(ADMIN_MENU_KEYS), MenuSchema).optional(),
+  tier: z.number().int().optional()
 })
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
-  const role = await updateRole(body.id, { label: body.label, menus: body.menus })
+  const role = await updateRole(body.id, { label: body.label, menus: body.menus, tier: body.tier })
   return { ok: true, role }
 })

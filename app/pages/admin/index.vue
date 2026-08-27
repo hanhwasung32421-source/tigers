@@ -417,8 +417,10 @@
         <div>
           <h2 class="text-lg font-semibold">역할 관리</h2>
           <p class="mt-1 text-sm text-slate-400">
-            관리자 역할을 추가/삭제하고, 역할마다 관리자 메뉴 권한을 설정합니다. 아래 목록의 위쪽일수록 서열이 높은 역할이며,
-            각 역할은 화살표로 순서를 바꿀 수 있고 자기보다 아래(서열이 낮은) 역할만 코드부여할 수 있습니다. 총관리자는 항상 최상위입니다.
+            관리자 역할을 추가/삭제하고, 역할마다 관리자 메뉴 권한을 설정합니다. 화살표는 화면에 보이는 순서만 바꾸고,
+            실제 권한 서열은 "등급" 숫자로 정해집니다(숫자가 작을수록 상위). 등급이 같은 역할끼리는 서로 역할을 부여할 수 없고,
+            자기보다 등급 숫자가 더 큰(아래) 역할만 코드부여할 수 있습니다. 여러 역할에 같은 등급을 입력하면 서로 동급으로 묶입니다.
+            총관리자는 항상 최상위입니다.
           </p>
         </div>
         <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadRoles">
@@ -484,6 +486,18 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2 py-1.5">
+                <span class="text-xs text-slate-400">등급</span>
+                <input
+                  v-model="tierDraft[r.id]"
+                  type="number"
+                  step="1"
+                  :disabled="savingTierId === r.id"
+                  class="w-14 bg-transparent text-right text-sm text-slate-100 outline-none disabled:opacity-50"
+                  @blur="saveRoleTier(r)"
+                  @keyup.enter="saveRoleTier(r)"
+                />
+              </div>
               <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="openRoleModal(r)">
                 메뉴 권한 설정
               </button>
@@ -892,8 +906,10 @@ const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: 
   settlement: { label: '정산내역', editable: false },
   deposits: { label: '입금/출금 내역', editable: true, editLabel: '입금/출금 승인/거절' }
 }
-type RoleRow = { id: string; label: string; menus: Record<MenuKey, { view: boolean; edit: boolean }>; createdAt: string }
+type RoleRow = { id: string; label: string; menus: Record<MenuKey, { view: boolean; edit: boolean }>; tier: number; createdAt: string }
 const roles = ref<RoleRow[]>([])
+const tierDraft = reactive<Record<string, string>>({})
+const savingTierId = ref<string | null>(null)
 const rolesLoading = ref(false)
 const rolesError = ref<string | null>(null)
 const newRoleId = ref('')
@@ -924,10 +940,34 @@ async function loadRoles() {
   try {
     const data = await $fetch<{ roles: RoleRow[] }>('/api/admin/roles')
     roles.value = data.roles || []
+    for (const r of roles.value) {
+      if (savingTierId.value !== r.id) tierDraft[r.id] = String(r.tier)
+    }
   } catch (e: any) {
     rolesError.value = e?.data?.statusMessage || '역할 목록 불러오기 실패'
   } finally {
     rolesLoading.value = false
+  }
+}
+
+async function saveRoleTier(r: RoleRow) {
+  const raw = String(tierDraft[r.id] ?? '').trim()
+  const tier = Number(raw)
+  if (raw === '' || !Number.isFinite(tier)) {
+    tierDraft[r.id] = String(r.tier)
+    return
+  }
+  if (tier === r.tier) return
+  savingTierId.value = r.id
+  rolesError.value = null
+  try {
+    await $fetch('/api/admin/roles/update', { method: 'POST', body: { id: r.id, tier } })
+    await loadRoles()
+  } catch (e: any) {
+    rolesError.value = e?.data?.statusMessage || '등급 변경 실패'
+    tierDraft[r.id] = String(r.tier)
+  } finally {
+    savingTierId.value = null
   }
 }
 
