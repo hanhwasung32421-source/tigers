@@ -9,6 +9,7 @@ const BodySchema = z.object({
   userId: z.number().int().positive(),
   usdt: z.number().nonnegative().optional(),
   role: z.enum(['user', 'super_admin', 'branch_admin']).optional(),
+  username: z.string().trim().min(3).max(20).optional(),
   name: z.string().trim().min(1).max(40).optional(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   bankName: z.string().trim().min(1).max(40).optional(),
@@ -24,6 +25,26 @@ export default defineEventHandler(async (event) => {
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()
+
+    if (typeof body.username === 'string') {
+      // 아이디(로그인 계정명) 변경은 총관리자만, 중복 확인 필요
+      await requireSuperAdmin(event)
+      const { data: existing, error: eCheck } = await supa
+        .from('trae_users')
+        .select('id')
+        .eq('username', body.username)
+        .neq('id', body.userId)
+        .limit(1)
+      if (eCheck) throw eCheck
+      if (existing && existing.length) {
+        throw createError({ statusCode: 409, statusMessage: '이미 사용 중인 아이디입니다.' })
+      }
+      const { error } = await supa
+        .from('trae_users')
+        .update({ username: body.username, updated_at: new Date().toISOString() })
+        .eq('id', body.userId)
+      if (error) throw error
+    }
 
     if (typeof body.usdt === 'number') {
       if (!canEditMenu(admin, 'members')) {
@@ -79,6 +100,20 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getDb()
+
+  if (typeof body.username === 'string') {
+    // 아이디(로그인 계정명) 변경은 총관리자만, 중복 확인 필요
+    await requireSuperAdmin(event)
+    const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(body.username, body.userId) as
+      | { id: number }
+      | undefined
+    if (existing?.id) {
+      throw createError({ statusCode: 409, statusMessage: '이미 사용 중인 아이디입니다.' })
+    }
+    db.prepare('UPDATE users SET username = ?, updated_at = ? WHERE id = ?').run(body.username, new Date().toISOString(), body.userId)
+    const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
+    await syncUserToSupabase(userRow)
+  }
 
   if (typeof body.usdt === 'number') {
     if (!canEditMenu(admin, 'members')) {
