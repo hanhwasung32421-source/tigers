@@ -35,7 +35,7 @@
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold">유저 및 권한 관리</h2>
-          <p class="mt-1 text-sm text-slate-400">아이디/이름/USDT잔액/추천코드/역할을 클릭해서 바로 수정하고, 저장을 눌러 반영합니다.</p>
+          <p class="mt-1 text-sm text-slate-400">아이디/이름/USDT잔액/추천코드/역할/정산유형을 수정하면 바로 반영됩니다.</p>
         </div>
         <div class="flex items-center gap-2">
           <input
@@ -72,7 +72,6 @@
                 <th class="cursor-pointer select-none py-2" @click="toggleSort('role')">역할{{ sortArrow('role') }}</th>
                 <th class="py-2">정산유형</th>
                 <th class="py-2">하부보기</th>
-                <th class="py-2">저장</th>
                 <th class="py-2">비밀번호 초기화</th>
                 <th class="py-2">로그인</th>
               </tr>
@@ -84,12 +83,16 @@
                     <input
                       v-model.trim="userDraft[u.id].username"
                       class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      @blur="saveUserRow(u.id)"
+                      @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
                   <td class="py-2">
                     <input
                       v-model.trim="userDraft[u.id].name"
                       class="w-24 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      @blur="saveUserRow(u.id)"
+                      @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
                   <td class="py-2">
@@ -104,18 +107,23 @@
                       min="0"
                       step="0.01"
                       class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      @blur="saveUserRow(u.id)"
+                      @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
                   <td class="py-2">
                     <input
                       v-model.trim="userDraft[u.id].referralCode"
                       class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      @blur="saveUserRow(u.id)"
+                      @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
                   <td class="py-2">
                     <select
                       v-model="userDraft[u.id].role"
                       class="w-40 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+                      @change="saveUserRow(u.id)"
                     >
                       <option value="user">일반 유저 (user)</option>
                       <option value="branch_admin">부어드민 (branch_admin)</option>
@@ -123,29 +131,33 @@
                     </select>
                   </td>
                   <td class="py-2">
-                    <div class="flex flex-col gap-1 text-xs text-slate-300">
+                    <div v-if="u.role === 'branch_admin'" class="flex flex-col gap-1 text-xs text-slate-300">
                       <label class="flex items-center gap-1.5">
-                        <input v-model="userDraft[u.id].settlementTypes" type="checkbox" value="loss" class="h-3.5 w-3.5 accent-indigo-500" />
+                        <input
+                          v-model="userDraft[u.id].settlementTypes"
+                          type="checkbox"
+                          value="loss"
+                          class="h-3.5 w-3.5 accent-indigo-500"
+                          @change="saveUserRow(u.id)"
+                        />
                         손실정산
                       </label>
                       <label class="flex items-center gap-1.5">
-                        <input v-model="userDraft[u.id].settlementTypes" type="checkbox" value="referral" class="h-3.5 w-3.5 accent-indigo-500" />
+                        <input
+                          v-model="userDraft[u.id].settlementTypes"
+                          type="checkbox"
+                          value="referral"
+                          class="h-3.5 w-3.5 accent-indigo-500"
+                          @change="saveUserRow(u.id)"
+                        />
                         레퍼럴정산
                       </label>
                     </div>
+                    <span v-else class="text-xs text-slate-500">-</span>
                   </td>
                   <td class="py-2">
                     <button class="rounded-md bg-white/10 px-3 py-1 text-sm hover:bg-white/15" @click="referralFilter = u.username">
                       하부보기
-                    </button>
-                  </td>
-                  <td class="py-2">
-                    <button
-                      class="rounded-md bg-indigo-500 px-3 py-1 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="userSaving === u.id"
-                      @click="saveUserRow(u.id)"
-                    >
-                      저장
                     </button>
                   </td>
                   <td class="py-2">
@@ -532,7 +544,7 @@ async function saveUserRow(userId: number) {
         usdt: Number(draft.usdt) || 0,
         referralCode: draft.referralCode,
         role: draft.role,
-        settlementTypes: draft.settlementTypes
+        ...(draft.role === 'branch_admin' ? { settlementTypes: draft.settlementTypes } : {})
       }
     })
     await load()
