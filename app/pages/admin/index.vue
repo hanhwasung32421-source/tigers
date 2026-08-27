@@ -43,6 +43,16 @@
             placeholder="아이디/이름 검색"
             class="w-48 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-indigo-400/60"
           />
+          <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
+            <span class="whitespace-nowrap text-slate-400">표시수</span>
+            <input
+              v-model.number="pageSizeInput"
+              type="number"
+              min="1"
+              max="500"
+              class="w-16 bg-transparent text-right outline-none"
+            />
+          </div>
           <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="load">
             새로고침
           </button>
@@ -58,10 +68,10 @@
         </button>
       </div>
 
-      <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+      <div>
         <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
         <div v-else class="overflow-auto">
-          <table class="w-full min-w-[980px] text-sm">
+          <table class="w-full text-sm">
             <thead class="border-b border-[#12314a] text-[11px] text-slate-500">
               <tr>
                 <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
@@ -77,7 +87,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="u in sortedUsers" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
+              <tr v-for="u in pagedUsers" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
                 <template v-if="userDraft[u.id]">
                   <td class="px-3 py-2.5">
                     <input
@@ -190,6 +200,34 @@
             </tbody>
           </table>
         </div>
+
+        <div class="mt-4 flex items-center justify-between gap-3">
+          <div class="text-sm text-slate-400">페이지 {{ page }} / {{ totalPages }} · 총 {{ sortedUsers.length }}명</div>
+          <div class="flex items-center justify-center gap-2" v-if="totalPages > 1">
+            <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
+            <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page--">‹</button>
+            <button
+              v-for="p in userPageNumbers"
+              :key="`user-page-${p}`"
+              class="min-w-9 rounded px-3 py-1.5 text-center text-sm"
+              :class="p === page ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+              @click="page = p"
+            >
+              {{ p }}
+            </button>
+            <span v-if="showUserPageTail" class="px-1 text-sm text-slate-500">~</span>
+            <button
+              v-if="showUserPageTail"
+              class="min-w-9 rounded bg-white/5 px-3 py-1.5 text-center text-sm text-slate-300 hover:bg-white/10"
+              @click="page = totalPages"
+            >
+              {{ totalPages }}
+            </button>
+            <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page++">›</button>
+            <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page = totalPages">»</button>
+          </div>
+        </div>
+
         <p v-if="error" class="mt-3 text-sm text-red-300">{{ error }}</p>
         <p v-if="msg" class="mt-3 text-sm text-emerald-300">{{ msg }}</p>
       </div>
@@ -614,6 +652,12 @@ const userSearch = ref('')
 const referralFilter = ref<string | null>(null)
 const sortKey = ref<'username' | 'name' | 'usdt' | 'referralCode' | 'role'>('username')
 const sortDir = ref<'asc' | 'desc'>('asc')
+const page = ref(1)
+const pageSizeInput = ref(20)
+const pageSize = computed(() => {
+  const n = Number(pageSizeInput.value || 20)
+  return Math.max(1, Math.min(500, Number.isFinite(n) ? Math.floor(n) : 20))
+})
 
 const banks = [
   '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
@@ -678,6 +722,32 @@ const sortedUsers = computed(() => {
     if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
     return String(av ?? '').localeCompare(String(bv ?? '')) * dir
   })
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(sortedUsers.value.length / pageSize.value)))
+const pagedUsers = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return sortedUsers.value.slice(start, start + pageSize.value)
+})
+const userPageNumbers = computed(() => {
+  const total = totalPages.value
+  const start = Math.floor((page.value - 1) / 5) * 5 + 1
+  const end = Math.min(total, start + 4)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+const showUserPageTail = computed(() => {
+  const nums = userPageNumbers.value
+  return nums.length > 0 && nums[nums.length - 1] < totalPages.value
+})
+
+watch(sortedUsers, () => {
+  if (page.value > totalPages.value) page.value = totalPages.value
+})
+
+watch(pageSizeInput, (v) => {
+  const next = Math.max(1, Math.min(500, Number.isFinite(Number(v)) ? Math.floor(Number(v)) : 20))
+  if (next !== Number(v)) pageSizeInput.value = next
+  if (page.value > totalPages.value) page.value = totalPages.value
 })
 
 async function saveUserRow(userId: number) {
