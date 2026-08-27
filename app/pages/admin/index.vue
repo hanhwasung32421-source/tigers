@@ -122,7 +122,6 @@
                       type="number"
                       min="0"
                       step="0.01"
-                      :disabled="isLockedUser(u)"
                       class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
@@ -778,26 +777,31 @@ watch(pageSizeInput, (v) => {
 async function saveUserRow(userId: number) {
   const draft = userDraft[userId]
   if (!draft) return
+  const row = users.value.find((u) => u.id === userId)
   userSaving.value = userId
   error.value = null
   msg.value = null
   try {
     await $fetch('/api/admin/users/update', {
       method: 'POST',
-      body: {
-        userId,
-        username: draft.username,
-        name: draft.name,
-        usdt: Number(draft.usdt) || 0,
-        referralCode: draft.referralCode,
-        role: draft.role,
-        ...(draft.role !== 'user' && draft.role !== 'super_admin'
-          ? {
-              settlementType: draft.settlementType,
-              settlementPercent: String(draft.settlementPercent ?? '').trim() === '' ? null : Number(draft.settlementPercent)
-            }
-          : {})
-      }
+      // 최고관리자(super_admin) 계정은 잔액 외 수정이 서버에서 막혀 있으므로, 다른 칸이 화면에
+      // 그대로 있어도 요청에는 절대 같이 실어 보내지 않는다(그래야 잔액만 저장이 가능하다).
+      body: row && isLockedUser(row)
+        ? { userId, usdt: Number(draft.usdt) || 0 }
+        : {
+            userId,
+            username: draft.username,
+            name: draft.name,
+            usdt: Number(draft.usdt) || 0,
+            referralCode: draft.referralCode,
+            role: draft.role,
+            ...(draft.role !== 'user' && draft.role !== 'super_admin'
+              ? {
+                  settlementType: draft.settlementType,
+                  settlementPercent: String(draft.settlementPercent ?? '').trim() === '' ? null : Number(draft.settlementPercent)
+                }
+              : {})
+          }
     })
     await load()
     msg.value = '저장되었습니다.'

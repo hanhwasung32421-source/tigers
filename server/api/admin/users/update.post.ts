@@ -61,20 +61,25 @@ async function handleUpdate(event: any) {
   const body = parsed.data
   const useSupa = supabaseAppDbEnabled()
 
-  // 최고관리자(super_admin) 계정은 사고 방지를 위해 이 화면에서 더 이상 수정할 수 없다.
+  // 최고관리자(super_admin) 계정은 사고 방지를 위해 이 화면에서 더 이상 수정할 수 없다 —
+  // 단, 매수/매도 연습이 가능하도록 USDT 잔액만은 예외로 허용한다.
   // (다른 계정을 super_admin으로 "승격"하는 것은 계속 허용하되, 이미 super_admin인 계정은
-  //  이후 어떤 필드도— 이름/잔액/역할/정산비율 등— 바꿀 수 없다.)
+  //  이후 잔액을 제외한 다른 필드는— 이름/역할/정산비율 등— 바꿀 수 없다.)
   const targetRole = useSupa
     ? String((await supaSelectOne<any>('trae_users', { id: body.userId }))?.role || '')
     : String((getDb().prepare('SELECT role FROM users WHERE id = ?').get(body.userId) as { role?: string } | undefined)?.role || '')
-  if (targetRole === 'super_admin') {
-    throw createError({ statusCode: 403, statusMessage: '최고관리자 계정은 이 화면에서 수정할 수 없습니다.' })
+  const isLockedSuperAdmin = targetRole === 'super_admin'
+  function assertNotLockedSuperAdmin() {
+    if (isLockedSuperAdmin) {
+      throw createError({ statusCode: 403, statusMessage: '최고관리자 계정은 잔액 외에는 이 화면에서 수정할 수 없습니다.' })
+    }
   }
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()
 
     if (typeof body.username === 'string') {
+      assertNotLockedSuperAdmin()
       // 아이디(로그인 계정명) 변경은 총관리자만, 중복 확인 필요
       await requireSuperAdmin(event)
       const { data: existing, error: eCheck } = await supa
@@ -108,6 +113,7 @@ async function handleUpdate(event: any) {
       //  메뉴 권한/정산유형이 매 저장마다 지워져 버린다.)
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
       if (current && String(current.role) !== body.role) {
+        assertNotLockedSuperAdmin()
         // 영업 조직 구조: 관리자 역할을 가진 계정은 "본인 코드로 가입한(직속)" 회원의 역할을
         // 자기보다 서열이 낮은 역할로만 부여/변경할 수 있다. 그 외(서열이 같거나 위, 또는
         // 직속이 아닌 경우)는 총관리자만 가능.
@@ -132,6 +138,7 @@ async function handleUpdate(event: any) {
       typeof body.bankAccount === 'string' ||
       typeof body.accountHolder === 'string'
     ) {
+      assertNotLockedSuperAdmin()
       const patch: any = { updated_at: new Date().toISOString() }
       if (typeof body.name === 'string') patch.name = body.name.trim()
       if (typeof body.birthDate === 'string') patch.birth_date = body.birthDate
@@ -143,6 +150,7 @@ async function handleUpdate(event: any) {
     }
 
     if (typeof body.referralCode === 'string') {
+      assertNotLockedSuperAdmin()
       // 추천코드 수정은 총관리자만
       await requireSuperAdmin(event)
       const { error } = await supa
@@ -153,6 +161,7 @@ async function handleUpdate(event: any) {
     }
 
     if (typeof body.settlementType === 'string') {
+      assertNotLockedSuperAdmin()
       // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만. 부관리자 1명당 하나만 배정된다.
       await requireSuperAdmin(event)
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
@@ -166,6 +175,7 @@ async function handleUpdate(event: any) {
     }
 
     if (body.settlementPercent !== undefined) {
+      assertNotLockedSuperAdmin()
       // 정산 비율 지정: 총관리자는 누구든, 관리자 역할 계정은 자기 직속 하부(본인 코드로 가입한 관리자)만 가능.
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
       const isDirectChild = isAdminRole(admin.role) && String(current?.referral_code || '').trim() === admin.username
@@ -186,6 +196,7 @@ async function handleUpdate(event: any) {
   const db = getDb()
 
   if (typeof body.username === 'string') {
+    assertNotLockedSuperAdmin()
     // 아이디(로그인 계정명) 변경은 총관리자만, 중복 확인 필요
     await requireSuperAdmin(event)
     const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(body.username, body.userId) as
@@ -215,6 +226,7 @@ async function handleUpdate(event: any) {
       | { role?: string; referral_code?: string }
       | undefined
     if (current && String(current.role) !== body.role) {
+      assertNotLockedSuperAdmin()
       // 영업 조직 구조: 관리자 역할을 가진 계정은 "본인 코드로 가입한(직속)" 회원의 역할을
       // 자기보다 서열이 낮은 역할로만 부여/변경할 수 있다. 그 외는 총관리자만 가능.
       const isDirectChild = String(current.referral_code || '').trim() === admin.username
@@ -238,6 +250,7 @@ async function handleUpdate(event: any) {
     typeof body.bankAccount === 'string' ||
     typeof body.accountHolder === 'string'
   ) {
+    assertNotLockedSuperAdmin()
     db.prepare(
       `UPDATE users
        SET name = COALESCE(?, name),
@@ -261,6 +274,7 @@ async function handleUpdate(event: any) {
   }
 
   if (typeof body.referralCode === 'string') {
+    assertNotLockedSuperAdmin()
     // 추천코드 수정은 총관리자만
     await requireSuperAdmin(event)
     db.prepare('UPDATE users SET referral_code = ?, updated_at = ? WHERE id = ?').run(
@@ -273,6 +287,7 @@ async function handleUpdate(event: any) {
   }
 
   if (typeof body.settlementType === 'string') {
+    assertNotLockedSuperAdmin()
     // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만. 부관리자 1명당 하나만 배정된다.
     await requireSuperAdmin(event)
     const row = db.prepare('SELECT permissions FROM users WHERE id = ?').get(body.userId) as { permissions?: string } | undefined
@@ -290,6 +305,7 @@ async function handleUpdate(event: any) {
   }
 
   if (body.settlementPercent !== undefined) {
+    assertNotLockedSuperAdmin()
     // 정산 비율 지정: 총관리자는 누구든, 관리자 역할 계정은 자기 직속 하부(본인 코드로 가입한 관리자)만 가능.
     const targetRow = db.prepare('SELECT referral_code FROM users WHERE id = ?').get(body.userId) as { referral_code?: string } | undefined
     const isDirectChild = isAdminRole(admin.role) && String(targetRow?.referral_code || '').trim() === admin.username
