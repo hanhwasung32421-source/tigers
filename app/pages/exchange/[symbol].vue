@@ -105,7 +105,7 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'trend' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="추세선"
+              title="추세선 (Alt+T)"
               @click="selectTool('trend')"
             >
               ／
@@ -114,7 +114,7 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'hline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="수평선"
+              title="수평선 (Alt+H)"
               @click="selectTool('hline')"
             >
               ㅡ
@@ -1284,6 +1284,9 @@ const activeTool = ref<'cursor' | 'trend' | 'hline'>('cursor')
 const pendingTrendStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
+// Alt+H(수평선)/Alt+T(직선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
+// 도구 상태와 무관하게 항상 최신 좌표를 기록해둔다.
+const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
 // 선(수평선/추세선) 선택 상태: 커서 도구에서 클릭하면 선택되고, 끝점을 드래그하거나 Delete로 삭제 가능
 const selectedDrawingId = ref<string | null>(null)
 type DrawingHit =
@@ -1898,6 +1901,39 @@ function onDrawingKeydown(e: KeyboardEvent) {
     measureBox.value = null
     return
   }
+
+  if (e.altKey && (e.code === 'KeyH' || e.code === 'KeyT')) {
+    const tag = (e.target as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
+    if (e.code === 'KeyT') {
+      // Alt+T: 직선(추세선) 도구를 활성화만 한다 - 시작점은 다음 클릭에서 찍힌다.
+      e.preventDefault()
+      selectTool('trend')
+      return
+    }
+
+    // Alt+H: 지금 마우스가 있는 자리에 바로 수평선을 만든다(클릭 불필요).
+    e.preventDefault()
+    if (!chart || !candleSeries || !lastChartMousePos.value) return
+    const { x, y } = lastChartMousePos.value
+    const price = candleSeries.coordinateToPrice(y)
+    const time = resolveTimeAtX(null, x)
+    if (!Number.isFinite(Number(price)) || !time) return
+    chartPrefs.drawings.push({
+      id: `h-${Date.now()}`,
+      type: 'hline',
+      color: '#2962ff',
+      price: Number(price)
+    })
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
+    renderSavedDrawings()
+    scheduleSaveChartPrefs()
+    activeTool.value = 'cursor'
+    return
+  }
+
   if (e.key !== 'Delete' && e.key !== 'Backspace') return
   const tag = (e.target as HTMLElement)?.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA') return
@@ -1926,6 +1962,7 @@ function onChartAreaMouseMove(e: MouseEvent) {
   const rect = chartEl.value.getBoundingClientRect()
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
+  lastChartMousePos.value = { x, y }
 
   if (measureBox.value) {
     const price = candleSeries.coordinateToPrice(y)
