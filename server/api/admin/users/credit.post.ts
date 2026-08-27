@@ -12,7 +12,7 @@ const BodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
-  if (admin.role === 'branch_admin' && !admin.permissions?.canCredit) {
+  if (admin.role !== 'super_admin' && !admin.permissions?.canCredit) {
     throw createError({ statusCode: 403, statusMessage: '이 계정에는 입금 권한이 없습니다.' })
   }
 

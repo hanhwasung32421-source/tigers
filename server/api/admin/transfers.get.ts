@@ -4,6 +4,10 @@ import { getSupabaseAdminClient } from '../../utils/supabase'
 import { getDb } from '../../utils/db'
 import { canViewMenu } from '../../utils/menu-permissions'
 
+function isAdminRole(role: string) {
+  return role !== 'user' && role !== 'super_admin' && role !== ''
+}
+
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
   if (!canViewMenu(admin, 'transfers')) {
@@ -45,7 +49,7 @@ export default defineEventHandler(async (event) => {
         user_id: targetId,
         username: String(target?.username || `user${targetId}`),
         name: String(target?.username || `user${targetId}`),
-        affiliateName: String(target?.role || '') === 'branch_admin' ? String(target?.username || '') : '—',
+        affiliateName: isAdminRole(String(target?.role || '')) ? String(target?.username || '') : '—',
         amount_usdt: Number(r.amount || 0),
         // KRW/환율/상태는 현재 데이터 소스가 없어 기본값 제공(확장 예정)
         amount_krw: null,

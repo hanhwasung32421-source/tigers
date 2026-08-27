@@ -3,7 +3,7 @@ export default defineNuxtRouteMiddleware(async () => {
   if (!me.value) {
     await refresh()
   }
-  if (!me.value || (me.value.role !== 'super_admin' && me.value.role !== 'branch_admin')) {
+  if (!me.value || me.value.role === 'user') {
     return navigateTo('/admin/login')
   }
 })

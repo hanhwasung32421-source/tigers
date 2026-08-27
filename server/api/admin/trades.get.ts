@@ -15,6 +15,10 @@ function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
   return gross * FEE_RATE * 2 // 매수+매도
 }
 
+function isAdminRole(role: string) {
+  return role !== 'user' && role !== 'super_admin' && role !== ''
+}
+
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
 
@@ -25,7 +29,7 @@ export default defineEventHandler(async (event) => {
 
   if (userId > 0) {
     // 특정 회원의 거래내역 보기(회원목록에서 진입): 부관리자는 자기 하부 조직(팀장/팀원의 하부 포함)만 가능
-    if (admin.role === 'branch_admin') {
+    if (admin.role !== 'super_admin') {
       const targetUsername = supabaseAppDbEnabled()
         ? String((await supaSelectOne<any>('trae_users', { id: userId }))?.username || '')
         : String((getDb().prepare('SELECT username FROM users WHERE id = ?').get(userId) as any)?.username || '')
@@ -136,7 +140,7 @@ export default defineEventHandler(async (event) => {
         user_id: uid,
         username: String(u?.username || `user${uid}`),
         name: String(u?.username || `user${uid}`),
-        affiliateName: String(u?.role || '') === 'branch_admin' ? String(u?.username || '') : '—',
+        affiliateName: isAdminRole(String(u?.role || '')) ? String(u?.username || '') : '—',
         symbol: String(t.symbol || ''),
         orderType: '청산',
         positionSide: String(t.side || '').toUpperCase(),
@@ -177,7 +181,7 @@ export default defineEventHandler(async (event) => {
       user_id: Number(t.user_id),
       username: String(t.username || `user${t.user_id}`),
       name: String(t.username || `user${t.user_id}`),
-      affiliateName: String(t.role || '') === 'branch_admin' ? String(t.username || '') : '—',
+      affiliateName: isAdminRole(String(t.role || '')) ? String(t.username || '') : '—',
       symbol: String(t.symbol || ''),
       orderType: '청산',
       positionSide: String(t.side || '').toUpperCase(),

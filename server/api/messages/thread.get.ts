@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     threadKey,
     targetUserId: resolvedUserId,
     operatorId: operator?.id ?? null,
-    pendingResetRequest: user.role === 'super_admin' || user.role === 'branch_admin' ? await getPendingResetRequestForUser(resolvedUserId) : null,
+    pendingResetRequest: user.role !== 'user' ? await getPendingResetRequestForUser(resolvedUserId) : null,
     items: messages.map((m) => ({
       ...m,
       senderName: users.get(Number(m.sender_id))?.username || (Number(m.sender_id) === operator?.id ? 'admin' : `회원 #${m.sender_id}`),

@@ -3,10 +3,12 @@ import { requireSuperAdmin, hashPassword } from '../../../utils/auth'
 import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled } from '../../../utils/supa-appdb'
 import { supaSelectOne, supaUpsertStrict, supaUpsertUserSettings } from '../../../utils/supabase'
+import { getRoleDefinition, listRoles } from '../../../utils/roles'
 
 const BodySchema = z.object({
   username: z.string().min(3).max(20),
   password: z.string().min(4).max(50),
+  role: z.string().trim().min(1).max(32).optional(),
   permissions: z
     .object({
       canCredit: z.boolean().optional(),
@@ -19,6 +21,17 @@ export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
   const useSupa = supabaseAppDbEnabled()
+
+  let role = body.role
+  if (!role) {
+    const roles = await listRoles()
+    role = roles[0]?.id
+    if (!role) {
+      throw createError({ statusCode: 400, statusMessage: '등록된 관리자 역할이 없습니다. 역할 관리에서 먼저 역할을 만들어주세요.' })
+    }
+  } else if (!(await getRoleDefinition(role))) {
+    throw createError({ statusCode: 400, statusMessage: '존재하지 않는 역할입니다.' })
+  }
 
   if (useSupa) {
     const exists = await supaSelectOne<any>('trae_users', { username: body.username })
@@ -34,7 +47,7 @@ export default defineEventHandler(async (event) => {
         id: userId,
         username: body.username,
         password_hash: hashPassword(body.password),
-        role: 'branch_admin',
+        role,
         permissions: body.permissions || { canViewUsers: true, canCredit: false },
         created_at: now
       },
@@ -67,7 +80,7 @@ export default defineEventHandler(async (event) => {
   ).run(
     body.username,
     hashPassword(body.password),
-    'branch_admin',
+    role,
     JSON.stringify(body.permissions || { canViewUsers: true, canCredit: false }),
     new Date().toISOString()
   )

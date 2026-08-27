@@ -13,7 +13,7 @@ const BodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const body = BodySchema.parse(await readBody(event))
-  const isAdmin = user.role === 'super_admin' || user.role === 'branch_admin'
+  const isAdmin = user.role !== 'user'
   const operator = await getOperatorAdminUser()
   if (!operator) {
     throw createError({ statusCode: 500, statusMessage: '운영자 계정을 찾을 수 없습니다.' })

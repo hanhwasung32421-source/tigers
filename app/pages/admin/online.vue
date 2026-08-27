@@ -21,7 +21,7 @@
         <select v-model="roleFilter" class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none">
           <option value="">유저권한</option>
           <option value="super_admin">관리자</option>
-          <option value="branch_admin">총판</option>
+          <option value="admin">부관리자</option>
           <option value="user">회원</option>
         </select>
       </div>
@@ -64,6 +64,7 @@ type OnlineRow = {
   id: number
   username: string
   role: string
+  roleId: string
   ip: string | null
   lastSeenAt: string | null
   online: boolean
@@ -84,7 +85,9 @@ let loadingNow = false
 const filtered = computed(() => {
   const q = keyword.value.trim().toLowerCase()
   return items.value.filter((u) => {
-    if (roleFilter.value && String(u.role) !== String(roleFilter.value)) return false
+    if (roleFilter.value === 'user' && u.roleId !== 'user') return false
+    if (roleFilter.value === 'super_admin' && u.roleId !== 'super_admin') return false
+    if (roleFilter.value === 'admin' && (u.roleId === 'user' || u.roleId === 'super_admin')) return false
     if (!q) return true
     return [u.username, String(u.id), u.ip || ''].some((v) => String(v).toLowerCase().includes(q))
   })

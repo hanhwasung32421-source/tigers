@@ -129,12 +129,12 @@
                       @change="saveUserRow(u.id)"
                     >
                       <option value="user">일반 유저 (user)</option>
-                      <option value="branch_admin">부어드민 (branch_admin)</option>
+                      <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.label }} ({{ r.id }})</option>
                       <option value="super_admin">최고관리자 (super_admin)</option>
                     </select>
                   </td>
                   <td class="px-3 py-2.5">
-                    <div v-if="u.role === 'branch_admin'" class="flex items-center gap-1.5">
+                    <div v-if="u.role !== 'user' && u.role !== 'super_admin'" class="flex items-center gap-1.5">
                       <select
                         v-model="userDraft[u.id].settlementType"
                         class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
@@ -334,32 +334,69 @@
       </div>
     </div>
 
-    <!-- 부관리자 메뉴 권한 -->
-    <div v-show="activeTab === 'branchPerms'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+    <!-- 역할 관리 -->
+    <div v-show="activeTab === 'roles'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-end justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold">부관리자 메뉴 권한</h2>
-          <p class="mt-1 text-sm text-slate-400">부관리자별로 관리자 메뉴에서 무엇을 볼 수 있고, 무엇을 수정할 수 있는지 설정합니다.</p>
+          <h2 class="text-lg font-semibold">역할 관리</h2>
+          <p class="mt-1 text-sm text-slate-400">관리자 역할을 추가/삭제하고, 역할마다 관리자 메뉴에서 무엇을 볼 수 있고 무엇을 수정할 수 있는지 설정합니다.</p>
         </div>
-        <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadBranchAdmins">
+        <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadRoles">
           새로고침
         </button>
       </div>
 
+      <div class="mt-4 flex flex-wrap items-end gap-2 rounded-xl border border-white/10 bg-white/5 p-4">
+        <div>
+          <label class="text-xs text-slate-400">역할 ID (영문 소문자, 예: team_lead)</label>
+          <input
+            v-model.trim="newRoleId"
+            placeholder="team_lead"
+            class="mt-1 w-40 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">역할 이름</label>
+          <input
+            v-model.trim="newRoleLabel"
+            placeholder="팀장"
+            class="mt-1 w-32 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+        </div>
+        <button
+          class="rounded-md bg-indigo-500 px-4 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="creatingRole"
+          @click="createRoleClick"
+        >
+          역할 추가
+        </button>
+        <p v-if="newRoleError" class="w-full text-sm text-red-300">{{ newRoleError }}</p>
+      </div>
+
       <div class="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-        <div v-if="branchAdminsLoading" class="text-sm text-slate-400">불러오는 중…</div>
-        <div v-else-if="branchAdmins.length === 0" class="text-sm text-slate-400">부관리자 계정이 없습니다.</div>
+        <div v-if="rolesLoading" class="text-sm text-slate-400">불러오는 중…</div>
+        <div v-else-if="roles.length === 0" class="text-sm text-slate-400">등록된 역할이 없습니다.</div>
         <div v-else class="space-y-2">
-          <div v-for="b in branchAdmins" :key="b.id" class="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-            <div class="flex items-center justify-between">
-              <span class="font-mono text-sm text-slate-100">{{ b.username }}</span>
-              <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="openMenuPermModal(b)">
+          <div v-for="r in roles" :key="r.id" class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+            <div>
+              <span class="text-sm font-semibold text-slate-100">{{ r.label }}</span>
+              <span class="ml-2 font-mono text-xs text-slate-500">{{ r.id }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="openRoleModal(r)">
                 메뉴 권한 설정
+              </button>
+              <button
+                class="rounded-md bg-rose-500/15 px-3 py-1.5 text-xs text-rose-200 ring-1 ring-rose-400/20 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                :disabled="deletingRoleId === r.id"
+                @click="deleteRoleClick(r)"
+              >
+                삭제
               </button>
             </div>
           </div>
         </div>
-        <p v-if="branchAdminsError" class="mt-3 text-sm text-red-300">{{ branchAdminsError }}</p>
+        <p v-if="rolesError" class="mt-3 text-sm text-red-300">{{ rolesError }}</p>
       </div>
     </div>
 
@@ -418,41 +455,48 @@
       </div>
     </div>
 
-    <!-- 부관리자 메뉴 권한 설정 팝업 -->
+    <!-- 역할 메뉴 권한 설정 팝업 -->
     <div
-      v-if="menuPermModalOpen"
+      v-if="roleModalOpen"
       class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
-      @click.self="closeMenuPermModal"
+      @click.self="closeRoleModal"
     >
       <div class="w-full max-w-md rounded-2xl border border-white/10 bg-[#10171d] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-slate-100">{{ menuPermTarget?.username }} 메뉴 권한</h3>
-          <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeMenuPermModal">✕</button>
+          <h3 class="text-lg font-semibold text-slate-100">{{ roleModalTarget?.label }} 메뉴 권한</h3>
+          <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeRoleModal">✕</button>
+        </div>
+        <div class="mt-3">
+          <label class="text-xs text-slate-400">역할 이름</label>
+          <input
+            v-model.trim="roleLabelDraft"
+            class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
         </div>
         <div class="mt-4 space-y-3">
           <div v-for="key in menuKeys" :key="key" class="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
             <div class="flex items-center justify-between">
               <span class="text-sm text-slate-200">{{ menuMeta[key].label }}</span>
               <label class="flex items-center gap-1.5 text-xs text-slate-300">
-                <input v-model="menuPermDraft[key].view" type="checkbox" class="h-4 w-4 accent-indigo-500" />
+                <input v-model="roleMenuDraft[key].view" type="checkbox" class="h-4 w-4 accent-indigo-500" />
                 보임
               </label>
             </div>
             <label v-if="menuMeta[key].editable" class="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
-              <input v-model="menuPermDraft[key].edit" type="checkbox" class="h-4 w-4 accent-indigo-500" :disabled="!menuPermDraft[key].view" />
+              <input v-model="roleMenuDraft[key].edit" type="checkbox" class="h-4 w-4 accent-indigo-500" :disabled="!roleMenuDraft[key].view" />
               {{ menuMeta[key].editLabel }} 허용
             </label>
           </div>
         </div>
-        <p v-if="menuPermError" class="mt-3 text-sm text-red-300">{{ menuPermError }}</p>
+        <p v-if="roleModalError" class="mt-3 text-sm text-red-300">{{ roleModalError }}</p>
         <div class="mt-5 grid grid-cols-2 gap-3">
-          <button class="rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10" @click="closeMenuPermModal">
+          <button class="rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10" @click="closeRoleModal">
             취소
           </button>
           <button
             class="rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
-            :disabled="menuPermSaving"
-            @click="saveMenuPerm"
+            :disabled="roleModalSaving"
+            @click="saveRoleModal"
           >
             저장
           </button>
@@ -467,12 +511,12 @@ definePageMeta({ middleware: ['admin', 'super-admin'] })
 const { me, refresh } = useMe()
 await refresh()
 
-type TabKey = 'users' | 'liquidation' | 'misc' | 'branchPerms' | 'killEvents'
+type TabKey = 'users' | 'liquidation' | 'misc' | 'roles' | 'killEvents'
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'users', label: '유저 및 권한 관리' },
   { key: 'liquidation', label: '강제청산 기준 설정' },
   { key: 'misc', label: '정산/기타 설정' },
-  { key: 'branchPerms', label: '부관리자 메뉴 권한' },
+  { key: 'roles', label: '역할 관리' },
   { key: 'killEvents', label: '킬UP/킬DOWN 이력' }
 ]
 const activeTab = ref<TabKey>('users')
@@ -595,7 +639,7 @@ async function saveUserRow(userId: number) {
         usdt: Number(draft.usdt) || 0,
         referralCode: draft.referralCode,
         role: draft.role,
-        ...(draft.role === 'branch_admin'
+        ...(draft.role !== 'user' && draft.role !== 'super_admin'
           ? {
               settlementType: draft.settlementType,
               settlementPercent: draft.settlementPercent.trim() === '' ? null : Number(draft.settlementPercent)
@@ -697,7 +741,7 @@ async function saveAccountModal() {
   }
 }
 
-// 부관리자 메뉴 권한
+// 역할 관리(역할별 관리자 메뉴 권한)
 type MenuKey = 'members' | 'online' | 'trades' | 'transfers' | 'positions' | 'messages' | 'settlement' | 'deposits'
 const menuKeys: MenuKey[] = ['members', 'online', 'trades', 'transfers', 'positions', 'messages', 'settlement', 'deposits']
 const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: string }> = {
@@ -710,13 +754,20 @@ const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: 
   settlement: { label: '정산내역', editable: false },
   deposits: { label: '입금/출금 내역', editable: true, editLabel: '입금/출금 승인/거절' }
 }
-type BranchAdminRow = { id: number; username: string; menus: Record<MenuKey, { view: boolean; edit: boolean }> }
-const branchAdmins = ref<BranchAdminRow[]>([])
-const branchAdminsLoading = ref(false)
-const branchAdminsError = ref<string | null>(null)
-const menuPermModalOpen = ref(false)
-const menuPermTarget = ref<BranchAdminRow | null>(null)
-const menuPermDraft = reactive<Record<MenuKey, { view: boolean; edit: boolean }>>({
+type RoleRow = { id: string; label: string; menus: Record<MenuKey, { view: boolean; edit: boolean }>; createdAt: string }
+const roles = ref<RoleRow[]>([])
+const rolesLoading = ref(false)
+const rolesError = ref<string | null>(null)
+const newRoleId = ref('')
+const newRoleLabel = ref('')
+const creatingRole = ref(false)
+const newRoleError = ref<string | null>(null)
+const deletingRoleId = ref<string | null>(null)
+
+const roleModalOpen = ref(false)
+const roleModalTarget = ref<RoleRow | null>(null)
+const roleLabelDraft = ref('')
+const roleMenuDraft = reactive<Record<MenuKey, { view: boolean; edit: boolean }>>({
   members: { view: true, edit: false },
   online: { view: true, edit: false },
   trades: { view: true, edit: false },
@@ -726,54 +777,91 @@ const menuPermDraft = reactive<Record<MenuKey, { view: boolean; edit: boolean }>
   settlement: { view: true, edit: false },
   deposits: { view: true, edit: false }
 })
-const menuPermSaving = ref(false)
-const menuPermError = ref<string | null>(null)
+const roleModalSaving = ref(false)
+const roleModalError = ref<string | null>(null)
 
-async function loadBranchAdmins() {
-  branchAdminsLoading.value = true
-  branchAdminsError.value = null
+async function loadRoles() {
+  rolesLoading.value = true
+  rolesError.value = null
   try {
-    const data = await $fetch<{ items: BranchAdminRow[] }>('/api/admin/branch-admins')
-    branchAdmins.value = data.items || []
+    const data = await $fetch<{ roles: RoleRow[] }>('/api/admin/roles')
+    roles.value = data.roles || []
   } catch (e: any) {
-    branchAdminsError.value = e?.data?.statusMessage || '부관리자 목록 불러오기 실패'
+    rolesError.value = e?.data?.statusMessage || '역할 목록 불러오기 실패'
   } finally {
-    branchAdminsLoading.value = false
+    rolesLoading.value = false
   }
 }
 
-function openMenuPermModal(b: BranchAdminRow) {
-  menuPermTarget.value = b
+async function createRoleClick() {
+  newRoleError.value = null
+  if (!newRoleId.value || !newRoleLabel.value) {
+    newRoleError.value = '역할 ID와 이름을 모두 입력해주세요.'
+    return
+  }
+  creatingRole.value = true
+  try {
+    await $fetch('/api/admin/roles/create', {
+      method: 'POST',
+      body: { id: newRoleId.value, label: newRoleLabel.value }
+    })
+    newRoleId.value = ''
+    newRoleLabel.value = ''
+    await loadRoles()
+  } catch (e: any) {
+    newRoleError.value = e?.data?.statusMessage || '역할 추가 실패'
+  } finally {
+    creatingRole.value = false
+  }
+}
+
+async function deleteRoleClick(r: RoleRow) {
+  if (process.client && !window.confirm(`"${r.label}" 역할을 삭제할까요?`)) return
+  deletingRoleId.value = r.id
+  rolesError.value = null
+  try {
+    await $fetch('/api/admin/roles/delete', { method: 'POST', body: { id: r.id } })
+    await loadRoles()
+  } catch (e: any) {
+    rolesError.value = e?.data?.statusMessage || '역할 삭제 실패'
+  } finally {
+    deletingRoleId.value = null
+  }
+}
+
+function openRoleModal(r: RoleRow) {
+  roleModalTarget.value = r
+  roleLabelDraft.value = r.label
   for (const key of menuKeys) {
-    menuPermDraft[key].view = b.menus?.[key]?.view !== false
-    menuPermDraft[key].edit = Boolean(b.menus?.[key]?.edit)
+    roleMenuDraft[key].view = r.menus?.[key]?.view !== false
+    roleMenuDraft[key].edit = Boolean(r.menus?.[key]?.edit)
   }
-  menuPermError.value = null
-  menuPermModalOpen.value = true
+  roleModalError.value = null
+  roleModalOpen.value = true
 }
 
-function closeMenuPermModal() {
-  menuPermModalOpen.value = false
-  menuPermTarget.value = null
+function closeRoleModal() {
+  roleModalOpen.value = false
+  roleModalTarget.value = null
 }
 
-async function saveMenuPerm() {
-  if (!menuPermTarget.value) return
-  menuPermSaving.value = true
-  menuPermError.value = null
+async function saveRoleModal() {
+  if (!roleModalTarget.value) return
+  roleModalSaving.value = true
+  roleModalError.value = null
   try {
     const menus: Record<string, { view: boolean; edit: boolean }> = {}
-    for (const key of menuKeys) menus[key] = { view: menuPermDraft[key].view, edit: menuPermDraft[key].edit }
-    await $fetch('/api/admin/users/menu-permissions', {
+    for (const key of menuKeys) menus[key] = { view: roleMenuDraft[key].view, edit: roleMenuDraft[key].edit }
+    await $fetch('/api/admin/roles/update', {
       method: 'POST',
-      body: { userId: menuPermTarget.value.id, menus }
+      body: { id: roleModalTarget.value.id, label: roleLabelDraft.value, menus }
     })
-    await loadBranchAdmins()
-    closeMenuPermModal()
+    await loadRoles()
+    closeRoleModal()
   } catch (e: any) {
-    menuPermError.value = e?.data?.statusMessage || '저장 실패'
+    roleModalError.value = e?.data?.statusMessage || '저장 실패'
   } finally {
-    menuPermSaving.value = false
+    roleModalSaving.value = false
   }
 }
 
@@ -946,7 +1034,7 @@ await load()
 await loadLiquidationSetting()
 await loadMiscSettings()
 await loadKillEvents()
-await loadBranchAdmins()
+await loadRoles()
 </script>
 
 <style scoped>

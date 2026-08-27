@@ -14,9 +14,9 @@
         </div>
         <select v-model="roleFilter" class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none">
           <option value="">유저권한</option>
-          <option value="회원">회원</option>
-          <option value="총판">총판</option>
-          <option value="관리자">관리자</option>
+          <option value="user">회원</option>
+          <option value="admin">부관리자</option>
+          <option value="super_admin">관리자</option>
         </select>
         <input
           v-model.trim="keyword"
@@ -79,7 +79,14 @@
               <td class="px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
               <td class="px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
               <td class="px-3 py-3 text-right">
-                <div v-if="u.role === '회원' && isDirectChildOfMe(u)" class="flex justify-end">
+                <div v-if="u.roleId === 'user' && isDirectChildOfMe(u)" class="flex flex-col items-end gap-1">
+                  <select
+                    v-if="roles.length > 1"
+                    v-model="grantRoleChoice[u.id]"
+                    class="w-28 rounded-md border border-[#173753] bg-[#041425] px-1.5 py-1 text-[11px] text-slate-200 outline-none"
+                  >
+                    <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.label }}</option>
+                  </select>
                   <button
                     type="button"
                     class="whitespace-nowrap rounded bg-cyan-500/15 px-2 py-1 text-[11px] font-semibold text-cyan-100 ring-1 ring-cyan-400/20 hover:bg-cyan-500/25 disabled:opacity-40"
@@ -90,7 +97,7 @@
                   </button>
                 </div>
                 <input
-                  v-else-if="u.role === '총판' && canEditRate(u)"
+                  v-else-if="u.roleId !== 'user' && u.roleId !== 'super_admin' && canEditRate(u)"
                   v-model="rateDraft[u.id]"
                   type="number"
                   min="0"
@@ -387,6 +394,7 @@ definePageMeta({ middleware: ['admin'] })
 type MemberRow = {
   id: number
   role: string
+  roleId: string
   approved: boolean
   username: string
   name: string
@@ -464,7 +472,7 @@ let loadingNow = false
 // 총관리자는 항상 가능, 부관리자는 총관리자가 부여한 "회원 목록" 수정 권한이 있을 때만
 const canEditBalance = computed(() => {
   if (me.value?.role === 'super_admin') return true
-  if (me.value?.role === 'branch_admin') return Boolean((me.value as any)?.permissions?.menus?.members?.edit)
+  if (me.value?.role && me.value.role !== 'user') return Boolean((me.value as any)?.permissions?.menus?.members?.edit)
   return false
 })
 const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpen.value || profileModalOpen.value)
@@ -474,7 +482,7 @@ const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpe
 function isDirectChildOfMe(u: MemberRow) {
   if (!me.value) return false
   if (me.value.role === 'super_admin') return true
-  if (me.value.role === 'branch_admin') return u.referralCode.trim() === me.value.username
+  if (me.value.role !== 'user') return u.referralCode.trim() === me.value.username
   return false
 }
 function canEditRate(u: MemberRow) {
@@ -483,6 +491,28 @@ function canEditRate(u: MemberRow) {
 
 const rateDraft = reactive<Record<number, string>>({})
 const grantingId = ref<number | null>(null)
+
+// 코드부여 시 어떤 관리자 역할을 줄지: 역할이 하나뿐이면 그걸로 바로 부여하고,
+// 여러 개면 회원 목록의 드롭다운에서 고른 값을 쓴다.
+type RoleOption = { id: string; label: string }
+const roles = ref<RoleOption[]>([])
+const grantRoleChoice = reactive<Record<number, string>>({})
+
+async function loadRoles() {
+  try {
+    const data = await $fetch<{ roles: RoleOption[] }>('/api/admin/roles')
+    roles.value = data.roles || []
+  } catch {
+    roles.value = []
+  }
+}
+
+function syncGrantRoleChoice(list: MemberRow[]) {
+  if (!roles.value.length) return
+  for (const u of list) {
+    if (!grantRoleChoice[u.id]) grantRoleChoice[u.id] = roles.value[0].id
+  }
+}
 
 function syncRateDraft(list: MemberRow[]) {
   for (const u of list) {
@@ -510,12 +540,18 @@ async function saveRate(u: MemberRow) {
 }
 
 async function grantBranchAdmin(u: MemberRow) {
-  if (process.client && !window.confirm(`${u.username} 님에게 부관리자 코드를 부여할까요? (관리자 페이지 접근 권한이 생깁니다)`)) return
+  const roleId = grantRoleChoice[u.id] || roles.value[0]?.id
+  if (!roleId) {
+    alert('부여할 수 있는 관리자 역할이 없습니다. 총관리자 대시보드의 역할 관리에서 먼저 역할을 만들어주세요.')
+    return
+  }
+  const roleLabel = roles.value.find((r) => r.id === roleId)?.label || roleId
+  if (process.client && !window.confirm(`${u.username} 님에게 "${roleLabel}" 코드를 부여할까요? (관리자 페이지 접근 권한이 생깁니다)`)) return
   grantingId.value = u.id
   try {
     await $fetch('/api/admin/users/update', {
       method: 'POST',
-      body: { userId: u.id, role: 'branch_admin' }
+      body: { userId: u.id, role: roleId }
     })
     await load(true)
   } catch (e: any) {
@@ -563,7 +599,9 @@ function formatDateTime(v: string) {
 const filtered = computed(() => {
   const q = keyword.value.trim().toLowerCase()
   return items.value.filter((u) => {
-    if (roleFilter.value && u.role !== roleFilter.value) return false
+    if (roleFilter.value === 'user' && u.roleId !== 'user') return false
+    if (roleFilter.value === 'super_admin' && u.roleId !== 'super_admin') return false
+    if (roleFilter.value === 'admin' && (u.roleId === 'user' || u.roleId === 'super_admin')) return false
     if (onlineFilter.value) {
       const want = onlineFilter.value === '접속'
       if (u.online !== want) return false
@@ -634,6 +672,7 @@ async function load(silent = false) {
     const res = await $fetch<{ items: MemberRow[] }>('/api/admin/members')
     items.value = res.items || []
     syncRateDraft(items.value)
+    syncGrantRoleChoice(items.value)
     if (selectedMember.value) {
       const fresh = (res.items || []).find((u) => Number(u.id) === Number(selectedMember.value?.id))
       if (fresh) selectedMember.value = fresh
@@ -760,6 +799,7 @@ async function saveProfile() {
 }
 
 onMounted(async () => {
+  await loadRoles()
   await load()
   pollTimer = setInterval(() => {
     if (autoRefreshPaused.value) return

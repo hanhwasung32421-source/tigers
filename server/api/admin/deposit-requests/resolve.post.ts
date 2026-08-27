@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const useSupa = supabaseAppDbEnabled()
 
-  if (admin.role === 'branch_admin') {
+  if (admin.role !== 'super_admin') {
     const targetUsername = useSupa
       ? String((await supaSelectOne<any>('trae_users', { id: req.userId }))?.username || '')
       : String((getDb().prepare('SELECT username FROM users WHERE id = ?').get(req.userId) as any)?.username || '')

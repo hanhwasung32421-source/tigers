@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
   stopUnreadPolling()
 })
 
-const isAdmin = computed(() => me.value?.role === 'super_admin' || me.value?.role === 'branch_admin')
+const isAdmin = computed(() => !!me.value?.role && me.value.role !== 'user')
 // 관리자 대시보드(/admin)는 총관리자 전용. 부관리자는 회원 목록으로 바로 이동.
 const adminHomeTarget = computed(() => (me.value?.role === 'super_admin' ? '/admin' : '/admin/members'))
 function canViewAdminMenu(key: string) {

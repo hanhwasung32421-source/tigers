@@ -4,14 +4,9 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canViewMenu } from '../../utils/menu-permissions'
 import { computeDownlineUsernames } from '../../utils/referral'
+import { listRoles } from '../../utils/roles'
 
 const FEE_RATE = 0.04
-
-function roleText(role: string) {
-  if (role === 'super_admin') return '관리자'
-  if (role === 'branch_admin') return '총판'
-  return '회원'
-}
 
 function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
   if (![entryPrice, qty, leverage].every(Number.isFinite) || entryPrice <= 0 || qty <= 0 || leverage <= 0) return 0
@@ -25,8 +20,19 @@ export default defineEventHandler(async (event) => {
   if (!canViewMenu(me, 'members')) {
     throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
   }
-  // 부관리자(총판)는 자기 추천코드(=아이디)로 가입한 회원만 볼 수 있음
-  const scopeToReferral = me.role === 'branch_admin' ? me.username : null
+  // 부관리자(총판/기타 커스텀 역할)는 자기 추천코드(=아이디)로 가입한 하부 조직만 볼 수 있음
+  const scopeToReferral = me.role !== 'super_admin' ? me.username : null
+
+  // 역할 이름은 역할 관리에서 설정한 라벨을 그대로 쓴다(회원목록/역할드롭다운 등 어디서나 동일하게 보이도록).
+  const roleLabelMap = new Map((await listRoles()).map((r) => [r.id, r.label]))
+  function roleText(role: string) {
+    if (role === 'super_admin') return '관리자'
+    if (role === 'user') return '회원'
+    return roleLabelMap.get(role) || role
+  }
+  function isAdminRole(role: string) {
+    return role !== 'user' && role !== 'super_admin'
+  }
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
@@ -89,9 +95,11 @@ export default defineEventHandler(async (event) => {
 
     const rows = (users || []).map((u: any) => {
       const id = Number(u.id)
+      const role = String(u.role || 'user')
       return {
         id,
-        role: roleText(String(u.role || 'user')),
+        role: roleText(role),
+        roleId: role,
         approved: true,
         username: String(u.username || ''),
         name: String(u.name || ''),
@@ -100,7 +108,7 @@ export default defineEventHandler(async (event) => {
         bankAccount: String(u.bank_account || ''),
         accountHolder: String(u.account_holder || ''),
         referralCode: String(u.referral_code || ''),
-        affiliateName: String(u.role || '') === 'branch_admin' ? String(u.username || '') : '—',
+        affiliateName: isAdminRole(role) ? String(u.username || '') : '—',
         affiliateParent: '—',
         affiliateRate: typeof u.permissions?.settlementPercent === 'number' ? u.permissions.settlementPercent : null,
         balanceUsdt: balanceMap.get(id) ?? 0,
@@ -146,9 +154,11 @@ export default defineEventHandler(async (event) => {
     } catch {
       permissions = {}
     }
+    const role = String(u.role || 'user')
     return {
       id: Number(u.id),
-      role: roleText(String(u.role || 'user')),
+      role: roleText(role),
+      roleId: role,
       approved: true,
       username: String(u.username || ''),
       name: String(u.name || ''),
@@ -157,7 +167,7 @@ export default defineEventHandler(async (event) => {
       bankAccount: String(u.bank_account || ''),
       accountHolder: String(u.account_holder || ''),
       referralCode: String(u.referral_code || ''),
-      affiliateName: String(u.role || '') === 'branch_admin' ? String(u.username || '') : '—',
+      affiliateName: isAdminRole(role) ? String(u.username || '') : '—',
       affiliateParent: '—',
       affiliateRate: typeof permissions?.settlementPercent === 'number' ? permissions.settlementPercent : null,
       balanceUsdt: balanceMap.get(Number(u.id)) ?? 0,

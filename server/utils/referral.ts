@@ -2,7 +2,7 @@ import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient } from './supabase'
 
-// 영업 조직처럼: 총판(부관리자) 아래 팀장/팀원(역시 branch_admin 역할)이 있고,
+// 영업 조직처럼: 총판(부관리자) 아래 팀장/팀원(역시 관리자 역할)이 있고,
 // 그 팀장/팀원 아래에 또 일반회원(또는 더 아래 팀원)이 있을 수 있다. referral_code는
 // "누가 나를 추천해서 가입시켰는가"(=추천인의 아이디)를 저장하므로, 이 그래프를
 // root(관리자 본인 아이디)에서부터 몇 단계든 따라 내려가면 그 관리자의 전체 하부 조직을 구할 수 있다.

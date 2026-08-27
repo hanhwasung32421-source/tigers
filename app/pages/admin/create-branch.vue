@@ -34,6 +34,15 @@
             class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
         </div>
+        <div>
+          <label class="text-sm text-slate-300">역할</label>
+          <select
+            v-model="bRole"
+            class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          >
+            <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.label }}</option>
+          </select>
+        </div>
         <div class="flex items-end">
           <button class="w-full rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium hover:bg-indigo-400" :disabled="creating">
             생성
@@ -58,10 +67,23 @@ await refresh()
 
 const bUser = ref('')
 const bPass = ref('')
+const bRole = ref('')
 const canCredit = ref(false)
 const creating = ref(false)
 const msg = ref<string | null>(null)
 const err = ref<string | null>(null)
+const roles = ref<{ id: string; label: string }[]>([])
+
+async function loadRoles() {
+  try {
+    const data = await $fetch<{ roles: { id: string; label: string }[] }>('/api/admin/roles')
+    roles.value = data.roles || []
+    if (!bRole.value && roles.value.length) bRole.value = roles.value[0].id
+  } catch {
+    roles.value = []
+  }
+}
+await loadRoles()
 
 async function createBranch() {
   creating.value = true
@@ -73,6 +95,7 @@ async function createBranch() {
       body: {
         username: bUser.value,
         password: bPass.value,
+        role: bRole.value || undefined,
         permissions: { canViewUsers: true, canCredit: canCredit.value }
       }
     })

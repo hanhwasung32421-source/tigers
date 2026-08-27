@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
       await logLogin(event, { userId: Number(user.id), username: body.username, area: 'admin', success: false })
       throw createError({ statusCode: 401, statusMessage: '비밀번호가 올바르지 않습니다.' })
     }
-    if (user.role !== 'super_admin' && user.role !== 'branch_admin') {
+    if (user.role === 'user') {
       await logLogin(event, { userId: Number(user.id), username: body.username, area: 'admin', success: false })
       throw createError({ statusCode: 403, statusMessage: '관리자 계정이 아닙니다.' })
     }
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     await logLogin(event, { userId: user.id, username: body.username, area: 'admin', success: false })
     throw createError({ statusCode: 401, statusMessage: '비밀번호가 올바르지 않습니다.' })
   }
-  if (user.role !== 'super_admin' && user.role !== 'branch_admin') {
+  if (user.role === 'user') {
     await logLogin(event, { userId: user.id, username: body.username, area: 'admin', success: false })
     throw createError({ statusCode: 403, statusMessage: '관리자 계정이 아닙니다.' })
   }

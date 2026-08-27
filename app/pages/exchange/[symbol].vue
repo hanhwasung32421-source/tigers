@@ -1150,7 +1150,7 @@ function startLiquidationSettingsPolling() {
 // 포지션 표에서 직접 수정 가능 여부: 총관리자는 항상 가능, 부관리자는 "포지션 목록" 수정 권한이 있을 때만
 const isAdminUser = computed(() => {
   if (me.value?.role === 'super_admin') return true
-  if (me.value?.role === 'branch_admin') return Boolean((me.value as any)?.permissions?.menus?.positions?.edit)
+  if (me.value?.role && me.value.role !== 'user') return Boolean((me.value as any)?.permissions?.menus?.positions?.edit)
   return false
 })
 // 킬UP/킬DOWN은 총관리자만

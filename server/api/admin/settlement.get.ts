@@ -52,11 +52,11 @@ export default defineEventHandler(async (event) => {
 
   const extra = await getSystemSettingsExtra()
   // 총관리자는 전역 기본 비율을 쓰고, 부관리자는 총관리자가 개별로 지정한 비율이 있으면 그걸 우선한다.
-  const ownPercent = admin.role === 'branch_admin' ? admin.permissions?.settlementPercent : undefined
+  const ownPercent = admin.role !== 'super_admin' ? admin.permissions?.settlementPercent : undefined
   const percent = typeof ownPercent === 'number' ? ownPercent : type === 'loss' ? extra.lossSettlementPercent : extra.referralSettlementPercent
   const krwPerUsdt = await resolveKrwPerUsdtRate()
 
-  const scopeToReferral = admin.role === 'branch_admin' ? admin.username : null
+  const scopeToReferral = admin.role !== 'super_admin' ? admin.username : null
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()

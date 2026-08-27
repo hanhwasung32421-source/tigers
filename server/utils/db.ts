@@ -169,6 +169,13 @@ export function getDb() {
       resolved_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS admin_roles (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      menus TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS kill_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       symbol TEXT NOT NULL,

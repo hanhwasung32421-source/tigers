@@ -38,7 +38,7 @@
                   @change="updateRole(u.id)"
                 >
                   <option value="user">일반 유저 (user)</option>
-                  <option value="branch_admin">부어드민 (branch_admin)</option>
+                  <option v-for="r in roleOptions" :key="r.id" :value="r.id">{{ r.label }} ({{ r.id }})</option>
                   <option value="super_admin">최고관리자 (super_admin)</option>
                 </select>
               </td>
@@ -96,9 +96,19 @@ const error = ref<string | null>(null)
 const msg = ref<string | null>(null)
 const balanceDraft = reactive<Record<number, number>>({})
 const roleDraft = reactive<Record<number, string>>({})
+const roleOptions = ref<{ id: string; label: string }[]>([])
 
 const canEditRole = computed(() => me.value?.role === 'super_admin')
 const canEditBalance = computed(() => me.value?.role === 'super_admin' || me.value?.permissions?.canCredit)
+
+async function loadRoleOptions() {
+  try {
+    const data = await $fetch<{ roles: { id: string; label: string }[] }>('/api/admin/roles')
+    roleOptions.value = data.roles || []
+  } catch {
+    roleOptions.value = []
+  }
+}
 
 async function load() {
   loading.value = true
@@ -141,5 +151,6 @@ async function updateRole(userId: number) {
   }
 }
 
+await loadRoleOptions()
 await load()
 </script>

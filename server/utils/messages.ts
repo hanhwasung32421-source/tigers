@@ -216,7 +216,7 @@ export async function getThreadMessages(threadKey: string) {
 }
 
 export async function getThreadsForUser(user: SessionUser) {
-  const isAdmin = user.role === 'super_admin' || user.role === 'branch_admin'
+  const isAdmin = user.role !== 'user'
 
   if (supabaseAppDbEnabled()) {
     try {
@@ -309,7 +309,7 @@ export async function countUnreadMessages(userId: number) {
 }
 
 export async function ensureAdminThreadAccess(user: SessionUser, targetUserId?: number) {
-  if (user.role === 'super_admin' || user.role === 'branch_admin') {
+  if (user.role !== 'user') {
     if (!targetUserId) {
       throw createError({ statusCode: 400, statusMessage: '대화 대상 회원이 필요합니다.' })
     }

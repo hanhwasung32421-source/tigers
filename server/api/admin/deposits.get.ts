@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const canEdit = canEditMenu(admin, 'deposits')
-  const scopeToReferral = admin.role === 'branch_admin' ? admin.username : null
+  const scopeToReferral = admin.role !== 'super_admin' ? admin.username : null
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()

@@ -26,8 +26,8 @@ function calcPnlRoe(side: string, entry: number, mark: number, qty: number, marg
 
 function roleToAffiliate(role: string) {
   if (role === 'super_admin') return '본사'
-  if (role === 'branch_admin') return '총판'
-  return '직영'
+  if (role === 'user') return '직영'
+  return '총판' // 그 외 모든 커스텀 관리자 역할
 }
 
 export default defineEventHandler(async (event) => {

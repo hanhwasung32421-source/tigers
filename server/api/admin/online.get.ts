@@ -3,11 +3,19 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { getDb } from '../../utils/db'
 import { canViewMenu } from '../../utils/menu-permissions'
+import { listRoles } from '../../utils/roles'
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
   if (!canViewMenu(admin, 'online')) {
     throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
+  }
+
+  const roleLabelMap = new Map((await listRoles()).map((r) => [r.id, r.label]))
+  function roleText(role: string) {
+    if (role === 'super_admin') return '관리자'
+    if (role === 'user') return '회원'
+    return roleLabelMap.get(role) || role
   }
 
   if (supabaseAppDbEnabled()) {
@@ -47,10 +55,12 @@ export default defineEventHandler(async (event) => {
     const rows = ids.map((id) => {
       const u = userMap.get(Number(id))
       const ip = ipMap.get(Number(id))
+      const role = String(u?.role || 'user')
       return {
         id: Number(id),
         username: String(u?.username || `user${id}`),
-        role: String(u?.role || 'user'),
+        role: roleText(role),
+        roleId: role,
         ip: ip?.ip ?? null,
         lastSeenAt: ip?.at ?? null,
         online: true

@@ -4,6 +4,7 @@ import { getCookie, setCookie, deleteCookie, getHeader, H3Event } from 'h3'
 import { getDb, isoPlusDays } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne, supaInsertStrict } from './supabase'
+import { getRoleDefinition } from './roles'
 
 const COOKIE_NAME = 'session_token'
 // "다른 계정으로 로그인" 새 창 전용 헤더. sessionStorage는 탭마다 독립적이므로,
@@ -11,7 +12,18 @@ const COOKIE_NAME = 'session_token'
 // 대신 이 토큰으로 세션을 조회한다 — 관리자 탭의 쿠키는 전혀 건드리지 않는다.
 const IMPERSONATE_HEADER = 'x-impersonate-token'
 
-export type Role = 'user' | 'super_admin' | 'branch_admin'
+// 'user'/'super_admin' 외의 값은 총관리자가 직접 만든 커스텀 관리자 역할(예: branch_admin,
+// team_lead 등)이다. 고정된 enum이 아니라 server/utils/roles.ts에 저장된 동적 목록이다.
+export type Role = string
+
+// 이 역할의 메뉴 권한(permissions.menus)을 role 정의(role definition)에서 가져와 덮어쓴다 —
+// 계정마다가 아니라 "역할별"로 관리자 메뉴 권한을 설정한다는 요구사항을 반영한 것.
+async function applyRoleMenuPermissions(role: string, permissions: Record<string, any>): Promise<Record<string, any>> {
+  if (role === 'user' || role === 'super_admin') return permissions
+  const roleDef = await getRoleDefinition(role)
+  if (!roleDef) return permissions
+  return { ...permissions, menus: roleDef.menus }
+}
 
 export type SessionUser = {
   id: number
@@ -102,6 +114,7 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
       if (session.expires_at && String(session.expires_at) <= now) return null
       const user = await supaSelectOne<any>('trae_users', { id: Number(session.user_id) })
       if (!user) return null
+      const role = String(user.role) as Role
       return {
         id: Number(user.id),
         username: String(user.username),
@@ -113,8 +126,8 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
         referral_code: String(user.referral_code || ''),
         password_reset_required: Boolean(user.password_reset_required),
         password_reset_notice_dismissed_at: user.password_reset_notice_dismissed_at ? String(user.password_reset_notice_dismissed_at) : null,
-        role: String(user.role) as Role,
-        permissions: user.permissions || {}
+        role,
+        permissions: await applyRoleMenuPermissions(role, user.permissions || {})
       }
     } catch (e) {
       console.error('[auth] getSessionUser supabase failed:', (e as any)?.message || e)
@@ -147,7 +160,7 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
     password_reset_required: Boolean((row as any).password_reset_required),
     password_reset_notice_dismissed_at: (row as any).password_reset_notice_dismissed_at || null,
     role: row.role,
-    permissions: JSON.parse(row.permissions || '{}')
+    permissions: await applyRoleMenuPermissions(row.role, JSON.parse(row.permissions || '{}'))
   }
 }
 
@@ -161,7 +174,8 @@ export async function requireUser(event: H3Event) {
 
 export async function requireAdmin(event: H3Event) {
   const user = await requireUser(event)
-  if (user.role !== 'super_admin' && user.role !== 'branch_admin') {
+  // 'user' 외의 모든 역할(총관리자 + 커스텀 관리자 역할 전부)은 관리자로 취급한다.
+  if (user.role === 'user') {
     throw createError({ statusCode: 403, statusMessage: '관리자 권한이 필요합니다.' })
   }
   return user

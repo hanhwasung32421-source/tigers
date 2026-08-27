@@ -9,7 +9,8 @@ type Me = {
   referral_code?: string
   password_reset_required?: boolean
   password_reset_notice_dismissed_at?: string | null
-  role: 'user' | 'super_admin' | 'branch_admin'
+  // 'user'/'super_admin' 외에는 총관리자가 만든 커스텀 관리자 역할(예: branch_admin)
+  role: string
 }
 
 export function useMe() {

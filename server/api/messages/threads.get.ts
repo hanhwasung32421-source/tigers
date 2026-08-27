@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const q = getQuery(event)
   const targetUserId = q.userId ? Number(q.userId) : undefined
 
-  const isAdmin = user.role === 'super_admin' || user.role === 'branch_admin'
+  const isAdmin = user.role !== 'user'
   if (isAdmin && targetUserId) {
     const { threadKey } = await ensureAdminThreadAccess(user, targetUserId)
     const summaries = await getThreadsForUser(user)
