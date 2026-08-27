@@ -3,6 +3,7 @@ import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne } from '../../utils/supabase'
 import { canViewMenu } from '../../utils/menu-permissions'
+import { fetchDownlineUsernames } from '../../utils/referral'
 
 const FEE_RATE = 0.04
 
@@ -23,12 +24,13 @@ export default defineEventHandler(async (event) => {
   const userId = Number(q.userId ?? 0)
 
   if (userId > 0) {
-    // 특정 회원의 거래내역 보기(회원목록에서 진입): 부관리자는 자기 추천코드로 가입한 회원만 가능
+    // 특정 회원의 거래내역 보기(회원목록에서 진입): 부관리자는 자기 하부 조직(팀장/팀원의 하부 포함)만 가능
     if (admin.role === 'branch_admin') {
-      const referralCode = supabaseAppDbEnabled()
-        ? String((await supaSelectOne<any>('trae_users', { id: userId }))?.referral_code || '')
-        : String((getDb().prepare('SELECT referral_code FROM users WHERE id = ?').get(userId) as any)?.referral_code || '')
-      if (referralCode.trim() !== admin.username) {
+      const targetUsername = supabaseAppDbEnabled()
+        ? String((await supaSelectOne<any>('trae_users', { id: userId }))?.username || '')
+        : String((getDb().prepare('SELECT username FROM users WHERE id = ?').get(userId) as any)?.username || '')
+      const downline = await fetchDownlineUsernames(admin.username)
+      if (!downline.has(targetUsername)) {
         throw createError({ statusCode: 403, statusMessage: '이 회원의 거래내역을 볼 권한이 없습니다.' })
       }
     }

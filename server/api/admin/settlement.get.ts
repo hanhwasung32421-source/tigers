@@ -4,6 +4,7 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canViewMenu, settlementTypesOf, type SettlementType } from '../../utils/menu-permissions'
 import { getSystemSettingsExtra, resolveKrwPerUsdtRate } from '../../utils/system-settings'
+import { computeDownlineUsernames } from '../../utils/referral'
 
 const FEE_RATE = 0.04
 
@@ -50,7 +51,9 @@ export default defineEventHandler(async (event) => {
   const toIso = `${to}T23:59:59.999Z`
 
   const extra = await getSystemSettingsExtra()
-  const percent = type === 'loss' ? extra.lossSettlementPercent : extra.referralSettlementPercent
+  // 총관리자는 전역 기본 비율을 쓰고, 부관리자는 총관리자가 개별로 지정한 비율이 있으면 그걸 우선한다.
+  const ownPercent = admin.role === 'branch_admin' ? admin.permissions?.settlementPercent : undefined
+  const percent = typeof ownPercent === 'number' ? ownPercent : type === 'loss' ? extra.lossSettlementPercent : extra.referralSettlementPercent
   const krwPerUsdt = await resolveKrwPerUsdtRate()
 
   const scopeToReferral = admin.role === 'branch_admin' ? admin.username : null
@@ -58,12 +61,16 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
 
-    let usersQuery = supa.from('trae_users').select('id, username, name, referral_code, role').eq('role', 'user')
-    if (scopeToReferral) usersQuery = usersQuery.eq('referral_code', scopeToReferral)
-    const { data: users, error: e1 } = await usersQuery
-    if (e1) throw e1
+    // 하부 조직(팀장/팀원 아래까지) 범위를 구하려면 역할과 무관하게 전체 유저의 추천 관계가 필요하다.
+    const { data: allUsers, error: e0 } = await supa.from('trae_users').select('id, username, name, referral_code, role')
+    if (e0) throw e0
 
-    const ids = (users || []).map((u: any) => Number(u.id)).filter(Boolean)
+    const downline = scopeToReferral
+      ? computeDownlineUsernames(scopeToReferral, (allUsers || []).map((u: any) => ({ username: u.username, referralCode: u.referral_code })))
+      : null
+    const users = (allUsers || []).filter((u: any) => String(u.role) === 'user' && (!downline || downline.has(String(u.username))))
+
+    const ids = users.map((u: any) => Number(u.id)).filter(Boolean)
     if (!ids.length) return { items: [], total: 0, percent, from, to, krwPerUsdt }
 
     const { data: balances, error: e2 } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
@@ -89,7 +96,7 @@ export default defineEventHandler(async (event) => {
       netPnlMap.set(uid, (netPnlMap.get(uid) ?? 0) + pnl - fee)
     }
 
-    const items = (users || []).map((u: any) => {
+    const items = users.map((u: any) => {
       const id = Number(u.id)
       const feeSum = feeMap.get(id) ?? 0
       const netPnl = netPnlMap.get(id) ?? 0
@@ -110,9 +117,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getDb()
-  const users = scopeToReferral
-    ? (db.prepare("SELECT id, username, name, referral_code FROM users WHERE role = 'user' AND referral_code = ?").all(scopeToReferral) as any[])
-    : (db.prepare("SELECT id, username, name, referral_code FROM users WHERE role = 'user'").all() as any[])
+  const allUsers = db.prepare('SELECT id, username, name, referral_code, role FROM users').all() as any[]
+  const downline = scopeToReferral
+    ? computeDownlineUsernames(scopeToReferral, allUsers.map((u) => ({ username: u.username, referralCode: u.referral_code })))
+    : null
+  const users = allUsers.filter((u) => String(u.role) === 'user' && (!downline || downline.has(String(u.username))))
 
   const ids = users.map((u: any) => Number(u.id))
   if (!ids.length) return { items: [], total: 0, percent, from, to, krwPerUsdt }

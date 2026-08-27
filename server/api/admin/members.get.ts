@@ -3,6 +3,7 @@ import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canViewMenu } from '../../utils/menu-permissions'
+import { computeDownlineUsernames } from '../../utils/referral'
 
 const FEE_RATE = 0.04
 
@@ -110,7 +111,15 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    const scoped = scopeToReferral ? rows.filter((r) => r.referralCode.trim() === scopeToReferral) : rows
+    const scoped = scopeToReferral
+      ? (() => {
+          const downline = computeDownlineUsernames(
+            scopeToReferral,
+            rows.map((r) => ({ username: r.username, referralCode: r.referralCode }))
+          )
+          return rows.filter((r) => downline.has(r.username))
+        })()
+      : rows
     return { items: scoped }
   }
 
@@ -151,5 +160,15 @@ export default defineEventHandler(async (event) => {
     last_ip: null
   }))
 
-  return { items: rows }
+  const scoped = scopeToReferral
+    ? (() => {
+        const downline = computeDownlineUsernames(
+          scopeToReferral,
+          rows.map((r) => ({ username: r.username, referralCode: r.referralCode }))
+        )
+        return rows.filter((r) => downline.has(r.username))
+      })()
+    : rows
+
+  return { items: scoped }
 })

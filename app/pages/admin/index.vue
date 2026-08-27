@@ -35,7 +35,7 @@
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 class="text-lg font-semibold">유저 및 권한 관리</h2>
-          <p class="mt-1 text-sm text-slate-400">아이디/이름/USDT잔액/추천코드/역할/정산유형을 수정하면 바로 반영됩니다.</p>
+          <p class="mt-1 text-sm text-slate-400">아이디/이름/USDT잔액/추천코드/역할/정산유형/정산비율을 수정하면 바로 반영됩니다.</p>
         </div>
         <div class="flex items-center gap-2">
           <input
@@ -51,7 +51,7 @@
 
       <div v-if="referralFilter" class="flex items-center gap-2 text-sm text-slate-300">
         <span class="rounded-md bg-indigo-500/15 px-3 py-1.5 text-indigo-200 ring-1 ring-indigo-400/30">
-          하부보기: 추천코드 "{{ referralFilter }}"
+          하부보기: "{{ referralFilter }}"의 전체 하부 조직
         </span>
         <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="referralFilter = null">
           필터 해제
@@ -134,15 +134,29 @@
                     </select>
                   </td>
                   <td class="px-3 py-2.5">
-                    <select
-                      v-if="u.role === 'branch_admin'"
-                      v-model="userDraft[u.id].settlementType"
-                      class="w-32 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
-                      @change="saveUserRow(u.id)"
-                    >
-                      <option value="loss">손실정산</option>
-                      <option value="referral">레퍼럴정산</option>
-                    </select>
+                    <div v-if="u.role === 'branch_admin'" class="flex items-center gap-1.5">
+                      <select
+                        v-model="userDraft[u.id].settlementType"
+                        class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                        @change="saveUserRow(u.id)"
+                      >
+                        <option value="loss">손실정산</option>
+                        <option value="referral">레퍼럴정산</option>
+                      </select>
+                      <input
+                        v-model="userDraft[u.id].settlementPercent"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="기본값"
+                        title="이 부관리자 전용 정산비율(%). 비워두면 정산/기타 설정의 기본값을 사용합니다."
+                        class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                        @blur="saveUserRow(u.id)"
+                        @keyup.enter="saveUserRow(u.id)"
+                      />
+                      <span class="text-xs text-slate-500">%</span>
+                    </div>
                     <span v-else class="text-xs text-slate-600">—</span>
                   </td>
                   <td class="px-3 py-2.5 text-center">
@@ -283,7 +297,7 @@
           </p>
         </div>
         <div>
-          <label class="text-sm text-slate-300">손실정산 비율 (%)</label>
+          <label class="text-sm text-slate-300">손실정산 기본 비율 (%)</label>
           <input
             v-model.number="miscDraft.lossSettlementPercent"
             type="number"
@@ -292,9 +306,10 @@
             step="0.1"
             class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
+          <p class="mt-1 text-xs text-slate-500">부관리자별 개별 비율을 지정하지 않았을 때 사용되는 기본값입니다.</p>
         </div>
         <div>
-          <label class="text-sm text-slate-300">레퍼럴정산 비율 (%)</label>
+          <label class="text-sm text-slate-300">레퍼럴정산 기본 비율 (%)</label>
           <input
             v-model.number="miscDraft.referralSettlementPercent"
             type="number"
@@ -303,6 +318,7 @@
             step="0.1"
             class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
+          <p class="mt-1 text-xs text-slate-500">부관리자별 개별 비율을 지정하지 않았을 때 사용되는 기본값입니다.</p>
         </div>
       </div>
       <div class="mt-4 flex items-center gap-3">
@@ -473,6 +489,7 @@ type AdminUserRow = {
   usdt: number
   created_at: string
   settlementType: 'loss' | 'referral'
+  settlementPercent: number | null
 }
 type UserDraft = {
   username: string
@@ -481,6 +498,7 @@ type UserDraft = {
   referralCode: string
   role: string
   settlementType: 'loss' | 'referral'
+  settlementPercent: string
 }
 
 const users = ref<AdminUserRow[]>([])
@@ -514,13 +532,42 @@ function sortArrow(key: typeof sortKey.value) {
   return sortDir.value === 'asc' ? ' ▲' : ' ▼'
 }
 
+// 영업 조직처럼 몇 단계든(총판 > 팀장 > 팀원 > ...) 하부보기가 전체 하부 조직을 보여주도록,
+// 직속 추천코드만 비교하지 않고 추천 관계 그래프를 끝까지 따라간다.
+function downlineUsernamesOf(root: string) {
+  const childrenMap = new Map<string, string[]>()
+  for (const u of users.value) {
+    const parent = (u.referralCode || '').trim()
+    if (!parent) continue
+    if (!childrenMap.has(parent)) childrenMap.set(parent, [])
+    childrenMap.get(parent)!.push(u.username)
+  }
+  const result = new Set<string>()
+  let frontier = [root]
+  let depth = 0
+  while (frontier.length && depth < 50) {
+    const next: string[] = []
+    for (const parent of frontier) {
+      for (const child of childrenMap.get(parent) || []) {
+        if (result.has(child) || child === root) continue
+        result.add(child)
+        next.push(child)
+      }
+    }
+    frontier = next
+    depth++
+  }
+  return result
+}
+
 const sortedUsers = computed(() => {
   const q = userSearch.value.trim().toLowerCase()
   let filtered = q
     ? users.value.filter((u) => [u.username, u.name, String(u.id)].some((v) => String(v || '').toLowerCase().includes(q)))
     : users.value.slice()
   if (referralFilter.value) {
-    filtered = filtered.filter((u) => u.referralCode === referralFilter.value)
+    const downline = downlineUsernamesOf(referralFilter.value)
+    filtered = filtered.filter((u) => downline.has(u.username))
   }
   const dir = sortDir.value === 'asc' ? 1 : -1
   return filtered.sort((a, b) => {
@@ -548,7 +595,12 @@ async function saveUserRow(userId: number) {
         usdt: Number(draft.usdt) || 0,
         referralCode: draft.referralCode,
         role: draft.role,
-        ...(draft.role === 'branch_admin' ? { settlementType: draft.settlementType } : {})
+        ...(draft.role === 'branch_admin'
+          ? {
+              settlementType: draft.settlementType,
+              settlementPercent: draft.settlementPercent.trim() === '' ? null : Number(draft.settlementPercent)
+            }
+          : {})
       }
     })
     await load()
@@ -826,7 +878,8 @@ async function load() {
         usdt: Number(u.usdt ?? 0),
         referralCode: u.referralCode || '',
         role: u.role || 'user',
-        settlementType: u.settlementType === 'referral' ? 'referral' : 'loss'
+        settlementType: u.settlementType === 'referral' ? 'referral' : 'loss',
+        settlementPercent: typeof u.settlementPercent === 'number' ? String(u.settlementPercent) : ''
       }
     }
   } catch (e: any) {

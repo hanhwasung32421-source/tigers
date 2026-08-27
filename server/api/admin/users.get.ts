@@ -63,7 +63,8 @@ export default defineEventHandler(async (event) => {
         usdt: balMap.get(id) ?? 0,
         online: onlineSet.has(id),
         last_ip: ipMap.get(id) ?? null,
-        settlementType: settlementTypeOf({ role: String(u.role || 'user'), permissions: u.permissions || {} })
+        settlementType: settlementTypeOf({ role: String(u.role || 'user'), permissions: u.permissions || {} }),
+        settlementPercent: typeof u.permissions?.settlementPercent === 'number' ? u.permissions.settlementPercent : null
       }
     })
 
@@ -114,7 +115,8 @@ export default defineEventHandler(async (event) => {
         role: u.role,
         created_at: u.created_at,
         usdt: u.usdt,
-        settlementType: settlementTypeOf({ role: u.role, permissions })
+        settlementType: settlementTypeOf({ role: u.role, permissions }),
+        settlementPercent: typeof permissions?.settlementPercent === 'number' ? permissions.settlementPercent : null
       }
     })
   }

@@ -4,6 +4,7 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canEditMenu, canViewMenu } from '../../utils/menu-permissions'
 import { listDepositRequests } from '../../utils/deposit-requests'
+import { computeDownlineUsernames } from '../../utils/referral'
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
@@ -17,12 +18,15 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
 
-    let usersQuery = supa.from('trae_users').select('id, username, name, referral_code').eq('role', 'user')
-    if (scopeToReferral) usersQuery = usersQuery.eq('referral_code', scopeToReferral)
-    const { data: users, error: e1 } = await usersQuery
+    const { data: allUsers, error: e1 } = await supa.from('trae_users').select('id, username, name, referral_code, role')
     if (e1) throw e1
 
-    const ids = (users || []).map((u: any) => Number(u.id)).filter(Boolean)
+    const downline = scopeToReferral
+      ? computeDownlineUsernames(scopeToReferral, (allUsers || []).map((u: any) => ({ username: u.username, referralCode: u.referral_code })))
+      : null
+    const users = (allUsers || []).filter((u: any) => String(u.role) === 'user' && (!downline || downline.has(String(u.username))))
+
+    const ids = users.map((u: any) => Number(u.id)).filter(Boolean)
     if (!ids.length) return { items: [], canEdit }
 
     const { data: balances, error: e2 } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
@@ -50,9 +54,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getDb()
-  const users = scopeToReferral
-    ? (db.prepare("SELECT id, username, name FROM users WHERE role = 'user' AND referral_code = ?").all(scopeToReferral) as any[])
-    : (db.prepare("SELECT id, username, name FROM users WHERE role = 'user'").all() as any[])
+  const allUsers = db.prepare('SELECT id, username, name, referral_code, role FROM users').all() as any[]
+  const downline = scopeToReferral
+    ? computeDownlineUsernames(scopeToReferral, allUsers.map((u) => ({ username: u.username, referralCode: u.referral_code })))
+    : null
+  const users = allUsers.filter((u) => String(u.role) === 'user' && (!downline || downline.has(String(u.username))))
 
   const ids = users.map((u: any) => Number(u.id))
   if (!ids.length) return { items: [], canEdit }

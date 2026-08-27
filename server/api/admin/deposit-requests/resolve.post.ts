@@ -6,6 +6,7 @@ import { getSupabaseAdminClient, supaSelectOne } from '../../../utils/supabase'
 import { canEditMenu } from '../../../utils/menu-permissions'
 import { getDepositRequest, resolveDepositRequest } from '../../../utils/deposit-requests'
 import { resolveKrwPerUsdtRate } from '../../../utils/system-settings'
+import { fetchDownlineUsernames } from '../../../utils/referral'
 
 const BodySchema = z.object({
   requestId: z.number().int().positive(),
@@ -28,10 +29,11 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   if (admin.role === 'branch_admin') {
-    const referralCode = useSupa
-      ? String((await supaSelectOne<any>('trae_users', { id: req.userId }))?.referral_code || '')
-      : String((getDb().prepare('SELECT referral_code FROM users WHERE id = ?').get(req.userId) as any)?.referral_code || '')
-    if (referralCode.trim() !== admin.username) {
+    const targetUsername = useSupa
+      ? String((await supaSelectOne<any>('trae_users', { id: req.userId }))?.username || '')
+      : String((getDb().prepare('SELECT username FROM users WHERE id = ?').get(req.userId) as any)?.username || '')
+    const downline = await fetchDownlineUsernames(admin.username)
+    if (!downline.has(targetUsername)) {
       throw createError({ statusCode: 403, statusMessage: '이 회원의 요청을 처리할 권한이 없습니다.' })
     }
   }

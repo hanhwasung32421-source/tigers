@@ -17,7 +17,9 @@ const BodySchema = z.object({
   bankAccount: z.string().trim().max(80).optional(),
   accountHolder: z.string().trim().max(40).optional(),
   referralCode: z.string().trim().max(32).optional(),
-  settlementType: z.enum(['loss', 'referral']).optional()
+  settlementType: z.enum(['loss', 'referral']).optional(),
+  // null = 총관리자가 정산/기타 설정에서 지정한 기본 비율을 그대로 사용
+  settlementPercent: z.number().min(0).max(100).nullable().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -114,6 +116,18 @@ export default defineEventHandler(async (event) => {
       const current = await supaSelectOne<any>('trae_users', { id: body.userId })
       const { settlementTypes: _drop, ...prevRest } = current?.permissions || {}
       const permissions = { ...prevRest, settlementType: body.settlementType }
+      const { error } = await supa
+        .from('trae_users')
+        .update({ permissions, updated_at: new Date().toISOString() })
+        .eq('id', body.userId)
+      if (error) throw error
+    }
+
+    if (body.settlementPercent !== undefined) {
+      // 부관리자별 정산 비율 지정은 총관리자만
+      await requireSuperAdmin(event)
+      const current = await supaSelectOne<any>('trae_users', { id: body.userId })
+      const permissions = { ...(current?.permissions || {}), settlementPercent: body.settlementPercent }
       const { error } = await supa
         .from('trae_users')
         .update({ permissions, updated_at: new Date().toISOString() })
@@ -222,6 +236,22 @@ export default defineEventHandler(async (event) => {
     }
     delete prevPermissions.settlementTypes
     const permissions = { ...prevPermissions, settlementType: body.settlementType }
+    db.prepare('UPDATE users SET permissions = ?, updated_at = ? WHERE id = ?').run(JSON.stringify(permissions), new Date().toISOString(), body.userId)
+    const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
+    await syncUserToSupabase(userRow)
+  }
+
+  if (body.settlementPercent !== undefined) {
+    // 부관리자별 정산 비율 지정은 총관리자만
+    await requireSuperAdmin(event)
+    const row = db.prepare('SELECT permissions FROM users WHERE id = ?').get(body.userId) as { permissions?: string } | undefined
+    let prevPermissions: any = {}
+    try {
+      prevPermissions = JSON.parse(row?.permissions || '{}')
+    } catch {
+      prevPermissions = {}
+    }
+    const permissions = { ...prevPermissions, settlementPercent: body.settlementPercent }
     db.prepare('UPDATE users SET permissions = ?, updated_at = ? WHERE id = ?').run(JSON.stringify(permissions), new Date().toISOString(), body.userId)
     const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
     await syncUserToSupabase(userRow)
