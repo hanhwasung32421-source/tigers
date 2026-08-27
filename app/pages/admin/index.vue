@@ -53,6 +53,61 @@
       <p v-if="liquidationSettingMsg" class="mt-3 text-sm text-emerald-300">{{ liquidationSettingMsg }}</p>
     </div>
 
+    <!-- 킬UP/킬DOWN 이력 -->
+    <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold">킬UP/킬DOWN 이력</h2>
+          <p class="mt-1 text-sm text-slate-400">
+            삭제하면 모든 유저의 차트에서도 해당 봉의 고가/저가(꼬리)가 사라집니다(잠시 후 자동 반영).
+          </p>
+        </div>
+        <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadKillEvents">
+          새로고침
+        </button>
+      </div>
+
+      <div class="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+        <div v-if="killEventsLoading" class="text-sm text-slate-400">불러오는 중…</div>
+        <div v-else-if="killEvents.length === 0" class="text-sm text-slate-400">킬 이력이 없습니다.</div>
+        <div v-else class="overflow-auto">
+          <table class="w-full text-sm">
+            <thead class="text-left text-slate-400">
+              <tr>
+                <th class="py-2">시각</th>
+                <th class="py-2">심볼</th>
+                <th class="py-2">방향</th>
+                <th class="py-2">퍼센트</th>
+                <th class="py-2">기준가 → 도달가</th>
+                <th class="py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="k in killEvents" :key="k.id" class="border-t border-white/10">
+                <td class="py-2 font-mono text-xs">{{ formatKillTime(k.createdAt) }}</td>
+                <td class="py-2 font-mono">{{ k.symbol }}</td>
+                <td class="py-2" :class="k.direction === 'up' ? 'text-emerald-300' : 'text-rose-300'">
+                  {{ k.direction === 'up' ? '킬UP' : '킬DOWN' }}
+                </td>
+                <td class="py-2 font-mono">{{ k.percent }}%</td>
+                <td class="py-2 font-mono">{{ k.basePrice }} → {{ k.shockedPrice }}</td>
+                <td class="py-2">
+                  <button
+                    class="rounded-md bg-rose-500/15 px-3 py-1 text-xs text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="killEventDeleting === k.id"
+                    @click="deleteKillEvent(k.id)"
+                  >
+                    삭제
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-if="killEventsError" class="mt-3 text-sm text-red-300">{{ killEventsError }}</p>
+      </div>
+    </div>
+
     <!-- 유저/권한 관리 + 잔고 수정: 대시보드에 바로 표시 -->
     <div class="space-y-3">
       <div class="flex items-end justify-between gap-3">
@@ -143,6 +198,52 @@ const roleDraft = reactive<Record<number, string>>({})
 const canEditRole = computed(() => me.value?.role === 'super_admin')
 const canEditBalance = computed(() => me.value?.role === 'super_admin' || me.value?.permissions?.canCredit)
 
+type KillEventRow = {
+  id: number
+  symbol: string
+  direction: 'up' | 'down'
+  percent: number
+  basePrice: number
+  shockedPrice: number
+  createdAt: string
+}
+const killEvents = ref<KillEventRow[]>([])
+const killEventsLoading = ref(false)
+const killEventsError = ref<string | null>(null)
+const killEventDeleting = ref<number | null>(null)
+
+function formatKillTime(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('ko-KR', { hour12: false })
+}
+
+async function loadKillEvents() {
+  killEventsLoading.value = true
+  killEventsError.value = null
+  try {
+    const data = await $fetch<{ items: KillEventRow[] }>('/api/admin/kill/list')
+    killEvents.value = data.items || []
+  } catch (e: any) {
+    killEventsError.value = e?.data?.statusMessage || '킬 이력 불러오기 실패'
+  } finally {
+    killEventsLoading.value = false
+  }
+}
+
+async function deleteKillEvent(id: number) {
+  killEventDeleting.value = id
+  killEventsError.value = null
+  try {
+    await $fetch('/api/admin/kill/delete', { method: 'POST', body: { id } })
+    killEvents.value = killEvents.value.filter((k) => k.id !== id)
+  } catch (e: any) {
+    killEventsError.value = e?.data?.statusMessage || '삭제 실패'
+  } finally {
+    killEventDeleting.value = null
+  }
+}
+
 const liquidationPercent = ref(40)
 const liquidationPercentDraft = ref(40)
 const liquidationSettingSaving = ref(false)
@@ -227,4 +328,5 @@ async function updateRole(userId: number) {
 
 await load()
 await loadLiquidationSetting()
+await loadKillEvents()
 </script>

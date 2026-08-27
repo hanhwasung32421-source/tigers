@@ -1,6 +1,6 @@
 import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
-import { supaInsertStrict, supaSelectWhere } from './supabase'
+import { supaDelete, supaInsertStrict, supaSelectWhere } from './supabase'
 
 const T_KILL_EVENTS = 'trae_kill_events'
 
@@ -88,4 +88,24 @@ export async function listKillEvents(symbol: string, limit = 200): Promise<KillE
   const db = getDb()
   const rows = db.prepare('SELECT * FROM kill_events WHERE symbol = ? ORDER BY id DESC LIMIT ?').all(sym, limit) as any[]
   return rows.map(rowToKillEvent)
+}
+
+// 관리자 대시보드에서 심볼 구분 없이 전체 킬 이력을 보여주기 위함
+export async function listAllKillEvents(limit = 100): Promise<KillEvent[]> {
+  if (supabaseAppDbEnabled()) {
+    const rows = await supaSelectWhere<any>({ table: T_KILL_EVENTS, orderBy: 'id', ascending: false, limit })
+    return rows.map(rowToKillEvent)
+  }
+  const db = getDb()
+  const rows = db.prepare('SELECT * FROM kill_events ORDER BY id DESC LIMIT ?').all(limit) as any[]
+  return rows.map(rowToKillEvent)
+}
+
+export async function deleteKillEvent(id: number): Promise<void> {
+  if (supabaseAppDbEnabled()) {
+    await supaDelete(T_KILL_EVENTS, { id })
+    return
+  }
+  const db = getDb()
+  db.prepare('DELETE FROM kill_events WHERE id = ?').run(id)
 }

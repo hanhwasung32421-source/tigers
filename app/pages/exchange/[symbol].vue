@@ -1299,6 +1299,7 @@ const killPercentDraft = ref(0.5)
 const killError = ref<string | null>(null)
 let lastSeenKillEventId = 0
 let killPollTimer: any = null
+let killResyncTimer: any = null
 
 const displayLastPrice = computed(() => adminKillUiOverride.value ?? lastPrice.value ?? null)
 
@@ -1403,9 +1404,13 @@ function fmtNum(v: number) {
 
 function markOf(sym: string) {
   const s = String(sym || '').toUpperCase()
-  if (!s) return Number(lastPrice.value || 0)
-  // 현재 보고 있는 차트 심볼은 WS 가격을 최우선 사용
-  if (s === String(symbol.value || '').toUpperCase() && Number(lastPrice.value || 0) > 0) return Number(lastPrice.value || 0)
+  if (!s) return Number(adminKillUiOverride.value ?? lastPrice.value ?? 0)
+  if (s === String(symbol.value || '').toUpperCase()) {
+    // 킬UP/킬DOWN 애니메이션 중에는 그 순간의 가격을 그대로 반영해서, 포지션 수익률도 같이 움직이게 한다.
+    if (Number(adminKillUiOverride.value || 0) > 0) return Number(adminKillUiOverride.value)
+    // 현재 보고 있는 차트 심볼은 WS 가격을 최우선 사용
+    if (Number(lastPrice.value || 0) > 0) return Number(lastPrice.value || 0)
+  }
   return Number(markPrices.value[s] || 0)
 }
 
@@ -2122,6 +2127,17 @@ function startKillPolling() {
   killPollTimer = setInterval(() => {
     pollKillEvents()
   }, 1500)
+}
+
+// 관리자가 킬 이력을 삭제했을 때(잘못 만든 킬봉 등) 이미 열려있는 화면에도 반영되도록,
+// 주기적으로 캔들+킬 이력을 다시 불러온다(애니메이션 중에는 건너뜀).
+function startKillResync() {
+  if (!process.client) return
+  if (killResyncTimer) clearInterval(killResyncTimer)
+  killResyncTimer = setInterval(() => {
+    if (adminKillBusy.value) return
+    fetchCandles().catch(() => {})
+  }, 20000)
 }
 
 type DepthRow = { price: number; qty: number; qtyText: string; total: number; totalText: string; depthPct: number }
@@ -3820,6 +3836,7 @@ onMounted(async () => {
   await loadAccount()
   await initKillEventBaseline()
   startKillPolling()
+  startKillResync()
 
   // 기본은 시장가 탭
   selectOrderType('market')
@@ -3862,6 +3879,8 @@ onBeforeUnmount(() => {
   liquidationSettingsPollTimer = null
   if (killPollTimer) clearInterval(killPollTimer)
   killPollTimer = null
+  if (killResyncTimer) clearInterval(killResyncTimer)
+  killResyncTimer = null
   if (adminKillTimer) clearTimeout(adminKillTimer)
   adminKillTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
