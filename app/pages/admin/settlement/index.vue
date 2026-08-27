@@ -43,9 +43,11 @@
         <button class="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10" @click="resetToThisWeek">이번주</button>
 
         <div class="ml-auto rounded-md border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
-          기간 총 정산금 <span class="font-mono text-base font-semibold">{{ fmtKrw(total) }}</span
-          ><span class="ml-1 font-mono text-xs text-cyan-300/70">({{ fmt2(total) }})</span>
-          <span class="ml-2 text-xs text-cyan-300/70">(정산비율 {{ percent }}%, 환율 {{ fmt0(krwPerUsdt) }}원/USDT)</span>
+          <div>
+            기간 총 정산금 <span class="font-mono text-base font-semibold">{{ fmtKrw(total) }}</span>
+            <span class="text-xs text-cyan-300/70">(정산비율 {{ percent }}%, 환율 {{ fmt0(krwPerUsdt) }}원/USDT)</span>
+          </div>
+          <div class="font-mono text-xs text-cyan-300/70">({{ fmt2(total) }})</div>
         </div>
       </div>
 
@@ -68,13 +70,16 @@
               <td class="px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
               <td class="px-3 py-3 text-slate-200">{{ it.name }}</td>
               <td class="px-3 py-3 text-right font-mono text-slate-200">
-                {{ fmtKrw(it.balanceUsdt) }} <span class="text-slate-500">({{ fmt2(it.balanceUsdt) }})</span>
+                <div>{{ fmtKrw(it.balanceUsdt) }}</div>
+                <div class="text-slate-500">({{ fmt2(it.balanceUsdt) }})</div>
               </td>
               <td class="px-3 py-3 text-right font-mono text-slate-300">
-                {{ fmtKrw(it.baseAmount) }} <span class="text-slate-500">({{ fmt2(it.baseAmount) }})</span>
+                <div>{{ fmtKrw(it.baseAmount) }}</div>
+                <div class="text-slate-500">({{ fmt2(it.baseAmount) }})</div>
               </td>
               <td class="px-3 py-3 text-right font-mono text-slate-100">
-                {{ fmtKrw(it.settlementAmount) }} <span class="text-slate-500">({{ fmt2(it.settlementAmount) }})</span>
+                <div>{{ fmtKrw(it.settlementAmount) }}</div>
+                <div class="text-slate-500">({{ fmt2(it.settlementAmount) }})</div>
               </td>
             </tr>
           </tbody>

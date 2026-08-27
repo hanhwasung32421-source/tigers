@@ -170,16 +170,26 @@ export async function getDailyKrwRate(): Promise<{ rate: number; day: string; up
   const cached = await readDailyRateRow()
   if (cached.day === today && cached.rate > 0) return cached
 
+  let price = 0
   try {
     const res = await $fetch<any>('https://api.bithumb.com/public/ticker/USDT_KRW')
-    const price = Number(res?.data?.closing_price)
-    if (Number.isFinite(price) && price > 0) {
-      await writeDailyRateRow(price, today)
-      return { rate: price, day: today, updatedAt: new Date().toISOString() }
-    }
+    price = Number(res?.data?.closing_price)
   } catch {
-    // ignore
+    // 시세 조회 자체가 실패한 경우
   }
+
+  if (Number.isFinite(price) && price > 0) {
+    const result = { rate: price, day: today, updatedAt: new Date().toISOString() }
+    // 캐시 저장은 실패해도(예: DB 마이그레이션 미적용) 방금 받아온 실시간 시세는 그대로 써야 한다 —
+    // 여기서 실패했다고 0원을 돌려주면 안 된다.
+    try {
+      await writeDailyRateRow(price, today)
+    } catch (e) {
+      console.error('[system-settings] failed to persist daily KRW rate cache:', (e as any)?.message || e)
+    }
+    return result
+  }
+
   // 갱신 실패 시 이전에 캐시된 값이라도 사용 (없으면 0)
   return cached
 }
