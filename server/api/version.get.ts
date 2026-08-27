@@ -27,5 +27,5 @@ export default defineEventHandler(() => {
   const info = versionInfo as { date?: string; build?: number }
   const build = info?.date === today && Number.isFinite(Number(info?.build)) ? Number(info.build) : 1
 
-  return { version: `${formatKoreanDate(now)} - ${build}` }
+  return { date: formatKoreanDate(now), build }
 })

@@ -60,7 +60,7 @@
           </span>
           <template v-if="me">
             <NuxtLink to="/profile" class="hidden sm:inline text-slate-300 underline-offset-4 hover:text-white hover:underline" @click="startNavLoading('/profile')">
-              {{ me.username }}
+              {{ me.name || me.username }}
             </NuxtLink>
             <NuxtLink
               :to="bellTarget"
@@ -112,13 +112,18 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const appName = config.public.appName
-const { data: versionData } = await useFetch<{ version: string }>('/api/version', { key: 'app-version' })
-const appVersion = computed(() => versionData.value?.version || '')
+const { data: versionData } = await useFetch<{ date: string; build: number }>('/api/version', { key: 'app-version' })
 const route = useRoute()
 const navLoading = useState<boolean>('global_nav_loading', () => false)
 
 const { me, refresh } = useMe()
 await refresh()
+
+// 빌드 번호(- n)는 총관리자에게만 표시하고, 그 외에는 날짜만 표시한다.
+const appVersion = computed(() => {
+  if (!versionData.value) return ''
+  return me.value?.role === 'super_admin' ? `${versionData.value.date} - ${versionData.value.build}` : versionData.value.date
+})
 const { unread, toast, refreshUnread, startUnreadPolling, stopUnreadPolling } = useMessages()
 const resetNoticeHidden = ref(false)
 if (me.value) {
