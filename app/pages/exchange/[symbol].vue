@@ -114,7 +114,7 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'hline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="수평선 (Alt+H)"
+              title="수평선 (Alt+H / Alt+G / Alt+J)"
               @click="selectTool('hline')"
             >
               ㅡ
@@ -1917,7 +1917,18 @@ function onDrawingKeydown(e: KeyboardEvent) {
 
   // e.code(물리적 키 위치)만 보면 브라우저/확장 프로그램이 먼저 가로채는 경우 아예 안 걸릴 수 있어,
   // e.key(입력된 문자)도 함께 확인해 최대한 놓치지 않게 한다.
-  const isKeyH = e.code === 'KeyH' || e.key === 'h' || e.key === 'H'
+  // Alt+H가 일부 환경에서 브라우저에 먼저 가로채질 수 있어, Alt+G/Alt+J도 동일하게
+  // 수평선을 만드는 예비 단축키로 같이 열어둔다(Alt+H는 그대로 유지).
+  const isKeyH =
+    e.code === 'KeyH' ||
+    e.key === 'h' ||
+    e.key === 'H' ||
+    e.code === 'KeyG' ||
+    e.key === 'g' ||
+    e.key === 'G' ||
+    e.code === 'KeyJ' ||
+    e.key === 'j' ||
+    e.key === 'J'
   const isKeyT = e.code === 'KeyT' || e.key === 't' || e.key === 'T'
   if (e.altKey && (isKeyH || isKeyT)) {
     const tag = (e.target as HTMLElement)?.tagName
@@ -1930,7 +1941,7 @@ function onDrawingKeydown(e: KeyboardEvent) {
       return
     }
 
-    // Alt+H: 지금 마우스가 있는 자리에 바로 수평선을 만든다(클릭 불필요).
+    // Alt+H/Alt+G/Alt+J: 지금 마우스가 있는 자리에 바로 수평선을 만든다(클릭 불필요).
     e.preventDefault()
     if (!chart || !candleSeries || !lastChartMousePos.value) return
     const { x, y } = lastChartMousePos.value
