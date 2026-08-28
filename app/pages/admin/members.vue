@@ -256,6 +256,7 @@
                   <th class="px-3 py-3 text-left">날짜</th>
                   <th class="px-3 py-3 text-left">심볼</th>
                   <th class="px-3 py-3 text-left">주문유형</th>
+                  <th class="px-3 py-3 text-left">구분</th>
                   <th class="px-3 py-3 text-right">레버리지</th>
                   <th class="px-3 py-3 text-right">체결가격</th>
                   <th class="px-3 py-3 text-right">체결량</th>
@@ -266,12 +267,17 @@
               </thead>
               <tbody>
                 <tr v-if="!tradeLoading && pagedMemberTrades.length === 0" class="border-b border-[#0d2438]">
-                  <td colspan="9" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
+                  <td colspan="10" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
                 </tr>
                 <tr v-for="t in pagedMemberTrades" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
                   <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(t.created_at) }}</td>
                   <td class="px-3 py-3 font-semibold text-slate-100">{{ t.symbol }}</td>
                   <td class="px-3 py-3 text-slate-200">{{ t.orderType }}</td>
+                  <td class="px-3 py-3">
+                    <span class="rounded px-2 py-1 text-[10px] font-semibold ring-1" :class="tradeResultBadgeClass(t)">
+                      {{ tradeResultLabel(t) }}
+                    </span>
+                  </td>
                   <td class="px-3 py-3 text-right font-mono text-slate-300">x{{ t.leverage }}</td>
                   <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmtPrice(t.price) }}</td>
                   <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(t.qty) }}</td>
@@ -423,6 +429,7 @@ type MemberTradeRow = {
   pnl: number
   fee: number
   online: boolean
+  liquidation?: boolean
 }
 
 const { me, refresh } = useMe()
@@ -580,6 +587,14 @@ function signedProfitText(v: number) {
 }
 function fmtRate(v: number | null) {
   return typeof v === 'number' ? `${v.toFixed(2)}` : '—'
+}
+function tradeResultLabel(t: Pick<MemberTradeRow, 'liquidation' | 'pnl'>) {
+  if (Boolean(t?.liquidation)) return '강제청산'
+  return Number(t?.pnl || 0) >= 0 ? '수익' : '손실'
+}
+function tradeResultBadgeClass(t: Pick<MemberTradeRow, 'liquidation' | 'pnl'>) {
+  if (Boolean(t?.liquidation)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+  return Number(t?.pnl || 0) >= 0 ? 'bg-blue-500/15 text-blue-300 ring-blue-400/20' : 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
 }
 function fmtPrice(v: number) {
   return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
