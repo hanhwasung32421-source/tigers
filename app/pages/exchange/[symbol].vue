@@ -105,7 +105,7 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'trend' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="추세선"
+              title="추세선 (Alt+T)"
               @click="selectTool('trend')"
             >
               ／
@@ -1286,7 +1286,7 @@ const activeTool = ref<'cursor' | 'trend' | 'hline'>('cursor')
 const pendingTrendStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
-// Alt+H(수평선)/Alt+T(수직선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
+// Alt+H(수평선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
 // 도구 상태와 무관하게 항상 최신 좌표를 기록해둔다.
 const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
 // 선(수평선/추세선) 선택 상태: 커서 도구에서 클릭하면 선택되고, 끝점을 드래그하거나 Delete로 삭제 가능
@@ -1915,28 +1915,18 @@ function onDrawingKeydown(e: KeyboardEvent) {
     return
   }
 
-  if (e.altKey && (e.code === 'KeyH' || e.code === 'KeyT')) {
+  // e.code(물리적 키 위치)만 보면 브라우저/확장 프로그램이 먼저 가로채는 경우 아예 안 걸릴 수 있어,
+  // e.key(입력된 문자)도 함께 확인해 최대한 놓치지 않게 한다.
+  const isKeyH = e.code === 'KeyH' || e.key === 'h' || e.key === 'H'
+  const isKeyT = e.code === 'KeyT' || e.key === 't' || e.key === 'T'
+  if (e.altKey && (isKeyH || isKeyT)) {
     const tag = (e.target as HTMLElement)?.tagName
     if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
-    if (e.code === 'KeyT') {
-      // Alt+T: 지금 마우스가 있는 자리에 바로 수직선을 만든다(클릭 불필요, Alt+H와 동일한 방식).
+    if (isKeyT) {
+      // Alt+T: 추세선(직선) 도구를 활성화만 한다 - 시작점은 다음 클릭에서 찍힌다.
       e.preventDefault()
-      if (!chart || !candleSeries || !lastChartMousePos.value) return
-      const { x } = lastChartMousePos.value
-      const time = resolveTimeAtX(null, x)
-      if (!time) return
-      chartPrefs.drawings.push({
-        id: `v-${Date.now()}`,
-        type: 'vline',
-        color: '#facc15',
-        time
-      })
-      liveDrawingPoint.value = null
-      clearDrawingPreviewVisuals()
-      renderSavedDrawings()
-      scheduleSaveChartPrefs()
-      activeTool.value = 'cursor'
+      selectTool('trend')
       return
     }
 
@@ -3187,7 +3177,8 @@ function initChart() {
   chartEl.value.addEventListener('mousedown', onChartMouseDown, true)
   chartEl.value.addEventListener('mousemove', onChartAreaMouseMove)
   chartEl.value.addEventListener('dblclick', onChartDoubleClick)
-  window.addEventListener('keydown', onDrawingKeydown)
+  // capture 단계에서 붙여서, 다른 요소의 키 핸들러가 먼저 stopPropagation 하더라도 놓치지 않게 한다.
+  window.addEventListener('keydown', onDrawingKeydown, true)
 
   // ResizeObserver
   const ro = new ResizeObserver(() => {
@@ -4052,7 +4043,7 @@ onBeforeUnmount(() => {
     chartEl.value.removeEventListener('mousemove', onChartAreaMouseMove)
     chartEl.value.removeEventListener('dblclick', onChartDoubleClick)
   }
-  window.removeEventListener('keydown', onDrawingKeydown)
+  window.removeEventListener('keydown', onDrawingKeydown, true)
   drawingDragCleanup?.()
 })
 </script>
