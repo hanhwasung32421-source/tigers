@@ -18,45 +18,46 @@
         </div>
       </div>
     </Transition>
-    <header class="font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/92 backdrop-blur">
-      <div class="mx-auto flex max-w-[1920px] items-center justify-between gap-3 px-3 py-3">
-        <NuxtLink to="/" class="font-semibold tracking-tight text-white" @click="startNavLoading('/')">
-          {{ appName }}
-        </NuxtLink>
+    <header class="font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
+      <div class="flex w-full items-center justify-between gap-3 px-5 py-4">
+        <div class="flex items-center gap-1">
+          <NuxtLink to="/" class="mr-4 text-lg font-semibold tracking-tight text-white" @click="startNavLoading('/')">
+            {{ appName }}
+          </NuxtLink>
 
-        <nav class="flex items-center gap-1 text-sm text-slate-300">
-          <NuxtLink to="/" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/')">홈</NuxtLink>
-          <NuxtLink to="/markets/coin" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/markets/coin')">코인선물</NuxtLink>
-          <NuxtLink to="/markets/global" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/markets/global')">해외주식</NuxtLink>
-          <NuxtLink to="/markets/kr" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/markets/kr')">국내주식</NuxtLink>
-          <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/wallet')">내 지갑</NuxtLink>
-          <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
-          <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
-          <div v-if="isAdmin" class="group relative">
-            <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
-            <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
-              <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
-                <button
-                  type="button"
-                  class="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
-                  @click="copyReferralLink"
-                >
-                  {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
-                </button>
-                <template v-for="key in orderedAdminMenuKeys" :key="key">
-                  <NuxtLink
-                    v-if="canViewAdminMenu(key)"
-                    :to="ADMIN_MENU_ROUTES[key]"
-                    class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
-                    @click="startNavLoading(ADMIN_MENU_ROUTES[key])"
+          <nav class="flex items-center gap-1 text-sm text-slate-300">
+            <NuxtLink to="/exchange/BTCUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/BTCUSDT')">코인선물</NuxtLink>
+            <NuxtLink to="/exchange/AAPLUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/AAPLUSDT')">해외주식</NuxtLink>
+            <NuxtLink to="/exchange/SAMSUNGUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">국내주식</NuxtLink>
+            <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/wallet')">내 지갑</NuxtLink>
+            <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
+            <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
+            <div v-if="isAdmin" class="group relative">
+              <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
+              <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
+                <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
+                  <button
+                    type="button"
+                    class="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                    @click="copyReferralLink"
                   >
-                    {{ ADMIN_MENU_LABELS[key] }}
-                  </NuxtLink>
-                </template>
+                    {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
+                  </button>
+                  <template v-for="key in orderedAdminMenuKeys" :key="key">
+                    <NuxtLink
+                      v-if="canViewAdminMenu(key)"
+                      :to="ADMIN_MENU_ROUTES[key]"
+                      class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                      @click="startNavLoading(ADMIN_MENU_ROUTES[key])"
+                    >
+                      {{ ADMIN_MENU_LABELS[key] }}
+                    </NuxtLink>
+                  </template>
+                </div>
               </div>
             </div>
-          </div>
-        </nav>
+          </nav>
+        </div>
 
         <div class="flex items-center gap-2 text-sm">
           <span class="hidden sm:inline rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 text-xs font-mono text-slate-300">
@@ -85,8 +86,8 @@
             </button>
           </template>
           <template v-else>
-            <NuxtLink to="/auth/login" class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
-            <NuxtLink to="/auth/register" class="rounded-md bg-[#1d4ed8] px-3 py-1.5 text-white hover:bg-[#2563eb]" @click="startNavLoading('/auth/register')">가입</NuxtLink>
+            <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
+            <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">회원가입</NuxtLink>
           </template>
         </div>
       </div>

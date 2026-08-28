@@ -1032,13 +1032,28 @@ const route = useRoute()
 const router = useRouter()
 const symbol = computed(() => String(route.params.symbol || 'SAMSUNGUSDT').toUpperCase())
 const symbolSelect = ref(symbol.value)
-const symbolOptions = [
-  { value: 'BTCUSDT', label: 'BTCUSDT' },
-  { value: 'DOGEUSDT', label: 'DOGEUSDT' },
-  { value: 'ETHUSDT', label: 'ETHUSDT' },
-  { value: 'SAMSUNGUSDT', label: 'SAMSUNGUSDT' },
-  { value: 'SKHYNIXUSDT', label: 'SKHYNIXUSDT' }
-]
+
+// 왼쪽 위 종목 선택 드롭다운: 지금 보고 있는 종목이 코인/해외주식/국내주식 중 어디에 속하는지에 따라
+// 같은 카테고리의 전체 종목 목록(마켓 목록 API에서 가져온 실제 OKX 종목)을 보여준다.
+type MarketInstrumentLite = { symbol: string }
+const marketCategories = ref<{ coin: MarketInstrumentLite[]; globalStock: MarketInstrumentLite[]; krStock: MarketInstrumentLite[] }>({
+  coin: [],
+  globalStock: [],
+  krStock: []
+})
+async function loadMarketCategories() {
+  try {
+    marketCategories.value = await $fetch('/api/markets/list')
+  } catch {
+    // 실패해도 아래 symbolOptions가 현재 종목만이라도 보여주도록 폴백됨
+  }
+}
+const symbolOptions = computed(() => {
+  const cats = [marketCategories.value.coin, marketCategories.value.globalStock, marketCategories.value.krStock]
+  const matched = cats.find((list) => list.some((i) => i.symbol === symbol.value))
+  const list = matched && matched.length ? matched : [{ symbol: symbol.value }]
+  return list.map((i) => ({ value: i.symbol, label: i.symbol }))
+})
 
 watch(
   () => symbol.value,
@@ -4003,6 +4018,7 @@ onMounted(async () => {
   chartClockTimer = setInterval(() => {
     chartNow.value = Date.now()
   }, 1000)
+  loadMarketCategories()
   await refreshLiquidationSettings()
   startLiquidationSettingsPolling()
   loadPendingCloseJobs()
