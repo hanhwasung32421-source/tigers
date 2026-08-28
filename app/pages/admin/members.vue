@@ -60,12 +60,13 @@
               <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">보유금액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('cumulativeProfit')">누적수익<span class="sort-icon">{{ sortArrow('cumulativeProfit') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('last_login')">최근 접속일<span class="sort-icon">{{ sortArrow('last_login') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('online')">접속여부<span class="sort-icon">{{ sortArrow('online') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="12" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
+              <td colspan="13" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
             </tr>
             <tr v-for="u in paged" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3">
@@ -134,6 +135,7 @@
                 </button>
               </td>
               <td class="px-3 py-3 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
               <td class="px-3 py-3">
                 <span
                   class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
@@ -416,6 +418,7 @@ type MemberRow = {
   created_at: string
   online: boolean
   last_ip: string | null
+  last_login: string | null
 }
 
 type MemberTradeRow = {
@@ -623,6 +626,7 @@ type SortKey =
   | 'balanceUsdt'
   | 'cumulativeProfit'
   | 'created_at'
+  | 'last_login'
   | 'online'
 const sortKey = ref<SortKey | null>(null)
 const sortDir = ref<'asc' | 'desc'>('asc')

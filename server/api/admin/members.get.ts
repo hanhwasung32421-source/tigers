@@ -67,11 +67,14 @@ export default defineEventHandler(async (event) => {
       .limit(300)
     if (e3) throw e3
     const ipMap = new Map<number, string>()
+    const lastLoginMap = new Map<number, string>()
     for (const ev of events || []) {
       const uid = Number((ev as any).local_user_id)
       const ip = (ev as any).ip ? String((ev as any).ip) : ''
-      if (!uid || ipMap.has(uid)) continue
-      if (ip) ipMap.set(uid, ip)
+      if (!uid) continue
+      // created_at 내림차순이라 각 유저의 첫 등장이 가장 최근 로그인이다.
+      if (!lastLoginMap.has(uid) && (ev as any).created_at) lastLoginMap.set(uid, String((ev as any).created_at))
+      if (ip && !ipMap.has(uid)) ipMap.set(uid, ip)
     }
 
     // 누적수익(실현손익 - 총수수료)
@@ -115,7 +118,8 @@ export default defineEventHandler(async (event) => {
         cumulativeProfit: profitMap.get(id) ?? 0,
         created_at: String(u.created_at || ''),
         online: onlineSet.has(id),
-        last_ip: ipMap.get(id) ?? null
+        last_ip: ipMap.get(id) ?? null,
+        last_login: lastLoginMap.get(id) ?? null
       }
     })
 
@@ -174,7 +178,8 @@ export default defineEventHandler(async (event) => {
       cumulativeProfit: profitMap.get(Number(u.id)) ?? 0,
       created_at: String(u.created_at || ''),
       online: false,
-      last_ip: null
+      last_ip: null,
+      last_login: null
     }
   })
 
