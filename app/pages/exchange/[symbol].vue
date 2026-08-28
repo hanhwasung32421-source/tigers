@@ -105,7 +105,7 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'trend' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="추세선 (Alt+T)"
+              title="추세선"
               @click="selectTool('trend')"
             >
               ／
@@ -910,10 +910,10 @@
           </button>
           <div class="relative z-10">
             <div class="text-[16px] font-semibold tracking-tight text-white/90">futureusdt</div>
-            <div class="mt-5 text-[36px] font-black leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-emerald-400' : 'text-sky-400'">
+            <div class="mt-5 text-[36px] font-black leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-green-500' : 'text-rose-500'">
               {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }} %
             </div>
-            <div class="mt-2 text-[19px] font-semibold tracking-tight text-slate-100">
+            <div class="mt-2 text-[19px] font-semibold tracking-tight" :class="closeSummary.pnl >= 0 ? 'text-green-500' : 'text-rose-500'">
               {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} 원
             </div>
 
@@ -943,7 +943,7 @@
               </div>
               <div>
                 <div class="text-[13px] font-medium text-slate-400">손익</div>
-                <div class="mt-1 text-[18px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-emerald-200' : 'text-sky-300'">
+                <div class="mt-1 text-[18px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-green-500' : 'text-rose-500'">
                   {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(6) }} USDT
                 </div>
               </div>
@@ -1010,6 +1010,7 @@ import {
   type HistogramData
 } from 'lightweight-charts'
 import { TrendLinePrimitive } from '../../utils/chart/trendLinePrimitive'
+import { VerticalLinePrimitive } from '../../utils/chart/verticalLinePrimitive'
 import { calculateBollingerBands } from '../../utils/chart/movingAverage'
 
 definePageMeta({ middleware: ['auth'], layout: 'trading' })
@@ -1275,6 +1276,7 @@ const priceLines: any[] = []
 const entryBadges = ref<Array<{ id: number; y: number; isLong: boolean; label: string; pctText: string; positive: boolean }>>([])
 const drawingPriceLines: any[] = []
 const trendLinePrimitives: TrendLinePrimitive[] = []
+const verticalLinePrimitives: VerticalLinePrimitive[] = []
 let previewPriceLine: any = null
 let previewTrendPrimitive: TrendLinePrimitive | null = null
 const candleData = ref<CandlestickData[]>([])
@@ -1284,7 +1286,7 @@ const activeTool = ref<'cursor' | 'trend' | 'hline'>('cursor')
 const pendingTrendStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
-// Alt+H(수평선)/Alt+T(직선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
+// Alt+H(수평선)/Alt+T(수직선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
 // 도구 상태와 무관하게 항상 최신 좌표를 기록해둔다.
 const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
 // 선(수평선/추세선) 선택 상태: 커서 도구에서 클릭하면 선택되고, 끝점을 드래그하거나 Delete로 삭제 가능
@@ -1293,6 +1295,7 @@ type DrawingHit =
   | { id: string; kind: 'trend-point'; pointIndex: 0 | 1 }
   | { id: string; kind: 'trend-line' }
   | { id: string; kind: 'hline' }
+  | { id: string; kind: 'vline' }
 let drawingDragCleanup: (() => void) | null = null
 // Shift+클릭 수익률 측정 박스
 const measureBox = ref<{
@@ -1351,7 +1354,7 @@ function defaultBolPrefs(): BolPrefs {
     enabled: false,
     length: 20,
     stdDev: 2,
-    showBasis: true,
+    showBasis: false,
     showUpper: true,
     showLower: true,
     basisColor: '#f59e0b',
@@ -1362,7 +1365,7 @@ function defaultBolPrefs(): BolPrefs {
 
 const chartPrefs = reactive<{
   indicators: { bol: BolPrefs }
-  drawings: Array<{ id: string; type: 'trend' | 'hline'; color?: string; price?: number; points?: Array<{ time: any; price: number }> }>
+  drawings: Array<{ id: string; type: 'trend' | 'hline' | 'vline'; color?: string; price?: number; time?: any; points?: Array<{ time: any; price: number }> }>
 }>({
   indicators: { bol: defaultBolPrefs() },
   drawings: []
@@ -1797,6 +1800,10 @@ function hitTestDrawings(x: number, y: number): DrawingHit | null {
       const y0 = candleSeries.priceToCoordinate(Number(d.price))
       if (y0 === null) continue
       if (Math.abs(y - y0) <= LINE_TOL) return { id: d.id, kind: 'hline' }
+    } else if (d.type === 'vline' && d.time !== undefined && d.time !== null) {
+      const x0 = resolveXForTime(d.time)
+      if (x0 === null) continue
+      if (Math.abs(x - x0) <= LINE_TOL) return { id: d.id, kind: 'vline' }
     }
   }
   return null
@@ -1883,6 +1890,12 @@ function onChartMouseDown(e: MouseEvent) {
         drawing.price = Number(price)
         renderSavedDrawings()
       }
+    } else if (hit.kind === 'vline') {
+      const time = resolveTimeAtX(null, mx)
+      if (time !== null) {
+        drawing.time = time
+        renderSavedDrawings()
+      }
     }
   }
   const onUp = () => {
@@ -1907,9 +1920,23 @@ function onDrawingKeydown(e: KeyboardEvent) {
     if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
     if (e.code === 'KeyT') {
-      // Alt+T: 직선(추세선) 도구를 활성화만 한다 - 시작점은 다음 클릭에서 찍힌다.
+      // Alt+T: 지금 마우스가 있는 자리에 바로 수직선을 만든다(클릭 불필요, Alt+H와 동일한 방식).
       e.preventDefault()
-      selectTool('trend')
+      if (!chart || !candleSeries || !lastChartMousePos.value) return
+      const { x } = lastChartMousePos.value
+      const time = resolveTimeAtX(null, x)
+      if (!time) return
+      chartPrefs.drawings.push({
+        id: `v-${Date.now()}`,
+        type: 'vline',
+        color: '#facc15',
+        time
+      })
+      liveDrawingPoint.value = null
+      clearDrawingPreviewVisuals()
+      renderSavedDrawings()
+      scheduleSaveChartPrefs()
+      activeTool.value = 'cursor'
       return
     }
 
@@ -2797,6 +2824,10 @@ function clearDrawingVisuals() {
     const primitive = trendLinePrimitives.pop()
     try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
   }
+  while (verticalLinePrimitives.length) {
+    const primitive = verticalLinePrimitives.pop()
+    try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
+  }
 }
 
 function clearDrawingPreviewVisuals() {
@@ -2878,6 +2909,15 @@ function renderSavedDrawings() {
       )
       candleSeries.attachPrimitive(primitive)
       trendLinePrimitives.push(primitive)
+    } else if (d.type === 'vline' && d.time !== undefined && d.time !== null) {
+      const primitive = new VerticalLinePrimitive(chart, candleSeries, d.time, {
+        lineColor: d.color || '#facc15',
+        width: isSelected ? 3 : 2,
+        resolveX: resolveXForTime,
+        showHandle: isSelected
+      })
+      candleSeries.attachPrimitive(primitive)
+      verticalLinePrimitives.push(primitive)
     }
   }
 }

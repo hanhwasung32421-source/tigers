@@ -15,7 +15,7 @@ const BolPrefsSchema = z.union([
     enabled: z.boolean().optional().default(false),
     length: z.coerce.number().positive().optional().default(20),
     stdDev: z.coerce.number().positive().optional().default(2),
-    showBasis: z.boolean().optional().default(true),
+    showBasis: z.boolean().optional().default(false),
     showUpper: z.boolean().optional().default(true),
     showLower: z.boolean().optional().default(true),
     basisColor: z.string().optional().default('#f59e0b'),
@@ -31,9 +31,10 @@ const ChartPrefsSchema = z.object({
   drawings: z.array(
     z.object({
       id: z.string(),
-      type: z.enum(['trend', 'hline']),
+      type: z.enum(['trend', 'hline', 'vline']),
       color: z.string().optional(),
       price: z.coerce.number().optional(),
+      time: z.any().optional(),
       points: z.array(DrawingPointSchema).optional()
     })
   ).max(100).default([])
