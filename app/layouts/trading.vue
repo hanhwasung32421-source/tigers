@@ -21,8 +21,8 @@
     <header class="font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
       <div class="flex w-full items-center justify-between gap-3 px-5 py-4">
         <div class="flex items-center gap-1">
-          <NuxtLink to="/" class="mr-4 text-lg font-semibold tracking-tight text-white" @click="startNavLoading('/')">
-            {{ appName }}
+          <NuxtLink to="/" class="mr-4" @click="startNavLoading('/')">
+            <BrandLogo />
           </NuxtLink>
 
           <nav class="flex items-center gap-1 text-sm text-slate-300">
