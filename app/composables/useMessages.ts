@@ -27,8 +27,12 @@ export function useMessages() {
       }
       unread.value = next
       initialized = true
-    } catch {
+    } catch (e: any) {
       unread.value = 0
+      // 로그인 세션이 만료된 상태로 폴링이 계속 돌면 5초마다 같은 401만 반복되므로,
+      // 그 경우엔 폴링을 멈춘다(다시 로그인해서 레이아웃이 재마운트되면 새로 시작됨).
+      const status = e?.response?.status ?? e?.statusCode
+      if (status === 401) stopUnreadPolling()
     } finally {
       loading.value = false
     }

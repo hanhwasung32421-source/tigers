@@ -34,6 +34,9 @@ export default defineNuxtPlugin((nuxtApp) => {
         // OKX 공개 API의 캔들(과거 데이터 백필) 429는 OKX 쪽 요청 제한일 뿐이고,
         // 호출부에서 이미 조용히 넘어가도록 처리돼 있어 실제 거래엔 영향이 없다 — 콘솔 노이즈만 되므로 제외.
         if (url.includes('/api/okx/candles') && status === 429) return
+        // 로그인 세션이 만료된 상태에서 쪽지 안읽음 폴링이 401을 반환하는 건
+        // 정상적인 로그아웃 상태일 뿐이고(호출부에서 폴링을 바로 멈춤) 실제 오류가 아니므로 제외.
+        if (url.includes('/api/messages/unread') && status === 401) return
         record({
           type: 'fetch',
           url,
