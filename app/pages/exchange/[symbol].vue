@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-2">
+  <div class="space-y-2" :class="{ 'font-landing': isKrStockSymbol }">
     <!-- 메인 영역 (차트 / 호가 / 주문하기) -->
     <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
     <div class="overflow-x-hidden">
@@ -2622,6 +2622,11 @@ function applyLeverageDraft() {
 }
 
 const coinUnit = computed(() => baseCoin(symbol.value))
+
+// 국내주식(마켓 목록의 "국내주식" 분류) 종목일 때만 이 차트 화면의 폰트를 Pretendard로 바꿔서
+// 해외주식/코인 화면과 비교해 볼 수 있게 한다 — 다른 종목은 폰트를 건드리지 않는다.
+const KR_STOCK_TICKERS = new Set(['SAMSUNG', 'SKHYNIX', 'SKHY', 'EWY', 'KORU', 'KR200'])
+const isKrStockSymbol = computed(() => KR_STOCK_TICKERS.has(baseCoin(symbol.value)))
 
 const entryCalcPrice = computed(() => {
   return lastPrice.value ?? 0

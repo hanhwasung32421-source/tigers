@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-5">
+  <div class="space-y-5" :class="{ 'font-landing': type === 'kr' }">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <div class="flex gap-1 text-sm">

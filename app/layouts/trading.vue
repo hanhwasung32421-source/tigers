@@ -18,7 +18,7 @@
         </div>
       </div>
     </Transition>
-    <header class="sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/92 backdrop-blur">
+    <header class="font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/92 backdrop-blur">
       <div class="mx-auto flex max-w-[1920px] items-center justify-between gap-3 px-3 py-3">
         <NuxtLink to="/" class="font-semibold tracking-tight text-white" @click="startNavLoading('/')">
           {{ appName }}

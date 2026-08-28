@@ -18,7 +18,7 @@
         </div>
       </div>
     </Transition>
-    <header class="sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
+    <header class="font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
       <div class="flex w-full items-center justify-between gap-3 px-5 py-4">
         <div class="flex items-center gap-1">
           <NuxtLink to="/" class="mr-4 text-lg font-semibold tracking-tight text-white" @click="startNavLoading('/')">
@@ -110,7 +110,7 @@
       </div>
     </Teleport>
 
-    <footer class="mx-auto max-w-6xl border-t border-cyan-500/10 px-4 pb-10 pt-8 text-slate-500">
+    <footer class="font-landing mx-auto max-w-6xl border-t border-cyan-500/10 px-4 pb-10 pt-8 text-slate-500">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="text-base font-semibold tracking-tight text-white">{{ appName }}</div>
         <div class="text-xs text-slate-500">거래, 자산, 기회를 하나의 경험으로 연결합니다.</div>
