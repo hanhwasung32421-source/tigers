@@ -20,40 +20,42 @@
     </Transition>
     <header class="sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
-        <NuxtLink to="/" class="text-lg font-semibold tracking-tight text-white" @click="startNavLoading('/')">
-          {{ appName }}
-        </NuxtLink>
+        <div class="flex items-center gap-1">
+          <NuxtLink to="/" class="mr-4 text-lg font-semibold tracking-tight text-white" @click="startNavLoading('/')">
+            {{ appName }}
+          </NuxtLink>
 
-        <nav class="flex items-center gap-1 text-sm text-slate-300">
-          <NuxtLink to="/exchange/SAMSUNGUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">선물거래</NuxtLink>
-          <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/wallet')">내 지갑</NuxtLink>
-          <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
-          <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
-          <div v-if="isAdmin" class="group relative">
-            <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
-            <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
-              <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
-                <button
-                  type="button"
-                  class="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
-                  @click="copyReferralLink"
-                >
-                  {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
-                </button>
-                <template v-for="key in orderedAdminMenuKeys" :key="key">
-                  <NuxtLink
-                    v-if="canViewAdminMenu(key)"
-                    :to="ADMIN_MENU_ROUTES[key]"
-                    class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
-                    @click="startNavLoading(ADMIN_MENU_ROUTES[key])"
+          <nav class="flex items-center gap-1 text-sm text-slate-300">
+            <NuxtLink to="/exchange/SAMSUNGUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">선물거래</NuxtLink>
+            <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/wallet')">내 지갑</NuxtLink>
+            <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
+            <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
+            <div v-if="isAdmin" class="group relative">
+              <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
+              <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
+                <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
+                  <button
+                    type="button"
+                    class="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                    @click="copyReferralLink"
                   >
-                    {{ ADMIN_MENU_LABELS[key] }}
-                  </NuxtLink>
-                </template>
+                    {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
+                  </button>
+                  <template v-for="key in orderedAdminMenuKeys" :key="key">
+                    <NuxtLink
+                      v-if="canViewAdminMenu(key)"
+                      :to="ADMIN_MENU_ROUTES[key]"
+                      class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                      @click="startNavLoading(ADMIN_MENU_ROUTES[key])"
+                    >
+                      {{ ADMIN_MENU_LABELS[key] }}
+                    </NuxtLink>
+                  </template>
+                </div>
               </div>
             </div>
-          </div>
-        </nav>
+          </nav>
+        </div>
 
         <div class="flex items-center gap-2 text-sm">
           <span class="hidden sm:inline rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 text-xs font-mono text-slate-300">
@@ -82,8 +84,8 @@
             </button>
           </template>
           <template v-else>
-            <NuxtLink to="/auth/login" class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
-            <NuxtLink to="/auth/register" class="rounded-md bg-[#1d4ed8] px-3 py-1.5 text-white hover:bg-[#2563eb]" @click="startNavLoading('/auth/register')">가입</NuxtLink>
+            <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
+            <NuxtLink to="/auth/register" class="rounded-full bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">회원가입</NuxtLink>
           </template>
         </div>
       </div>
@@ -106,12 +108,58 @@
       </div>
     </Teleport>
 
-    <footer class="mx-auto max-w-6xl border-t border-cyan-500/10 px-4 pb-10 pt-6 text-xs text-slate-500">
-      © {{ appName }}. 본 플랫폼의 거래 서비스는 규정 준수 하에 제공됩니다.
+    <footer class="mx-auto max-w-6xl border-t border-cyan-500/10 px-4 pb-10 pt-8 text-slate-500">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="text-base font-semibold tracking-tight text-white">{{ appName }}</div>
+        <div class="text-xs text-slate-500">거래, 자산, 기회를 하나의 경험으로 연결합니다.</div>
+      </div>
+
+      <div class="mt-6 grid gap-6 border-t border-white/10 pt-6 text-xs sm:grid-cols-3 lg:grid-cols-5">
+        <div>
+          <div class="mb-3 font-semibold text-slate-300">거래</div>
+          <ul class="space-y-2">
+            <li><NuxtLink to="/exchange/SAMSUNGUSDT" class="hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">선물거래</NuxtLink></li>
+          </ul>
+        </div>
+        <div>
+          <div class="mb-3 font-semibold text-slate-300">자산</div>
+          <ul class="space-y-2">
+            <li><NuxtLink to="/wallet" class="hover:text-white" @click="startNavLoading('/wallet')">지갑 Overview</NuxtLink></li>
+            <li><NuxtLink to="/wallet" class="hover:text-white" @click="startNavLoading('/wallet')">입금</NuxtLink></li>
+            <li><NuxtLink to="/wallet" class="hover:text-white" @click="startNavLoading('/wallet')">출금</NuxtLink></li>
+          </ul>
+        </div>
+        <div>
+          <div class="mb-3 font-semibold text-slate-300">서비스</div>
+          <ul class="space-y-2">
+            <li><NuxtLink :to="supportTarget" class="hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink></li>
+            <li><NuxtLink to="/exchange/SAMSUNGUSDT" class="hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">앱 설치</NuxtLink></li>
+          </ul>
+        </div>
+        <div>
+          <div class="mb-3 font-semibold text-slate-300">지원</div>
+          <ul class="space-y-2">
+            <li><NuxtLink :to="supportTarget" class="hover:text-white" @click="startNavLoading(supportTarget)">고객지원</NuxtLink></li>
+            <li><NuxtLink to="/profile" class="hover:text-white" @click="startNavLoading('/profile')">보안 설정</NuxtLink></li>
+          </ul>
+        </div>
+        <div>
+          <div class="mb-3 font-semibold text-slate-300">법적 고지</div>
+          <ul class="space-y-2 text-slate-600">
+            <li>이용약관</li>
+            <li>개인정보처리방침</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-5 text-[11px] text-slate-600">
+        <span>© {{ new Date().getFullYear() }} {{ appName }}. All rights reserved.</span>
+        <span>거래에는 원금 손실 위험이 있습니다.</span>
+      </div>
     </footer>
 
     <AdminErrorConsole />
-    <GuestChatWidget v-if="!me" />
+    <GuestChatWidget />
   </div>
 </template>
 
