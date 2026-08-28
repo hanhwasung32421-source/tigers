@@ -111,6 +111,7 @@
     </footer>
 
     <AdminErrorConsole />
+    <GuestChatWidget v-if="!me" />
   </div>
 </template>
 

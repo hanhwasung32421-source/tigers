@@ -5,10 +5,30 @@
         <h1 class="text-xl font-semibold">쪽지관리</h1>
         <p class="mt-1 text-sm text-slate-400">전체회원 또는 선택 회원에게 쪽지를 보내고 답장을 확인합니다.</p>
       </div>
-      <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadAll">새로고침</button>
+      <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="activeTab === 'members' ? loadAll() : loadGuestThreads()">새로고침</button>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+    <div class="flex gap-1 border-b border-white/10">
+      <button
+        type="button"
+        class="border-b-2 px-4 py-2 text-sm font-medium transition"
+        :class="activeTab === 'members' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
+        @click="activeTab = 'members'"
+      >
+        회원 쪽지
+      </button>
+      <button
+        type="button"
+        class="relative border-b-2 px-4 py-2 text-sm font-medium transition"
+        :class="activeTab === 'guests' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
+        @click="activeTab = 'guests'"
+      >
+        비회원 상담
+        <span v-if="guestUnreadTotal" class="ml-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">{{ guestUnreadTotal }}</span>
+      </button>
+    </div>
+
+    <div v-show="activeTab === 'members'" class="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-base font-semibold">쪽지쓰기</h2>
@@ -194,6 +214,70 @@
         </div>
       </section>
     </div>
+
+    <div v-show="activeTab === 'guests'" class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div class="max-h-[720px] overflow-auto rounded-xl border border-white/10 bg-white/5 p-2">
+        <button
+          v-for="thread in guestThreads"
+          :key="thread.guestId"
+          class="mb-2 w-full rounded-xl border px-3 py-3 text-left transition"
+          :class="activeGuestThread?.guestId === thread.guestId ? 'border-cyan-400/40 bg-cyan-400/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'"
+          @click="openGuestThread(thread)"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="font-mono text-sm text-slate-100">{{ thread.guestId.slice(0, 12) }}…</div>
+            <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">{{ thread.unreadCount }}</span>
+          </div>
+          <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || '대화 없음' }}</div>
+          <div class="mt-1 text-[11px] text-slate-500">{{ thread.ip || 'IP 미확인' }}</div>
+          <div class="mt-1 text-[11px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
+        </button>
+        <div v-if="guestThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">비회원 상담이 없습니다.</div>
+      </div>
+
+      <div class="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div v-if="!activeGuestThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">왼쪽에서 대화를 선택하세요.</div>
+        <div v-else class="space-y-4">
+          <div class="border-b border-white/10 pb-3">
+            <div class="font-mono text-sm text-slate-100">{{ activeGuestThread.guestId }}</div>
+            <div class="mt-1 text-xs text-slate-500">접속 IP: {{ activeGuestThread.ip || '미확인' }}</div>
+          </div>
+
+          <div class="max-h-[440px] space-y-3 overflow-auto pr-1">
+            <div
+              v-for="message in guestMessages"
+              :key="message.id"
+              class="max-w-[85%] rounded-2xl px-4 py-3 text-sm"
+              :class="message.sender === 'admin' ? 'ml-auto bg-cyan-500/15 text-slate-100' : 'bg-white/5 text-slate-200'"
+            >
+              <div class="mb-1 text-[11px] text-slate-400">{{ message.sender === 'admin' ? '운영자' : '방문자' }}</div>
+              <div class="whitespace-pre-wrap leading-6">{{ message.body }}</div>
+              <div class="mt-2 text-[11px] text-slate-500">{{ formatDateTime(message.createdAt) }}</div>
+            </div>
+            <div v-if="guestMessages.length === 0" class="py-8 text-center text-sm text-slate-500">아직 대화가 없습니다.</div>
+          </div>
+
+          <div class="border-t border-white/10 pt-4">
+            <textarea
+              v-model.trim="guestReplyBody"
+              rows="4"
+              class="w-full rounded-md border border-white/10 bg-[#020b16] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
+              placeholder="답장을 입력하세요"
+            />
+            <div class="mt-3 flex items-center justify-end gap-2">
+              <button
+                class="rounded-md bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="guestReplySending || !guestReplyBody"
+                @click="sendGuestReply"
+              >
+                {{ guestReplySending ? '전송 중...' : '답장 보내기' }}
+              </button>
+            </div>
+            <p v-if="guestReplyError" class="mt-2 text-sm text-rose-300">{{ guestReplyError }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -239,9 +323,77 @@ type PendingResetRequest = {
   requested_at: string
 } | null
 
+type GuestThreadSummary = {
+  guestId: string
+  ip: string | null
+  lastMessage: string
+  lastAt: string
+  unreadCount: number
+}
+type GuestMessageItem = {
+  id: number
+  guestId: string
+  ip: string | null
+  sender: 'guest' | 'admin'
+  body: string
+  createdAt: string
+}
+
 const { me, refresh } = useMe()
 await refresh()
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+
+const activeTab = ref<'members' | 'guests'>('members')
+const guestThreads = ref<GuestThreadSummary[]>([])
+const activeGuestThread = ref<GuestThreadSummary | null>(null)
+const guestMessages = ref<GuestMessageItem[]>([])
+const guestReplyBody = ref('')
+const guestReplySending = ref(false)
+const guestReplyError = ref<string | null>(null)
+const guestUnreadTotal = computed(() => guestThreads.value.reduce((sum, t) => sum + Number(t.unreadCount || 0), 0))
+
+async function loadGuestThreads() {
+  const res = await $fetch<{ items: GuestThreadSummary[] }>('/api/admin/guest-chats', { headers: requestHeaders, credentials: 'include' })
+  guestThreads.value = res.items || []
+  if (activeGuestThread.value) {
+    const fresh = guestThreads.value.find((t) => t.guestId === activeGuestThread.value?.guestId)
+    if (fresh) activeGuestThread.value = fresh
+  }
+}
+
+async function openGuestThread(thread: GuestThreadSummary) {
+  activeGuestThread.value = thread
+  guestReplyBody.value = ''
+  guestReplyError.value = null
+  const res = await $fetch<{ items: GuestMessageItem[] }>('/api/admin/guest-chats/thread', {
+    query: { guestId: thread.guestId },
+    headers: requestHeaders,
+    credentials: 'include'
+  })
+  guestMessages.value = res.items || []
+  await loadGuestThreads()
+}
+
+async function sendGuestReply() {
+  if (!activeGuestThread.value || !guestReplyBody.value.trim()) return
+  guestReplySending.value = true
+  guestReplyError.value = null
+  try {
+    const res = await $fetch<{ items: GuestMessageItem[] }>('/api/admin/guest-chats/reply', {
+      method: 'POST',
+      headers: requestHeaders,
+      credentials: 'include',
+      body: { guestId: activeGuestThread.value.guestId, body: guestReplyBody.value.trim() }
+    })
+    guestMessages.value = res.items || []
+    guestReplyBody.value = ''
+    await loadGuestThreads()
+  } catch (e: any) {
+    guestReplyError.value = e?.data?.statusMessage || '답장 전송에 실패했습니다.'
+  } finally {
+    guestReplySending.value = false
+  }
+}
 
 const recipients = ref<Recipient[]>([])
 const threads = ref<ThreadSummary[]>([])
@@ -433,4 +585,5 @@ async function loadAll() {
 }
 
 await loadAll()
+await loadGuestThreads().catch(() => {})
 </script>

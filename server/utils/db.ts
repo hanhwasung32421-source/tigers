@@ -144,6 +144,18 @@ export function getDb() {
       created_at TEXT NOT NULL
     );
 
+    -- 비회원(가입 전 방문자)이 첫화면의 "실시간 상담"에서 admin과 나누는 대화.
+    -- guest_id는 방문자 브라우저에 저장된 임의 코드(로그인 계정과 무관)로 대화를 구분한다.
+    CREATE TABLE IF NOT EXISTS guest_chats (
+      id INTEGER PRIMARY KEY,
+      guest_id TEXT NOT NULL,
+      ip TEXT NULL,
+      sender TEXT NOT NULL,
+      body TEXT NOT NULL,
+      read_at TEXT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS system_settings (
       id INTEGER PRIMARY KEY,
       liquidation_roe REAL NOT NULL DEFAULT -40,
