@@ -150,6 +150,19 @@
                 <span>저가 {{ low24 ? fmtPrice(low24) : '—' }}</span>
               </div>
             </div>
+            <div v-if="drawingHintVisible" class="pointer-events-none absolute right-3 top-3 z-30">
+              <div class="pointer-events-auto flex items-center gap-2 rounded-md bg-[#1e222d]/95 px-3 py-2 text-[12px] text-[#d1d4dc] shadow-[0_10px_30px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
+                <span class="text-[#2962ff]">+</span>
+                <span>차트에서 원하는 위치를 선택하세요</span>
+                <button
+                  type="button"
+                  class="ml-1 rounded bg-white/10 px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-white/15 hover:text-white"
+                  @click="selectTool('cursor')"
+                >
+                  취소 [Esc]
+                </button>
+              </div>
+            </div>
             <ClientOnly>
               <div ref="chartEl" class="h-full w-full" />
             </ClientOnly>
@@ -1286,6 +1299,8 @@ const activeTool = ref<'cursor' | 'trend' | 'hline'>('cursor')
 const pendingTrendStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
+// 도구를 고르고 아직 차트를 클릭하기 전(=첫 점을 찍기 전)에만 안내 배너를 보여준다.
+const drawingHintVisible = computed(() => activeTool.value === 'hline' || (activeTool.value === 'trend' && !pendingTrendStart.value))
 // Alt+H(수평선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
 // 도구 상태와 무관하게 항상 최신 좌표를 기록해둔다.
 const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
@@ -1912,6 +1927,10 @@ function onChartMouseDown(e: MouseEvent) {
 function onDrawingKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && measureBox.value) {
     measureBox.value = null
+    return
+  }
+  if (e.key === 'Escape' && activeTool.value !== 'cursor') {
+    selectTool('cursor')
     return
   }
 
