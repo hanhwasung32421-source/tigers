@@ -3172,14 +3172,16 @@ function renderEntryLines() {
     const price = Number(p.entry_price)
     if (!Number.isFinite(price)) continue
     const isLong = p.side === 'long'
-    const color = isLong ? '#fb7185' : '#60a5fa'
+    // 점선 자체는 연하게, 가격축 라벨은 원래 색으로 또렷하게 유지
+    const lineColor = isLong ? 'rgba(251, 113, 133, 0.45)' : 'rgba(96, 165, 250, 0.45)'
+    const labelColor = isLong ? '#fb7185' : '#60a5fa'
     const pl = candleSeries.createPriceLine({
       price,
-      color,
-      lineWidth: 2,
+      color: lineColor,
+      lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: true,
-      axisLabelColor: color,
+      axisLabelColor: labelColor,
       axisLabelTextColor: '#ffffff',
       // 왼쪽 라벨은 커스텀 뱃지(entryBadges)로 대체
       title: ''
