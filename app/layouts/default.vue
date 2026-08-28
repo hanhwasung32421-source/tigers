@@ -19,7 +19,7 @@
       </div>
     </Transition>
     <header class="sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
+      <div class="flex w-full items-center justify-between gap-3 px-5 py-4">
         <div class="flex items-center gap-1">
           <NuxtLink to="/" class="mr-4 text-lg font-semibold tracking-tight text-white" @click="startNavLoading('/')">
             {{ appName }}
@@ -85,7 +85,7 @@
           </template>
           <template v-else>
             <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
-            <NuxtLink to="/auth/register" class="rounded-full bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">회원가입</NuxtLink>
+            <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">회원가입</NuxtLink>
           </template>
         </div>
       </div>

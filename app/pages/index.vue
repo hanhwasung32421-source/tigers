@@ -1,6 +1,6 @@
 <template>
   <div class="font-landing space-y-8">
-    <section class="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.10),transparent_35%),linear-gradient(180deg,#020509,#03060b_55%,#020509)] px-6 py-10 shadow-[0_12px_48px_rgba(0,0,0,0.35)] md:px-12 md:py-14">
+    <section class="overflow-hidden rounded-[28px] border border-white/10 bg-[#020509] px-6 py-10 shadow-[0_12px_48px_rgba(0,0,0,0.35)] md:px-12 md:py-14">
       <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_460px]">
         <div>
           <div class="text-xs font-bold tracking-[0.3em] text-slate-500">THE NEW STANDARD OF TRADING</div>

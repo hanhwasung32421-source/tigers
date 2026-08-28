@@ -14,7 +14,7 @@
       <div class="square-orbit-frame-slow absolute inset-6 rounded-[30px] border border-white/10 border-dashed" :class="{ 'is-paused': paused }" />
 
       <!-- 본체 패널 -->
-      <div class="absolute inset-3 overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_30%_20%,rgba(6,182,212,0.14),transparent_45%),linear-gradient(160deg,#0a0f18,#05070c_60%)]">
+      <div class="absolute inset-3 overflow-hidden rounded-[30px] border border-white/10 bg-[#05070c]">
         <div class="square-sheen absolute inset-0" :class="{ 'is-paused': paused }" />
         <div class="square-scanline absolute inset-x-0 h-1/3 bg-gradient-to-b from-cyan-400/0 via-cyan-400/[0.06] to-cyan-400/0" :class="{ 'is-paused': paused }" />
 
