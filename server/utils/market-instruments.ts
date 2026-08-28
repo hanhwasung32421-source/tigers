@@ -1,0 +1,178 @@
+// OKX(우리가 차트/시세를 가져오는 거래소)의 실제 무기한 스왑(SWAP) 상품 목록을 가져와
+// 코인선물 / 해외주식 / 국내주식 세 카테고리로 분류한다.
+// - instCategory '1' = 코인(암호화폐) 선물
+// - instCategory '3' = 주식/ETF/지수 토큰(미국+해외+한국 혼재) → 한국 관련 티커만 국내주식으로 분리
+// - instCategory '4' = 귀금속/원자재(금/은/백금/팔라듐/구리/원유/천연가스) → 해외주식에 포함
+export type MarketInstrument = {
+  symbol: string // 우리 URL에서 쓰는 형태, 예: BTCUSDT
+  instId: string // OKX instId, 예: BTC-USDT-SWAP
+  base: string // 기초자산 티커, 예: BTC
+  name: string // 화면 표시용 한글/영문 이름
+  price: number
+  changePct: number
+}
+
+// 국내(한국) 관련 티커로 분류할 항목들 — instCategory 3 안에 섞여 있는 것 중 직접 식별.
+const KR_TICKERS = new Set(['SAMSUNG', 'SKHYNIX', 'SKHY', 'EWY', 'KORU', 'KR200'])
+
+const DISPLAY_NAMES: Record<string, string> = {
+  // 국내
+  SAMSUNG: '삼성전자',
+  SKHYNIX: 'SK하이닉스',
+  SKHY: 'SK하이닉스',
+  EWY: '한국 ETF',
+  KORU: '한국 3배 ETF',
+  KR200: '코스피200',
+  // 해외주식/원자재
+  AAPL: '애플',
+  TSLA: '테슬라',
+  MSFT: '마이크로소프트',
+  GOOGL: '구글',
+  AMZN: '아마존',
+  META: '메타',
+  NVDA: '엔비디아',
+  NFLX: '넷플릭스',
+  AMD: 'AMD',
+  TSM: 'TSMC',
+  COIN: '코인베이스',
+  MSTR: '마이크로스트래티지',
+  PLTR: '팔란티어',
+  SHOP: '쇼피파이',
+  INTC: '인텔',
+  HOOD: '로빈후드',
+  IBM: 'IBM',
+  ORCL: '오라클',
+  CRM: '세일즈포스',
+  ADBE: '어도비',
+  QCOM: '퀄컴',
+  AVGO: '브로드컴',
+  ASML: 'ASML',
+  UNH: '유나이티드헬스',
+  JNJ: '존슨앤드존슨',
+  KO: '코카콜라',
+  WMT: '월마트',
+  COST: '코스트코',
+  DIS: '디즈니',
+  SONY: '소니',
+  SOFTBANK: '소프트뱅크',
+  HYUNDAI: '현대차',
+  XIAOMI: '샤오미',
+  SPY: 'S&P500 ETF',
+  QQQ: '나스닥100 ETF',
+  IWM: '러셀2000 ETF',
+  EWJ: '일본 ETF',
+  EWZ: '브라질 ETF',
+  EWT: '대만 ETF',
+  XAU: '금',
+  XAG: '은',
+  XPT: '백금',
+  XPD: '팔라듐',
+  XCU: '구리',
+  CL: 'WTI 원유',
+  BZ: '브렌트유',
+  NG: '천연가스',
+  // 코인
+  BTC: '비트코인',
+  ETH: '이더리움',
+  XRP: '리플',
+  SOL: '솔라나',
+  DOGE: '도지코인',
+  BNB: '바이낸스코인',
+  ADA: '에이다',
+  TRX: '트론',
+  LTC: '라이트코인',
+  DOT: '폴카닷',
+  AVAX: '아발란체',
+  LINK: '체인링크',
+  BCH: '비트코인캐시',
+  SHIB: '시바이누',
+  SUI: '수이',
+  TON: '톤코인',
+  ETC: '이더리움클래식',
+  NEAR: '니어프로토콜',
+  APT: '앱토스',
+  ICP: '인터넷컴퓨터',
+  FIL: '파일코인',
+  ATOM: '코스모스',
+  UNI: '유니스왑',
+  XLM: '스텔라루멘',
+  HBAR: '헤데라'
+}
+
+function displayName(base: string) {
+  return DISPLAY_NAMES[base] || base
+}
+
+let cache: { at: number; data: { instruments: any[]; tickers: Map<string, { last: number; open24h: number }> } } | null = null
+const CACHE_MS = 20_000
+
+async function loadOkxSwapData() {
+  if (cache && Date.now() - cache.at < CACHE_MS) return cache.data
+
+  const [instRes, tickerRes] = await Promise.all([
+    $fetch<any>('https://www.okx.com/api/v5/public/instruments', { query: { instType: 'SWAP' } }),
+    $fetch<any>('https://www.okx.com/api/v5/market/tickers', { query: { instType: 'SWAP' } })
+  ])
+
+  const instruments = (instRes?.data || []).filter((x: any) => x.state === 'live')
+  const tickers = new Map<string, { last: number; open24h: number }>()
+  for (const t of tickerRes?.data || []) {
+    tickers.set(String(t.instId), { last: Number(t.last || 0), open24h: Number(t.open24h || 0) })
+  }
+
+  const data = { instruments, tickers }
+  cache = { at: Date.now(), data }
+  return data
+}
+
+function toMarketInstrument(inst: any, tickers: Map<string, { last: number; open24h: number }>): MarketInstrument | null {
+  const instId = String(inst.instId || '')
+  const m = instId.match(/^([A-Z0-9]+)-USDT-SWAP$/)
+  if (!m) return null
+  const base = m[1]
+  const t = tickers.get(instId)
+  const price = t?.last || 0
+  const open24h = t?.open24h || 0
+  const changePct = open24h > 0 ? ((price - open24h) / open24h) * 100 : 0
+  return {
+    symbol: `${base}USDT`,
+    instId,
+    base,
+    name: displayName(base),
+    price,
+    changePct
+  }
+}
+
+export async function listCategorizedMarketInstruments(): Promise<{
+  coin: MarketInstrument[]
+  globalStock: MarketInstrument[]
+  krStock: MarketInstrument[]
+}> {
+  const { instruments, tickers } = await loadOkxSwapData()
+
+  const coin: MarketInstrument[] = []
+  const globalStock: MarketInstrument[] = []
+  const krStock: MarketInstrument[] = []
+
+  for (const inst of instruments) {
+    const item = toMarketInstrument(inst, tickers)
+    if (!item) continue
+    const cat = String(inst.instCategory || '')
+    if (cat === '1') {
+      coin.push(item)
+    } else if (cat === '3') {
+      if (KR_TICKERS.has(item.base)) krStock.push(item)
+      else globalStock.push(item)
+    } else if (cat === '4') {
+      globalStock.push(item)
+    }
+  }
+
+  const byBase = (a: MarketInstrument, b: MarketInstrument) => a.base.localeCompare(b.base)
+  coin.sort(byBase)
+  globalStock.sort(byBase)
+  krStock.sort(byBase)
+
+  return { coin, globalStock, krStock }
+}

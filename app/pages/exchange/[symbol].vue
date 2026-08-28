@@ -2621,13 +2621,7 @@ function applyLeverageDraft() {
   leverageModalOpen.value = false
 }
 
-const coinUnit = computed(() => {
-  if (symbol.value.startsWith('DOGE')) return 'DOGE'
-  if (symbol.value.startsWith('ETH')) return 'ETH'
-  if (symbol.value.startsWith('SAMSUNG')) return 'SAMSUNG'
-  if (symbol.value.startsWith('SKHYNIX')) return 'SKHYNIX'
-  return 'BTC'
-})
+const coinUnit = computed(() => baseCoin(symbol.value))
 
 const entryCalcPrice = computed(() => {
   return lastPrice.value ?? 0
@@ -2646,24 +2640,32 @@ const qtyText = computed(() => {
   // 수수료 정책: 입력 금액(gross)에서 4%를 뗀 net 기준으로 수량 계산
   const net = m * (1 - TRADE_FEE_RATE)
   const qty = (net * lev) / price
-  return qty.toFixed(coinUnit.value === 'DOGE' ? 2 : 6)
+  return qty.toFixed(price < 1 ? 2 : 6)
 })
 
 function toInstId(sym: string) {
   const s = sym.toUpperCase().replace('-', '').replace('/', '')
-  if (s === 'BTCUSDT') return 'BTC-USDT-SWAP'
-  if (s === 'ETHUSDT') return 'ETH-USDT-SWAP'
-  if (s === 'DOGEUSDT') return 'DOGE-USDT-SWAP'
-  if (s === 'SAMSUNGUSDT') return 'SAMSUNG-USDT-SWAP'
-  if (s === 'SKHYNIXUSDT') return 'SKHYNIX-USDT-SWAP'
+  // {BASE}USDT => {BASE}-USDT-SWAP — 새 종목을 추가할 때마다 여기 손댈 필요 없이 그대로 동작한다.
+  const m = s.match(/^([A-Z0-9]+)USDT$/)
+  if (m?.[1]) return `${m[1]}-USDT-SWAP`
   return 'BTC-USDT-SWAP'
 }
 
+// 종목마다 가격 자릿수가 크게 다르므로(예: 삼성전자 188원대 vs 도지코인 0.08달러대),
+// 실제 가격을 알기 전(초기)에는 무난한 기본값을 쓰고, fetchCandles에서 첫 가격을 받으면
+// applyDynamicPriceFormat으로 그 가격대에 맞는 자릿수로 다시 맞춘다.
 function applyPriceFormatForSymbol(sym: string) {
   if (!candleSeries) return
   candleSeries.applyOptions({
-    priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
+    priceFormat: { type: 'price', precision: 4, minMove: 0.0001 }
   })
+}
+
+function applyDynamicPriceFormat(price: number) {
+  if (!candleSeries || !Number.isFinite(price) || price <= 0) return
+  const precision = price >= 100 ? 2 : price >= 1 ? 4 : 6
+  const minMove = price >= 100 ? 0.01 : price >= 1 ? 0.0001 : 0.000001
+  candleSeries.applyOptions({ priceFormat: { type: 'price', precision, minMove } })
 }
 
 function scheduleSaveChartPrefs() {
@@ -3422,6 +3424,7 @@ async function fetchCandles() {
   liveLastCandle.value = candles[candles.length - 1] || null
   if (candles.length) {
     lastPrice.value = candles[candles.length - 1].close
+    applyDynamicPriceFormat(lastPrice.value)
   }
   renderEntryLines()
   renderIndicators()
