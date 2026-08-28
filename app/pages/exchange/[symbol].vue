@@ -2389,13 +2389,24 @@ function fillDirection(t: any) {
   return t.side === 'short' ? 'BUY' : 'SELL'
 }
 
+// liquidation 플래그가 없어도(예: 청산가에 도달한 뒤 자동감지보다 먼저 수동으로 닫힌 경우),
+// 증거금을 전액 이상 잃었으면 결과적으로 강제청산과 동일하므로 같은 방식으로 표기한다.
+function isFullMarginLoss(t: any) {
+  const entry = Number(t?.entry_price || 0)
+  const qty = Number(t?.qty || 0)
+  const lev = Number(t?.leverage || 1)
+  if (!(entry > 0 && qty > 0 && lev > 0)) return false
+  const margin = (entry * qty) / lev
+  return margin > 0 && Number(t?.pnl || 0) <= -margin * 0.999
+}
+
 function tradeResultLabel(t: any) {
-  if (Boolean(t?.liquidation)) return '강제청산'
+  if (Boolean(t?.liquidation) || isFullMarginLoss(t)) return '강제청산'
   return Number(t?.pnl || 0) >= 0 ? '수익' : '손실'
 }
 
 function tradeResultBadgeClass(t: any) {
-  if (Boolean(t?.liquidation)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+  if (Boolean(t?.liquidation) || isFullMarginLoss(t)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
   return Number(t?.pnl || 0) >= 0 ? 'bg-blue-500/15 text-blue-300 ring-blue-400/20' : 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
 }
 
