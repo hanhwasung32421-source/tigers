@@ -3010,9 +3010,11 @@ function onChartClick(param: any) {
 
 function onCrosshairMove(param: any) {
   if (!param || !param.point) {
+    // 차트 오른쪽 여백처럼 실제 캔들 데이터가 없는 영역에서는 lightweight-charts가 point를 안 준다.
+    // 그렇다고 여기서 liveDrawingPoint를 지우면, 그 값을 계속 최신으로 유지해주는
+    // onChartAreaMouseMove(raw DOM 이벤트, 데이터 범위와 무관하게 항상 동작)의 결과까지 지워버려서
+    // 마우스가 마지막 봉 오른쪽으로 넘어가는 순간 추세선/수평선 미리보기가 멈춰버린다.
     mouseCrosshair.visible = false
-    liveDrawingPoint.value = null
-    clearDrawingPreviewVisuals()
     return
   }
   mouseCrosshair.visible = true
