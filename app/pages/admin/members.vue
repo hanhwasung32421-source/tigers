@@ -45,7 +45,7 @@
         </div>
       </div>
 
-      <div>
+      <div class="overflow-x-auto">
         <table class="w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
