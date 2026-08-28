@@ -1,6 +1,6 @@
 import { getQuery } from 'h3'
 import { requireUser } from '../../utils/auth'
-import { ensureAdminThreadAccess, getOperatorAdminUser, getThreadMessages, listUsersByIds } from '../../utils/messages'
+import { WALLET_NOTICE_SUBJECT, ensureAdminThreadAccess, getOperatorAdminUser, getThreadMessages, listUsersByIds } from '../../utils/messages'
 import { getPendingResetRequestForUser } from '../../utils/password-reset'
 
 export default defineEventHandler(async (event) => {
@@ -22,7 +22,10 @@ export default defineEventHandler(async (event) => {
     pendingResetRequest: user.role !== 'user' ? await getPendingResetRequestForUser(resolvedUserId) : null,
     items: messages.map((m) => ({
       ...m,
-      senderName: users.get(Number(m.sender_id))?.username || (Number(m.sender_id) === operator?.id ? 'admin' : `회원 #${m.sender_id}`),
+      senderName:
+        m.subject === WALLET_NOTICE_SUBJECT
+          ? WALLET_NOTICE_SUBJECT
+          : users.get(Number(m.sender_id))?.username || (Number(m.sender_id) === operator?.id ? 'admin' : `회원 #${m.sender_id}`),
       recipientName: users.get(Number(m.recipient_id))?.username || (Number(m.recipient_id) === operator?.id ? 'admin' : `회원 #${m.recipient_id}`)
     }))
   }

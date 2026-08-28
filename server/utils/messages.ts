@@ -308,6 +308,30 @@ export async function countUnreadMessages(userId: number) {
   return Number(row?.c || 0)
 }
 
+// 입출금센터 알림: 회원의 지갑 입금/출금 요청을 총관리자에게 쪽지로 알린다.
+// - 그 회원의 대화창(thread_key = user:<memberId>)에 남겨서 관리자가 문맥과 함께 볼 수 있게 하고,
+// - sender_id를 회원이 아니라 운영자 계정으로 넣어서, 회원 본인 채팅에는 "내가 admin에게 보낸 것"으로
+//   보이지 않게 한다(회원 화면에서는 sender_id === 내 id 여야 "내가 보낸 말풍선"으로 표시됨).
+// - 화면 표시용 발신자 이름은 subject 마커("입출금센터")로 구분해 실제 계정명 대신 보여준다.
+export const WALLET_NOTICE_SUBJECT = '입출금센터'
+
+export async function notifyAdminOfWalletRequest(memberId: number, kind: 'deposit' | 'withdrawal', krwAmount: number) {
+  const operator = await getOperatorAdminUser()
+  if (!operator) return
+  const label = kind === 'deposit' ? '입금' : '출금'
+  const amountText = `${Math.round(Number(krwAmount) || 0).toLocaleString()}원`
+  await insertMessages([
+    {
+      thread_key: threadKeyForUser(memberId),
+      sender_id: operator.id,
+      recipient_id: operator.id,
+      subject: WALLET_NOTICE_SUBJECT,
+      body: `${label}요청이 접수되었습니다. (신청 금액: ${amountText})`,
+      read_at: null
+    }
+  ])
+}
+
 export async function ensureAdminThreadAccess(user: SessionUser, targetUserId?: number) {
   if (user.role !== 'user') {
     if (!targetUserId) {

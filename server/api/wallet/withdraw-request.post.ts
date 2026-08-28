@@ -5,6 +5,7 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { supaSelectOne } from '../../utils/supabase'
 import { createDepositRequest } from '../../utils/deposit-requests'
 import { resolveKrwPerUsdtRate } from '../../utils/system-settings'
+import { notifyAdminOfWalletRequest } from '../../utils/messages'
 
 const BodySchema = z.object({
   krwAmount: z.number().positive().max(1_000_000_000)
@@ -29,6 +30,10 @@ export default defineEventHandler(async (event) => {
     }
 
     const req = await createDepositRequest(user.id, body.krwAmount, 'withdrawal')
+    // 쪽지 알림은 부가 기능이므로 실패해도 출금요청 자체는 그대로 성공 처리한다.
+    notifyAdminOfWalletRequest(user.id, 'withdrawal', body.krwAmount).catch((e) => {
+      console.error('[wallet/withdraw-request] admin notice failed:', e)
+    })
     return { ok: true, request: req }
   } catch (e: any) {
     if (e && typeof e.statusCode === 'number') throw e
