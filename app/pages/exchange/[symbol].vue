@@ -1382,6 +1382,9 @@ const measureBox = ref<{
   endY: number
   endPrice: number
 } | null>(null)
+// 두 번째 클릭 전까지는 마우스를 따라다니고, 클릭하면 그 자리에 고정된다.
+// 이후 차트를 다시 클릭하거나(다른 곳) 차트가 움직이면(팬/줌) 그때 사라진다.
+const measureBoxFrozen = ref(false)
 const chartPrefsHydrated = ref(false)
 let saveChartPrefsTimer: any = null
 // 관리자 킬UP/킬DOWN: 지정한 %만큼 순간적으로 움직였다가 복귀. 실제 청산가에 닿으면 그 포지션은 실제로 강제청산됨.
@@ -1934,14 +1937,21 @@ function onChartMouseDown(e: MouseEvent) {
       endY: y,
       endPrice: Number(price)
     }
+    measureBoxFrozen.value = false
     return
   }
 
-  // 박스가 떠 있는 상태에서 (Shift 없이) 그냥 클릭하면 닫기
+  // 박스가 마우스를 따라다니는 중일 때 클릭하면 그 자리에 고정만 한다.
+  // 이미 고정된 상태에서 (Shift 없이) 다시 클릭하면 그때 닫는다.
   if (measureBox.value) {
     e.preventDefault()
     e.stopPropagation()
-    measureBox.value = null
+    if (!measureBoxFrozen.value) {
+      measureBoxFrozen.value = true
+    } else {
+      measureBox.value = null
+      measureBoxFrozen.value = false
+    }
     return
   }
 
@@ -2021,6 +2031,7 @@ function onChartMouseDown(e: MouseEvent) {
 function onDrawingKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && measureBox.value) {
     measureBox.value = null
+    measureBoxFrozen.value = false
     return
   }
   if (e.key === 'Escape' && activeTool.value !== 'cursor') {
@@ -2108,7 +2119,7 @@ function onChartAreaMouseMove(e: MouseEvent) {
   const y = e.clientY - rect.top
   lastChartMousePos.value = { x, y }
 
-  if (measureBox.value) {
+  if (measureBox.value && !measureBoxFrozen.value) {
     const price = candleSeries.coordinateToPrice(y)
     if (price !== null) {
       measureBox.value.endX = x
@@ -3425,7 +3436,13 @@ function initChart() {
   chart.subscribeClick(onChartClick)
   chart.subscribeCrosshairMove(onCrosshairMove)
   // 확대/축소/스크롤로 가격축 스케일이 바뀔 때도 진입가 뱃지 위치를 다시 계산
-  chart.timeScale().subscribeVisibleLogicalRangeChange(() => updateEntryBadges())
+  chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+    updateEntryBadges()
+    if (measureBox.value) {
+      measureBox.value = null
+      measureBoxFrozen.value = false
+    }
+  })
   renderIndicators()
   renderSavedDrawings()
 
