@@ -31,7 +31,7 @@ const ChartPrefsSchema = z.object({
   drawings: z.array(
     z.object({
       id: z.string(),
-      type: z.enum(['trend', 'hline', 'vline']),
+      type: z.enum(['trend', 'hline', 'vline', 'rect', 'circle']),
       color: z.string().optional(),
       price: z.coerce.number().optional(),
       time: z.any().optional(),

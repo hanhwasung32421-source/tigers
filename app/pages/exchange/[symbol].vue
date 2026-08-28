@@ -119,6 +119,33 @@
             >
               ㅡ
             </button>
+            <button
+              type="button"
+              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
+              :class="activeTool === 'vline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              title="수직선 (Alt+I)"
+              @click="selectTool('vline')"
+            >
+              │
+            </button>
+            <button
+              type="button"
+              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
+              :class="activeTool === 'circle' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              title="원 (Alt+O)"
+              @click="selectTool('circle')"
+            >
+              ○
+            </button>
+            <button
+              type="button"
+              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
+              :class="activeTool === 'rect' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              title="사각형 (Alt+P)"
+              @click="selectTool('rect')"
+            >
+              ▭
+            </button>
             <div class="my-1 h-px w-7 bg-[#2a2e39]" />
             <button
               type="button"
@@ -150,7 +177,7 @@
                 <span>저가 {{ low24 ? fmtPrice(low24) : '—' }}</span>
               </div>
             </div>
-            <div v-if="drawingHintVisible" class="pointer-events-none absolute right-3 top-3 z-30">
+            <div v-if="drawingHintVisible" class="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
               <div class="pointer-events-auto flex items-center gap-2 rounded-md bg-[#1e222d]/95 px-3 py-2 text-[12px] text-[#d1d4dc] shadow-[0_10px_30px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
                 <span class="text-[#2962ff]">+</span>
                 <span>차트에서 원하는 위치를 선택하세요</span>
@@ -184,15 +211,16 @@
             </div>
             <template v-if="measureBoxView">
               <div
-                class="pointer-events-none absolute z-30 whitespace-nowrap rounded px-3 py-1.5 text-sm font-bold text-white"
+                class="pointer-events-none absolute z-30 flex flex-col items-center gap-0.5 whitespace-nowrap rounded px-3 py-1.5 text-sm font-bold text-white"
                 :class="measureBoxView.positive ? 'bg-[#2962ff]' : 'bg-[#f23645]'"
                 :style="{
                   left: measureBoxView.left + measureBoxView.width / 2 + 'px',
-                  top: measureBoxView.top - 34 + 'px',
+                  top: measureBoxView.top - 54 + 'px',
                   transform: 'translateX(-50%)'
                 }"
               >
-                {{ measureBoxView.tooltipText }}
+                <span>{{ measureBoxView.tooltipLine1 }}</span>
+                <span>{{ measureBoxView.tooltipLine2 }}</span>
               </div>
               <div
                 class="pointer-events-none absolute z-30 flex items-center justify-center border"
@@ -1024,6 +1052,8 @@ import {
 } from 'lightweight-charts'
 import { TrendLinePrimitive } from '../../utils/chart/trendLinePrimitive'
 import { VerticalLinePrimitive } from '../../utils/chart/verticalLinePrimitive'
+import { RectanglePrimitive } from '../../utils/chart/rectanglePrimitive'
+import { CirclePrimitive } from '../../utils/chart/circlePrimitive'
 import { calculateBollingerBands } from '../../utils/chart/movingAverage'
 
 definePageMeta({ middleware: ['auth'], layout: 'trading' })
@@ -1305,17 +1335,28 @@ const entryBadges = ref<Array<{ id: number; y: number; isLong: boolean; label: s
 const drawingPriceLines: any[] = []
 const trendLinePrimitives: TrendLinePrimitive[] = []
 const verticalLinePrimitives: VerticalLinePrimitive[] = []
+const rectanglePrimitives: RectanglePrimitive[] = []
+const circlePrimitives: CirclePrimitive[] = []
 let previewPriceLine: any = null
 let previewTrendPrimitive: TrendLinePrimitive | null = null
+let previewVerticalPrimitive: VerticalLinePrimitive | null = null
+let previewRectPrimitive: RectanglePrimitive | null = null
+let previewCirclePrimitive: CirclePrimitive | null = null
 const candleData = ref<CandlestickData[]>([])
 const volumeData = ref<HistogramData[]>([])
 const liveLastCandle = shallowRef<CandlestickData | null>(null)
-const activeTool = ref<'cursor' | 'trend' | 'hline'>('cursor')
-const pendingTrendStart = ref<{ time: any; price: number } | null>(null)
+const activeTool = ref<'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'circle'>('cursor')
+const pendingShapeStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
 // 도구를 고르고 아직 차트를 클릭하기 전(=첫 점을 찍기 전)에만 안내 배너를 보여준다.
-const drawingHintVisible = computed(() => activeTool.value === 'hline' || (activeTool.value === 'trend' && !pendingTrendStart.value))
+const TWO_CLICK_TOOLS = ['trend', 'rect', 'circle'] as const
+const drawingHintVisible = computed(
+  () =>
+    activeTool.value === 'hline' ||
+    activeTool.value === 'vline' ||
+    ((TWO_CLICK_TOOLS as readonly string[]).includes(activeTool.value) && !pendingShapeStart.value)
+)
 // Alt+H(수평선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
 // 도구 상태와 무관하게 항상 최신 좌표를 기록해둔다.
 const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
@@ -1326,6 +1367,10 @@ type DrawingHit =
   | { id: string; kind: 'trend-line' }
   | { id: string; kind: 'hline' }
   | { id: string; kind: 'vline' }
+  | { id: string; kind: 'rect-point'; pointIndex: 0 | 1 }
+  | { id: string; kind: 'rect-shape' }
+  | { id: string; kind: 'circle-point'; pointIndex: 0 | 1 }
+  | { id: string; kind: 'circle-shape' }
 let drawingDragCleanup: (() => void) | null = null
 // Shift+클릭 수익률 측정 박스
 const measureBox = ref<{
@@ -1395,7 +1440,7 @@ function defaultBolPrefs(): BolPrefs {
 
 const chartPrefs = reactive<{
   indicators: { bol: BolPrefs }
-  drawings: Array<{ id: string; type: 'trend' | 'hline' | 'vline'; color?: string; price?: number; time?: any; points?: Array<{ time: any; price: number }> }>
+  drawings: Array<{ id: string; type: 'trend' | 'hline' | 'vline' | 'rect' | 'circle'; color?: string; price?: number; time?: any; points?: Array<{ time: any; price: number }> }>
 }>({
   indicators: { bol: defaultBolPrefs() },
   drawings: []
@@ -1834,6 +1879,33 @@ function hitTestDrawings(x: number, y: number): DrawingHit | null {
       const x0 = resolveXForTime(d.time)
       if (x0 === null) continue
       if (Math.abs(x - x0) <= LINE_TOL) return { id: d.id, kind: 'vline' }
+    } else if ((d.type === 'rect' || d.type === 'circle') && d.points?.length === 2) {
+      const x1 = resolveXForTime(d.points[0].time)
+      const y1 = candleSeries.priceToCoordinate(Number(d.points[0].price))
+      const x2 = resolveXForTime(d.points[1].time)
+      const y2 = candleSeries.priceToCoordinate(Number(d.points[1].price))
+      if (x1 === null || y1 === null || x2 === null || y2 === null) continue
+      const pointKind = d.type === 'rect' ? 'rect-point' : 'circle-point'
+      const shapeKind = d.type === 'rect' ? 'rect-shape' : 'circle-shape'
+      if (Math.hypot(x - x1, y - y1) <= HANDLE_R) return { id: d.id, kind: pointKind, pointIndex: 0 }
+      if (Math.hypot(x - x2, y - y2) <= HANDLE_R) return { id: d.id, kind: pointKind, pointIndex: 1 }
+      const left = Math.min(x1, x2) - LINE_TOL
+      const right = Math.max(x1, x2) + LINE_TOL
+      const top = Math.min(y1, y2) - LINE_TOL
+      const bottom = Math.max(y1, y2) + LINE_TOL
+      if (d.type === 'rect') {
+        if (x >= left && x <= right && y >= top && y <= bottom) return { id: d.id, kind: shapeKind }
+      } else {
+        const cx = (x1 + x2) / 2
+        const cy = (y1 + y2) / 2
+        const rx = Math.abs(x2 - x1) / 2 + LINE_TOL
+        const ry = Math.abs(y2 - y1) / 2 + LINE_TOL
+        if (rx > 0 && ry > 0) {
+          const nx = (x - cx) / rx
+          const ny = (y - cy) / ry
+          if (nx * nx + ny * ny <= 1) return { id: d.id, kind: shapeKind }
+        }
+      }
     }
   }
   return null
@@ -1898,7 +1970,7 @@ function onChartMouseDown(e: MouseEvent) {
   selectedDrawingId.value = hit.id
   renderSavedDrawings()
 
-  if (hit.kind === 'trend-line') return // 몸통은 선택만, 드래그는 끝점(원)에서만
+  if (hit.kind === 'trend-line' || hit.kind === 'rect-shape' || hit.kind === 'circle-shape') return // 몸통은 선택만, 드래그는 끝점(원)에서만
 
   const drawing = chartPrefs.drawings.find((d) => d.id === hit.id)
   if (!drawing) return
@@ -1924,6 +1996,13 @@ function onChartMouseDown(e: MouseEvent) {
       const time = resolveTimeAtX(null, mx)
       if (time !== null) {
         drawing.time = time
+        renderSavedDrawings()
+      }
+    } else if ((hit.kind === 'rect-point' || hit.kind === 'circle-point') && drawing.points) {
+      const price = candleSeries.coordinateToPrice(my)
+      const time = resolveTimeAtX(null, mx)
+      if (price !== null && time !== null) {
+        drawing.points[hit.pointIndex] = { time, price: Number(price) }
         renderSavedDrawings()
       }
     }
@@ -1964,14 +2043,17 @@ function onDrawingKeydown(e: KeyboardEvent) {
     e.key === 'j' ||
     e.key === 'J'
   const isKeyT = e.code === 'KeyT' || e.key === 't' || e.key === 'T'
-  if (e.altKey && (isKeyH || isKeyT)) {
+  const isKeyI = e.code === 'KeyI' || e.key === 'i' || e.key === 'I'
+  const isKeyO = e.code === 'KeyO' || e.key === 'o' || e.key === 'O'
+  const isKeyP = e.code === 'KeyP' || e.key === 'p' || e.key === 'P'
+  if (e.altKey && (isKeyH || isKeyT || isKeyI || isKeyO || isKeyP)) {
     const tag = (e.target as HTMLElement)?.tagName
     if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
-    if (isKeyT) {
-      // Alt+T: 추세선(직선) 도구를 활성화만 한다 - 시작점은 다음 클릭에서 찍힌다.
+    if (isKeyT || isKeyI || isKeyO || isKeyP) {
+      // Alt+T(추세선)/Alt+I(수직선)/Alt+O(원)/Alt+P(사각형): 도구를 활성화만 한다 - 시작점은 다음 클릭에서 찍힌다.
       e.preventDefault()
-      selectTool('trend')
+      selectTool(isKeyT ? 'trend' : isKeyI ? 'vline' : isKeyO ? 'circle' : 'rect')
       return
     }
 
@@ -2035,7 +2117,11 @@ function onChartAreaMouseMove(e: MouseEvent) {
     }
   }
 
-  if (activeTool.value === 'hline' || (activeTool.value === 'trend' && pendingTrendStart.value)) {
+  if (
+    activeTool.value === 'hline' ||
+    activeTool.value === 'vline' ||
+    ((activeTool.value === 'trend' || activeTool.value === 'rect' || activeTool.value === 'circle') && pendingShapeStart.value)
+  ) {
     const price = candleSeries.coordinateToPrice(y)
     const time = resolveTimeAtX(null, x)
     if (price !== null && time !== null) {
@@ -2057,8 +2143,10 @@ const measureBoxView = computed(() => {
   const positive = pct >= 0
   const vArrow = m.endY <= m.startY ? '↑' : '↓'
   const hArrow = m.endX >= m.startX ? '→' : '←'
-  const tooltipText = `${positive ? '+' : ''}${fmtPrice(diff)} (${positive ? '+' : ''}${pct.toFixed(2)}%) , ${fmtPrice(m.endPrice)}`
-  return { left, top, width, height, pct, positive, vArrow, hArrow, tooltipText }
+  const sign = positive ? '+' : ''
+  const tooltipLine1 = `${sign}${fmtPrice(diff)} (${sign}${pct.toFixed(2)}%)`
+  const tooltipLine2 = `${fmtPrice(m.startPrice)} , ${fmtPrice(m.endPrice)}`
+  return { left, top, width, height, pct, positive, vArrow, hArrow, tooltipLine1, tooltipLine2 }
 })
 
 function updateLiveCandle(price: number, tsMs: number) {
@@ -2870,6 +2958,14 @@ function clearDrawingVisuals() {
     const primitive = verticalLinePrimitives.pop()
     try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
   }
+  while (rectanglePrimitives.length) {
+    const primitive = rectanglePrimitives.pop()
+    try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
+  }
+  while (circlePrimitives.length) {
+    const primitive = circlePrimitives.pop()
+    try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
+  }
 }
 
 function clearDrawingPreviewVisuals() {
@@ -2880,6 +2976,18 @@ function clearDrawingPreviewVisuals() {
   if (previewTrendPrimitive) {
     try { if (candleSeries) candleSeries.detachPrimitive(previewTrendPrimitive) } catch {}
     previewTrendPrimitive = null
+  }
+  if (previewVerticalPrimitive) {
+    try { if (candleSeries) candleSeries.detachPrimitive(previewVerticalPrimitive) } catch {}
+    previewVerticalPrimitive = null
+  }
+  if (previewRectPrimitive) {
+    try { if (candleSeries) candleSeries.detachPrimitive(previewRectPrimitive) } catch {}
+    previewRectPrimitive = null
+  }
+  if (previewCirclePrimitive) {
+    try { if (candleSeries) candleSeries.detachPrimitive(previewCirclePrimitive) } catch {}
+    previewCirclePrimitive = null
   }
 }
 
@@ -2901,21 +3009,67 @@ function renderDrawingPreview() {
     return
   }
 
+  if (activeTool.value === 'vline' && liveDrawingPoint.value && liveDrawingPoint.value.time !== undefined) {
+    previewVerticalPrimitive = new VerticalLinePrimitive(chart, candleSeries, liveDrawingPoint.value.time, {
+      lineColor: '#38bdf8',
+      width: 1,
+      resolveX: resolveXForTime
+    })
+    candleSeries.attachPrimitive(previewVerticalPrimitive)
+    return
+  }
+
   if (
     activeTool.value === 'trend' &&
-    pendingTrendStart.value &&
+    pendingShapeStart.value &&
     liveDrawingPoint.value &&
-    Number.isFinite(Number(pendingTrendStart.value.price)) &&
+    Number.isFinite(Number(pendingShapeStart.value.price)) &&
     Number.isFinite(Number(liveDrawingPoint.value.price))
   ) {
     previewTrendPrimitive = new TrendLinePrimitive(
       chart,
       candleSeries,
-      { time: pendingTrendStart.value.time, price: Number(pendingTrendStart.value.price) },
+      { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) },
       { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
       { lineColor: '#facc15', width: 1, resolveX: resolveXForTime }
     )
     candleSeries.attachPrimitive(previewTrendPrimitive)
+    return
+  }
+
+  if (
+    activeTool.value === 'rect' &&
+    pendingShapeStart.value &&
+    liveDrawingPoint.value &&
+    Number.isFinite(Number(pendingShapeStart.value.price)) &&
+    Number.isFinite(Number(liveDrawingPoint.value.price))
+  ) {
+    previewRectPrimitive = new RectanglePrimitive(
+      chart,
+      candleSeries,
+      { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) },
+      { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
+      { resolveX: resolveXForTime, formatPrice: fmtPrice }
+    )
+    candleSeries.attachPrimitive(previewRectPrimitive)
+    return
+  }
+
+  if (
+    activeTool.value === 'circle' &&
+    pendingShapeStart.value &&
+    liveDrawingPoint.value &&
+    Number.isFinite(Number(pendingShapeStart.value.price)) &&
+    Number.isFinite(Number(liveDrawingPoint.value.price))
+  ) {
+    previewCirclePrimitive = new CirclePrimitive(
+      chart,
+      candleSeries,
+      { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) },
+      { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
+      { resolveX: resolveXForTime, formatPrice: fmtPrice }
+    )
+    candleSeries.attachPrimitive(previewCirclePrimitive)
   }
 }
 
@@ -2960,6 +3114,38 @@ function renderSavedDrawings() {
       })
       candleSeries.attachPrimitive(primitive)
       verticalLinePrimitives.push(primitive)
+    } else if (d.type === 'rect' && d.points?.length === 2) {
+      const primitive = new RectanglePrimitive(
+        chart,
+        candleSeries,
+        { time: d.points[0].time, price: Number(d.points[0].price) },
+        { time: d.points[1].time, price: Number(d.points[1].price) },
+        {
+          borderColor: d.color || '#22c55e',
+          width: isSelected ? 2 : 1,
+          resolveX: resolveXForTime,
+          showHandles: isSelected,
+          formatPrice: fmtPrice
+        }
+      )
+      candleSeries.attachPrimitive(primitive)
+      rectanglePrimitives.push(primitive)
+    } else if (d.type === 'circle' && d.points?.length === 2) {
+      const primitive = new CirclePrimitive(
+        chart,
+        candleSeries,
+        { time: d.points[0].time, price: Number(d.points[0].price) },
+        { time: d.points[1].time, price: Number(d.points[1].price) },
+        {
+          borderColor: d.color || '#a855f7',
+          width: isSelected ? 2 : 1,
+          resolveX: resolveXForTime,
+          showHandles: isSelected,
+          formatPrice: fmtPrice
+        }
+      )
+      candleSeries.attachPrimitive(primitive)
+      circlePrimitives.push(primitive)
     }
   }
 }
@@ -2972,7 +3158,7 @@ function toggleIndicator(key: 'bol') {
 
 function clearAllDrawings() {
   chartPrefs.drawings = []
-  pendingTrendStart.value = null
+  pendingShapeStart.value = null
   liveDrawingPoint.value = null
   clearDrawingPreviewVisuals()
   activeTool.value = 'cursor'
@@ -2982,8 +3168,8 @@ function clearAllDrawings() {
 
 function clearLastDrawing() {
   // 추세선 1번 찍고 대기 중이면 "최근 도구"는 그 대기 상태를 취소
-  if (pendingTrendStart.value) {
-    pendingTrendStart.value = null
+  if (pendingShapeStart.value) {
+    pendingShapeStart.value = null
     liveDrawingPoint.value = null
     clearDrawingPreviewVisuals()
     activeTool.value = 'cursor'
@@ -2995,9 +3181,9 @@ function clearLastDrawing() {
   scheduleSaveChartPrefs()
 }
 
-function selectTool(tool: 'cursor' | 'trend' | 'hline') {
+function selectTool(tool: 'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'circle') {
   activeTool.value = tool
-  pendingTrendStart.value = null
+  pendingShapeStart.value = null
   liveDrawingPoint.value = null
   clearDrawingPreviewVisuals()
 }
@@ -3024,23 +3210,40 @@ function onChartClick(param: any) {
     return
   }
 
-  if (activeTool.value === 'trend') {
-    if (!pendingTrendStart.value) {
-      pendingTrendStart.value = { time, price: Number(price) }
+  if (activeTool.value === 'vline') {
+    chartPrefs.drawings.push({
+      id: `v-${Date.now()}`,
+      type: 'vline',
+      color: '#38bdf8',
+      time
+    })
+    liveDrawingPoint.value = null
+    clearDrawingPreviewVisuals()
+    renderSavedDrawings()
+    scheduleSaveChartPrefs()
+    activeTool.value = 'cursor'
+    return
+  }
+
+  if (activeTool.value === 'trend' || activeTool.value === 'rect' || activeTool.value === 'circle') {
+    if (!pendingShapeStart.value) {
+      pendingShapeStart.value = { time, price: Number(price) }
       liveDrawingPoint.value = { time, price: Number(price) }
       renderDrawingPreview()
       return
     }
+    const shapeColors: Record<string, string> = { trend: '#facc15', rect: '#22c55e', circle: '#a855f7' }
+    const shapeIdPrefix: Record<string, string> = { trend: 't', rect: 'r', circle: 'c' }
     chartPrefs.drawings.push({
-      id: `t-${Date.now()}`,
-      type: 'trend',
-      color: '#facc15',
+      id: `${shapeIdPrefix[activeTool.value]}-${Date.now()}`,
+      type: activeTool.value,
+      color: shapeColors[activeTool.value],
       points: [
-        { time: pendingTrendStart.value.time, price: pendingTrendStart.value.price },
+        { time: pendingShapeStart.value.time, price: pendingShapeStart.value.price },
         { time, price: Number(price) }
       ]
     })
-    pendingTrendStart.value = null
+    pendingShapeStart.value = null
     liveDrawingPoint.value = null
     clearDrawingPreviewVisuals()
     renderSavedDrawings()
@@ -3076,13 +3279,13 @@ function onCrosshairMove(param: any) {
     return
   }
 
-  if (activeTool.value === 'hline') {
+  if (activeTool.value === 'hline' || activeTool.value === 'vline') {
     liveDrawingPoint.value = { time, price: Number(price) }
     renderDrawingPreview()
     return
   }
 
-  if (activeTool.value === 'trend' && pendingTrendStart.value) {
+  if ((activeTool.value === 'trend' || activeTool.value === 'rect' || activeTool.value === 'circle') && pendingShapeStart.value) {
     liveDrawingPoint.value = { time, price: Number(price) }
     renderDrawingPreview()
     return
