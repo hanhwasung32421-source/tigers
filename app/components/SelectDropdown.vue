@@ -11,7 +11,7 @@
 
     <div
       v-if="open"
-      class="absolute left-0 top-[calc(100%+6px)] z-50 min-w-full overflow-hidden rounded-md border border-white/10 bg-slate-950 shadow-lg"
+      class="absolute left-0 top-[calc(100%+6px)] z-50 max-h-80 min-w-full overflow-y-auto overscroll-contain rounded-md border border-white/10 bg-slate-950 shadow-lg"
     >
       <button
         v-for="opt in options"
