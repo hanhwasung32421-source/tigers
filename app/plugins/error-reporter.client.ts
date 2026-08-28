@@ -37,6 +37,9 @@ export default defineNuxtPlugin((nuxtApp) => {
         // 로그인 세션이 만료된 상태에서 쪽지 안읽음 폴링이 401을 반환하는 건
         // 정상적인 로그아웃 상태일 뿐이고(호출부에서 폴링을 바로 멈춤) 실제 오류가 아니므로 제외.
         if (url.includes('/api/messages/unread') && status === 401) return
+        // 비로그인 게스트가 차트를 볼 때 킬업/다운 기준점 조회가 401을 반환하는 것도
+        // 호출부에서 로그인 상태일 때만 부르도록 이미 막아뒀고, 실제 오류가 아니므로 제외.
+        if (url.includes('/api/kill/latest') && status === 401) return
         record({
           type: 'fetch',
           url,

@@ -2255,6 +2255,9 @@ async function confirmKillModal() {
 // 새로고침/재접속 직후에는 예전 이벤트를 "방금 일어난 일"로 재생하지 않도록 기준점만 맞춰둔다.
 // (차트에는 텍스트/마커를 남기지 않음 — 봉 자체가 튀었다가 돌아오는 것만 보이면 됨)
 async function initKillEventBaseline() {
+  // 비로그인 게스트는 이 엔드포인트를 호출할 권한이 없고(401), 어차피 pollKillEvents도
+  // me.value가 있을 때만 도는 값이라 기준점을 미리 맞춰둘 필요도 없다.
+  if (!me.value) return
   try {
     const res = await $fetch<{ event: KillEvent | null }>('/api/kill/latest', { query: { symbol: symbol.value } })
     if (res?.event) {
