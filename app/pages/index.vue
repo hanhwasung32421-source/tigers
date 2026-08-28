@@ -1,6 +1,6 @@
 <template>
-  <div class="font-landing space-y-8">
-    <section class="overflow-hidden rounded-[28px] border border-white/10 bg-[#020509] px-6 py-10 shadow-[0_12px_48px_rgba(0,0,0,0.35)] md:px-12 md:py-14">
+  <div class="font-landing">
+    <section class="px-6 py-10 md:px-12 md:py-14">
       <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_460px]">
         <div>
           <div class="text-xs font-bold tracking-[0.3em] text-slate-500">THE NEW STANDARD OF TRADING</div>
@@ -41,7 +41,7 @@
     </section>
 
     <!-- SECURITY & CONTROL -->
-    <section class="rounded-[28px] border border-white/10 bg-[#020509] px-6 py-14 text-center md:px-12">
+    <section class="border-t border-white/10 px-6 py-14 text-center md:px-12">
       <div class="text-xs font-bold tracking-[0.3em] text-slate-500">SECURITY &amp; CONTROL</div>
       <h2 class="mx-auto mt-4 max-w-xl text-3xl font-black leading-tight text-white md:text-4xl">신뢰할 수 있는 거래 파트너</h2>
       <div class="mx-auto mt-12 grid max-w-5xl gap-10 md:grid-cols-4">
@@ -61,7 +61,7 @@
     </section>
 
     <!-- MARKETS -->
-    <section class="rounded-[28px] border border-white/10 bg-[#020509] px-6 py-14 md:px-12">
+    <section class="border-t border-white/10 px-6 py-14 md:px-12">
       <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_1.1fr]">
         <div>
           <div class="text-xs font-bold tracking-[0.3em] text-slate-500">MARKETS</div>
@@ -87,7 +87,7 @@
     </section>
 
     <!-- PRODUCTS -->
-    <section class="rounded-[28px] border border-white/10 bg-[#020509] px-6 py-14 text-center md:px-12">
+    <section class="border-t border-white/10 px-6 py-14 text-center md:px-12">
       <div class="text-xs font-bold tracking-[0.3em] text-slate-500">PRODUCTS</div>
       <h2 class="mx-auto mt-4 max-w-2xl text-3xl font-black leading-tight text-white md:text-4xl">거래의 모든 순간이 한 번의 클릭으로</h2>
       <div class="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -108,7 +108,7 @@
     </section>
 
     <!-- FAQ -->
-    <section class="rounded-[28px] border border-white/10 bg-[#020509] px-6 py-14 md:px-12">
+    <section class="border-t border-white/10 px-6 py-14 md:px-12">
       <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_1.4fr]">
         <div>
           <div class="text-xs font-bold tracking-[0.3em] text-slate-500">FAQ</div>
