@@ -12,6 +12,10 @@
         <label class="text-sm text-slate-300">비밀번호</label>
         <input v-model="password" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
+      <label class="flex items-center gap-2 text-sm text-slate-300">
+        <input v-model="rememberId" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5 accent-indigo-500" />
+        아이디 저장
+      </label>
       <button
         class="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-70"
         :disabled="loading"
@@ -61,12 +65,23 @@
 <script setup lang="ts">
 const { refresh } = useMe()
 
+const SAVED_ID_KEY = 'bitplay_saved_login_id'
+
 const username = ref('')
 const password = ref('')
+const rememberId = ref(false)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const loadingTitle = ref('접속 중입니다...')
 const loadingDesc = ref('인증 정보를 확인하고 있습니다.')
+
+onMounted(() => {
+  const saved = localStorage.getItem(SAVED_ID_KEY)
+  if (saved) {
+    username.value = saved
+    rememberId.value = true
+  }
+})
 
 async function onSubmit() {
   loading.value = true
@@ -75,7 +90,17 @@ async function onSubmit() {
   loadingDesc.value = '서버에 연결하고 있습니다.'
   try {
     // 1) 로그인
-    await $fetch('/api/auth/login', { method: 'POST', body: { username: username.value, password: password.value } })
+    await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: { username: username.value, password: password.value, remember: rememberId.value }
+    })
+
+    // 아이디 저장 체크 여부에 따라 이 컴퓨터에 아이디를 남기거나 지운다.
+    if (rememberId.value) {
+      localStorage.setItem(SAVED_ID_KEY, username.value)
+    } else {
+      localStorage.removeItem(SAVED_ID_KEY)
+    }
 
     // 2) 세션/유저 갱신
     loadingTitle.value = '인증 확인 중입니다...'

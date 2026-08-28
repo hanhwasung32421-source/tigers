@@ -50,10 +50,10 @@ export function verifyPassword(password: string, hash: string) {
 
 // 세션 행만 만들고 토큰/만료시각을 돌려준다(쿠키는 건드리지 않음) — "다른 계정으로 로그인"
 // 새 창에서 쓰기 위한 것으로, 현재 요청의 쿠키 기반 세션(관리자)에는 영향이 없다.
-export async function createSessionToken(userId: number): Promise<{ token: string; expiresAt: string }> {
+export async function createSessionToken(userId: number, days = 7): Promise<{ token: string; expiresAt: string }> {
   const token = randomBytes(24).toString('hex')
   const createdAt = new Date().toISOString()
-  const expiresAt = isoPlusDays(7)
+  const expiresAt = isoPlusDays(days)
   if (supabaseAppDbEnabled()) {
     await supaInsertStrict('trae_sessions', {
       token,
@@ -68,15 +68,17 @@ export async function createSessionToken(userId: number): Promise<{ token: strin
   return { token, expiresAt }
 }
 
-export async function createSession(event: H3Event, userId: number) {
-  const { token, expiresAt } = await createSessionToken(userId)
+// remember=true(아이디 저장/로그인 상태 유지 체크)면 쿠키에 만료일을 길게(1년) 박아서
+// 브라우저를 껐다 켜도 로그아웃 전까지 유지되고, 아니면 브라우저 세션 쿠키(껐다 켜면 사라짐)로 발급한다.
+export async function createSession(event: H3Event, userId: number, remember = false) {
+  const { token, expiresAt } = await createSessionToken(userId, remember ? 365 : 7)
 
   setCookie(event, COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    expires: new Date(expiresAt)
+    ...(remember ? { expires: new Date(expiresAt) } : {})
   })
 }
 

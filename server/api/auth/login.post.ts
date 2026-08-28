@@ -7,7 +7,8 @@ import { ensureAdminExists, supaSelectOne } from '../../utils/supabase'
 
 const BodySchema = z.object({
   username: z.string().min(1),
-  password: z.string().min(1)
+  password: z.string().min(1),
+  remember: z.boolean().optional().default(false)
 })
 
 export default defineEventHandler(async (event) => {
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
       await logLogin(event, { userId: Number(user.id), username: body.username, area: 'main', success: false })
       throw createError({ statusCode: 401, statusMessage: '비밀번호가 올바르지 않습니다.' })
     }
-    await createSession(event, Number(user.id))
+    await createSession(event, Number(user.id), body.remember)
     await logLogin(event, { userId: Number(user.id), username: body.username, area: 'main', success: true })
     return { ok: true }
   }
@@ -53,7 +54,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: '비밀번호가 올바르지 않습니다.' })
   }
 
-  await createSession(event, user.id)
+  await createSession(event, user.id, body.remember)
   await logLogin(event, { userId: user.id, username: body.username, area: 'main', success: true })
   return { ok: true }
 })
