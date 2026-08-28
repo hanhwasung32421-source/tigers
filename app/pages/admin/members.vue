@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+    <div class="space-y-4">
       <div class="grid gap-2 md:grid-cols-[360px_160px_minmax(220px,1fr)_120px_160px]">
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
           <input v-model="fromDate" type="date" class="date-input w-full bg-transparent outline-none" />
@@ -45,23 +45,23 @@
         </div>
       </div>
 
-      <div class="mt-4 overflow-auto">
-        <table class="min-w-full text-xs text-slate-200">
+      <div>
+        <table class="w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('role')">유저권한<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
-              <th class="px-3 py-3 text-left">승인상태</th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('name')">회원이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('affiliateName')">총판이름<span class="sort-icon">{{ sortArrow('affiliateName') || ' ⇅' }}</span></th>
-              <th class="px-3 py-3 text-left">총판부모</th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('affiliateRate')">총판수율<span class="sort-icon">{{ sortArrow('affiliateRate') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">보유금액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-right" @click="toggleSort('cumulativeProfit')">누적수익<span class="sort-icon">{{ sortArrow('cumulativeProfit') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('last_login')">최근 접속일<span class="sort-icon">{{ sortArrow('last_login') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none px-3 py-3 text-left" @click="toggleSort('online')">접속여부<span class="sort-icon">{{ sortArrow('online') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">유저권한<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
+              <th class="whitespace-nowrap px-3 py-3 text-left">승인상태</th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('affiliateName')">총판이름<span class="sort-icon">{{ sortArrow('affiliateName') || ' ⇅' }}</span></th>
+              <th class="whitespace-nowrap px-3 py-3 text-left">총판부모</th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('affiliateRate')">총판수율<span class="sort-icon">{{ sortArrow('affiliateRate') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">보유금액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('cumulativeProfit')">누적수익<span class="sort-icon">{{ sortArrow('cumulativeProfit') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('last_login')">최근 접속일<span class="sort-icon">{{ sortArrow('last_login') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('online')">접속여부<span class="sort-icon">{{ sortArrow('online') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -86,16 +86,16 @@
               <td class="px-3 py-3">
                 <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">승인</span>
               </td>
-              <td class="px-3 py-3 font-mono text-slate-100">
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">
                 <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="openProfileModal(u)">
                   {{ u.username }}
                 </button>
               </td>
-              <td class="px-3 py-3 text-slate-200">{{ u.name }}</td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ u.referralCode || '—' }}</td>
-              <td class="px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
-              <td class="px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
-              <td class="px-3 py-3 text-right">
+              <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ u.name }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.referralCode || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right">
                 <input
                   v-if="u.roleId !== 'user' && u.roleId !== 'super_admin' && canEditRate(u)"
                   v-model="rateDraft[u.id]"
@@ -111,7 +111,7 @@
                 />
                 <span v-else class="font-mono text-slate-300">{{ fmtRate(u.affiliateRate) }}</span>
               </td>
-              <td class="px-3 py-3 text-right font-mono">
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
                 <button
                   type="button"
                   class="rounded bg-cyan-500/10 px-2 py-1 text-cyan-100 ring-1 ring-cyan-400/20 hover:bg-cyan-500/15"
@@ -120,7 +120,7 @@
                   {{ fmt2(u.balanceUsdt) }}
                 </button>
               </td>
-              <td class="px-3 py-3 text-right font-mono">
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
                 <button
                   type="button"
                   class="rounded px-2 py-1 ring-1"
@@ -134,9 +134,9 @@
                   {{ signedProfitText(u.cumulativeProfit) }}
                 </button>
               </td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
-              <td class="px-3 py-3">
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3">
                 <span
                   class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
                   :class="u.online ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-white/5 text-slate-300 ring-white/10'"
@@ -149,7 +149,7 @@
         </table>
       </div>
 
-      <div class="mt-4 flex items-center justify-between gap-3">
+      <div class="flex items-center justify-between gap-3">
         <div class="text-sm text-slate-400">페이지 {{ page }} / {{ totalPages }} · 총 {{ filtered.length }}명</div>
         <div class="flex items-center justify-center gap-2" v-if="totalPages > 1">
         <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
