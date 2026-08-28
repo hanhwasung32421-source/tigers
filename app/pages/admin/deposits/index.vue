@@ -19,14 +19,14 @@
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
-              <th class="px-3 py-3 text-center">구분</th>
-              <th class="px-3 py-3 text-left">회원 아이디</th>
-              <th class="px-3 py-3 text-left">이름</th>
-              <th class="px-3 py-3 text-right">잔액</th>
-              <th class="px-3 py-3 text-right">금액</th>
-              <th class="px-3 py-3 text-left">신청날짜</th>
-              <th class="px-3 py-3 text-left">처리날짜</th>
-              <th class="px-3 py-3 text-center">상태</th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('type')">구분<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('krwAmount')">금액<span class="sort-icon">{{ sortArrow('krwAmount') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('requestedAt')">신청날짜<span class="sort-icon">{{ sortArrow('requestedAt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('resolvedAt')">처리날짜<span class="sort-icon">{{ sortArrow('resolvedAt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('status')">상태<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
             </tr>
             <tr class="border-b border-[#12314a] bg-white/[0.02]">
               <th class="px-3 py-2">
@@ -85,7 +85,7 @@
               <td colspan="8" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in filteredItems" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-3 py-3 text-center">
+              <td class="whitespace-nowrap px-3 py-3 text-center">
                 <span
                   class="rounded px-2 py-1 text-[11px] font-semibold ring-1"
                   :class="it.type === 'withdrawal' ? 'bg-rose-500/10 text-rose-300 ring-rose-400/20' : 'bg-cyan-500/10 text-cyan-200 ring-cyan-400/20'"
@@ -93,19 +93,13 @@
                   {{ it.type === 'withdrawal' ? '출금' : '입금' }}
                 </span>
               </td>
-              <td class="px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
-              <td class="px-3 py-3 text-slate-200">{{ it.name }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-200">
-                <div>{{ fmtKrw(it.balanceUsdt) }}</div>
-                <div class="text-slate-500">({{ fmt2(it.balanceUsdt) }} 테더)</div>
-              </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-100">
-                <div>{{ fmt0(it.krwAmount) }}원</div>
-                <div class="text-slate-500">({{ fmtUsdtFromKrw(it.krwAmount) }} 테더)</div>
-              </td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(it.requestedAt) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ it.resolvedAt ? formatDateTime(it.resolvedAt) : '-' }}</td>
-              <td class="px-3 py-3 text-center">
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">{{ fmtKrw(it.balanceUsdt) }} ({{ fmt2(it.balanceUsdt) }} 테더)</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-100">{{ fmt0(it.krwAmount) }}원 ({{ fmtUsdtFromKrw(it.krwAmount) }} 테더)</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ formatDateTime(it.requestedAt) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ it.resolvedAt ? formatDateTime(it.resolvedAt) : '-' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-center">
                 <div v-if="it.status === 'pending' && canEdit" class="flex items-center justify-center gap-1">
                   <button
                     class="rounded bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-400/20 hover:bg-emerald-500/25 disabled:opacity-40"
@@ -195,10 +189,27 @@ function dateOnly(v: string | null) {
   return s ? s.slice(0, 10) : ''
 }
 
+type SortKey = 'type' | 'username' | 'name' | 'balanceUsdt' | 'krwAmount' | 'requestedAt' | 'resolvedAt' | 'status'
+const sortKey = ref<SortKey | null>(null)
+const sortDir = ref<'asc' | 'desc'>('asc')
+
+function toggleSort(key: SortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
+function sortArrow(key: SortKey) {
+  if (sortKey.value !== key) return ''
+  return sortDir.value === 'asc' ? ' ▲' : ' ▼'
+}
+
 const filteredItems = computed(() => {
   const uq = filterUsername.value.trim().toLowerCase()
   const nq = filterName.value.trim().toLowerCase()
-  return items.value.filter((it) => {
+  const rows = items.value.filter((it) => {
     if (filterType.value && it.type !== filterType.value) return false
     if (filterStatus.value && it.status !== filterStatus.value) return false
     if (uq && !it.username.toLowerCase().includes(uq)) return false
@@ -216,6 +227,18 @@ const filteredItems = computed(() => {
       if (filterResolvedTo.value && resolvedDate > filterResolvedTo.value) return false
     }
     return true
+  })
+
+  if (!sortKey.value) return rows
+  const key = sortKey.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const av = a[key]
+    const bv = b[key]
+    if (av === null || av === undefined) return bv === null || bv === undefined ? 0 : 1
+    if (bv === null || bv === undefined) return -1
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+    return String(av).localeCompare(String(bv)) * dir
   })
 })
 
@@ -303,5 +326,21 @@ onMounted(() => {
 <style scoped>
 .date-input {
   color-scheme: dark;
+}
+
+.sortable-th {
+  color: rgb(203 213 225 / 0.9);
+  transition: color 0.15s ease;
+}
+.sortable-th:hover {
+  color: #fff;
+}
+.sortable-th .sort-icon {
+  margin-left: 2px;
+  font-size: 10px;
+  color: rgb(148 163 184 / 0.6);
+}
+.sortable-th:hover .sort-icon {
+  color: rgb(203 213 225 / 0.9);
 }
 </style>

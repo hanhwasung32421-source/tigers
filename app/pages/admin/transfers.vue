@@ -36,18 +36,18 @@
         <button class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="load(true)">검색</button>
       </div>
 
-      <div class="mt-4 overflow-auto">
+      <div class="mt-4 overflow-x-auto">
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
-              <th class="px-3 py-3 text-left">회원 아이디</th>
-              <th class="px-3 py-3 text-left">회원 이름</th>
-              <th class="px-3 py-3 text-left">총판 이름</th>
-              <th class="px-3 py-3 text-left">입금 유형</th>
-              <th class="px-3 py-3 text-right">USDT 금액</th>
-              <th class="px-3 py-3 text-left">입금 상태</th>
-              <th class="px-3 py-3 text-left">입금 일시</th>
-              <th class="px-3 py-3 text-left">처리자</th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원 이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('affiliateName')">총판 이름<span class="sort-icon">{{ sortArrow('affiliateName') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('type')">입금 유형<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('amount_usdt')">USDT 금액<span class="sort-icon">{{ sortArrow('amount_usdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('status')">입금 상태<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">입금 일시<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('admin')">처리자<span class="sort-icon">{{ sortArrow('admin') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -55,16 +55,16 @@
               <td colspan="8" class="px-3 py-8 text-center text-slate-500">입출금 내역이 없습니다.</td>
             </tr>
             <tr v-for="r in paged" :key="`${r.created_at}-${r.user_id}-${r.amount_usdt}`" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-3 py-3 font-mono text-slate-100">{{ r.username }}</td>
-              <td class="px-3 py-3 text-slate-200">{{ r.name }}</td>
-              <td class="px-3 py-3 text-slate-300">{{ r.affiliateName }}</td>
-              <td class="px-3 py-3">{{ r.type }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(r.amount_usdt) }}</td>
-              <td class="px-3 py-3">
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">{{ r.username }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ r.name }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ r.affiliateName }}</td>
+              <td class="whitespace-nowrap px-3 py-3">{{ r.type }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(r.amount_usdt) }}</td>
+              <td class="whitespace-nowrap px-3 py-3">
                 <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">{{ r.status }}</span>
               </td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(r.created_at) }}</td>
-              <td class="px-3 py-3 text-slate-300">{{ r.admin }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ formatDateTime(r.created_at) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ r.admin }}</td>
             </tr>
           </tbody>
         </table>
@@ -151,14 +151,41 @@ function formatDateTime(v: string) {
   }).format(d)
 }
 
+type SortKey = 'username' | 'name' | 'affiliateName' | 'type' | 'amount_usdt' | 'status' | 'created_at' | 'admin'
+const sortKey = ref<SortKey | null>(null)
+const sortDir = ref<'asc' | 'desc'>('asc')
+
+function toggleSort(key: SortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
+function sortArrow(key: SortKey) {
+  if (sortKey.value !== key) return ''
+  return sortDir.value === 'asc' ? ' ▲' : ' ▼'
+}
+
 const filtered = computed(() => {
   const q = keyword.value.trim().toLowerCase()
-  return items.value.filter((r) => {
+  const rows = items.value.filter((r) => {
     if (typeFilter.value && r.type !== typeFilter.value) return false
     if (fromDate.value && dateOnly(r.created_at) < fromDate.value) return false
     if (toDate.value && dateOnly(r.created_at) > toDate.value) return false
     if (!q) return true
     return [r.username, r.name, r.affiliateName, r.admin].some((v) => String(v).toLowerCase().includes(q))
+  })
+
+  if (!sortKey.value) return rows
+  const key = sortKey.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const av = a[key]
+    const bv = b[key]
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+    return String(av).localeCompare(String(bv)) * dir
   })
 })
 
@@ -216,5 +243,21 @@ onMounted(() => {
   margin-left: auto;
   cursor: pointer;
   opacity: 0.9;
+}
+
+.sortable-th {
+  color: rgb(203 213 225 / 0.9);
+  transition: color 0.15s ease;
+}
+.sortable-th:hover {
+  color: #fff;
+}
+.sortable-th .sort-icon {
+  margin-left: 2px;
+  font-size: 10px;
+  color: rgb(148 163 184 / 0.6);
+}
+.sortable-th:hover .sort-icon {
+  color: rgb(203 213 225 / 0.9);
 }
 </style>

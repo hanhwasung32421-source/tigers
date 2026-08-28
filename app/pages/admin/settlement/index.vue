@@ -49,56 +49,34 @@
         </div>
       </div>
 
-      <div class="mt-4 flex items-center justify-end gap-2 text-sm text-slate-300">
-        <span class="text-slate-400">표시수</span>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-300">
         <input
-          v-model.number="pageSizeInput"
-          type="number"
-          min="1"
-          max="500"
-          class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-right outline-none"
+          v-model.trim="keyword"
+          placeholder="아이디/이름 검색"
+          class="w-64 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600"
         />
-        <span class="text-slate-500">명씩 · 총 {{ filteredItems.length }}명</span>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400">표시수</span>
+          <input
+            v-model.number="pageSizeInput"
+            type="number"
+            min="1"
+            max="500"
+            class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-right outline-none"
+          />
+          <span class="text-slate-500">명씩 · 총 {{ filteredItems.length }}명</span>
+        </div>
       </div>
 
-      <div class="mt-2 overflow-auto">
+      <div class="mt-2 overflow-x-auto">
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
-              <th class="px-3 py-3 text-left">회원 아이디</th>
-              <th class="px-3 py-3 text-left">이름</th>
-              <th class="px-3 py-3 text-right">잔액</th>
-              <th class="px-3 py-3 text-right">{{ baseAmountLabel }}</th>
-              <th class="px-3 py-3 text-right">정산금</th>
-            </tr>
-            <tr class="border-b border-[#12314a] bg-white/[0.02]">
-              <th class="px-3 py-2">
-                <input v-model.trim="filterUsername" placeholder="아이디 검색" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-              </th>
-              <th class="px-3 py-2">
-                <input v-model.trim="filterName" placeholder="이름 검색" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-              </th>
-              <th class="px-3 py-2">
-                <div class="flex items-center gap-1">
-                  <input v-model="filterBalanceMin" type="number" placeholder="최소(원)" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-                  <span class="text-slate-600">~</span>
-                  <input v-model="filterBalanceMax" type="number" placeholder="최대(원)" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-                </div>
-              </th>
-              <th class="px-3 py-2">
-                <div class="flex items-center gap-1">
-                  <input v-model="filterBaseMin" type="number" placeholder="최소(원)" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-                  <span class="text-slate-600">~</span>
-                  <input v-model="filterBaseMax" type="number" placeholder="최대(원)" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-                </div>
-              </th>
-              <th class="px-3 py-2">
-                <div class="flex items-center gap-1">
-                  <input v-model="filterSettlementMin" type="number" placeholder="최소(원)" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-                  <span class="text-slate-600">~</span>
-                  <input v-model="filterSettlementMax" type="number" placeholder="최대(원)" class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-                </div>
-              </th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('baseAmount')">{{ baseAmountLabel }}<span class="sort-icon">{{ sortArrow('baseAmount') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('settlementAmount')">정산금<span class="sort-icon">{{ sortArrow('settlementAmount') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -206,40 +184,40 @@ const krwPerUsdt = ref(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-// 컬럼별 필터: 아이디/이름은 텍스트 검색, 금액 컬럼은 원화 기준 최소~최대 범위
-const filterUsername = ref('')
-const filterName = ref('')
-const filterBalanceMin = ref('')
-const filterBalanceMax = ref('')
-const filterBaseMin = ref('')
-const filterBaseMax = ref('')
-const filterSettlementMin = ref('')
-const filterSettlementMax = ref('')
+// 아이디/이름 통합 검색 + 컬럼 헤더 클릭으로 오름차순/내림차순 정렬
+const keyword = ref('')
 
-function inRange(krwValue: number, min: unknown, max: unknown) {
-  // type="number" 입력은 값이 채워지면 Vue가 문자열이 아니라 숫자로 바꿔주므로 항상 문자열로 방어적 변환.
-  const minRaw = String(min ?? '').trim()
-  const maxRaw = String(max ?? '').trim()
-  const minN = minRaw === '' ? null : Number(minRaw)
-  const maxN = maxRaw === '' ? null : Number(maxRaw)
-  if (minN !== null && Number.isFinite(minN) && krwValue < minN) return false
-  if (maxN !== null && Number.isFinite(maxN) && krwValue > maxN) return false
-  return true
+type SortKey = 'username' | 'name' | 'balanceUsdt' | 'baseAmount' | 'settlementAmount'
+const sortKey = ref<SortKey | null>(null)
+const sortDir = ref<'asc' | 'desc'>('asc')
+
+function toggleSort(key: SortKey) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
+function sortArrow(key: SortKey) {
+  if (sortKey.value !== key) return ''
+  return sortDir.value === 'asc' ? ' ▲' : ' ▼'
 }
 
 const filteredItems = computed(() => {
-  const uq = filterUsername.value.trim().toLowerCase()
-  const nq = filterName.value.trim().toLowerCase()
-  return items.value.filter((it) => {
-    if (uq && !it.username.toLowerCase().includes(uq)) return false
-    if (nq && !it.name.toLowerCase().includes(nq)) return false
-    const balanceKrw = Math.round(it.balanceUsdt * krwPerUsdt.value)
-    const baseKrw = Math.round(it.baseAmount * krwPerUsdt.value)
-    const settlementKrw = Math.round(it.settlementAmount * krwPerUsdt.value)
-    if (!inRange(balanceKrw, filterBalanceMin.value, filterBalanceMax.value)) return false
-    if (!inRange(baseKrw, filterBaseMin.value, filterBaseMax.value)) return false
-    if (!inRange(settlementKrw, filterSettlementMin.value, filterSettlementMax.value)) return false
-    return true
+  const q = keyword.value.trim().toLowerCase()
+  const rows = q
+    ? items.value.filter((it) => it.username.toLowerCase().includes(q) || it.name.toLowerCase().includes(q))
+    : items.value
+
+  if (!sortKey.value) return rows
+  const key = sortKey.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const av = a[key]
+    const bv = b[key]
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+    return String(av).localeCompare(String(bv)) * dir
   })
 })
 
@@ -328,5 +306,21 @@ onMounted(() => {
   margin-left: auto;
   cursor: pointer;
   opacity: 0.9;
+}
+
+.sortable-th {
+  color: rgb(203 213 225 / 0.9);
+  transition: color 0.15s ease;
+}
+.sortable-th:hover {
+  color: #fff;
+}
+.sortable-th .sort-icon {
+  margin-left: 2px;
+  font-size: 10px;
+  color: rgb(148 163 184 / 0.6);
+}
+.sortable-th:hover .sort-icon {
+  color: rgb(203 213 225 / 0.9);
 }
 </style>
