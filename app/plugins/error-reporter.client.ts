@@ -29,11 +29,16 @@ export default defineNuxtPlugin((nuxtApp) => {
   if (original && !original.__wrappedForErrorLog__) {
     const wrapped = original.create({
       onResponseError(ctx: any) {
+        const url = String(ctx.request)
+        const status = ctx.response?.status
+        // OKX 공개 API의 캔들(과거 데이터 백필) 429는 OKX 쪽 요청 제한일 뿐이고,
+        // 호출부에서 이미 조용히 넘어가도록 처리돼 있어 실제 거래엔 영향이 없다 — 콘솔 노이즈만 되므로 제외.
+        if (url.includes('/api/okx/candles') && status === 429) return
         record({
           type: 'fetch',
-          url: String(ctx.request),
+          url,
           method: ctx.options?.method || 'GET',
-          statusCode: ctx.response?.status,
+          statusCode: status,
           statusMessage: ctx.response?.statusText,
           message: ctx.response?._data?.statusMessage || ctx.response?._data?.message || ctx.error?.message,
           data: ctx.response?._data
