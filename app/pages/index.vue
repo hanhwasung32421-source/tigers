@@ -39,30 +39,6 @@
         </div>
       </div>
     </section>
-
-    <section class="grid gap-5 md:grid-cols-3">
-      <div class="rounded-3xl border border-cyan-500/10 bg-[#05111d]/90 p-6 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-        <div class="text-sm font-semibold text-slate-400">Institutional Liquidity</div>
-        <div class="mt-3 text-4xl font-bold text-white">Ultra-Tight Spreads</div>
-        <p class="mt-4 text-sm leading-7 text-slate-400">
-          Robust order matching engine executing up to 100,000 TPS.
-        </p>
-      </div>
-      <div class="rounded-3xl border border-cyan-500/10 bg-[#05111d]/90 p-6 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-        <div class="text-sm font-semibold text-slate-400">Security &amp; Custody</div>
-        <div class="mt-3 text-4xl font-bold text-white">Cold Storage &amp; Risk Control</div>
-        <p class="mt-4 text-sm leading-7 text-slate-400">
-          Multilayered security framework to keep perpetual positions secure.
-        </p>
-      </div>
-      <div class="rounded-3xl border border-cyan-500/10 bg-[#05111d]/90 p-6 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-        <div class="text-sm font-semibold text-slate-400">Advanced Features</div>
-        <div class="mt-3 text-4xl font-bold text-white">Flexible Margin Options</div>
-        <p class="mt-4 text-sm leading-7 text-slate-400">
-          Access isolated margin settings with customizable leverage up to 100x.
-        </p>
-      </div>
-    </section>
   </div>
 </template>
 

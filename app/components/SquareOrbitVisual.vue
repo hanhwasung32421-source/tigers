@@ -1,30 +1,41 @@
 <template>
-  <div class="relative mx-auto aspect-square w-full max-w-[480px] select-none">
-    <!-- 은은하게 회전하는 바깥 사각 테두리 -->
-    <div class="square-orbit-frame absolute inset-0 rounded-[36px] border border-cyan-400/15" :class="{ 'is-paused': paused }" />
-    <div class="square-orbit-frame-slow absolute inset-6 rounded-[30px] border border-white/5" :class="{ 'is-paused': paused }" />
+  <div
+    ref="rootEl"
+    class="square-orbit-root relative mx-auto aspect-square w-full max-w-[480px] select-none"
+    @mousemove="onMouseMove"
+    @mouseleave="onMouseLeave"
+  >
+    <div class="square-orbit-tilt absolute inset-0" :style="tiltStyle">
+      <!-- 회전하는 컨직 그라디언트 글로우 링 -->
+      <div class="square-glow-ring absolute -inset-3 rounded-[40px] opacity-70" :class="{ 'is-paused': paused }" />
 
-    <!-- 본체 패널 -->
-    <div class="absolute inset-3 overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_30%_20%,rgba(6,182,212,0.10),transparent_45%),linear-gradient(160deg,#0a0f18,#05070c_60%)]">
-      <div class="square-sheen absolute inset-0" :class="{ 'is-paused': paused }" />
+      <!-- 회전하는 바깥 사각 테두리 2겹 -->
+      <div class="square-orbit-frame absolute inset-0 rounded-[36px] border border-cyan-400/25" :class="{ 'is-paused': paused }" />
+      <div class="square-orbit-frame-slow absolute inset-6 rounded-[30px] border border-white/10 border-dashed" :class="{ 'is-paused': paused }" />
 
-      <div class="relative grid h-full w-full grid-cols-3 grid-rows-3 gap-3 p-6 sm:gap-4 sm:p-8">
-        <div
-          v-for="(tile, idx) in tiles"
-          :key="idx"
-          class="square-tile flex items-center justify-center rounded-2xl border"
-          :class="[tile.center ? 'border-cyan-400/30 bg-cyan-400/[0.06]' : 'border-white/10 bg-white/[0.03]', { 'is-paused': paused }]"
-          :style="{ animationDelay: `${idx * 0.35}s` }"
-        >
-          <div v-if="tile.center" class="flex flex-col items-center gap-1.5">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-base font-black text-cyan-200">
-              {{ mark }}
+      <!-- 본체 패널 -->
+      <div class="absolute inset-3 overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_30%_20%,rgba(6,182,212,0.14),transparent_45%),linear-gradient(160deg,#0a0f18,#05070c_60%)]">
+        <div class="square-sheen absolute inset-0" :class="{ 'is-paused': paused }" />
+        <div class="square-scanline absolute inset-x-0 h-1/3 bg-gradient-to-b from-cyan-400/0 via-cyan-400/[0.06] to-cyan-400/0" :class="{ 'is-paused': paused }" />
+
+        <div class="relative grid h-full w-full grid-cols-3 grid-rows-3 gap-3 p-6 sm:gap-4 sm:p-8">
+          <div
+            v-for="(tile, idx) in tiles"
+            :key="idx"
+            class="square-tile group flex items-center justify-center rounded-2xl border transition-colors"
+            :class="[tile.center ? 'square-tile-center border-cyan-400/40 bg-cyan-400/[0.08]' : 'border-white/10 bg-white/[0.03] hover:border-cyan-400/30', { 'is-paused': paused }]"
+            :style="{ animationDelay: `${idx * 0.28}s` }"
+          >
+            <div v-if="tile.center" class="flex flex-col items-center gap-1.5">
+              <div class="square-mark flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/10 text-base font-black text-cyan-200">
+                {{ mark }}
+              </div>
+              <div class="text-[9px] font-semibold tracking-[0.2em] text-slate-400">{{ caption }}</div>
             </div>
-            <div class="text-[9px] font-semibold tracking-[0.2em] text-slate-400">{{ caption }}</div>
+            <svg v-else viewBox="0 0 24 24" class="h-6 w-6 text-slate-300/80 sm:h-7 sm:w-7" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path :d="tile.path" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
           </div>
-          <svg v-else viewBox="0 0 24 24" class="h-6 w-6 text-slate-300/80 sm:h-7 sm:w-7" fill="none" stroke="currentColor" stroke-width="1.6">
-            <path :d="tile.path" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
         </div>
       </div>
     </div>
@@ -63,6 +74,26 @@ withDefaults(
 )
 
 const paused = ref(false)
+const rootEl = ref<HTMLElement | null>(null)
+const tiltX = ref(0)
+const tiltY = ref(0)
+
+function onMouseMove(e: MouseEvent) {
+  if (!rootEl.value) return
+  const rect = rootEl.value.getBoundingClientRect()
+  const px = (e.clientX - rect.left) / rect.width - 0.5
+  const py = (e.clientY - rect.top) / rect.height - 0.5
+  tiltY.value = px * 10
+  tiltX.value = py * -10
+}
+function onMouseLeave() {
+  tiltX.value = 0
+  tiltY.value = 0
+}
+const tiltStyle = computed(() => ({
+  transform: `perspective(900px) rotateX(${tiltX.value}deg) rotateY(${tiltY.value}deg)`,
+  transition: 'transform 0.3s ease-out'
+}))
 
 const ICONS = {
   chart: 'M4 19V5m5 14V9m5 10V7m5 12V11',
@@ -89,19 +120,35 @@ const tiles = [
 </script>
 
 <style scoped>
+.square-glow-ring {
+  background: conic-gradient(from 0deg, transparent 0%, rgba(34, 211, 238, 0.35) 12%, transparent 24%, transparent 50%, rgba(56, 189, 248, 0.3) 62%, transparent 74%);
+  filter: blur(10px);
+  animation: square-spin 9s linear infinite;
+}
 .square-orbit-frame {
-  animation: square-spin 26s linear infinite;
+  animation: square-spin 14s linear infinite;
 }
 .square-orbit-frame-slow {
-  animation: square-spin-reverse 34s linear infinite;
+  animation: square-spin-reverse 20s linear infinite;
 }
 .square-sheen {
-  background: linear-gradient(115deg, transparent 40%, rgba(56, 189, 248, 0.08) 50%, transparent 60%);
-  background-size: 220% 220%;
-  animation: square-sheen-move 7s ease-in-out infinite;
+  background: linear-gradient(115deg, transparent 35%, rgba(56, 189, 248, 0.16) 50%, transparent 65%);
+  background-size: 260% 260%;
+  animation: square-sheen-move 4.5s ease-in-out infinite;
+}
+.square-scanline {
+  animation: square-scan 3.6s ease-in-out infinite;
 }
 .square-tile {
-  animation: square-float 4.5s ease-in-out infinite;
+  animation: square-float 3.2s ease-in-out infinite;
+}
+.square-tile-center {
+  animation:
+    square-float 3.2s ease-in-out infinite,
+    square-pulse-glow 3.2s ease-in-out infinite;
+}
+.square-mark {
+  animation: square-mark-pulse 2.6s ease-in-out infinite;
 }
 
 .is-paused {
@@ -125,30 +172,57 @@ const tiles = [
   }
 }
 @keyframes square-sheen-move {
-  0%,
-  100% {
+  0% {
     background-position: 0% 0%;
   }
-  50% {
+  100% {
     background-position: 100% 100%;
+  }
+}
+@keyframes square-scan {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(320%);
+    opacity: 0;
   }
 }
 @keyframes square-float {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-10px) scale(1.03);
+  }
+}
+@keyframes square-pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(34, 211, 238, 0);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+  }
+}
+@keyframes square-mark-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .square-orbit-frame,
-  .square-orbit-frame-slow,
-  .square-sheen,
-  .square-tile {
-    animation: none !important;
-  }
-}
 </style>
