@@ -113,12 +113,14 @@
               </td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
                 <button
+                  v-if="canEditBalance"
                   type="button"
                   class="rounded bg-cyan-500/10 px-2 py-1 text-cyan-100 ring-1 ring-cyan-400/20 hover:bg-cyan-500/15"
                   @click="openBalanceModal(u)"
                 >
                   {{ fmt2(u.balanceUsdt) }}
                 </button>
+                <span v-else class="px-2 py-1 text-slate-300">{{ fmt2(u.balanceUsdt) }}</span>
               </td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
                 <button
