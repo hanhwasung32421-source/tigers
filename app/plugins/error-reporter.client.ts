@@ -13,11 +13,16 @@ export type ClientErrorEntry = {
 // 총관리자 전용 에러 배너(app/components/AdminErrorConsole.vue)에서 읽는 전역 상태.
 // 여기서 잡은 원본 에러는 저장만 하고 그대로 다시 던지므로, 각 페이지의 기존
 // try/catch(친절한 한글 메시지 표시)는 지금까지와 동일하게 동작한다.
+const MAX_ERROR_HISTORY = 20
+
 export default defineNuxtPlugin((nuxtApp) => {
   const lastError = useState<ClientErrorEntry | null>('client_last_error', () => null)
+  const errorHistory = useState<ClientErrorEntry[]>('client_error_history', () => [])
 
   function record(entry: Omit<ClientErrorEntry, 'at'>) {
-    lastError.value = { at: new Date().toISOString(), ...entry }
+    const full: ClientErrorEntry = { at: new Date().toISOString(), ...entry }
+    lastError.value = full
+    errorHistory.value = [full, ...errorHistory.value].slice(0, MAX_ERROR_HISTORY)
   }
 
   const original = globalThis.$fetch as any
