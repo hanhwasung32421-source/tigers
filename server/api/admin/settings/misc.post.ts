@@ -7,7 +7,9 @@ const BodySchema = z.object({
   krwPerUsdt: z.number().nonnegative().optional(),
   lossSettlementPercent: z.number().min(0).max(100).optional(),
   referralSettlementPercent: z.number().min(0).max(100).optional(),
-  menuOrder: z.array(z.string()).optional()
+  menuOrder: z.array(z.string()).optional(),
+  mainNavOrder: z.array(z.string()).optional(),
+  mainNavHidden: z.array(z.string()).optional()
 })
 
 export default defineEventHandler(async (event) => {

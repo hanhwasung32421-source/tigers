@@ -410,6 +410,62 @@
       </div>
     </div>
 
+    <!-- 메뉴구성 -->
+    <div v-show="activeTab === 'nav'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <h2 class="text-lg font-semibold">메뉴구성</h2>
+      <p class="mt-1 text-sm text-slate-400">
+        비회원을 포함해 누구나 보는 최상단 메인 메뉴의 순서를 바꾸거나, 특정 메뉴를 화면에서 숨길 수 있습니다.
+      </p>
+
+      <div class="mt-4 space-y-2">
+        <div
+          v-for="(key, idx) in mainNavDraft.order"
+          :key="key"
+          class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+        >
+          <div class="flex items-center gap-3">
+            <div class="flex flex-col">
+              <button
+                type="button"
+                class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                :disabled="idx === 0"
+                @click="moveMainNavOrder(idx, -1)"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                :disabled="idx === mainNavDraft.order.length - 1"
+                @click="moveMainNavOrder(idx, 1)"
+              >
+                ▼
+              </button>
+            </div>
+            <span class="text-sm font-semibold text-slate-100" :class="{ 'text-slate-500 line-through': mainNavDraft.hidden.includes(key) }">
+              {{ MAIN_NAV_LABELS[key] }}
+            </span>
+          </div>
+          <label class="flex items-center gap-2 text-xs text-slate-300">
+            <input type="checkbox" :checked="!mainNavDraft.hidden.includes(key)" @change="toggleMainNavHidden(key)" />
+            화면에 표시
+          </label>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center gap-3">
+        <button
+          class="rounded-md bg-indigo-500 px-4 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="mainNavSaving"
+          @click="saveMainNavSettings"
+        >
+          저장
+        </button>
+        <p v-if="mainNavError" class="text-sm text-red-300">{{ mainNavError }}</p>
+        <p v-if="mainNavMsg" class="text-sm text-emerald-300">{{ mainNavMsg }}</p>
+      </div>
+    </div>
+
     <!-- 역할 관리 -->
     <div v-show="activeTab === 'roles'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-end justify-between gap-3">
@@ -625,11 +681,12 @@ definePageMeta({ middleware: ['admin', 'super-admin'] })
 const { me, refresh } = useMe()
 await refresh()
 
-type TabKey = 'users' | 'liquidation' | 'misc' | 'roles' | 'killEvents'
+type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'roles' | 'killEvents'
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'users', label: '유저 및 권한 관리' },
   { key: 'liquidation', label: '강제청산 기준 설정' },
   { key: 'misc', label: '정산/기타 설정' },
+  { key: 'nav', label: '메뉴구성' },
   { key: 'roles', label: '역할 관리' },
   { key: 'killEvents', label: '킬UP/킬DOWN 이력' }
 ]
@@ -1201,6 +1258,52 @@ const miscMsg = ref<string | null>(null)
 const dailyKrwRate = ref(0)
 const dailyKrwRateDay = ref('')
 
+// 메뉴구성: 비회원도 보는 최상단 메인 메뉴(관리자 전용 서브메뉴와는 별개)
+type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'wallet' | 'invest' | 'support'
+const MAIN_NAV_KEYS: MainNavKey[] = ['coin', 'stock', 'kr', 'markets', 'wallet', 'invest', 'support']
+const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
+  coin: '코인선물',
+  stock: '해외주식',
+  kr: '국내주식',
+  markets: '마켓',
+  wallet: '내 지갑',
+  invest: '투자내역',
+  support: '고객센터'
+}
+const mainNavDraft = reactive<{ order: MainNavKey[]; hidden: MainNavKey[] }>({
+  order: [...MAIN_NAV_KEYS],
+  hidden: []
+})
+const mainNavSaving = ref(false)
+const mainNavError = ref<string | null>(null)
+const mainNavMsg = ref<string | null>(null)
+
+function moveMainNavOrder(idx: number, dir: -1 | 1) {
+  const next = idx + dir
+  if (next < 0 || next >= mainNavDraft.order.length) return
+  const arr = mainNavDraft.order
+  ;[arr[idx], arr[next]] = [arr[next], arr[idx]]
+}
+function toggleMainNavHidden(key: MainNavKey) {
+  mainNavDraft.hidden = mainNavDraft.hidden.includes(key) ? mainNavDraft.hidden.filter((k) => k !== key) : [...mainNavDraft.hidden, key]
+}
+async function saveMainNavSettings() {
+  mainNavSaving.value = true
+  mainNavError.value = null
+  mainNavMsg.value = null
+  try {
+    await $fetch('/api/admin/settings/misc', {
+      method: 'POST',
+      body: { mainNavOrder: mainNavDraft.order, mainNavHidden: mainNavDraft.hidden }
+    })
+    mainNavMsg.value = '저장되었습니다.'
+  } catch (e: any) {
+    mainNavError.value = e?.data?.statusMessage || '저장 실패'
+  } finally {
+    mainNavSaving.value = false
+  }
+}
+
 function fmt0(v: number) {
   return Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
@@ -1220,6 +1323,17 @@ async function loadMiscSettings() {
     }
     dailyKrwRate.value = Number(data.dailyKrwRate || 0)
     dailyKrwRateDay.value = String(data.dailyKrwRateDay || '')
+
+    if (Array.isArray(data.mainNavOrder) && data.mainNavOrder.length) {
+      const known = new Set(MAIN_NAV_KEYS)
+      const fromServer = data.mainNavOrder.filter((k: string) => known.has(k as MainNavKey)) as MainNavKey[]
+      const missing = MAIN_NAV_KEYS.filter((k) => !fromServer.includes(k))
+      mainNavDraft.order = [...fromServer, ...missing]
+    }
+    if (Array.isArray(data.mainNavHidden)) {
+      const known = new Set(MAIN_NAV_KEYS)
+      mainNavDraft.hidden = data.mainNavHidden.filter((k: string) => known.has(k as MainNavKey))
+    }
   } catch {
     // 기본값 유지
   }

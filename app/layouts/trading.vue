@@ -26,22 +26,18 @@
           </NuxtLink>
 
           <nav class="flex items-center gap-1 text-sm text-slate-300">
-            <NuxtLink to="/exchange/BTCUSDT" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/BTCUSDT')">
-              코인선물
-              <span class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">100x</span>
-            </NuxtLink>
-            <NuxtLink to="/exchange/AAPLUSDT" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/AAPLUSDT')">
-              해외주식
-              <span class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">100x</span>
-            </NuxtLink>
-            <NuxtLink to="/exchange/SAMSUNGUSDT" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">
-              국내주식
-              <span class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">100x</span>
-            </NuxtLink>
-            <NuxtLink to="/markets" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/markets')">마켓</NuxtLink>
-            <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/wallet')">내 지갑</NuxtLink>
-            <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
-            <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
+            <template v-for="key in orderedMainNavKeys" :key="key">
+              <NuxtLink
+                :to="key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key]"
+                class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white"
+                @click="startNavLoading(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
+              >
+                {{ MAIN_NAV_LABELS[key] }}
+                <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">
+                  {{ MAIN_NAV_BADGES[key] }}
+                </span>
+              </NuxtLink>
+            </template>
             <div v-if="isAdmin" class="group relative">
               <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
               <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
@@ -163,6 +159,43 @@ function canViewAdminMenu(key: string) {
   if (me.value?.role === 'super_admin') return true
   return (me.value as any)?.permissions?.menus?.[key]?.view !== false
 }
+
+// 최상단 메인 메뉴(비회원도 봄): 관리자 대시보드의 "메뉴구성" 탭에서 순서/숨김을 설정한다.
+type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'wallet' | 'invest' | 'support'
+const MAIN_NAV_ROUTES: Record<MainNavKey, string> = {
+  coin: '/exchange/BTCUSDT',
+  stock: '/exchange/AAPLUSDT',
+  kr: '/exchange/SAMSUNGUSDT',
+  markets: '/markets',
+  wallet: '/wallet',
+  invest: '/invest/balance',
+  support: '/support'
+}
+const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
+  coin: '코인선물',
+  stock: '해외주식',
+  kr: '국내주식',
+  markets: '마켓',
+  wallet: '내 지갑',
+  invest: '투자내역',
+  support: '고객센터'
+}
+const MAIN_NAV_BADGES: Partial<Record<MainNavKey, string>> = { coin: '100x', stock: '100x', kr: '100x' }
+const DEFAULT_MAIN_NAV_ORDER = Object.keys(MAIN_NAV_ROUTES) as MainNavKey[]
+const orderedMainNavKeys = ref<MainNavKey[]>(DEFAULT_MAIN_NAV_ORDER.filter((k) => k !== 'invest'))
+async function loadMainNavConfig() {
+  try {
+    const data = await $fetch<{ order: string[]; hidden: string[] }>('/api/nav-menu')
+    const known = new Set(DEFAULT_MAIN_NAV_ORDER)
+    const fromServer = (data.order || []).filter((k) => known.has(k as MainNavKey)) as MainNavKey[]
+    const missing = DEFAULT_MAIN_NAV_ORDER.filter((k) => !fromServer.includes(k))
+    const hidden = new Set((data.hidden || []).filter((k) => known.has(k as MainNavKey)))
+    orderedMainNavKeys.value = [...fromServer, ...missing].filter((k) => !hidden.has(k))
+  } catch {
+    // 기본 순서 유지(투자내역은 기본 숨김)
+  }
+}
+await loadMainNavConfig()
 
 const ADMIN_MENU_ROUTES: Record<string, string> = {
   members: '/admin/members',

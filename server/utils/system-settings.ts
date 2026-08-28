@@ -46,12 +46,20 @@ export async function setLiquidationRoe(value: number): Promise<number> {
 export const REORDERABLE_MENU_KEYS = ['members', 'online', 'trades', 'positions', 'messages', 'settlement', 'deposits'] as const
 export type ReorderableMenuKey = (typeof REORDERABLE_MENU_KEYS)[number]
 
+// 모든 방문자(비회원 포함)가 보는 최상단 메인 메뉴. 순서 변경/숨기기를 관리자 대시보드에서 지원한다.
+export const MAIN_NAV_KEYS = ['coin', 'stock', 'kr', 'markets', 'wallet', 'invest', 'support'] as const
+export type MainNavKey = (typeof MAIN_NAV_KEYS)[number]
+// 기본값: 요청에 따라 "투자내역"은 처음부터 숨김 처리.
+const DEFAULT_MAIN_NAV_HIDDEN: MainNavKey[] = ['invest']
+
 export type SystemSettingsExtra = {
   telegramUrl: string
   krwPerUsdt: number
   lossSettlementPercent: number
   referralSettlementPercent: number
   menuOrder: string[]
+  mainNavOrder: string[]
+  mainNavHidden: string[]
 }
 
 const DEFAULT_EXTRA: SystemSettingsExtra = {
@@ -59,7 +67,9 @@ const DEFAULT_EXTRA: SystemSettingsExtra = {
   krwPerUsdt: 0,
   lossSettlementPercent: 0,
   referralSettlementPercent: 0,
-  menuOrder: [...REORDERABLE_MENU_KEYS]
+  menuOrder: [...REORDERABLE_MENU_KEYS],
+  mainNavOrder: [...MAIN_NAV_KEYS],
+  mainNavHidden: [...DEFAULT_MAIN_NAV_HIDDEN]
 }
 
 // 저장된 값이 없거나 최근에 메뉴가 추가/삭제되어 목록이 어긋나도 항상 유효한 순서를 돌려준다.
@@ -68,6 +78,19 @@ function normalizeMenuOrder(raw: any): string[] {
   const fromRaw = Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string' && known.has(k)) : []
   const missing = REORDERABLE_MENU_KEYS.filter((k) => !fromRaw.includes(k))
   return [...fromRaw, ...missing]
+}
+
+function normalizeMainNavOrder(raw: any): string[] {
+  const known = new Set<string>(MAIN_NAV_KEYS)
+  const fromRaw = Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string' && known.has(k)) : []
+  const missing = MAIN_NAV_KEYS.filter((k) => !fromRaw.includes(k))
+  return [...fromRaw, ...missing]
+}
+
+function normalizeMainNavHidden(raw: any, fallback: string[]): string[] {
+  const known = new Set<string>(MAIN_NAV_KEYS)
+  if (!Array.isArray(raw)) return fallback
+  return raw.filter((k): k is string => typeof k === 'string' && known.has(k))
 }
 
 function rowToExtra(row: any): SystemSettingsExtra {
@@ -80,12 +103,35 @@ function rowToExtra(row: any): SystemSettingsExtra {
       menuOrderRaw = null
     }
   }
+  let mainNavOrderRaw: any = row.main_nav_order
+  if (typeof mainNavOrderRaw === 'string') {
+    try {
+      mainNavOrderRaw = JSON.parse(mainNavOrderRaw)
+    } catch {
+      mainNavOrderRaw = null
+    }
+  }
+  let mainNavHiddenRaw: any = row.main_nav_hidden
+  if (typeof mainNavHiddenRaw === 'string') {
+    try {
+      mainNavHiddenRaw = JSON.parse(mainNavHiddenRaw)
+    } catch {
+      mainNavHiddenRaw = null
+    }
+  }
+  // main_nav_hidden 컬럼이 아예 비어있으면(=한 번도 저장된 적 없음) 기본 숨김값을 쓰고,
+  // 관리자가 빈 배열로 명시적으로 저장했으면(=전부 표시) 그 값을 그대로 존중한다.
+  const hiddenFallback = row.main_nav_hidden === undefined || row.main_nav_hidden === null || row.main_nav_hidden === ''
+    ? DEFAULT_MAIN_NAV_HIDDEN
+    : []
   return {
     telegramUrl: String(row.telegram_url || ''),
     krwPerUsdt: Number(row.krw_per_usdt || 0),
     lossSettlementPercent: Number(row.loss_settlement_percent || 0),
     referralSettlementPercent: Number(row.referral_settlement_percent || 0),
-    menuOrder: normalizeMenuOrder(menuOrderRaw)
+    menuOrder: normalizeMenuOrder(menuOrderRaw),
+    mainNavOrder: normalizeMainNavOrder(mainNavOrderRaw),
+    mainNavHidden: normalizeMainNavHidden(mainNavHiddenRaw, hiddenFallback)
   }
 }
 
@@ -100,7 +146,11 @@ export async function getSystemSettingsExtra(): Promise<SystemSettingsExtra> {
     }
   }
   const db = getDb()
-  const row = db.prepare('SELECT telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order FROM system_settings WHERE id = 1').get()
+  const row = db
+    .prepare(
+      'SELECT telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, main_nav_order, main_nav_hidden FROM system_settings WHERE id = 1'
+    )
+    .get()
   return rowToExtra(row)
 }
 
@@ -109,7 +159,9 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
   const next: SystemSettingsExtra = {
     ...current,
     ...patch,
-    menuOrder: patch.menuOrder ? normalizeMenuOrder(patch.menuOrder) : current.menuOrder
+    menuOrder: patch.menuOrder ? normalizeMenuOrder(patch.menuOrder) : current.menuOrder,
+    mainNavOrder: patch.mainNavOrder ? normalizeMainNavOrder(patch.mainNavOrder) : current.mainNavOrder,
+    mainNavHidden: patch.mainNavHidden ? normalizeMainNavHidden(patch.mainNavHidden, current.mainNavHidden) : current.mainNavHidden
   }
   const now = new Date().toISOString()
 
@@ -123,6 +175,8 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
         loss_settlement_percent: next.lossSettlementPercent,
         referral_settlement_percent: next.referralSettlementPercent,
         menu_order: next.menuOrder,
+        main_nav_order: next.mainNavOrder,
+        main_nav_hidden: next.mainNavHidden,
         updated_at: now
       },
       'id'
@@ -132,16 +186,27 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
 
   const db = getDb()
   db.prepare(
-    `INSERT INTO system_settings (id, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, updated_at)
-     VALUES (1, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO system_settings (id, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, main_nav_order, main_nav_hidden, updated_at)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        telegram_url = excluded.telegram_url,
        krw_per_usdt = excluded.krw_per_usdt,
        loss_settlement_percent = excluded.loss_settlement_percent,
        referral_settlement_percent = excluded.referral_settlement_percent,
        menu_order = excluded.menu_order,
+       main_nav_order = excluded.main_nav_order,
+       main_nav_hidden = excluded.main_nav_hidden,
        updated_at = excluded.updated_at`
-  ).run(next.telegramUrl, next.krwPerUsdt, next.lossSettlementPercent, next.referralSettlementPercent, JSON.stringify(next.menuOrder), now)
+  ).run(
+    next.telegramUrl,
+    next.krwPerUsdt,
+    next.lossSettlementPercent,
+    next.referralSettlementPercent,
+    JSON.stringify(next.menuOrder),
+    JSON.stringify(next.mainNavOrder),
+    JSON.stringify(next.mainNavHidden),
+    now
+  )
   return next
 }
 
