@@ -1,7 +1,7 @@
 <template>
   <span class="inline-flex items-center gap-2">
     <span
-      class="font-brand flex shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-cyan-300 via-cyan-400 to-blue-600 font-bold text-[#02101c] shadow-[0_2px_10px_rgba(34,211,238,0.35)]"
+      class="font-brand flex shrink-0 items-center justify-center rounded-[9px] border border-white bg-black font-bold text-white"
       :class="iconSizeClass"
       aria-hidden="true"
     >
