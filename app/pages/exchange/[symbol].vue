@@ -951,10 +951,10 @@
           </button>
           <div class="relative z-10">
             <div class="text-[16px] font-semibold tracking-tight text-white/90">futureusdt</div>
-            <div class="mt-5 text-[36px] font-black leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-green-500' : 'text-rose-500'">
+            <div class="mt-5 text-[36px] font-black leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
               {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }} %
             </div>
-            <div class="mt-2 text-[19px] font-semibold tracking-tight" :class="closeSummary.pnl >= 0 ? 'text-green-500' : 'text-rose-500'">
+            <div class="mt-2 text-[19px] font-semibold tracking-tight" :class="closeSummary.pnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
               {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} 원
             </div>
 
@@ -984,7 +984,7 @@
               </div>
               <div>
                 <div class="text-[13px] font-medium text-slate-400">손익</div>
-                <div class="mt-1 text-[18px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-green-500' : 'text-rose-500'">
+                <div class="mt-1 text-[18px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
                   {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(6) }} USDT
                 </div>
               </div>
