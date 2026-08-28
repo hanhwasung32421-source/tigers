@@ -1,19 +1,32 @@
 // OKX(우리가 차트/시세를 가져오는 거래소)의 실제 무기한 스왑(SWAP) 상품 목록을 가져와
-// 코인선물 / 해외주식 / 국내주식 세 카테고리로 분류한다.
+// 코인선물 / 해외주식 / ETF / 원자재 / 국내주식 카테고리로 분류한다.
 // - instCategory '1' = 코인(암호화폐) 선물
-// - instCategory '3' = 주식/ETF/지수 토큰(미국+해외+한국 혼재) → 한국 관련 티커만 국내주식으로 분리
-// - instCategory '4' = 귀금속/원자재(금/은/백금/팔라듐/구리/원유/천연가스) → 해외주식에 포함
+// - instCategory '3' = 주식/ETF/지수 토큰(미국+해외+한국 혼재) → 한국 관련 티커, ETF 티커를 각각 분리
+// - instCategory '4' = 귀금속/원자재(금/은/백금/팔라듐/구리/원유/천연가스)
 export type MarketInstrument = {
   symbol: string // 우리 URL에서 쓰는 형태, 예: BTCUSDT
   instId: string // OKX instId, 예: BTC-USDT-SWAP
   base: string // 기초자산 티커, 예: BTC
   name: string // 화면 표시용 한글/영문 이름
+  category: 'coin' | 'stock' | 'etf' | 'commodity' | 'krStock'
+  categoryLabel: string
   price: number
   changePct: number
+  volUsd: number // 24시간 거래대금(USDT 명목가 기준)
 }
 
 // 국내(한국) 관련 티커로 분류할 항목들 — instCategory 3 안에 섞여 있는 것 중 직접 식별.
 const KR_TICKERS = new Set(['SAMSUNG', 'SKHYNIX', 'SKHY', 'EWY', 'KORU', 'KR200'])
+// instCategory 3 안에서 개별 종목이 아니라 지수/펀드 성격의 ETF로 분류할 티커.
+const ETF_TICKERS = new Set(['EWJ', 'EWT', 'EWZ', 'IWM', 'QQQ', 'SPY', 'SMH', 'SOXL', 'SOXS', 'SQQQ', 'TQQQ', 'TMF', 'UVXY', 'USO', 'XBI', 'XLE'])
+
+const CATEGORY_LABELS: Record<MarketInstrument['category'], string> = {
+  coin: '암호화폐',
+  stock: '해외주식',
+  etf: 'ETF',
+  commodity: '원자재',
+  krStock: '국내주식'
+}
 
 const DISPLAY_NAMES: Record<string, string> = {
   // 국내
@@ -23,7 +36,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   EWY: '한국 ETF',
   KORU: '한국 3배 ETF',
   KR200: '코스피200',
-  // 해외주식/원자재
+  // 해외주식/원자재/ETF
   AAPL: '애플',
   TSLA: '테슬라',
   MSFT: '마이크로소프트',
@@ -63,6 +76,16 @@ const DISPLAY_NAMES: Record<string, string> = {
   EWJ: '일본 ETF',
   EWZ: '브라질 ETF',
   EWT: '대만 ETF',
+  SMH: '반도체 ETF',
+  SOXL: '반도체 3배 ETF',
+  SOXS: '반도체 인버스 3배 ETF',
+  SQQQ: '나스닥100 인버스 3배 ETF',
+  TQQQ: '나스닥100 3배 ETF',
+  TMF: '장기국채 3배 ETF',
+  UVXY: '변동성 2배 ETF',
+  USO: '원유 ETF',
+  XBI: '바이오 ETF',
+  XLE: '에너지 ETF',
   XAU: '금',
   XAG: '은',
   XPT: '백금',
@@ -103,7 +126,7 @@ function displayName(base: string) {
   return DISPLAY_NAMES[base] || base
 }
 
-let cache: { at: number; data: { instruments: any[]; tickers: Map<string, { last: number; open24h: number }> } } | null = null
+let cache: { at: number; data: { instruments: any[]; tickers: Map<string, { last: number; open24h: number; volCcy24h: number }> } } | null = null
 const CACHE_MS = 20_000
 
 async function loadOkxSwapData() {
@@ -115,9 +138,13 @@ async function loadOkxSwapData() {
   ])
 
   const instruments = (instRes?.data || []).filter((x: any) => x.state === 'live')
-  const tickers = new Map<string, { last: number; open24h: number }>()
+  const tickers = new Map<string, { last: number; open24h: number; volCcy24h: number }>()
   for (const t of tickerRes?.data || []) {
-    tickers.set(String(t.instId), { last: Number(t.last || 0), open24h: Number(t.open24h || 0) })
+    tickers.set(String(t.instId), {
+      last: Number(t.last || 0),
+      open24h: Number(t.open24h || 0),
+      volCcy24h: Number(t.volCcy24h || 0)
+    })
   }
 
   const data = { instruments, tickers }
@@ -125,11 +152,24 @@ async function loadOkxSwapData() {
   return data
 }
 
-function toMarketInstrument(inst: any, tickers: Map<string, { last: number; open24h: number }>): MarketInstrument | null {
+function resolveCategory(instCategory: string, base: string): MarketInstrument['category'] | null {
+  if (instCategory === '1') return 'coin'
+  if (instCategory === '4') return 'commodity'
+  if (instCategory === '3') {
+    if (KR_TICKERS.has(base)) return 'krStock'
+    if (ETF_TICKERS.has(base)) return 'etf'
+    return 'stock'
+  }
+  return null
+}
+
+function toMarketInstrument(inst: any, tickers: Map<string, { last: number; open24h: number; volCcy24h: number }>): MarketInstrument | null {
   const instId = String(inst.instId || '')
   const m = instId.match(/^([A-Z0-9]+)-USDT-SWAP$/)
   if (!m) return null
   const base = m[1]
+  const category = resolveCategory(String(inst.instCategory || ''), base)
+  if (!category) return null
   const t = tickers.get(instId)
   const price = t?.last || 0
   const open24h = t?.open24h || 0
@@ -139,9 +179,22 @@ function toMarketInstrument(inst: any, tickers: Map<string, { last: number; open
     instId,
     base,
     name: displayName(base),
+    category,
+    categoryLabel: CATEGORY_LABELS[category],
     price,
-    changePct
+    changePct,
+    volUsd: t?.volCcy24h || 0
   }
+}
+
+async function loadAllInstruments(): Promise<MarketInstrument[]> {
+  const { instruments, tickers } = await loadOkxSwapData()
+  const items: MarketInstrument[] = []
+  for (const inst of instruments) {
+    const item = toMarketInstrument(inst, tickers)
+    if (item) items.push(item)
+  }
+  return items
 }
 
 export async function listCategorizedMarketInstruments(): Promise<{
@@ -149,30 +202,53 @@ export async function listCategorizedMarketInstruments(): Promise<{
   globalStock: MarketInstrument[]
   krStock: MarketInstrument[]
 }> {
-  const { instruments, tickers } = await loadOkxSwapData()
-
-  const coin: MarketInstrument[] = []
-  const globalStock: MarketInstrument[] = []
-  const krStock: MarketInstrument[] = []
-
-  for (const inst of instruments) {
-    const item = toMarketInstrument(inst, tickers)
-    if (!item) continue
-    const cat = String(inst.instCategory || '')
-    if (cat === '1') {
-      coin.push(item)
-    } else if (cat === '3') {
-      if (KR_TICKERS.has(item.base)) krStock.push(item)
-      else globalStock.push(item)
-    } else if (cat === '4') {
-      globalStock.push(item)
-    }
-  }
-
+  const all = await loadAllInstruments()
   const byBase = (a: MarketInstrument, b: MarketInstrument) => a.base.localeCompare(b.base)
-  coin.sort(byBase)
-  globalStock.sort(byBase)
-  krStock.sort(byBase)
-
+  const coin = all.filter((i) => i.category === 'coin').sort(byBase)
+  const globalStock = all.filter((i) => i.category === 'stock' || i.category === 'etf' || i.category === 'commodity').sort(byBase)
+  const krStock = all.filter((i) => i.category === 'krStock').sort(byBase)
   return { coin, globalStock, krStock }
+}
+
+export type MarketOverview = {
+  items: MarketInstrument[]
+  totalVolUsd: number
+  totalCount: number
+  btcSharePct: number
+  upCount: number
+  downCount: number
+  flatCount: number
+  topGainers: MarketInstrument[]
+  topLosers: MarketInstrument[]
+  categoryCounts: Record<MarketInstrument['category'], number>
+}
+
+export async function getMarketOverview(): Promise<MarketOverview> {
+  const items = await loadAllInstruments()
+  const totalVolUsd = items.reduce((sum, i) => sum + i.volUsd, 0)
+  const btc = items.find((i) => i.base === 'BTC')
+  const btcSharePct = totalVolUsd > 0 && btc ? (btc.volUsd / totalVolUsd) * 100 : 0
+  const upCount = items.filter((i) => i.changePct > 0).length
+  const downCount = items.filter((i) => i.changePct < 0).length
+  const flatCount = items.length - upCount - downCount
+
+  const byChangeDesc = [...items].sort((a, b) => b.changePct - a.changePct)
+  const topGainers = byChangeDesc.slice(0, 4)
+  const topLosers = byChangeDesc.slice(-4).reverse()
+
+  const categoryCounts = { coin: 0, stock: 0, etf: 0, commodity: 0, krStock: 0 } as Record<MarketInstrument['category'], number>
+  for (const i of items) categoryCounts[i.category]++
+
+  return {
+    items,
+    totalVolUsd,
+    totalCount: items.length,
+    btcSharePct,
+    upCount,
+    downCount,
+    flatCount,
+    topGainers,
+    topLosers,
+    categoryCounts
+  }
 }

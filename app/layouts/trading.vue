@@ -26,9 +26,19 @@
           </NuxtLink>
 
           <nav class="flex items-center gap-1 text-sm text-slate-300">
-            <NuxtLink to="/exchange/BTCUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/BTCUSDT')">코인선물</NuxtLink>
-            <NuxtLink to="/exchange/AAPLUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/AAPLUSDT')">해외주식</NuxtLink>
-            <NuxtLink to="/exchange/SAMSUNGUSDT" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">국내주식</NuxtLink>
+            <NuxtLink to="/exchange/BTCUSDT" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/BTCUSDT')">
+              코인선물
+              <span class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">100x</span>
+            </NuxtLink>
+            <NuxtLink to="/exchange/AAPLUSDT" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/AAPLUSDT')">
+              해외주식
+              <span class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">100x</span>
+            </NuxtLink>
+            <NuxtLink to="/exchange/SAMSUNGUSDT" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">
+              국내주식
+              <span class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">100x</span>
+            </NuxtLink>
+            <NuxtLink to="/markets" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/markets')">마켓</NuxtLink>
             <NuxtLink to="/wallet" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/wallet')">내 지갑</NuxtLink>
             <NuxtLink to="/invest/balance" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading('/invest/balance')">투자내역</NuxtLink>
             <NuxtLink :to="supportTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(supportTarget)">고객센터</NuxtLink>
