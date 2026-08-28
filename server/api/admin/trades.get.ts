@@ -19,6 +19,14 @@ function isAdminRole(role: string) {
   return role !== 'user' && role !== 'super_admin' && role !== ''
 }
 
+// liquidation 플래그가 없어도(예: 청산가 도달 후 자동감지보다 먼저 수동으로 닫힌 경우),
+// 증거금을 전액 이상 잃었으면 결과적으로 강제청산과 동일하므로 같은 방식으로 표기한다.
+function isFullMarginLoss(entryPrice: number, qty: number, leverage: number, pnl: number) {
+  if (![entryPrice, qty, leverage].every(Number.isFinite) || entryPrice <= 0 || qty <= 0 || leverage <= 0) return false
+  const margin = (entryPrice * qty) / leverage
+  return margin > 0 && Number(pnl || 0) <= -margin * 0.999
+}
+
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
 
@@ -86,6 +94,8 @@ export default defineEventHandler(async (event) => {
         const entry = Number(t.entry_price || 0)
         const qty = Number(t.qty || 0)
         const lev = Number(t.leverage || 1)
+        const pnl = Number(t.pnl || 0)
+        const forced = (liquidationMap.get(Number(t.id)) ?? false) || isFullMarginLoss(entry, qty, lev, pnl)
         return {
           id: Number(t.id),
           created_at: String(t.created_at || ''),
@@ -94,13 +104,13 @@ export default defineEventHandler(async (event) => {
           name: '—',
           affiliateName: '—',
           symbol: String(t.symbol || ''),
-          orderType: '청산',
+          orderType: forced ? '강제청산' : '청산',
           positionSide: String(t.side || '').toUpperCase(),
           leverage: lev,
           price: Number(t.exit_price || 0),
           qty,
-          pnl: Number(t.pnl || 0),
-          liquidation: liquidationMap.get(Number(t.id)) ?? false,
+          pnl,
+          liquidation: forced,
           fee: calcTotalFee(entry, qty, lev),
           online: false
         }
@@ -134,6 +144,8 @@ export default defineEventHandler(async (event) => {
       const entry = Number(t.entry_price || 0)
       const qty = Number(t.qty || 0)
       const lev = Number(t.leverage || 1)
+      const pnl = Number(t.pnl || 0)
+      const forced = (liquidationMap.get(Number(t.id)) ?? false) || isFullMarginLoss(entry, qty, lev, pnl)
       return {
         id: Number(t.id),
         created_at: String(t.created_at || ''),
@@ -142,13 +154,13 @@ export default defineEventHandler(async (event) => {
         name: String(u?.username || `user${uid}`),
         affiliateName: isAdminRole(String(u?.role || '')) ? String(u?.username || '') : '—',
         symbol: String(t.symbol || ''),
-        orderType: '청산',
+        orderType: forced ? '강제청산' : '청산',
         positionSide: String(t.side || '').toUpperCase(),
         leverage: lev,
         price: Number(t.exit_price || 0),
         qty,
-        pnl: Number(t.pnl || 0),
-        liquidation: liquidationMap.get(Number(t.id)) ?? false,
+        pnl,
+        liquidation: forced,
         fee: calcTotalFee(entry, qty, lev),
         online: onlineSet.has(uid)
       }
@@ -175,6 +187,8 @@ export default defineEventHandler(async (event) => {
     const entry = Number(t.entry_price || 0)
     const qty = Number(t.qty || 0)
     const lev = Number(t.leverage || 1)
+    const pnl = Number(t.pnl || 0)
+    const forced = Boolean(t.liquidation) || isFullMarginLoss(entry, qty, lev, pnl)
     return {
       id: Number(t.id),
       created_at: String(t.created_at || ''),
@@ -183,13 +197,13 @@ export default defineEventHandler(async (event) => {
       name: String(t.username || `user${t.user_id}`),
       affiliateName: isAdminRole(String(t.role || '')) ? String(t.username || '') : '—',
       symbol: String(t.symbol || ''),
-      orderType: '청산',
+      orderType: forced ? '강제청산' : '청산',
       positionSide: String(t.side || '').toUpperCase(),
       leverage: lev,
       price: Number(t.exit_price || 0),
       qty,
-      pnl: Number(t.pnl || 0),
-      liquidation: Boolean(t.liquidation),
+      pnl,
+      liquidation: forced,
       fee: calcTotalFee(entry, qty, lev),
       online: false
     }
