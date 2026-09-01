@@ -2213,12 +2213,39 @@ function updateLiveCandle(price: number, tsMs: number) {
   })
 }
 
+const KILL_LAST_SETTINGS_KEY = 'bitplay_kill_last_settings'
+
+function loadLastKillSettings(): { percent: number; duration: number; tickCount: number } | null {
+  if (!process.client) return null
+  try {
+    const raw = localStorage.getItem(KILL_LAST_SETTINGS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    const percent = Number(parsed?.percent)
+    const duration = Number(parsed?.duration)
+    const tickCount = Number(parsed?.tickCount)
+    if (![percent, duration, tickCount].every(Number.isFinite)) return null
+    return { percent, duration, tickCount }
+  } catch {
+    return null
+  }
+}
+
+function saveLastKillSettings(percent: number, duration: number, tickCount: number) {
+  if (!process.client) return
+  try {
+    localStorage.setItem(KILL_LAST_SETTINGS_KEY, JSON.stringify({ percent, duration, tickCount }))
+  } catch {}
+}
+
 function openKillModal(dir: 'up' | 'down') {
   if (!isSuperAdminUser.value) return
   killModalDirection.value = dir
-  killPercentDraft.value = 0.5
-  killDurationDraft.value = 1
-  killTickCountDraft.value = 3
+  // 마지막으로 실행했던 킬 수치를 그대로 불러온다(없으면 기본값).
+  const last = loadLastKillSettings()
+  killPercentDraft.value = last?.percent ?? 0.5
+  killDurationDraft.value = last?.duration ?? 1
+  killTickCountDraft.value = last?.tickCount ?? 3
   killError.value = null
   killModalOpen.value = true
 }
@@ -2250,6 +2277,7 @@ async function confirmKillModal() {
       method: 'POST',
       body: { symbol: symbol.value, direction: killModalDirection.value, percent, durationSeconds, tickCount }
     })
+    saveLastKillSettings(percent, durationSeconds, tickCount)
     killModalOpen.value = false
     if (res?.event) {
       lastSeenKillEventId = Math.max(lastSeenKillEventId, res.event.id)
