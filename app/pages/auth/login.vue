@@ -2,9 +2,9 @@
   <div class="relative left-1/2 right-1/2 -mx-[50vw] -my-6 w-screen min-h-[calc(100vh-73px)]">
     <div class="grid min-h-[calc(100vh-73px)] md:grid-cols-2">
       <!-- 왼쪽: 브랜드 소개 패널 -->
-      <div class="hex-pattern relative hidden overflow-hidden bg-[#0a0d13] px-16 py-16 md:flex md:flex-col md:justify-center">
-        <div class="relative z-10 max-w-md">
-          <h1 class="text-4xl font-black leading-tight text-white">
+      <div class="hex-pattern relative hidden overflow-hidden bg-[#0a0d13] px-16 py-16 md:flex md:flex-col md:items-center md:justify-center">
+        <div class="relative z-10 mx-auto max-w-md">
+          <h1 class="text-5xl font-black leading-tight text-white">
             더 넓은 시장을<br />
             하나의 계정으로.
           </h1>
@@ -76,11 +76,12 @@
           </div>
 
           <div class="mt-10 flex items-center justify-center gap-3 text-xs text-slate-600">
-            <span>이용약관</span>
+            <NuxtLink to="/legal/terms" class="hover:text-slate-400">이용약관</NuxtLink>
             <span>·</span>
-            <span>개인정보처리방침</span>
+            <NuxtLink to="/legal/privacy" class="hover:text-slate-400">개인정보처리방침</NuxtLink>
             <span>·</span>
-            <NuxtLink to="/support" class="hover:text-slate-400">고객지원</NuxtLink>
+            <a v-if="telegramUrl" :href="telegramUrl" target="_blank" rel="noopener" class="hover:text-slate-400">고객지원</a>
+            <NuxtLink v-else to="/support" class="hover:text-slate-400">고객지원</NuxtLink>
           </div>
         </div>
       </div>
@@ -137,12 +138,17 @@ const features = [
   { icon: 'BP', label: appName }
 ]
 
+const telegramUrl = ref('')
+
 onMounted(() => {
   const saved = localStorage.getItem(SAVED_ID_KEY)
   if (saved) {
     username.value = saved
     rememberId.value = true
   }
+  $fetch<{ telegramUrl: string }>('/api/settings/telegram')
+    .then((res) => { telegramUrl.value = String(res?.telegramUrl || '') })
+    .catch(() => {})
 })
 
 async function onSubmit() {

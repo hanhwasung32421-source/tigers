@@ -154,8 +154,8 @@
         <div>
           <div class="mb-3 font-semibold text-slate-300">법적 고지</div>
           <ul class="space-y-2 text-slate-600">
-            <li>이용약관</li>
-            <li>개인정보처리방침</li>
+            <li><NuxtLink to="/legal/terms" class="hover:text-white" @click="startNavLoading('/legal/terms')">이용약관</NuxtLink></li>
+            <li><NuxtLink to="/legal/privacy" class="hover:text-white" @click="startNavLoading('/legal/privacy')">개인정보처리방침</NuxtLink></li>
           </ul>
         </div>
       </div>
