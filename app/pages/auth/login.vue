@@ -9,7 +9,7 @@
             하나의 계정으로.
           </h1>
           <p class="mt-5 text-sm leading-6 text-slate-400">
-            실시간 무기한 선물과 자산 관리를 연결하는 {{ appName }} 거래 환경
+            KYC 인증으로 전세계 300개 이상의 실시간 선물과 자산 관리를 연결하는 {{ appName }} 거래 환경을 지금 만나보세요.
           </p>
 
           <div class="mt-10 border-t border-white/10 pt-8">
