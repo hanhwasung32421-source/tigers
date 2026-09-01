@@ -99,7 +99,7 @@
       </div>
     </header>
 
-    <main class="mx-auto px-4 py-6" :class="route.path.startsWith('/admin') ? 'max-w-none' : 'max-w-6xl'">
+    <main class="mx-auto py-6" :class="route.path.startsWith('/admin') ? 'max-w-none px-[50px]' : 'max-w-6xl px-4'">
       <slot />
     </main>
 
