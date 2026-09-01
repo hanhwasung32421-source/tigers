@@ -3,31 +3,31 @@
     <section class="px-6 py-10 md:px-12 md:py-14">
       <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_460px]">
         <div>
-          <div class="text-xs font-bold tracking-[0.3em] text-slate-500">THE NEW STANDARD OF TRADING</div>
-          <h1 class="mt-6 text-5xl font-black leading-[1.08] tracking-tight text-white md:text-6xl">
+          <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">THE NEW STANDARD OF TRADING</div>
+          <h1 class="mt-6 text-[57.6px] font-black leading-[1.08] tracking-tight text-white md:text-[72px]">
             더 빠르고,
             <br />
             더 강력한
             <br />
             디지털 자산 거래
           </h1>
-          <p class="mt-6 max-w-xl text-base leading-7 text-slate-400">
+          <p class="mt-6 max-w-xl text-[19.2px] leading-7 text-slate-400">
             낮은 지연, 명확한 지갑 흐름, 강력한 거래 도구를 하나의 경험으로.<br />
             지금 {{ appName }}에서 시작하세요.
           </p>
           <div class="mt-9 flex flex-wrap gap-3">
-            <NuxtLink to="/auth/register" class="rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-950 hover:bg-slate-200">
+            <NuxtLink to="/auth/register" class="rounded-xl bg-white px-6 py-3 text-[16.8px] font-bold text-slate-950 hover:bg-slate-200">
               회원가입
             </NuxtLink>
             <NuxtLink
               to="/exchange/SAMSUNGUSDT"
-              class="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-bold text-slate-100 hover:bg-white/[0.08]"
+              class="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-6 py-3 text-[16.8px] font-bold text-slate-100 hover:bg-white/[0.08]"
             >
               <span>⬇</span>
               앱 다운로드
             </NuxtLink>
           </div>
-          <div class="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
+          <div class="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-[14.4px] text-slate-500">
             <span class="flex items-center gap-1.5"><span class="h-1 w-1 rounded-full bg-slate-600" />실시간 리스크 관리</span>
             <span class="flex items-center gap-1.5"><span class="h-1 w-1 rounded-full bg-slate-600" />24/7 고객지원</span>
             <span class="flex items-center gap-1.5"><span class="h-1 w-1 rounded-full bg-slate-600" />투명한 자산 흐름</span>
@@ -42,8 +42,8 @@
 
     <!-- SECURITY & CONTROL -->
     <section class="border-t border-white/10 px-6 py-14 text-center md:px-12">
-      <div class="text-xs font-bold tracking-[0.3em] text-slate-500">SECURITY &amp; CONTROL</div>
-      <h2 class="mx-auto mt-4 max-w-xl text-3xl font-black leading-tight text-white md:text-4xl">신뢰할 수 있는 거래 파트너</h2>
+      <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">SECURITY &amp; CONTROL</div>
+      <h2 class="mx-auto mt-4 max-w-xl text-[36px] font-black leading-tight text-white md:text-[43.2px]">신뢰할 수 있는 거래 파트너</h2>
       <div class="mx-auto mt-12 grid max-w-5xl gap-10 md:grid-cols-4">
         <div
           v-for="(item, idx) in securityItems"
@@ -54,8 +54,8 @@
           <svg viewBox="0 0 24 24" class="mx-auto h-8 w-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5">
             <path :d="item.path" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <div class="mt-4 text-base font-bold text-white">{{ item.title }}</div>
-          <p class="mt-2 text-sm leading-6 text-slate-400">{{ item.desc }}</p>
+          <div class="mt-4 text-[19.2px] font-bold text-white">{{ item.title }}</div>
+          <p class="mt-2 text-[16.8px] leading-6 text-slate-400">{{ item.desc }}</p>
         </div>
       </div>
     </section>
@@ -64,23 +64,23 @@
     <section class="border-t border-white/10 px-6 py-14 md:px-12">
       <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_1.1fr]">
         <div>
-          <div class="text-xs font-bold tracking-[0.3em] text-slate-500">MARKETS</div>
-          <h2 class="mt-4 text-3xl font-black leading-tight text-white md:text-4xl">당신의 포트폴리오를<br />완성하세요</h2>
-          <p class="mt-5 max-w-md text-sm leading-7 text-slate-400">
+          <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">MARKETS</div>
+          <h2 class="mt-4 text-[36px] font-black leading-tight text-white md:text-[43.2px]">당신의 포트폴리오를<br />완성하세요</h2>
+          <p class="mt-5 max-w-md text-[16.8px] leading-7 text-slate-400">
             처음 시작하는 순간부터 전문적인 전략까지, 주요 디지털 자산을 하나의 계정에서 빠르고 명확하게 거래하세요.
           </p>
-          <NuxtLink to="/exchange/SAMSUNGUSDT" class="mt-7 inline-block rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-950 hover:bg-slate-200">
+          <NuxtLink to="/exchange/SAMSUNGUSDT" class="mt-7 inline-block rounded-xl bg-white px-6 py-3 text-[16.8px] font-bold text-slate-950 hover:bg-slate-200">
             거래 시작하기
           </NuxtLink>
         </div>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div v-for="m in markets" :key="m.symbol" class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div class="flex items-center gap-2">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black text-white" :style="{ background: m.color }">{{ m.badge }}</span>
-              <span class="text-sm font-bold text-white">{{ m.symbol }}<span class="text-[10px] font-medium text-slate-500">/USDT</span></span>
+              <span class="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black text-white" :style="{ background: m.color }">{{ m.badge }}</span>
+              <span class="text-[16.8px] font-bold text-white">{{ m.symbol }}<span class="text-[12px] font-medium text-slate-500">/USDT</span></span>
             </div>
-            <div class="mt-3 font-mono text-lg font-bold text-white">{{ m.price }}</div>
-            <div class="mt-1 text-xs font-semibold" :class="m.up ? 'text-emerald-400' : 'text-rose-400'">{{ m.up ? '+' : '' }}{{ m.change }}%</div>
+            <div class="mt-3 font-mono text-[21.6px] font-bold text-white">{{ m.price }}</div>
+            <div class="mt-1 text-[14.4px] font-semibold" :class="m.up ? 'text-emerald-400' : 'text-rose-400'">{{ m.up ? '+' : '' }}{{ m.change }}%</div>
           </div>
         </div>
       </div>
@@ -88,8 +88,8 @@
 
     <!-- PRODUCTS -->
     <section class="border-t border-white/10 px-6 py-14 text-center md:px-12">
-      <div class="text-xs font-bold tracking-[0.3em] text-slate-500">PRODUCTS</div>
-      <h2 class="mx-auto mt-4 max-w-2xl text-3xl font-black leading-tight text-white md:text-4xl">거래의 모든 순간이 한 번의 클릭으로</h2>
+      <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">PRODUCTS</div>
+      <h2 class="mx-auto mt-4 max-w-2xl text-[36px] font-black leading-tight text-white md:text-[43.2px]">거래의 모든 순간이 한 번의 클릭으로</h2>
       <div class="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <NuxtLink
           v-for="p in products"
@@ -100,9 +100,9 @@
           <svg viewBox="0 0 24 24" class="h-7 w-7 text-white" fill="none" stroke="currentColor" stroke-width="1.6">
             <path :d="p.path" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <div class="mt-5 text-base font-bold text-white">{{ p.title }}</div>
-          <p class="mt-2 text-sm leading-6 text-slate-400">{{ p.desc }}</p>
-          <div class="mt-auto pt-4 text-sm font-semibold text-cyan-300 group-hover:text-cyan-200">{{ p.linkText }} →</div>
+          <div class="mt-5 text-[19.2px] font-bold text-white">{{ p.title }}</div>
+          <p class="mt-2 text-[16.8px] leading-6 text-slate-400">{{ p.desc }}</p>
+          <div class="mt-auto pt-4 text-[16.8px] font-semibold text-cyan-300 group-hover:text-cyan-200">{{ p.linkText }} →</div>
         </NuxtLink>
       </div>
     </section>
@@ -111,12 +111,12 @@
     <section class="border-t border-white/10 px-6 py-14 md:px-12">
       <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_1.4fr]">
         <div>
-          <div class="text-xs font-bold tracking-[0.3em] text-slate-500">FAQ</div>
-          <h2 class="mt-4 text-3xl font-black leading-tight text-white md:text-4xl">궁금한 점이<br />있으신가요?</h2>
-          <p class="mt-5 max-w-sm text-sm leading-7 text-slate-400">
+          <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">FAQ</div>
+          <h2 class="mt-4 text-[36px] font-black leading-tight text-white md:text-[43.2px]">궁금한 점이<br />있으신가요?</h2>
+          <p class="mt-5 max-w-sm text-[16.8px] leading-7 text-slate-400">
             자주 묻는 질문에서 {{ appName }} 이용에 필요한 핵심 정보를 확인하세요.
           </p>
-          <NuxtLink to="/support" class="mt-6 inline-block text-sm font-semibold text-white underline underline-offset-4">
+          <NuxtLink to="/support" class="mt-6 inline-block text-[16.8px] font-semibold text-white underline underline-offset-4">
             고객지원 바로가기 →
           </NuxtLink>
         </div>
@@ -124,13 +124,13 @@
           <div v-for="(item, idx) in faqItems" :key="item.q">
             <button
               type="button"
-              class="flex w-full items-center justify-between gap-4 py-5 text-left text-sm font-semibold text-slate-100 hover:text-white"
+              class="flex w-full items-center justify-between gap-4 py-5 text-left text-[16.8px] font-semibold text-slate-100 hover:text-white"
               @click="openFaq = openFaq === idx ? null : idx"
             >
               {{ item.q }}
-              <span class="shrink-0 text-lg font-light text-slate-500">{{ openFaq === idx ? '−' : '+' }}</span>
+              <span class="shrink-0 text-[21.6px] font-light text-slate-500">{{ openFaq === idx ? '−' : '+' }}</span>
             </button>
-            <p v-if="openFaq === idx" class="pb-5 text-sm leading-7 text-slate-400">{{ item.a }}</p>
+            <p v-if="openFaq === idx" class="pb-5 text-[16.8px] leading-7 text-slate-400">{{ item.a }}</p>
           </div>
         </div>
       </div>
