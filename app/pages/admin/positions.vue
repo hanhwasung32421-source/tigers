@@ -57,25 +57,24 @@
         </select>
       </div>
 
-      <!-- overflow-x-auto 제거 + table-fixed 로 압축: 가로 스크롤 없이 화면 안에 맞춤 -->
-      <div class="mt-3">
-        <table class="w-full table-fixed text-[12px] leading-tight text-slate-200">
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full text-[12px] leading-tight text-slate-200">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
-              <th class="w-[120px] px-2 py-3 text-left">회원 이름</th>
-              <th class="w-[120px] px-2 py-3 text-left">소속총판</th>
-              <th class="w-[90px] px-2 py-3 text-left">심볼</th>
-              <th class="w-[90px] px-2 py-3 text-left">주문타입</th>
-              <th class="w-[90px] px-2 py-3 text-left">포지션</th>
-              <th class="w-[90px] px-2 py-3 text-right">증거금</th>
-              <th class="w-[70px] px-2 py-3 text-right">레버리지</th>
-              <th class="w-[100px] px-2 py-3 text-right">진입가격</th>
-              <th class="w-[90px] px-2 py-3 text-right">계약수량</th>
-              <th class="w-[100px] px-2 py-3 text-right">청산가격</th>
-              <th class="w-[90px] px-2 py-3 text-right">수익</th>
-              <th class="w-[80px] px-2 py-3 text-right">수익률</th>
-              <th class="w-[90px] px-2 py-3 text-right">수수료</th>
-              <th class="w-[80px] px-2 py-3 text-center">접속확인</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">회원 이름</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">소속총판</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">심볼</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">주문타입</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">포지션</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">증거금</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">레버리지</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">진입가격</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">계약수량</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">청산가격</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">수익</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">수익률</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">수수료</th>
+              <th class="whitespace-nowrap px-2 py-3 text-center">접속확인</th>
             </tr>
           </thead>
           <tbody>
@@ -83,20 +82,14 @@
               <td colspan="14" class="px-2 py-10 text-center text-slate-500">표시할 포지션이 없습니다.</td>
             </tr>
             <tr v-for="row in pagedItems" :key="row.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-2 py-2.5">
+              <td class="whitespace-nowrap px-2 py-2.5">
                 <div class="font-semibold text-slate-100">{{ row.username }}</div>
                 <div class="mt-0.5 font-mono text-[10px] text-slate-500">(#{{ row.user_id }})</div>
               </td>
-              <td class="px-2 py-2.5 text-slate-300">
-                <div class="truncate">{{ row.affiliate }}</div>
-              </td>
-              <td class="px-2 py-2.5 font-semibold text-slate-100">
-                <div class="truncate">{{ row.symbol }}</div>
-              </td>
-              <td class="px-2 py-2.5">
-                <div class="truncate">{{ row.orderType }}</div>
-              </td>
-              <td class="px-2 py-2.5">
+              <td class="whitespace-nowrap px-2 py-2.5 text-slate-300">{{ row.affiliate }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 font-semibold text-slate-100">{{ row.symbol }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5">{{ row.orderType }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5">
                 <span
                   class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
                   :class="row.position === 'LONG' ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-[#151f35] text-[#60a5fa] ring-[#3b82f6]/30'"
@@ -104,19 +97,19 @@
                   {{ row.position }}
                 </span>
               </td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtNum(row.margin) }}</td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums">{{ row.leverage }}x</td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtPrice(row.entryPrice) }}</td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtQty(row.qty) }}</td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtPrice(row.liqPrice) }}</td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums" :class="profitClass(row.pnl)">
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtNum(row.margin) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ row.leverage }}x</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtPrice(row.entryPrice) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtQty(row.qty) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtPrice(row.liqPrice) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums" :class="profitClass(row.pnl)">
                 {{ signed(row.pnl) }}
               </td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums" :class="profitClass(row.roe)">
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums" :class="profitClass(row.roe)">
                 {{ signed(row.roe, '%') }}
               </td>
-              <td class="px-2 py-2.5 text-right font-mono tabular-nums text-slate-300">{{ fmtNum(row.fee) }}</td>
-              <td class="px-2 py-2.5 text-center">
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums text-slate-300">{{ fmtNum(row.fee) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-center">
                 <span
                   class="rounded px-2 py-1 text-[10px] font-semibold"
                   :class="row.online ? 'bg-emerald-500/15 text-emerald-300' : 'bg-[#2b3445] text-slate-200'"

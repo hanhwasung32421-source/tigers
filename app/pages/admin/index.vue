@@ -81,80 +81,79 @@
 
       <div>
         <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
-        <!-- table-fixed + %폭 지정으로 가로 스크롤 없이 화면 안에 맞춤(overflow-x-auto 사용 안 함) -->
-        <div v-else>
-          <table class="w-full table-fixed text-[12px]">
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm">
             <thead class="border-b border-[#12314a] text-[11px] text-slate-500">
               <tr>
-                <th class="sortable-th w-[9%] cursor-pointer select-none whitespace-nowrap px-2 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
-                <th class="sortable-th w-[8%] cursor-pointer select-none whitespace-nowrap px-2 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
-                <th class="w-[7%] whitespace-nowrap px-2 py-3 text-left">계좌정보</th>
-                <th class="sortable-th w-[9%] cursor-pointer select-none whitespace-nowrap px-2 py-3 text-left" @click="toggleSort('usdt')">USDT잔액<span class="sort-icon">{{ sortArrow('usdt') || ' ⇅' }}</span></th>
-                <th class="sortable-th w-[8%] cursor-pointer select-none whitespace-nowrap px-2 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
-                <th class="sortable-th w-[11%] cursor-pointer select-none whitespace-nowrap px-2 py-3 text-left" @click="toggleSort('role')">역할<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
-                <th class="w-[14%] whitespace-nowrap px-2 py-3 text-left">정산유형</th>
-                <th class="sortable-th w-[8%] cursor-pointer select-none whitespace-nowrap px-2 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
-                <th class="sortable-th w-[8%] cursor-pointer select-none whitespace-nowrap px-2 py-3 text-left" @click="toggleSort('last_login')">최근 접속일<span class="sort-icon">{{ sortArrow('last_login') || ' ⇅' }}</span></th>
-                <th class="w-[6%] whitespace-nowrap px-2 py-3 text-center">하부보기</th>
-                <th class="w-[6%] whitespace-nowrap px-2 py-3 text-center">비밀번호</th>
-                <th class="w-[6%] whitespace-nowrap px-2 py-3 text-center">로그인</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+                <th class="whitespace-nowrap px-3 py-3 text-left">계좌정보</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('usdt')">USDT잔액<span class="sort-icon">{{ sortArrow('usdt') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">역할<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
+                <th class="whitespace-nowrap px-3 py-3 text-left">정산유형</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('last_login')">최근 접속일<span class="sort-icon">{{ sortArrow('last_login') || ' ⇅' }}</span></th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">하부보기</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">비밀번호</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">로그인</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="u in pagedUsers" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
                 <template v-if="userDraft[u.id]">
-                  <td class="px-2 py-2.5">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].username"
                       :disabled="isLockedUser(u)"
-                      class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="px-2 py-2.5">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].name"
                       :disabled="isLockedUser(u)"
-                      class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="w-24 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="px-2 py-2.5">
+                  <td class="px-3 py-2.5">
                     <button
-                      class="w-full whitespace-nowrap rounded-md bg-white/10 px-2 py-1.5 text-sm hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="isLockedUser(u)"
                       @click="openAccountModal(u)"
                     >
                       계좌정보
                     </button>
                   </td>
-                  <td class="px-2 py-2.5">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.number="userDraft[u.id].usdt"
                       type="number"
                       min="0"
                       step="0.01"
-                      class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="px-2 py-2.5">
+                  <td class="px-3 py-2.5">
                     <input
                       v-model.trim="userDraft[u.id].referralCode"
                       :disabled="isLockedUser(u)"
-                      class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @blur="saveUserRow(u.id)"
                       @keyup.enter="saveUserRow(u.id)"
                     />
                   </td>
-                  <td class="px-2 py-2.5">
+                  <td class="px-3 py-2.5">
                     <select
                       v-model="userDraft[u.id].role"
                       :disabled="isLockedUser(u)"
-                      class="w-full rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="w-40 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @change="saveUserRow(u.id)"
                     >
                       <option value="user">회원 (user)</option>
@@ -162,11 +161,11 @@
                       <option value="super_admin">최고관리자 (super_admin)</option>
                     </select>
                   </td>
-                  <td class="px-2 py-2.5">
-                    <div v-if="u.role !== 'user' && u.role !== 'super_admin'" class="flex min-w-0 items-center gap-1">
+                  <td class="px-3 py-2.5">
+                    <div v-if="u.role !== 'user' && u.role !== 'super_admin'" class="flex items-center gap-1.5">
                       <select
                         v-model="userDraft[u.id].settlementType"
-                        class="w-0 min-w-0 flex-1 rounded-md border border-[#173753] bg-[#041425] px-1.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                        class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                         @change="saveUserRow(u.id)"
                       >
                         <option value="loss">손실정산</option>
@@ -180,36 +179,36 @@
                         step="0.1"
                         placeholder="기본값"
                         title="이 부관리자 전용 정산비율(%). 비워두면 정산/기타 설정의 기본값을 사용합니다."
-                        class="w-14 shrink-0 rounded-md border border-[#173753] bg-[#041425] px-1.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
+                        class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                         @blur="saveUserRow(u.id)"
                         @keyup.enter="saveUserRow(u.id)"
                       />
-                      <span class="shrink-0 text-xs text-slate-500">%</span>
+                      <span class="text-xs text-slate-500">%</span>
                     </div>
                     <span v-else class="text-xs text-slate-600">—</span>
                   </td>
-                  <td class="whitespace-nowrap px-2 py-2.5 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
-                  <td class="whitespace-nowrap px-2 py-2.5 font-mono text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
-                  <td class="px-2 py-2.5 text-center">
+                  <td class="whitespace-nowrap px-3 py-2.5 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
+                  <td class="whitespace-nowrap px-3 py-2.5 font-mono text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
+                  <td class="px-3 py-2.5 text-center">
                     <button
-                      class="w-full whitespace-nowrap rounded-md bg-white/10 px-2 py-1.5 text-sm hover:bg-white/15"
+                      class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
                       @click="referralFilter = u.username"
                     >
                       하부보기
                     </button>
                   </td>
-                  <td class="px-2 py-2.5 text-center">
+                  <td class="px-3 py-2.5 text-center">
                     <button
-                      class="w-full whitespace-nowrap rounded-md bg-amber-500/15 px-2 py-1.5 text-sm text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="whitespace-nowrap rounded-md bg-amber-500/15 px-3 py-1.5 text-sm text-amber-200 ring-1 ring-amber-400/30 hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="userResetting === u.id || isLockedUser(u)"
                       @click="resetUserPassword(u.id)"
                     >
                       초기화
                     </button>
                   </td>
-                  <td class="px-2 py-2.5 text-center">
+                  <td class="px-3 py-2.5 text-center">
                     <button
-                      class="w-full whitespace-nowrap rounded-md bg-emerald-500/15 px-2 py-1.5 text-sm text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      class="whitespace-nowrap rounded-md bg-emerald-500/15 px-3 py-1.5 text-sm text-emerald-200 ring-1 ring-emerald-400/30 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="loggingInAs === u.id"
                       @click="loginAsUser(u.id)"
                     >
