@@ -10,15 +10,20 @@ export default defineEventHandler(async (event) => {
   if (useSupa) {
     const bal = await supaSelectOne<{ usdt: number }>('trae_balances', { user_id: user.id })
 
-    // 사용자 거래 설정(비중/레버리지) - 없으면 기본값으로 생성
-    await supaUpsertUserSettings({
-      user_id: user.id,
-      trade_percent: 50,
-      trade_leverage: 100,
-      chart_prefs: {},
-      updated_at: new Date().toISOString()
-    })
-    const settings = await supaSelectOne<any>('trae_user_settings', { user_id: user.id })
+    // 사용자 거래 설정(비중/레버리지/차트 설정) - 없을 때만 기본값으로 생성.
+    // 매 요청마다 upsert하면 이미 저장된 chart_prefs(BOL 등)가 기본값 {}로 덮어써져
+    // 새로고침/재로그인 때마다 초기화되는 문제가 있었음(SQLite 쪽의 INSERT OR IGNORE와 동작이 달랐음).
+    let settings = await supaSelectOne<any>('trae_user_settings', { user_id: user.id })
+    if (!settings) {
+      await supaUpsertUserSettings({
+        user_id: user.id,
+        trade_percent: 50,
+        trade_leverage: 100,
+        chart_prefs: {},
+        updated_at: new Date().toISOString()
+      })
+      settings = await supaSelectOne<any>('trae_user_settings', { user_id: user.id })
+    }
 
     const positions = await supaSelectWhere<any>({
       table: 'trae_positions',
