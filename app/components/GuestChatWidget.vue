@@ -52,7 +52,7 @@
 
     <button
       type="button"
-      class="flex items-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_10px_30px_rgba(0,0,0,0.4)] transition hover:bg-slate-100"
+      class="font-landing flex items-center gap-2 rounded-full bg-white px-4 py-3 text-[15.4px] font-bold text-slate-900 shadow-[0_10px_30px_rgba(0,0,0,0.4)] transition hover:bg-slate-100"
       @click="toggle"
     >
       <span class="text-base">💬</span>
