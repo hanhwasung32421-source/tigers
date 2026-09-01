@@ -12,7 +12,7 @@
             디지털 자산 거래
           </h1>
           <p class="mt-6 max-w-xl text-[19.2px] leading-7 text-slate-400">
-            낮은 지연, 명확한 지갑 흐름, 강력한 거래 도구를 하나의 경험으로.<br />
+            KYC 인증으로 신뢰할 수 있는, 300개 이상의 레버리지 종목 거래 환경.<br />
             지금 {{ appName }}에서 시작하세요.
           </p>
           <div class="mt-9 flex flex-wrap gap-3">
