@@ -54,9 +54,6 @@
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('affiliateName')">총판이름<span class="sort-icon">{{ sortArrow('affiliateName') || ' ⇅' }}</span></th>
-              <th class="whitespace-nowrap px-3 py-3 text-left">총판부모</th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('affiliateRate')">총판수율<span class="sort-icon">{{ sortArrow('affiliateRate') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">보유금액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('cumulativeProfit')">누적수익<span class="sort-icon">{{ sortArrow('cumulativeProfit') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
@@ -66,7 +63,7 @@
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="13" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
+              <td colspan="10" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
             </tr>
             <tr v-for="u in paged" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3">
@@ -93,24 +90,6 @@
               </td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ u.name }}</td>
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.referralCode || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ u.affiliateName }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ u.affiliateParent }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right">
-                <input
-                  v-if="u.roleId !== 'user' && u.roleId !== 'super_admin' && canEditRate(u)"
-                  v-model="rateDraft[u.id]"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  placeholder="기본값"
-                  :data-rate-id="u.id"
-                  class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-right font-mono text-slate-200 outline-none focus:border-cyan-400/60"
-                  @blur="saveRate(u)"
-                  @keyup.enter="saveRate(u)"
-                />
-                <span v-else class="font-mono text-slate-300">{{ fmtRate(u.affiliateRate) }}</span>
-              </td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
                 <button
                   v-if="canEditBalance"
@@ -412,9 +391,6 @@ type MemberRow = {
   bankAccount: string
   accountHolder: string
   referralCode: string
-  affiliateName: string
-  affiliateParent: string
-  affiliateRate: number | null
   balanceUsdt: number
   cumulativeProfit: number
   created_at: string
@@ -488,7 +464,7 @@ const canEditBalance = computed(() => {
 })
 const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpen.value || profileModalOpen.value)
 
-// 영업 조직 구조: "코드부여"(승격)와 정산비율 수정은 총관리자는 누구에게나,
+// 영업 조직 구조: "코드부여"(승격)는 총관리자는 누구에게나,
 // 부관리자는 자기 코드로 가입한 직속 하부에게만 할 수 있다.
 function isDirectChildOfMe(u: MemberRow) {
   if (!me.value) return false
@@ -496,11 +472,7 @@ function isDirectChildOfMe(u: MemberRow) {
   if (me.value.role !== 'user') return u.referralCode.trim() === me.value.username
   return false
 }
-function canEditRate(u: MemberRow) {
-  return isDirectChildOfMe(u)
-}
 
-const rateDraft = reactive<Record<number, string>>({})
 const roleDraft = reactive<Record<number, string>>({})
 const grantingId = ref<number | null>(null)
 
@@ -548,29 +520,9 @@ async function onRoleSelectChange(u: MemberRow) {
   }
 }
 
-function syncRateDraft(list: MemberRow[]) {
+function syncRoleDraft(list: MemberRow[]) {
   for (const u of list) {
-    if (rateDraft[u.id] === undefined || document.activeElement?.getAttribute('data-rate-id') !== String(u.id)) {
-      rateDraft[u.id] = typeof u.affiliateRate === 'number' ? String(u.affiliateRate) : ''
-    }
     roleDraft[u.id] = u.roleId
-  }
-}
-
-async function saveRate(u: MemberRow) {
-  const raw = String(rateDraft[u.id] ?? '').trim()
-  const settlementPercent = raw === '' ? null : Number(raw)
-  if (settlementPercent !== null && (!Number.isFinite(settlementPercent) || settlementPercent < 0 || settlementPercent > 100)) {
-    return
-  }
-  try {
-    await $fetch('/api/admin/users/update', {
-      method: 'POST',
-      body: { userId: u.id, settlementPercent }
-    })
-    await load(true)
-  } catch (e: any) {
-    alert(e?.data?.statusMessage || '정산비율 저장에 실패했습니다.')
   }
 }
 
@@ -589,9 +541,6 @@ function fmt2(v: number) {
 function signedProfitText(v: number) {
   const n = Number(v || 0)
   return `${n >= 0 ? '+' : '-'}${fmt2(Math.abs(n))}`
-}
-function fmtRate(v: number | null) {
-  return typeof v === 'number' ? `${v.toFixed(2)}` : '—'
 }
 function tradeResultLabel(t: Pick<MemberTradeRow, 'liquidation' | 'pnl'>) {
   if (Boolean(t?.liquidation)) return '강제청산'
@@ -623,8 +572,6 @@ type SortKey =
   | 'username'
   | 'name'
   | 'referralCode'
-  | 'affiliateName'
-  | 'affiliateRate'
   | 'balanceUsdt'
   | 'cumulativeProfit'
   | 'created_at'
@@ -665,7 +612,7 @@ const filtered = computed(() => {
       if (d > toDate.value) return false
     }
     if (!q) return true
-    return [u.username, u.name, u.affiliateName, String(u.id)].some((v) => String(v).toLowerCase().includes(q))
+    return [u.username, u.name, String(u.id)].some((v) => String(v).toLowerCase().includes(q))
   })
 
   if (!sortKey.value) return rows
@@ -736,7 +683,7 @@ async function load(silent = false) {
   try {
     const res = await $fetch<{ items: MemberRow[] }>('/api/admin/members')
     items.value = res.items || []
-    syncRateDraft(items.value)
+    syncRoleDraft(items.value)
     if (selectedMember.value) {
       const fresh = (res.items || []).find((u) => Number(u.id) === Number(selectedMember.value?.id))
       if (fresh) selectedMember.value = fresh

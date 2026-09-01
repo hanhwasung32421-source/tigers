@@ -30,32 +30,43 @@
       </button>
     </div>
 
-    <!-- 유저/권한 관리 -->
+    <!-- 유저 관리 -->
     <div v-show="activeTab === 'users'" class="space-y-3">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold">유저 및 권한 관리</h2>
+          <h2 class="text-lg font-semibold">유저 관리</h2>
           <p class="mt-1 text-sm text-slate-400">아이디/이름/USDT잔액/추천코드/역할/정산유형/정산비율을 수정하면 바로 반영됩니다.</p>
         </div>
         <div class="flex items-center gap-2">
-          <input
-            v-model.trim="userSearch"
-            placeholder="아이디/이름 검색"
-            class="w-48 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-indigo-400/60"
-          />
-          <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
-            <span class="whitespace-nowrap text-slate-400">표시수</span>
-            <input
-              v-model.number="pageSizeInput"
-              type="number"
-              min="1"
-              max="500"
-              class="w-16 bg-transparent text-right outline-none"
-            />
+          <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
+            총 유저수 <span class="font-mono text-base font-semibold">{{ sortedUsers.length }}</span>명
           </div>
           <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="load">
             새로고침
           </button>
+        </div>
+      </div>
+
+      <div class="grid gap-2 md:grid-cols-[360px_minmax(220px,1fr)_160px]">
+        <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
+          <input v-model="fromDate" type="date" class="date-input w-full bg-transparent outline-none" />
+          <span class="text-slate-500">~</span>
+          <input v-model="toDate" type="date" class="date-input w-full bg-transparent outline-none" />
+        </div>
+        <input
+          v-model.trim="userSearch"
+          placeholder="아이디/이름 검색"
+          class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-indigo-400/60"
+        />
+        <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
+          <span class="whitespace-nowrap text-slate-400">표시수</span>
+          <input
+            v-model.number="pageSizeInput"
+            type="number"
+            min="1"
+            max="500"
+            class="w-full bg-transparent text-right outline-none"
+          />
         </div>
       </div>
 
@@ -683,7 +694,7 @@ await refresh()
 
 type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'roles' | 'killEvents'
 const tabs: Array<{ key: TabKey; label: string }> = [
-  { key: 'users', label: '유저 및 권한 관리' },
+  { key: 'users', label: '유저 관리' },
   { key: 'liquidation', label: '강제청산 기준 설정' },
   { key: 'misc', label: '정산/기타 설정' },
   { key: 'nav', label: '메뉴구성' },
@@ -725,6 +736,12 @@ const userSaving = ref<number | null>(null)
 const userResetting = ref<number | null>(null)
 const loggingInAs = ref<number | null>(null)
 const userSearch = ref('')
+const fromDate = ref('')
+const toDate = ref('')
+function dateOnly(v: string) {
+  const s = String(v || '')
+  return s ? s.slice(0, 10) : ''
+}
 const referralFilter = ref<string | null>(null)
 const sortKey = ref<'username' | 'name' | 'usdt' | 'referralCode' | 'role'>('username')
 const sortDir = ref<'asc' | 'desc'>('asc')
@@ -795,6 +812,8 @@ const sortedUsers = computed(() => {
     const downline = downlineUsernamesOf(referralFilter.value)
     filtered = filtered.filter((u) => downline.has(u.username))
   }
+  if (fromDate.value) filtered = filtered.filter((u) => dateOnly(u.created_at) >= fromDate.value)
+  if (toDate.value) filtered = filtered.filter((u) => dateOnly(u.created_at) <= toDate.value)
   const dir = sortDir.value === 'asc' ? 1 : -1
   return filtered.sort((a, b) => {
     const key = sortKey.value
@@ -1384,5 +1403,16 @@ await loadRoles()
 }
 .sortable-th:hover .sort-icon {
   color: rgb(203 213 225 / 0.9);
+}
+
+.date-input {
+  position: relative;
+  min-width: 140px;
+  color-scheme: dark;
+}
+.date-input::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.9;
 }
 </style>

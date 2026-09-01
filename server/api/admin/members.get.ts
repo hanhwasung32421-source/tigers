@@ -30,10 +30,6 @@ export default defineEventHandler(async (event) => {
     if (role === 'user') return '회원'
     return roleLabelMap.get(role) || role
   }
-  function isAdminRole(role: string) {
-    return role !== 'user' && role !== 'super_admin'
-  }
-
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const nowIso = new Date().toISOString()
@@ -111,9 +107,6 @@ export default defineEventHandler(async (event) => {
         bankAccount: String(u.bank_account || ''),
         accountHolder: String(u.account_holder || ''),
         referralCode: String(u.referral_code || ''),
-        affiliateName: isAdminRole(role) ? String(u.username || '') : '—',
-        affiliateParent: '—',
-        affiliateRate: typeof u.permissions?.settlementPercent === 'number' ? u.permissions.settlementPercent : null,
         balanceUsdt: balanceMap.get(id) ?? 0,
         cumulativeProfit: profitMap.get(id) ?? 0,
         created_at: String(u.created_at || ''),
@@ -152,12 +145,6 @@ export default defineEventHandler(async (event) => {
     profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl - fee)
   }
   const rows = users.map((u) => {
-    let permissions: any = {}
-    try {
-      permissions = JSON.parse(u.permissions || '{}')
-    } catch {
-      permissions = {}
-    }
     const role = String(u.role || 'user')
     return {
       id: Number(u.id),
@@ -171,9 +158,6 @@ export default defineEventHandler(async (event) => {
       bankAccount: String(u.bank_account || ''),
       accountHolder: String(u.account_holder || ''),
       referralCode: String(u.referral_code || ''),
-      affiliateName: isAdminRole(role) ? String(u.username || '') : '—',
-      affiliateParent: '—',
-      affiliateRate: typeof permissions?.settlementPercent === 'number' ? permissions.settlementPercent : null,
       balanceUsdt: balanceMap.get(Number(u.id)) ?? 0,
       cumulativeProfit: profitMap.get(Number(u.id)) ?? 0,
       created_at: String(u.created_at || ''),
