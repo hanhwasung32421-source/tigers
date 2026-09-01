@@ -2128,6 +2128,15 @@ function onChartAreaMouseMove(e: MouseEvent) {
   const y = e.clientY - rect.top
   lastChartMousePos.value = { x, y }
 
+  // 마지막 봉 오른쪽 여백처럼 lightweight-charts의 기본 크로스헤어(subscribeCrosshairMove)가
+  // point를 못 주는 구간에서도, 이 raw DOM 이벤트 기준으로 커스텀 크로스헤어(점선+점)를
+  // 계속 마우스를 따라가게 한다 — 그래야 그리기 미리보기 선도 같은 위치까지 자연스럽게 이어진다.
+  if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+    mouseCrosshair.visible = true
+    mouseCrosshair.x = x
+    mouseCrosshair.y = y
+  }
+
   if (measureBox.value && !measureBoxFrozen.value) {
     const price = candleSeries.coordinateToPrice(y)
     if (price !== null) {
@@ -2149,6 +2158,12 @@ function onChartAreaMouseMove(e: MouseEvent) {
       renderDrawingPreview()
     }
   }
+}
+
+// 마우스가 차트 영역을 완전히 벗어나면 커스텀 크로스헤어를 숨긴다(위치는 onChartAreaMouseMove가 계속
+// 갱신하므로, 별도로 숨겨주지 않으면 벗어난 자리에 그대로 멈춰있는 것처럼 보인다).
+function onChartAreaMouseLeave() {
+  mouseCrosshair.visible = false
 }
 
 const measureBoxView = computed(() => {
@@ -3306,10 +3321,10 @@ function onChartClick(param: any) {
 function onCrosshairMove(param: any) {
   if (!param || !param.point) {
     // 차트 오른쪽 여백처럼 실제 캔들 데이터가 없는 영역에서는 lightweight-charts가 point를 안 준다.
-    // 그렇다고 여기서 liveDrawingPoint를 지우면, 그 값을 계속 최신으로 유지해주는
+    // 그렇다고 여기서 liveDrawingPoint/커스텀 크로스헤어를 지우면, 그 값을 계속 최신으로 유지해주는
     // onChartAreaMouseMove(raw DOM 이벤트, 데이터 범위와 무관하게 항상 동작)의 결과까지 지워버려서
-    // 마우스가 마지막 봉 오른쪽으로 넘어가는 순간 추세선/수평선 미리보기가 멈춰버린다.
-    mouseCrosshair.visible = false
+    // 마우스가 마지막 봉 오른쪽으로 넘어가는 순간 크로스헤어/추세선 미리보기가 멈춰버린다.
+    // 크로스헤어 표시/좌표는 onChartAreaMouseMove가 전담하므로 여기선 건드리지 않는다.
     return
   }
   mouseCrosshair.visible = true
@@ -3493,6 +3508,7 @@ function initChart() {
   // capture 단계에서 붙여서, 선/핸들을 잡았을 때 차트 자체의 팬(pan) 동작보다 먼저 가로챈다.
   chartEl.value.addEventListener('mousedown', onChartMouseDown, true)
   chartEl.value.addEventListener('mousemove', onChartAreaMouseMove)
+  chartEl.value.addEventListener('mouseleave', onChartAreaMouseLeave)
   chartEl.value.addEventListener('dblclick', onChartDoubleClick)
   // capture 단계에서 붙여서, 다른 요소의 키 핸들러가 먼저 stopPropagation 하더라도 놓치지 않게 한다.
   window.addEventListener('keydown', onDrawingKeydown, true)
@@ -4366,6 +4382,7 @@ onBeforeUnmount(() => {
   if (chartEl.value) {
     chartEl.value.removeEventListener('mousedown', onChartMouseDown, true)
     chartEl.value.removeEventListener('mousemove', onChartAreaMouseMove)
+    chartEl.value.removeEventListener('mouseleave', onChartAreaMouseLeave)
     chartEl.value.removeEventListener('dblclick', onChartDoubleClick)
   }
   window.removeEventListener('keydown', onDrawingKeydown, true)
