@@ -555,14 +555,14 @@
                   </span>
                   <span class="font-mono">{{ p.symbol }}</span>
                   <button
+                    v-if="isAdminUser"
                     type="button"
-                    class="rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10"
-                    :class="isAdminUser ? 'cursor-pointer hover:bg-white/15' : 'cursor-default'"
-                    :disabled="!isAdminUser"
+                    class="cursor-pointer rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10 hover:bg-white/15"
                     @click="openPositionEditModal(p, 'leverage')"
                   >
                     x{{ p.leverage }}
                   </button>
+                  <span v-else class="rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10">x{{ p.leverage }}</span>
                 </div>
               </td>
               <td class="py-1" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
@@ -579,38 +579,38 @@
               </td>
               <td class="py-1 font-mono">
                 <button
+                  v-if="isAdminUser"
                   type="button"
-                  class="font-mono"
-                  :class="isAdminUser ? 'cursor-pointer hover:text-cyan-300' : 'cursor-default'"
-                  :disabled="!isAdminUser"
+                  class="cursor-pointer font-mono hover:text-cyan-300"
                   @click="openPositionEditModal(p, 'qty')"
                 >
                   {{ fmtQty(p.symbol, p.qty) }}
                 </button>
+                <span v-else>{{ fmtQty(p.symbol, p.qty) }}</span>
               </td>
               <td class="py-1 font-mono">
                 <button
+                  v-if="isAdminUser"
                   type="button"
-                  class="font-mono"
-                  :class="isAdminUser ? 'cursor-pointer hover:text-cyan-300' : 'cursor-default'"
-                  :disabled="!isAdminUser"
+                  class="cursor-pointer font-mono hover:text-cyan-300"
                   @click="openPositionEditModal(p, 'entry_price')"
                 >
                   {{ fmtPrice(Number(p.entry_price)) }}
                 </button>
+                <span v-else>{{ fmtPrice(Number(p.entry_price)) }}</span>
               </td>
               <td class="py-1 font-mono">{{ markOf(p.symbol) ? fmtPrice(markOf(p.symbol)) : '—' }}</td>
               <td class="py-1 font-mono">{{ fmtPrice(calcLiqPrice(p)) }}</td>
               <td class="py-1 font-mono">
                 <button
+                  v-if="isAdminUser"
                   type="button"
-                  class="font-mono"
-                  :class="isAdminUser ? 'cursor-pointer hover:text-cyan-300' : 'cursor-default'"
-                  :disabled="!isAdminUser"
+                  class="cursor-pointer font-mono hover:text-cyan-300"
                   @click="openPositionEditModal(p, 'margin')"
                 >
                   {{ Number(p.margin).toFixed(5) }}
                 </button>
+                <span v-else>{{ Number(p.margin).toFixed(5) }}</span>
               </td>
               <td class="py-1">
                 <div class="font-mono" :class="unrealized(p).pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'">
