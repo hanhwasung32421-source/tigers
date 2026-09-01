@@ -15,6 +15,25 @@ function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
   return gross * FEE_RATE * 2
 }
 
+// 추천코드 체인을 끝까지 따라 올라가서 가장 위에 있는 코드(=최상위 총판)를 찾는다.
+// referralOf: username -> 그 유저를 추천한 사람의 username(=추천코드)
+function resolveTopCode(username: string, referralOf: Map<string, string>): string {
+  let code = referralOf.get(username) || ''
+  if (!code) return ''
+  const seen = new Set<string>([username])
+  let depth = 0
+  while (depth < 50) {
+    if (seen.has(code)) break // 순환 참조 방지
+    seen.add(code)
+    const next = referralOf.get(code)
+    if (next === undefined) break // code가 알 수 없는 유저 → 여기까지가 확인 가능한 최상위
+    if (!next) break // code인 유저는 추천인이 없음 → code가 곧 최상위
+    code = next
+    depth++
+  }
+  return code
+}
+
 export default defineEventHandler(async (event) => {
   const me = await requireAdmin(event)
   if (!canViewMenu(me, 'members')) {
@@ -92,21 +111,25 @@ export default defineEventHandler(async (event) => {
       profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl - fee)
     }
 
+    const referralOf = new Map<string, string>((users || []).map((u: any) => [String(u.username || ''), String(u.referral_code || '')]))
+
     const rows = (users || []).map((u: any) => {
       const id = Number(u.id)
       const role = String(u.role || 'user')
+      const username = String(u.username || '')
       return {
         id,
         role: roleText(role),
         roleId: role,
         approved: true,
-        username: String(u.username || ''),
+        username,
         name: String(u.name || ''),
         birthDate: String(u.birth_date || ''),
         bankName: String(u.bank_name || ''),
         bankAccount: String(u.bank_account || ''),
         accountHolder: String(u.account_holder || ''),
         referralCode: String(u.referral_code || ''),
+        topCode: resolveTopCode(username, referralOf),
         balanceUsdt: balanceMap.get(id) ?? 0,
         cumulativeProfit: profitMap.get(id) ?? 0,
         created_at: String(u.created_at || ''),
@@ -144,20 +167,24 @@ export default defineEventHandler(async (event) => {
     if (!uid || !Number.isFinite(pnl)) continue
     profitMap.set(uid, (profitMap.get(uid) ?? 0) + pnl - fee)
   }
+  const referralOf = new Map<string, string>(users.map((u) => [String(u.username || ''), String(u.referral_code || '')]))
+
   const rows = users.map((u) => {
     const role = String(u.role || 'user')
+    const username = String(u.username || '')
     return {
       id: Number(u.id),
       role: roleText(role),
       roleId: role,
       approved: true,
-      username: String(u.username || ''),
+      username,
       name: String(u.name || ''),
       birthDate: String(u.birth_date || ''),
       bankName: String(u.bank_name || ''),
       bankAccount: String(u.bank_account || ''),
       accountHolder: String(u.account_holder || ''),
       referralCode: String(u.referral_code || ''),
+      topCode: resolveTopCode(username, referralOf),
       balanceUsdt: balanceMap.get(Number(u.id)) ?? 0,
       cumulativeProfit: profitMap.get(Number(u.id)) ?? 0,
       created_at: String(u.created_at || ''),

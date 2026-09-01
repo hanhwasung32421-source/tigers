@@ -54,6 +54,7 @@
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('topCode')">최상위코드<span class="sort-icon">{{ sortArrow('topCode') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">보유금액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('cumulativeProfit')">누적수익<span class="sort-icon">{{ sortArrow('cumulativeProfit') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
@@ -63,7 +64,7 @@
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="10" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
+              <td colspan="11" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
             </tr>
             <tr v-for="u in paged" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3">
@@ -90,6 +91,7 @@
               </td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ u.name }}</td>
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.referralCode || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.topCode || '—' }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
                 <button
                   v-if="canEditBalance"
@@ -391,6 +393,7 @@ type MemberRow = {
   bankAccount: string
   accountHolder: string
   referralCode: string
+  topCode: string
   balanceUsdt: number
   cumulativeProfit: number
   created_at: string
@@ -572,6 +575,7 @@ type SortKey =
   | 'username'
   | 'name'
   | 'referralCode'
+  | 'topCode'
   | 'balanceUsdt'
   | 'cumulativeProfit'
   | 'created_at'
