@@ -13,8 +13,7 @@
       </div>
     </div>
 
-    <!-- 박스(카드) 제거: 화면 폭을 최대한 활용해 가로 스크롤 없이 한 번에 보이도록 -->
-    <div class="xl:-mx-6 2xl:-mx-10">
+    <div>
       <div class="grid gap-2 rounded-xl border border-[#12314a]/40 bg-[#03101d]/40 p-3 shadow-[0_14px_40px_rgba(0,0,0,0.18)] md:grid-cols-[180px_minmax(220px,1fr)_120px_120px_120px]">
         <select
           v-model="memberFilter"
@@ -57,7 +56,7 @@
         </select>
       </div>
 
-      <div class="mt-3 overflow-x-auto">
+      <div class="mt-3">
         <table class="w-full text-[12px] leading-tight text-slate-200">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
