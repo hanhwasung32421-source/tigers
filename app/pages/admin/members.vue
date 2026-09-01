@@ -46,8 +46,8 @@
       </div>
 
       <div class="overflow-x-auto">
-        <table class="w-full text-xs text-slate-200">
-          <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
+        <table class="w-full text-[14px] text-slate-200">
+          <thead class="border-b border-[#12314a] text-[13px] text-slate-400">
             <tr>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">유저권한<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
               <th class="whitespace-nowrap px-3 py-3 text-left">승인상태</th>

@@ -41,11 +41,14 @@ export default defineEventHandler(async (event) => {
       .limit(200)
     if (e4) throw e4
     const ipMap = new Map<number, string>()
+    const lastLoginMap = new Map<number, string>()
     for (const ev of events || []) {
       const uid = Number((ev as any).local_user_id)
       const ip = (ev as any).ip ? String((ev as any).ip) : ''
-      if (!uid || ipMap.has(uid)) continue
-      if (ip) ipMap.set(uid, ip)
+      if (!uid) continue
+      // created_at 내림차순이라 각 유저의 첫 등장이 가장 최근 로그인이다.
+      if (!lastLoginMap.has(uid) && (ev as any).created_at) lastLoginMap.set(uid, String((ev as any).created_at))
+      if (ip && !ipMap.has(uid)) ipMap.set(uid, ip)
     }
 
     const rows = (users || []).map((u: any) => {
@@ -63,6 +66,7 @@ export default defineEventHandler(async (event) => {
         usdt: balMap.get(id) ?? 0,
         online: onlineSet.has(id),
         last_ip: ipMap.get(id) ?? null,
+        last_login: lastLoginMap.get(id) ?? null,
         settlementType: settlementTypeOf({ role: String(u.role || 'user'), permissions: u.permissions || {} }),
         settlementPercent: typeof u.permissions?.settlementPercent === 'number' ? u.permissions.settlementPercent : null
       }
@@ -115,6 +119,8 @@ export default defineEventHandler(async (event) => {
         role: u.role,
         created_at: u.created_at,
         usdt: u.usdt,
+        online: false,
+        last_login: null,
         settlementType: settlementTypeOf({ role: u.role, permissions }),
         settlementPercent: typeof permissions?.settlementPercent === 'number' ? permissions.settlementPercent : null
       }
