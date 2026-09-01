@@ -3384,6 +3384,9 @@ function initChart() {
       secondsVisible: false,
       // 현재가(마지막 봉) 오른쪽에도 추세선/수직선을 그릴 수 있게 여백을 남겨둔다.
       rightOffset: 24,
+      // 새 봉이 생길 때마다 화면이 자동으로 오른쪽으로 밀리면, 그려둔 선이 봉과 같이
+      // 움직이는데도 마치 어긋난 것처럼 보여서 끔(사용자가 스크롤한 화면 위치를 그대로 유지).
+      shiftVisibleRangeOnNewBar: false,
       tickMarkFormatter: (time: any) => formatAxisTick(time)
     },
     crosshair: {
