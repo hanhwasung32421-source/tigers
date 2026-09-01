@@ -3661,7 +3661,9 @@ async function fetchCandles() {
   applyKillWicks(candles, killEvents, intervalSeconds)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
-  chart?.timeScale().fitContent()
+  // fitContent()는 여기서 호출하지 않는다 — 20초마다 도는 백그라운드 재동기화(startKillResync)에서도
+  // 이 함수가 호출되는데, 그때마다 줌/스크롤이 리셋되면 그려둔 선이 어긋나 보이는 문제가 있었다.
+  // 실제로 다시 맞춰야 하는 호출부(최초 로딩/심볼·타임프레임 변경)에서 명시적으로 fitContent()를 부른다.
   candleData.value = candles
   volumeData.value = vols
   liveLastCandle.value = candles[candles.length - 1] || null
@@ -3681,6 +3683,7 @@ async function fetchCandles() {
 
 async function reloadCandles() {
   await fetchCandles().catch(() => {})
+  chart?.timeScale().fitContent()
 }
 
 function fitChartContent() {
@@ -4223,6 +4226,7 @@ watch([() => symbol.value, timeframe], async () => {
   chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? []
   applyPriceFormatForSymbol(symbol.value)
   await fetchCandles().catch(() => {})
+  chart?.timeScale().fitContent()
   connectWs()
   await loadAccount()
   await initKillEventBaseline()
@@ -4252,6 +4256,7 @@ onMounted(async () => {
   startBuySellBandMotion()
   await ensureChartReady()
   await fetchCandles().catch(() => {})
+  chart?.timeScale().fitContent()
   connectWs()
   await loadAccount()
   await initKillEventBaseline()
@@ -4265,6 +4270,7 @@ watch(
     if (!el || chart) return
     await ensureChartReady()
     await fetchCandles().catch(() => {})
+    chart?.timeScale().fitContent()
   }
 )
 
