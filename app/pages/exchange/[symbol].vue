@@ -13,22 +13,91 @@
             <div class="flex min-w-0 items-center gap-2">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
               <div class="hidden h-5 w-px bg-[#2a2e39] md:block" />
-              <div class="hidden items-center gap-1 md:flex">
+              <div ref="timeframeMenuRoot" class="relative hidden md:block">
                 <button
-                  v-for="opt in timeframeOptions"
-                  :key="opt.value"
                   type="button"
-                  class="rounded px-2 py-1 text-[11px] transition"
-                  :class="timeframe === opt.value ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-                  @click="timeframe = opt.value as TimeframeValue"
+                  class="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
+                  @click="timeframeMenuOpen = !timeframeMenuOpen; indicatorMenuOpen = false"
                 >
-                  {{ opt.label }}
+                  <span>{{ currentTimeframeLabel }}</span>
+                  <span class="text-[9px]">▾</span>
                 </button>
+                <div
+                  v-if="timeframeMenuOpen"
+                  class="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[140px] rounded-md border border-white/10 bg-[#1e222d] py-1 shadow-lg"
+                >
+                  <template v-for="(group, gi) in timeframeGroups" :key="gi">
+                    <div v-if="gi > 0" class="my-1 h-px bg-white/10" />
+                    <button
+                      v-for="opt in group"
+                      :key="opt.value"
+                      type="button"
+                      class="block w-full px-3 py-1.5 text-left text-[11px] transition"
+                      :class="timeframe === opt.value ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-white/5 hover:text-white'"
+                      @click="selectTimeframe(opt.value as TimeframeValue)"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </template>
+                </div>
               </div>
               <div class="hidden h-5 w-px bg-[#2a2e39] md:block" />
-              <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="toggleIndicator('bol')">
-                지표
-              </button>
+              <div ref="indicatorMenuRoot" class="relative hidden md:block">
+                <button
+                  type="button"
+                  class="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
+                  @click="indicatorMenuOpen = !indicatorMenuOpen; timeframeMenuOpen = false"
+                >
+                  <span>보조지표</span>
+                  <span class="text-[9px]">▾</span>
+                </button>
+                <div
+                  v-if="indicatorMenuOpen"
+                  class="absolute left-0 top-[calc(100%+6px)] z-50 w-64 rounded-md border border-white/10 bg-[#1e222d] p-2 shadow-lg"
+                >
+                  <input
+                    v-model="indicatorSearch"
+                    type="text"
+                    placeholder="지표 검색 (한글/영문)"
+                    class="mb-2 w-full rounded bg-[#131722] px-2 py-1.5 text-[11px] text-white placeholder:text-[#5d6472] focus:outline-none"
+                  />
+                  <div class="max-h-72 overflow-y-auto overscroll-contain pr-1">
+                    <div v-if="filteredOverlayIndicators.length" class="mb-1 px-1 pt-1 text-[10px] font-semibold text-[#868993]">상단 지표</div>
+                    <button
+                      v-for="ind in filteredOverlayIndicators"
+                      :key="ind.id"
+                      type="button"
+                      class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[11px] text-[#d1d4dc] hover:bg-white/5"
+                      @click="ind.id === 'bol' ? toggleIndicator('bol') : toggleExtraIndicator(ind.id)"
+                    >
+                      <span
+                        class="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border"
+                        :class="(ind.id === 'bol' ? chartPrefs.indicators.bol.enabled : isExtraIndicatorEnabled(ind.id)) ? 'border-[#2962ff] bg-[#2962ff]' : 'border-[#5d6472]'"
+                      />
+                      <span class="truncate">{{ ind.labelKo }}</span>
+                      <span class="ml-auto truncate text-[9px] text-[#5d6472]">{{ ind.labelEn }}</span>
+                    </button>
+                    <div v-if="filteredOscillatorIndicators.length" class="mb-1 mt-2 px-1 pt-1 text-[10px] font-semibold text-[#868993]">하단 지표</div>
+                    <button
+                      v-for="ind in filteredOscillatorIndicators"
+                      :key="ind.id"
+                      type="button"
+                      class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[11px] text-[#d1d4dc] hover:bg-white/5"
+                      @click="toggleExtraIndicator(ind.id)"
+                    >
+                      <span
+                        class="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border"
+                        :class="isExtraIndicatorEnabled(ind.id) ? 'border-[#2962ff] bg-[#2962ff]' : 'border-[#5d6472]'"
+                      />
+                      <span class="truncate">{{ ind.labelKo }}</span>
+                      <span class="ml-auto truncate text-[9px] text-[#5d6472]">{{ ind.labelEn }}</span>
+                    </button>
+                    <div v-if="!filteredOverlayIndicators.length && !filteredOscillatorIndicators.length" class="px-2 py-3 text-center text-[11px] text-[#5d6472]">
+                      검색 결과가 없습니다
+                    </div>
+                  </div>
+                </div>
+              </div>
               <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllDrawings">
                 도구 지우기
               </button>
@@ -90,7 +159,7 @@
           </div>
         </div>
 
-        <div class="flex h-[600px] bg-[#131722]">
+        <div class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2">
             <button
               type="button"
@@ -1068,6 +1137,38 @@ import { VerticalLinePrimitive } from '../../utils/chart/verticalLinePrimitive'
 import { RectanglePrimitive } from '../../utils/chart/rectanglePrimitive'
 import { CirclePrimitive } from '../../utils/chart/circlePrimitive'
 import { calculateBollingerBands } from '../../utils/chart/movingAverage'
+import { INDICATOR_LIST } from '../../utils/chart/indicatorList'
+import {
+  calcMA,
+  calcEMA,
+  calcWMA,
+  calcVWMA,
+  calcVWAP,
+  calcPSAR,
+  calcATR,
+  calcSuperTrend,
+  calcKeltner,
+  calcDonchian,
+  calcEnvelope,
+  calcIchimoku,
+  calcPivot,
+  calcRSI,
+  calcMACD,
+  calcStochastic,
+  calcStochRSI,
+  calcADX,
+  calcCCI,
+  calcWilliamsR,
+  calcOBV,
+  calcMFI,
+  calcROC,
+  calcMomentum,
+  calcTRIX,
+  calcUltimateOscillator,
+  calcCMF,
+  calcAroon,
+  calcStdDev
+} from '../../utils/chart/indicators'
 
 definePageMeta({ middleware: ['auth'], layout: 'trading' })
 
@@ -1473,10 +1574,10 @@ function defaultBolPrefs(): BolPrefs {
 }
 
 const chartPrefs = reactive<{
-  indicators: { bol: BolPrefs }
+  indicators: { bol: BolPrefs; extra: string[] }
   drawings: Array<{ id: string; type: 'trend' | 'hline' | 'vline' | 'rect' | 'circle'; color?: string; price?: number; time?: any; points?: Array<{ time: any; price: number }> }>
 }>({
-  indicators: { bol: defaultBolPrefs() },
+  indicators: { bol: defaultBolPrefs(), extra: [] },
   drawings: []
 })
 
@@ -1485,6 +1586,64 @@ const bolModalOpen = ref(false)
 const bolModalTab = ref<'input' | 'style'>('input')
 const bolDraft = reactive<BolPrefs>(defaultBolPrefs())
 const bolSelected = ref(false)
+
+// 보조지표(BOL 제외 29종) 상태: 하단(오실레이터) 지표 하나당 별도 창(pane)을 만들고,
+// 그만큼 차트 전체 높이를 늘린다.
+const CHART_BASE_HEIGHT = 600
+const OSCILLATOR_PANE_HEIGHT = 130
+const chartContainerHeightPx = ref(CHART_BASE_HEIGHT)
+let extraIndicatorSeries: Map<string, ISeriesApi<any>[]> = new Map()
+const indicatorMenuOpen = ref(false)
+const indicatorSearch = ref('')
+const timeframeMenuOpen = ref(false)
+const timeframeMenuRoot = ref<HTMLElement | null>(null)
+const indicatorMenuRoot = ref<HTMLElement | null>(null)
+
+function onDropdownMenuDocClick(e: MouseEvent) {
+  const t = e.target as Node | null
+  if (timeframeMenuOpen.value && timeframeMenuRoot.value && !(t && timeframeMenuRoot.value.contains(t))) {
+    timeframeMenuOpen.value = false
+  }
+  if (indicatorMenuOpen.value && indicatorMenuRoot.value && !(t && indicatorMenuRoot.value.contains(t))) {
+    indicatorMenuOpen.value = false
+  }
+}
+
+const overlayIndicatorOptions = computed(() => [
+  { id: 'bol', labelKo: '볼린저밴드', labelEn: 'Bollinger Bands' },
+  ...INDICATOR_LIST.filter((i) => i.category === 'overlay')
+])
+const oscillatorIndicatorOptions = computed(() => INDICATOR_LIST.filter((i) => i.category === 'oscillator'))
+
+function matchesIndicatorSearch(labelKo: string, labelEn: string) {
+  const q = indicatorSearch.value.trim().toLowerCase()
+  if (!q) return true
+  return labelKo.toLowerCase().includes(q) || labelEn.toLowerCase().includes(q)
+}
+const filteredOverlayIndicators = computed(() => overlayIndicatorOptions.value.filter((i) => matchesIndicatorSearch(i.labelKo, i.labelEn)))
+const filteredOscillatorIndicators = computed(() => oscillatorIndicatorOptions.value.filter((i) => matchesIndicatorSearch(i.labelKo, i.labelEn)))
+
+function isExtraIndicatorEnabled(id: string) {
+  return chartPrefs.indicators.extra.includes(id)
+}
+function toggleExtraIndicator(id: string) {
+  const idx = chartPrefs.indicators.extra.indexOf(id)
+  if (idx === -1) chartPrefs.indicators.extra.push(id)
+  else chartPrefs.indicators.extra.splice(idx, 1)
+  renderExtraIndicators()
+  scheduleSaveChartPrefs()
+}
+
+const timeframeGroups = computed(() => [
+  timeframeOptions.filter((o) => ['1m', '5m', '15m', '30m'].includes(o.value)),
+  timeframeOptions.filter((o) => o.value === '1H'),
+  timeframeOptions.filter((o) => ['1D', '1W', '1M'].includes(o.value))
+])
+const currentTimeframeLabel = computed(() => timeframeOptions.find((o) => o.value === timeframe.value)?.label || timeframe.value)
+function selectTimeframe(v: TimeframeValue) {
+  timeframe.value = v
+  timeframeMenuOpen.value = false
+}
 let bolTimes: any[] = []
 let bolBasisValues: Array<number | undefined> = []
 let bolUpperValues: Array<number | undefined> = []
@@ -3112,6 +3271,240 @@ function renderIndicators() {
   }
 }
 
+type IndicatorLineSpec = { data: any[]; color: string; lineWidth?: 1 | 2 | 3 | 4; kind?: 'line' | 'histogram' }
+type IndicatorRenderSpec = { category: 'overlay' | 'oscillator'; series: IndicatorLineSpec[] }
+
+// BOL을 제외한 29종 보조지표의 계산+렌더 스펙(색상/개수)을 한곳에 모아둔다.
+function buildIndicatorSpec(id: string, candles: CandlestickData[], intervalSeconds: number): IndicatorRenderSpec | null {
+  const vols = volumeData.value || []
+  switch (id) {
+    case 'ma':
+      return { category: 'overlay', series: [{ data: calcMA(candles as any), color: '#f59e0b' }] }
+    case 'ema':
+      return { category: 'overlay', series: [{ data: calcEMA(candles as any), color: '#3b82f6' }] }
+    case 'wma':
+      return { category: 'overlay', series: [{ data: calcWMA(candles as any), color: '#a855f7' }] }
+    case 'vwma':
+      return { category: 'overlay', series: [{ data: calcVWMA(candles as any, vols as any), color: '#ec4899' }] }
+    case 'vwap':
+      return { category: 'overlay', series: [{ data: calcVWAP(candles as any, vols as any), color: '#14b8a6' }] }
+    case 'psar':
+      return { category: 'overlay', series: [{ data: calcPSAR(candles as any), color: '#eab308', lineWidth: 1 }] }
+    case 'supertrend':
+      return { category: 'overlay', series: [{ data: calcSuperTrend(candles as any), color: '#22c55e' }] }
+    case 'keltner': {
+      const k = calcKeltner(candles as any)
+      return {
+        category: 'overlay',
+        series: [
+          { data: k.mid, color: '#38bdf8' },
+          { data: k.upper, color: 'rgba(56,189,248,0.6)', lineWidth: 1 },
+          { data: k.lower, color: 'rgba(56,189,248,0.6)', lineWidth: 1 }
+        ]
+      }
+    }
+    case 'donchian': {
+      const d = calcDonchian(candles as any)
+      return {
+        category: 'overlay',
+        series: [
+          { data: d.mid, color: '#f97316' },
+          { data: d.upper, color: 'rgba(249,115,22,0.6)', lineWidth: 1 },
+          { data: d.lower, color: 'rgba(249,115,22,0.6)', lineWidth: 1 }
+        ]
+      }
+    }
+    case 'envelope': {
+      const e = calcEnvelope(candles as any)
+      return {
+        category: 'overlay',
+        series: [
+          { data: e.upper, color: '#94a3b8', lineWidth: 1 },
+          { data: e.lower, color: '#94a3b8', lineWidth: 1 }
+        ]
+      }
+    }
+    case 'ichimoku': {
+      const ic = calcIchimoku(candles as any, intervalSeconds)
+      return {
+        category: 'overlay',
+        series: [
+          { data: ic.conversion, color: '#2563eb', lineWidth: 1 },
+          { data: ic.baseLine, color: '#f97316', lineWidth: 1 },
+          { data: ic.spanA, color: 'rgba(34,197,94,0.7)', lineWidth: 1 },
+          { data: ic.spanB, color: 'rgba(239,68,68,0.7)', lineWidth: 1 }
+        ]
+      }
+    }
+    case 'pivot': {
+      const p = calcPivot(candles as any)
+      return {
+        category: 'overlay',
+        series: [
+          { data: p.pivot, color: '#eab308', lineWidth: 1 },
+          { data: p.r1, color: '#22c55e', lineWidth: 1 },
+          { data: p.s1, color: '#ef4444', lineWidth: 1 }
+        ]
+      }
+    }
+    case 'rsi':
+      return { category: 'oscillator', series: [{ data: calcRSI(candles as any), color: '#a855f7' }] }
+    case 'macd': {
+      const m = calcMACD(candles as any)
+      return {
+        category: 'oscillator',
+        series: [
+          { data: m.hist, color: '#64748b', kind: 'histogram' },
+          { data: m.macd, color: '#2563eb' },
+          { data: m.signal, color: '#f97316' }
+        ]
+      }
+    }
+    case 'stoch': {
+      const s = calcStochastic(candles as any)
+      return {
+        category: 'oscillator',
+        series: [
+          { data: s.k, color: '#2563eb' },
+          { data: s.d, color: '#f97316' }
+        ]
+      }
+    }
+    case 'stochrsi': {
+      const s = calcStochRSI(candles as any)
+      return {
+        category: 'oscillator',
+        series: [
+          { data: s.k, color: '#2563eb' },
+          { data: s.d, color: '#f97316' }
+        ]
+      }
+    }
+    case 'atr':
+      return { category: 'oscillator', series: [{ data: calcATR(candles as any), color: '#f59e0b' }] }
+    case 'adx': {
+      const a = calcADX(candles as any)
+      return {
+        category: 'oscillator',
+        series: [
+          { data: a.adx, color: '#e5e7eb' },
+          { data: a.plusDi, color: '#22c55e', lineWidth: 1 },
+          { data: a.minusDi, color: '#ef4444', lineWidth: 1 }
+        ]
+      }
+    }
+    case 'cci':
+      return { category: 'oscillator', series: [{ data: calcCCI(candles as any), color: '#14b8a6' }] }
+    case 'willr':
+      return { category: 'oscillator', series: [{ data: calcWilliamsR(candles as any), color: '#eab308' }] }
+    case 'obv':
+      return { category: 'oscillator', series: [{ data: calcOBV(candles as any, vols as any), color: '#38bdf8' }] }
+    case 'mfi':
+      return { category: 'oscillator', series: [{ data: calcMFI(candles as any, vols as any), color: '#a855f7' }] }
+    case 'roc':
+      return { category: 'oscillator', series: [{ data: calcROC(candles as any), color: '#f97316' }] }
+    case 'momentum':
+      return { category: 'oscillator', series: [{ data: calcMomentum(candles as any), color: '#22c55e' }] }
+    case 'trix':
+      return { category: 'oscillator', series: [{ data: calcTRIX(candles as any), color: '#ec4899' }] }
+    case 'uo':
+      return { category: 'oscillator', series: [{ data: calcUltimateOscillator(candles as any), color: '#eab308' }] }
+    case 'cmf':
+      return { category: 'oscillator', series: [{ data: calcCMF(candles as any, vols as any), color: '#38bdf8' }] }
+    case 'aroon': {
+      const a = calcAroon(candles as any)
+      return {
+        category: 'oscillator',
+        series: [
+          { data: a.up, color: '#22c55e' },
+          { data: a.down, color: '#ef4444' }
+        ]
+      }
+    }
+    case 'stddev':
+      return { category: 'oscillator', series: [{ data: calcStdDev(candles as any), color: '#94a3b8' }] }
+    default:
+      return null
+  }
+}
+
+function clearExtraIndicatorSeries() {
+  if (!chart) {
+    extraIndicatorSeries.clear()
+    return
+  }
+  for (const seriesList of extraIndicatorSeries.values()) {
+    for (const s of seriesList) {
+      try { chart.removeSeries(s) } catch {}
+    }
+  }
+  extraIndicatorSeries.clear()
+}
+
+// BOL 제외 29종 보조지표를 한 번에 다시 그린다. 하단(오실레이터) 지표는 각각 별도 pane(창)에
+// 그려서 TradingView처럼 아래로 쌓이게 하고, 그만큼 차트 전체 높이를 늘려준다.
+function renderExtraIndicators() {
+  if (!chart) return
+  clearExtraIndicatorSeries()
+
+  const candles = candleData.value || []
+  const intervalSeconds = barSeconds(timeframe.value)
+  const enabled = chartPrefs.indicators.extra.filter((id) => INDICATOR_LIST.some((m) => m.id === id))
+  const overlayIds = enabled.filter((id) => INDICATOR_LIST.find((m) => m.id === id)?.category === 'overlay')
+  const oscillatorIds = enabled.filter((id) => INDICATOR_LIST.find((m) => m.id === id)?.category === 'oscillator')
+
+  if (!candles.length) return
+
+  for (const id of overlayIds) {
+    const spec = buildIndicatorSpec(id, candles, intervalSeconds)
+    if (!spec) continue
+    const created: ISeriesApi<any>[] = []
+    for (const line of spec.series) {
+      const s = chart.addSeries(LineSeries, {
+        color: line.color,
+        lineWidth: line.lineWidth ?? 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false
+      })
+      s.setData(line.data as any)
+      created.push(s)
+    }
+    extraIndicatorSeries.set(id, created)
+  }
+
+  oscillatorIds.forEach((id, idx) => {
+    const spec = buildIndicatorSpec(id, candles, intervalSeconds)
+    if (!spec) return
+    const paneIndex = idx + 1
+    const created: ISeriesApi<any>[] = []
+    for (const line of spec.series) {
+      const s =
+        line.kind === 'histogram'
+          ? chart!.addSeries(HistogramSeries, { color: line.color, priceLineVisible: false, lastValueVisible: false }, paneIndex)
+          : chart!.addSeries(
+              LineSeries,
+              { color: line.color, lineWidth: line.lineWidth ?? 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false },
+              paneIndex
+            )
+      s.setData(line.data as any)
+      created.push(s)
+    }
+    extraIndicatorSeries.set(id, created)
+  })
+
+  // 오실레이터 지표 개수만큼 차트 전체 높이를 늘리고(각 pane 130px), 새 높이로 즉시 리사이즈한다.
+  const newHeight = CHART_BASE_HEIGHT + oscillatorIds.length * OSCILLATOR_PANE_HEIGHT
+  if (newHeight !== chartContainerHeightPx.value) {
+    chartContainerHeightPx.value = newHeight
+    const width = chartEl.value?.clientWidth || 0
+    if (width) chart.resize(width, newHeight)
+  }
+  oscillatorIds.forEach((_, idx) => {
+    try { chart!.panes()[idx + 1]?.setHeight(OSCILLATOR_PANE_HEIGHT) } catch {}
+  })
+}
+
 function hitTestBol(x: number, y: number): boolean {
   if (!chart || !candleSeries) return false
   const b = chartPrefs.indicators.bol
@@ -3607,6 +4000,7 @@ function initChart() {
     }
   })
   renderIndicators()
+  renderExtraIndicators()
   renderSavedDrawings()
 
   // 선 선택/끝점 드래그/삭제 + Shift+클릭 수익률 측정 박스
@@ -3798,6 +4192,7 @@ async function backfillOlderCandles(
   volumeData.value = vols
   renderEntryLines()
   renderIndicators()
+  renderExtraIndicators()
   renderSavedDrawings()
 }
 
@@ -3836,6 +4231,7 @@ async function fetchCandles() {
   }
   renderEntryLines()
   renderIndicators()
+  renderExtraIndicators()
   renderSavedDrawings()
 
   // 2) 나머지 과거 봉(4일치를 채우는 데 필요한 만큼)은 백그라운드에서 이어받는다.
@@ -4053,6 +4449,9 @@ async function loadAccount() {
     } else {
       chartPrefs.indicators.bol.enabled = !!cp?.indicators?.bol
     }
+    if (Array.isArray(cp?.indicators?.extra)) {
+      chartPrefs.indicators.extra = cp.indicators.extra.filter((id: any) => typeof id === 'string')
+    }
     chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? (Array.isArray(cp?.drawings) ? cp.drawings : [])
     chartPrefsHydrated.value = true
   }
@@ -4067,6 +4466,7 @@ async function loadAccount() {
   if (chartMode.value === 'built') {
     renderEntryLines()
     renderIndicators()
+    renderExtraIndicators()
     renderSavedDrawings()
   }
 }
@@ -4405,6 +4805,7 @@ watch(
 )
 
 onMounted(async () => {
+  document.addEventListener('click', onDropdownMenuDocClick, { capture: true })
   chartClockTimer = setInterval(() => {
     chartNow.value = Date.now()
   }, 1000)
@@ -4447,12 +4848,16 @@ watch(
     if (chartPrefs.indicators.bol.enabled) {
       renderIndicators()
     }
+    if (chartPrefs.indicators.extra.length) {
+      renderExtraIndicators()
+    }
     updateEntryBadges()
     checkAutoLiquidations().catch(() => {})
   }
 )
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   ws?.close()
   ws = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)

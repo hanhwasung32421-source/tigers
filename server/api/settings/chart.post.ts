@@ -26,7 +26,8 @@ const BolPrefsSchema = z.union([
 
 const ChartPrefsSchema = z.object({
   indicators: z.object({
-    bol: BolPrefsSchema.optional().default(false)
+    bol: BolPrefsSchema.optional().default(false),
+    extra: z.array(z.string()).max(30).optional().default([])
   }).default({}),
   drawings: z.array(
     z.object({
