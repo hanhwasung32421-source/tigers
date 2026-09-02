@@ -706,7 +706,7 @@
                     :disabled="isTradeSyncing"
                     @click="closePosition(p.id, 'market', p)"
                   >
-                    청산
+                    시장가청산
                   </button>
                 </div>
               </td>
