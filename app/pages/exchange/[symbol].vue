@@ -215,6 +215,11 @@
               >
                 {{ crosshairTimeLabel }}
               </div>
+              <div
+                v-if="vlinePreviewX !== null"
+                class="absolute top-0 bottom-0 w-px border-l-2 border-dashed border-[#38bdf8]"
+                :style="{ left: vlinePreviewX + 'px' }"
+              />
             </div>
             <template v-if="measureBoxView">
               <div
@@ -1346,7 +1351,6 @@ const rectanglePrimitives: RectanglePrimitive[] = []
 const circlePrimitives: CirclePrimitive[] = []
 let previewPriceLine: any = null
 let previewTrendPrimitive: TrendLinePrimitive | null = null
-let previewVerticalPrimitive: VerticalLinePrimitive | null = null
 let previewRectPrimitive: RectanglePrimitive | null = null
 let previewCirclePrimitive: CirclePrimitive | null = null
 const candleData = ref<CandlestickData[]>([])
@@ -1363,6 +1367,14 @@ const crosshairTimeLabel = computed(() => {
   const time = resolveTimeAtX(null, mouseCrosshair.x)
   if (time === null || time === undefined) return ''
   return formatCrosshairTime(time)
+})
+
+// 수직선 미리보기는 캔버스 primitive 대신 크로스헤어와 같은 방식(원시 마우스 좌표 기반 DOM
+// 오버레이)으로 그린다 — primitive는 마지막 봉 오른쪽 여백에서 화면 갱신이 안 따라오는
+// 문제가 있었는데, 커스텀 크로스헤어는 같은 구간에서도 이미 확실히 잘 따라오기 때문이다.
+const vlinePreviewX = computed(() => {
+  if (activeTool.value !== 'vline' || !liveDrawingPoint.value) return null
+  return mouseCrosshair.x
 })
 // 도구를 고르고 아직 차트를 클릭하기 전(=첫 점을 찍기 전)에만 안내 배너를 보여준다.
 const TWO_CLICK_TOOLS = ['trend', 'rect', 'circle'] as const
@@ -3144,10 +3156,6 @@ function clearDrawingPreviewVisuals() {
     try { if (candleSeries) candleSeries.detachPrimitive(previewTrendPrimitive) } catch {}
     previewTrendPrimitive = null
   }
-  if (previewVerticalPrimitive) {
-    try { if (candleSeries) candleSeries.detachPrimitive(previewVerticalPrimitive) } catch {}
-    previewVerticalPrimitive = null
-  }
   if (previewRectPrimitive) {
     try { if (candleSeries) candleSeries.detachPrimitive(previewRectPrimitive) } catch {}
     previewRectPrimitive = null
@@ -3176,15 +3184,8 @@ function renderDrawingPreview() {
     return
   }
 
-  if (activeTool.value === 'vline' && liveDrawingPoint.value && liveDrawingPoint.value.time !== undefined) {
-    previewVerticalPrimitive = new VerticalLinePrimitive(chart, candleSeries, liveDrawingPoint.value.time, {
-      lineColor: '#38bdf8',
-      width: 1,
-      resolveX: resolveXForTime
-    })
-    candleSeries.attachPrimitive(previewVerticalPrimitive)
-    return
-  }
+  // 수직선 미리보기는 renderDrawingPreview가 아니라 template의 vlinePreviewX(DOM 오버레이,
+  // 크로스헤어와 동일한 raw 마우스 좌표 기반)로 그린다 — 아래 참고.
 
   if (
     activeTool.value === 'trend' &&
