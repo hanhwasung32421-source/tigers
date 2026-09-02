@@ -1971,21 +1971,25 @@ function onChartMouseDown(e: MouseEvent) {
         renderSavedDrawings()
       }
       bolSelected.value = true
+      renderIndicators()
       return
     }
     if (selectedDrawingId.value || bolSelected.value) {
       selectedDrawingId.value = null
       bolSelected.value = false
       renderSavedDrawings()
+      renderIndicators()
     }
     return
   }
 
   e.preventDefault()
   e.stopPropagation()
+  const wasBolSelected = bolSelected.value
   bolSelected.value = false
   selectedDrawingId.value = hit.id
   renderSavedDrawings()
+  if (wasBolSelected) renderIndicators()
 
   if (hit.kind === 'trend-line' || hit.kind === 'rect-shape' || hit.kind === 'circle-shape') return // 몸통은 선택만, 드래그는 끝점(원)에서만
 
@@ -2156,12 +2160,20 @@ function onChartAreaMouseMove(e: MouseEvent) {
       renderDrawingPreview()
     }
   }
+
+  // 커서 도구일 때, 클릭/드래그가 되는 대상(수직선/수평선/추세선/사각형/원/볼린저밴드) 위에
+  // 마우스를 올리면 손가락(포인터) 모양으로 바꿔서 클릭 가능하다는 걸 바로 알 수 있게 한다.
+  if (activeTool.value === 'cursor') {
+    const overInteractive = Boolean(hitTestDrawings(x, y)) || hitTestBol(x, y)
+    chartEl.value.style.cursor = overInteractive ? 'pointer' : ''
+  }
 }
 
 // 마우스가 차트 영역을 완전히 벗어나면 커스텀 크로스헤어를 숨긴다(위치는 onChartAreaMouseMove가 계속
 // 갱신하므로, 별도로 숨겨주지 않으면 벗어난 자리에 그대로 멈춰있는 것처럼 보인다).
 function onChartAreaMouseLeave() {
   mouseCrosshair.visible = false
+  if (chartEl.value) chartEl.value.style.cursor = ''
 }
 
 const measureBoxView = computed(() => {
@@ -2915,10 +2927,11 @@ function renderIndicators() {
   bolUpperValues = upper.map((p: any) => p.value)
   bolLowerValues = lower.map((p: any) => p.value)
 
+  // 선택된 상태면 선을 굵게(+테두리 느낌) 그려서 클릭이 됐는지 눈으로 바로 알 수 있게 한다.
   if (b.showBasis) {
     bolBasisSeries = chart.addSeries(LineSeries, {
       color: b.basisColor,
-      lineWidth: 2,
+      lineWidth: bolSelected.value ? 4 : 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
@@ -2928,7 +2941,7 @@ function renderIndicators() {
   if (b.showUpper) {
     bolUpperSeries = chart.addSeries(LineSeries, {
       color: b.upperColor,
-      lineWidth: 1,
+      lineWidth: bolSelected.value ? 3 : 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
@@ -2938,7 +2951,7 @@ function renderIndicators() {
   if (b.showLower) {
     bolLowerSeries = chart.addSeries(LineSeries, {
       color: b.lowerColor,
-      lineWidth: 1,
+      lineWidth: bolSelected.value ? 3 : 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false
