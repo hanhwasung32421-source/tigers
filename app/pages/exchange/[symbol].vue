@@ -1060,7 +1060,8 @@ import {
   type IChartApi,
   type ISeriesApi,
   type CandlestickData,
-  type HistogramData
+  type HistogramData,
+  type WhitespaceData
 } from 'lightweight-charts'
 import { TrendLinePrimitive } from '../../utils/chart/trendLinePrimitive'
 import { VerticalLinePrimitive } from '../../utils/chart/verticalLinePrimitive'
@@ -1339,6 +1340,9 @@ const chartEl = ref<HTMLElement | null>(null)
 let chart: IChartApi | null = null
 let candleSeries: ISeriesApi<'Candlestick'> | null = null
 let volumeSeries: ISeriesApi<'Histogram'> | null = null
+// 마지막 봉 오른쪽 여백에 미래 시간축 눈금을 미리 표시하기 위한, 화면엔 안 보이는 전용 시리즈.
+// candleSeries에 직접 whitespace를 섞으면 실시간 틱(update()) 갱신과 충돌할 수 있어 분리했다.
+let futureAxisSeries: ISeriesApi<'Line'> | null = null
 let bolBasisSeries: ISeriesApi<'Line'> | null = null
 let bolUpperSeries: ISeriesApi<'Line'> | null = null
 let bolLowerSeries: ISeriesApi<'Line'> | null = null
@@ -1821,6 +1825,21 @@ function timeToUnixSeconds(t: any): number {
     return Math.floor(Date.UTC(t.year, t.month - 1, t.day) / 1000)
   }
   return 0
+}
+
+// 마지막 봉 오른쪽 여백(rightOffset)만큼, 시간만 있고 캔들 값은 없는 "whitespace" 데이터를
+// 추가로 넣어준다 — lightweight-charts는 실제로 시리즈에 그 시간이 존재해야 그 구간에도
+// 시간축 눈금(예: 15:30, 16:00)을 그려주기 때문에, rightOffset로 여백만 남겨두는 것만으로는
+// 참고 화면(BITFLEX 등)처럼 미래 시간 눈금이 미리 표시되지 않는다.
+const CHART_RIGHT_OFFSET_BARS = 24
+function buildFutureWhitespace(lastCandle: CandlestickData | undefined, intervalSeconds: number): WhitespaceData[] {
+  if (!lastCandle || !intervalSeconds) return []
+  const lastUnix = timeToUnixSeconds(lastCandle.time)
+  const out: WhitespaceData[] = []
+  for (let i = 1; i <= CHART_RIGHT_OFFSET_BARS; i++) {
+    out.push({ time: (lastUnix + i * intervalSeconds) as any })
+  }
+  return out
 }
 
 // initChart()의 크로스헤어 timeFormatter/tickMarkFormatter와, 마지막 봉 오른쪽 여백까지 따라가는
@@ -3481,7 +3500,7 @@ function initChart() {
       timeVisible: true,
       secondsVisible: false,
       // 현재가(마지막 봉) 오른쪽에도 추세선/수직선을 그릴 수 있게 여백을 남겨둔다.
-      rightOffset: 24,
+      rightOffset: CHART_RIGHT_OFFSET_BARS,
       // 새 봉이 생길 때마다 화면이 자동으로 오른쪽으로 밀리면, 그려둔 선이 봉과 같이
       // 움직이는데도 마치 어긋난 것처럼 보여서 끔(사용자가 스크롤한 화면 위치를 그대로 유지).
       shiftVisibleRangeOnNewBar: false,
@@ -3536,6 +3555,16 @@ function initChart() {
     priceScaleId: ''
   })
   volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } })
+
+  // 화면엔 안 보이지만(완전 투명), whitespace 데이터로 시간축에 미래 눈금을 미리 그려주는 시리즈.
+  futureAxisSeries = chart.addSeries(LineSeries, {
+    color: 'rgba(0,0,0,0)',
+    lineWidth: 1,
+    priceLineVisible: false,
+    lastValueVisible: false,
+    crosshairMarkerVisible: false
+  })
+
   chart.subscribeClick(onChartClick)
   chart.subscribeCrosshairMove(onCrosshairMove)
   // 확대/축소/스크롤로 가격축 스케일이 바뀔 때도 진입가 뱃지 위치를 다시 계산
@@ -3732,6 +3761,7 @@ async function backfillOlderCandles(
   applyKillWicks(candles, killEvents, intervalSeconds)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
+  futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
   // fitContent()는 다시 호출하지 않는다 — 사용자가 보고 있는 화면(줌/스크롤)을 방해하지 않기 위함
   candleData.value = candles
   volumeData.value = vols
@@ -3762,6 +3792,7 @@ async function fetchCandles() {
   applyKillWicks(candles, killEvents, intervalSeconds)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
+  futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
   // fitContent()는 여기서 호출하지 않는다 — 20초마다 도는 백그라운드 재동기화(startKillResync)에서도
   // 이 함수가 호출되는데, 그때마다 줌/스크롤이 리셋되면 그려둔 선이 어긋나 보이는 문제가 있었다.
   // 실제로 다시 맞춰야 하는 호출부(최초 로딩/심볼·타임프레임 변경)에서 명시적으로 fitContent()를 부른다.
