@@ -2112,10 +2112,23 @@ function onChartMouseDown(e: MouseEvent) {
   renderSavedDrawings()
   if (wasBolSelected) renderIndicators()
 
-  if (hit.kind === 'trend-line' || hit.kind === 'rect-shape' || hit.kind === 'circle-shape') return // 몸통은 선택만, 드래그는 끝점(원)에서만
+  if (hit.kind === 'rect-shape' || hit.kind === 'circle-shape') return // 몸통은 선택만, 드래그는 끝점(원)에서만
 
   const drawing = chartPrefs.drawings.find((d) => d.id === hit.id)
   if (!drawing) return
+
+  // 추세선 몸통(중간)을 잡고 이동하면, 양 끝점을 같은 만큼 평행이동시켜 각도/길이는 그대로 유지한다.
+  let trendTranslateOrigin: { points: { time: any; price: number }[]; price: number; time: any } | null = null
+  if (hit.kind === 'trend-line' && drawing.points?.length === 2) {
+    const startPrice = candleSeries.coordinateToPrice(y)
+    const startTime = resolveTimeAtX(null, x)
+    if (startPrice === null || startTime === null) return
+    trendTranslateOrigin = {
+      points: drawing.points.map((p) => ({ time: p.time, price: p.price })),
+      price: Number(startPrice),
+      time: startTime
+    }
+  }
 
   const onMove = (ev: MouseEvent) => {
     if (!candleSeries) return
@@ -2145,6 +2158,24 @@ function onChartMouseDown(e: MouseEvent) {
       const time = resolveTimeAtX(null, mx)
       if (price !== null && time !== null) {
         drawing.points[hit.pointIndex] = { time, price: Number(price) }
+        renderSavedDrawings()
+      }
+    } else if (hit.kind === 'trend-line' && trendTranslateOrigin && drawing.points) {
+      const price = candleSeries.coordinateToPrice(my)
+      const time = resolveTimeAtX(null, mx)
+      if (price !== null && time !== null) {
+        const priceDelta = Number(price) - trendTranslateOrigin.price
+        const timeDelta = timeToUnixSeconds(time) - timeToUnixSeconds(trendTranslateOrigin.time)
+        drawing.points = [
+          {
+            time: (timeToUnixSeconds(trendTranslateOrigin.points[0].time) + timeDelta) as any,
+            price: trendTranslateOrigin.points[0].price + priceDelta
+          },
+          {
+            time: (timeToUnixSeconds(trendTranslateOrigin.points[1].time) + timeDelta) as any,
+            price: trendTranslateOrigin.points[1].price + priceDelta
+          }
+        ]
         renderSavedDrawings()
       }
     }
