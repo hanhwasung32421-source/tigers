@@ -208,6 +208,13 @@
               >
                 +
               </div>
+              <div
+                v-if="crosshairTimeLabel"
+                class="pointer-events-none absolute bottom-0 whitespace-nowrap rounded-sm bg-[#1e222d] px-1.5 py-0.5 text-[11px] text-[#d1d4dc]"
+                :style="{ left: mouseCrosshair.x + 'px', transform: 'translateX(-50%)' }"
+              >
+                {{ crosshairTimeLabel }}
+              </div>
             </div>
             <template v-if="measureBoxView">
               <div
@@ -1349,6 +1356,14 @@ const activeTool = ref<'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'circle
 const pendingShapeStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
+// 세로 크로스헤어 하단 시간 라벨: 라이브러리 기본 크로스헤어를 껐으므로 직접 계산해서 보여준다.
+// resolveTimeAtX는 마지막 봉 오른쪽 여백(아직 없는 미래 시간)에서도 값을 주므로 여기까지 따라간다.
+const crosshairTimeLabel = computed(() => {
+  if (!mouseCrosshair.visible || !chart || !candleSeries) return ''
+  const time = resolveTimeAtX(null, mouseCrosshair.x)
+  if (time === null || time === undefined) return ''
+  return formatCrosshairTime(time)
+})
 // 도구를 고르고 아직 차트를 클릭하기 전(=첫 점을 찍기 전)에만 안내 배너를 보여준다.
 const TWO_CLICK_TOOLS = ['trend', 'rect', 'circle'] as const
 const drawingHintVisible = computed(
@@ -1794,6 +1809,65 @@ function timeToUnixSeconds(t: any): number {
     return Math.floor(Date.UTC(t.year, t.month - 1, t.day) / 1000)
   }
   return 0
+}
+
+// initChart()의 크로스헤어 timeFormatter/tickMarkFormatter와, 마지막 봉 오른쪽 여백까지 따라가는
+// 우리 커스텀 시간 라벨(아직 없는 시간도 표시)이 같은 포맷을 쓰도록 모듈 스코프로 뺐다.
+const kstFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
+})
+
+function getKstParts(ms: number) {
+  const parts = kstFormatter.formatToParts(ms)
+  const map: Record<string, string> = {}
+  for (const p of parts) map[p.type] = p.value
+  return map
+}
+
+function formatAxisTick(t: any) {
+  // BusinessDay(일/주/월 봉에서 주로 사용 가능): 날짜만 표시
+  if (typeof t === 'object' && t !== null && 'year' in t) {
+    const mm = String((t as any).month).padStart(2, '0')
+    const dd = String((t as any).day).padStart(2, '0')
+    return `${mm}/${dd}`
+  }
+
+  const ms = Number(t) * 1000
+  const p = getKstParts(ms)
+  const mm = p.month || '00'
+  const dd = p.day || '00'
+  const hh = p.hour || '00'
+  const mi = p.minute || '00'
+
+  // 일/주/월 봉에서는 날짜만
+  if (timeframe.value === '1D' || timeframe.value === '1W' || timeframe.value === '1M') return `${mm}/${dd}`
+
+  // 분/시간 봉에서는 시간만, 날짜는 00:00에만 표시
+  if (hh === '00' && mi === '00') return `${mm}/${dd}`
+  return `${hh}:${mi}`
+}
+
+function formatCrosshairTime(t: any) {
+  if (typeof t === 'object' && t !== null && 'year' in t) {
+    const yyyy = String((t as any).year)
+    const mm = String((t as any).month).padStart(2, '0')
+    const dd = String((t as any).day).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+  const ms = Number(t) * 1000
+  const p = getKstParts(ms)
+  const yyyy = p.year || ''
+  const mm = p.month || ''
+  const dd = p.day || ''
+  const hh = p.hour || ''
+  const mi = p.minute || ''
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`
 }
 
 // 외삽 기준으로 쓸, "실제로 화면에 찍히는" 봉을 찾는다. 예전에는 항상 candleData의 맨 마지막
@@ -3391,62 +3465,6 @@ function onCrosshairMove(param: any) {
 function initChart() {
   if (!chartEl.value || chart) return
   const rect = chartEl.value.getBoundingClientRect()
-  const kstFormatter = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  })
-
-  const getKstParts = (ms: number) => {
-    const parts = kstFormatter.formatToParts(ms)
-    const map: Record<string, string> = {}
-    for (const p of parts) map[p.type] = p.value
-    return map
-  }
-
-  const formatAxisTick = (t: any) => {
-    // BusinessDay(일/주/월 봉에서 주로 사용 가능): 날짜만 표시
-    if (typeof t === 'object' && t !== null && 'year' in t) {
-      const mm = String((t as any).month).padStart(2, '0')
-      const dd = String((t as any).day).padStart(2, '0')
-      return `${mm}/${dd}`
-    }
-
-    const ms = Number(t) * 1000
-    const p = getKstParts(ms)
-    const mm = p.month || '00'
-    const dd = p.day || '00'
-    const hh = p.hour || '00'
-    const mi = p.minute || '00'
-
-    // 일/주/월 봉에서는 날짜만
-    if (timeframe.value === '1D' || timeframe.value === '1W' || timeframe.value === '1M') return `${mm}/${dd}`
-
-    // 분/시간 봉에서는 시간만, 날짜는 00:00에만 표시
-    if (hh === '00' && mi === '00') return `${mm}/${dd}`
-    return `${hh}:${mi}`
-  }
-
-  const formatCrosshairTime = (t: any) => {
-    if (typeof t === 'object' && t !== null && 'year' in t) {
-      const yyyy = String((t as any).year)
-      const mm = String((t as any).month).padStart(2, '0')
-      const dd = String((t as any).day).padStart(2, '0')
-      return `${yyyy}-${mm}-${dd}`
-    }
-    const ms = Number(t) * 1000
-    const p = getKstParts(ms)
-    const yyyy = p.year || ''
-    const mm = p.month || ''
-    const dd = p.day || ''
-    const hh = p.hour || ''
-    const mi = p.minute || ''
-    return `${yyyy}-${mm}-${dd} ${hh}:${mi}`
-  }
   chart = createChart(chartEl.value, {
     width: Math.max(300, Math.floor(rect.width)),
     height: Math.max(400, Math.floor(rect.height)),
@@ -3470,13 +3488,12 @@ function initChart() {
     },
     crosshair: {
       mode: CrosshairMode.Normal,
+      // 세로 크로스헤어(선+하단 시간 라벨)는 라이브러리 기본 기능 대신 커스텀 오버레이로 직접
+      // 그린다 — 마지막 봉 오른쪽 여백에서는 라이브러리가 점을 안 줘서 거기서 멈춰버리기 때문에,
+      // 원시 마우스 좌표 기반으로 항상 따라가는 우리 오버레이(마우스크로스헤어)로 대체한다.
       vertLine: {
-        color: 'rgba(134,137,147,0.75)',
-        width: 1,
-        style: LineStyle.Dashed,
-        visible: true,
-        labelVisible: true,
-        labelBackgroundColor: '#1e222d'
+        visible: false,
+        labelVisible: false
       },
       horzLine: {
         color: 'rgba(134,137,147,0.75)',
