@@ -1823,16 +1823,24 @@ function pixelsPerBar(): number | null {
   return d !== 0 ? d : null
 }
 
-// 시간 -> x좌표. lightweight-charts의 timeToCoordinate는 마지막 봉 오른쪽 여백 근처에서 null이
-// 아니라 마지막 봉 좌표로 "고정(clamp)"된 값을 주는 경우가 있어(그 결과 그 뒤로는 마우스를 얼마나
-// 오른쪽으로 움직여도 선이 더 나아가지 않는 것처럼 보였다), 항상 화면에 실제로 보이는 기준 봉과
-// 봉 간격(픽셀)으로 직접 계산한다 — 봉 간격은 확대/축소 배율에 따른 상수라 어느 기준 봉으로
-// 계산해도 결과가 같다.
+// 시간 -> x좌표. 첫 번째 봉을 로지컬 인덱스 0으로 놓고(setData에 넘긴 배열의 인덱스와 로지컬
+// 인덱스는 항상 일치함) logicalToCoordinate로 변환한다 — 화면에 그 봉이 실제로 보이는지와
+// 무관하게 항상 정확한 값을 준다(기존 vline 드래그/클릭이 안 먹히던 원인).
+// 그래도 null이 나오는 극단적인 경우(아주 먼 미래 등)에는 화면에 보이는 기준 봉으로 외삽한다.
 function resolveXForTime(time: any): number | null {
   if (!chart) return null
+  const ts = chart.timeScale()
+  const interval = barSeconds(timeframe.value)
+  const first = candleData.value[0]
+  if (interval && first) {
+    const firstUnix = timeToUnixSeconds(first.time)
+    const targetUnix = timeToUnixSeconds(time)
+    const logical = (targetUnix - firstUnix) / interval
+    const x = ts.logicalToCoordinate(logical as any)
+    if (x !== null) return x
+  }
   const anchor = findVisibleAnchorCandle()
   const ppb = pixelsPerBar()
-  const interval = barSeconds(timeframe.value)
   if (!anchor || !ppb || !interval) return null
   const anchorUnix = timeToUnixSeconds(candleData.value[anchor.index].time)
   const targetUnix = timeToUnixSeconds(time)
@@ -1841,14 +1849,22 @@ function resolveXForTime(time: any): number | null {
 }
 
 // 클릭/드래그 좌표 -> 시간. paramTime(클릭 이벤트가 실제 봉 위에서 준 시간)이 있으면 그걸 그대로
-// 쓰고, 없으면(마지막 봉 오른쪽 여백 등) 화면에 보이는 기준 봉과 봉 간격(픽셀)에서 역산한다.
-// coordinateToTime은 resolveXForTime과 같은 이유로 신뢰하지 않는다.
+// 쓰고, 없으면 coordinateToLogical로 로지컬 인덱스를 구해 첫 봉 기준으로 시간을 역산한다.
 function resolveTimeAtX(paramTime: any, x: number): any | null {
   if (paramTime) return paramTime
   if (!chart) return null
+  const ts = chart.timeScale()
+  const interval = barSeconds(timeframe.value)
+  const first = candleData.value[0]
+  if (interval && first) {
+    const logical = ts.coordinateToLogical(x)
+    if (logical !== null) {
+      const firstUnix = timeToUnixSeconds(first.time)
+      return Math.round(firstUnix + logical * interval)
+    }
+  }
   const anchor = findVisibleAnchorCandle()
   const ppb = pixelsPerBar()
-  const interval = barSeconds(timeframe.value)
   if (!anchor || !ppb || !interval) return null
   const anchorUnix = timeToUnixSeconds(candleData.value[anchor.index].time)
   const barsBeyond = (x - anchor.x) / ppb
