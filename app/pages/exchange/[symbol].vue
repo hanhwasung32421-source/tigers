@@ -137,7 +137,7 @@
                   :disabled="adminProfitBusy || adminKillBusy"
                   @click="openProfitModal('up')"
                 >
-                  수익
+                  상승STOP
                 </button>
                 <button
                   type="button"
@@ -145,7 +145,7 @@
                   :disabled="adminProfitBusy || adminKillBusy"
                   @click="openProfitModal('down')"
                 >
-                  손실
+                  하락STOP
                 </button>
                 <div class="mx-1 h-4 w-px bg-white/10" />
                 <button
@@ -936,7 +936,7 @@
       <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
           <h3 class="text-xl font-semibold tracking-tight text-slate-100">
-            {{ profitModalDirection === 'up' ? '수익' : '손실' }} 실행
+            {{ profitModalDirection === 'up' ? '상승STOP' : '하락STOP' }} 실행
           </h3>
           <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeProfitModal">
             ✕
