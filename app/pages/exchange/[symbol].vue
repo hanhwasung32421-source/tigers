@@ -4868,7 +4868,10 @@ function onFillsScroll(e: Event) {
 async function checkAutoLiquidations() {
   const targets = visiblePositions.value.filter((p: any) => {
     const id = Number(p.id)
-    if (!id) return false
+    // 방금 연 포지션은 서버가 실제 id를 내려주기 전까지 임시 음수 id(-Date.now())로 표시되는데,
+    // 이 상태에서 자동청산을 시도하면 서버가 id 검증에서 거부해서 실제로는 청산되지 않은 채
+    // 에러만 발생한다. 서버가 실제 id를 확정해줄 때까지는 자동청산 대상에서 제외한다.
+    if (!id || id <= 0) return false
     if (autoLiquidatingIds.value.includes(id)) return false
     if (pendingCloseJobIds.value.includes(id)) return false
     if (hiddenClosingPositionIds.value.includes(id)) return false
