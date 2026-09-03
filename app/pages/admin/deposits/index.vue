@@ -101,8 +101,14 @@
             <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">{{ fmtKrw(it.balanceUsdt) }} ({{ fmt2(it.balanceUsdt) }} 테더)</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-100">{{ fmt0(it.krwAmount) }}원 ({{ fmtUsdtFromKrw(it.krwAmount) }} 테더)</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">
+                <div>{{ fmtKrw(it.balanceUsdt) }}</div>
+                <div class="text-[12px] text-slate-500">({{ fmt2(it.balanceUsdt) }})</div>
+              </td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-100">
+                <div>{{ fmt0(it.krwAmount) }}원</div>
+                <div class="text-[12px] text-slate-500">({{ fmtUsdtFromKrw(it.krwAmount) }})</div>
+              </td>
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ formatDateTime(it.requestedAt) }}</td>
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ it.resolvedAt ? formatDateTime(it.resolvedAt) : '-' }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-center">
