@@ -2634,6 +2634,8 @@ const measureBoxView = computed(() => {
 function updateLiveCandle(price: number, tsMs: number) {
   // 관리자 킬 버튼 동작 중에는 실시간 업데이트로 "튀는 효과"가 즉시 덮어써지지 않게 잠깐 멈춤
   if (adminKillFreezeUntil && Date.now() < adminKillFreezeUntil) return
+  // 수익/손실 버튼 동작(유지시간 포함) 중에도 동일하게, 실시간 시세가 덮어쓰지 않도록 멈춤
+  if (adminProfitFreezeUntil && Date.now() < adminProfitFreezeUntil) return
   if (!candleSeries) return
   const p = Number(price)
   if (!Number.isFinite(p) || p <= 0) return
