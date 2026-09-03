@@ -9,14 +9,13 @@
       <!-- 차트 -->
       <section class="min-w-0 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:col-start-1 lg:row-start-1">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex min-w-0 items-center gap-2">
+          <div class="flex min-w-0 items-center gap-3">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
               <div class="ml-auto flex items-center gap-2">
               <div ref="timeframeMenuRoot" class="relative hidden md:block">
                 <button
                   type="button"
-                  class="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
+                  class="flex items-center gap-1 rounded px-2 py-1 text-[12px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
                   @click="timeframeMenuOpen = !timeframeMenuOpen; indicatorMenuOpen = false"
                 >
                   <span>{{ currentTimeframeLabel }}</span>
@@ -45,7 +44,7 @@
               <div ref="indicatorMenuRoot" class="relative hidden md:block">
                 <button
                   type="button"
-                  class="flex items-center gap-1 rounded px-2 py-1 text-[11px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
+                  class="flex items-center gap-1 rounded px-2 py-1 text-[12px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
                   @click="indicatorMenuOpen = !indicatorMenuOpen; timeframeMenuOpen = false"
                 >
                   <span>보조지표</span>
@@ -98,19 +97,10 @@
                   </div>
                 </div>
               </div>
-              <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllIndicators">
+              <button class="hidden rounded px-2 py-1 text-[12px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllIndicators">
                 지표모두삭제
               </button>
               </div>
-            </div>
-            <div class="flex items-center gap-1.5 text-[#b2b5be]">
-              <button class="rounded p-2 hover:bg-[#1e222d] hover:text-white" @click="reloadCandles" title="새로고침">
-                ↻
-              </button>
-              <button class="rounded p-2 hover:bg-[#1e222d] hover:text-white" @click="fitChartContent" title="전체보기">
-                ⤢
-              </button>
-            </div>
           </div>
         </div>
 
@@ -4606,11 +4596,6 @@ async function fetchCandles() {
   if (candles.length < neededBars && firstBatch.length > 0 && firstBatch.length < neededBars) {
     backfillOlderCandles(token, instId, bar, firstBatch, neededBars, killEvents, profitEvents, intervalSeconds).catch(() => {})
   }
-}
-
-async function reloadCandles() {
-  await fetchCandles().catch(() => {})
-  chart?.timeScale().fitContent()
 }
 
 function fitChartContent() {
