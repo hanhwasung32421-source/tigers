@@ -311,8 +311,8 @@
               <div
                 class="pointer-events-none absolute z-30 flex items-center justify-center border"
                 :class="measureBoxView.positive
-                  ? 'border-blue-400/60 bg-blue-500/25'
-                  : 'border-rose-400/60 bg-rose-500/25'"
+                  ? 'border-blue-900 bg-blue-950/70'
+                  : 'border-red-900 bg-red-950/70'"
                 :style="{
                   left: measureBoxView.left + 'px',
                   top: measureBoxView.top + 'px',
@@ -320,8 +320,8 @@
                   height: measureBoxView.height + 'px'
                 }"
               >
-                <span class="absolute top-1 left-1/2 -translate-x-1/2 text-lg font-bold text-white/90">{{ measureBoxView.vArrow }}</span>
-                <span class="absolute bottom-1 right-1 text-lg font-bold text-white/90">{{ measureBoxView.hArrow }}</span>
+                <span class="absolute top-1 left-1/2 -translate-x-1/2 text-lg text-white/90">{{ measureBoxView.vArrow }}</span>
+                <span class="absolute bottom-1 right-1 text-lg text-white/90">{{ measureBoxView.hArrow }}</span>
               </div>
             </template>
             <div
