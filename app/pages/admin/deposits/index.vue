@@ -13,10 +13,24 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
+    <div class="space-y-4">
       <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
-      <div v-else class="overflow-auto">
-        <table class="min-w-full text-sm text-slate-200">
+      <template v-else>
+      <div class="flex justify-end">
+        <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
+          <span class="whitespace-nowrap text-slate-400">표시수</span>
+          <input
+            v-model.number="pageSizeInput"
+            type="number"
+            min="1"
+            max="500"
+            class="w-16 bg-transparent text-right outline-none"
+          />
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-slate-200">
           <thead class="border-b border-[#12314a] text-[13px] text-slate-400">
             <tr>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
@@ -84,7 +98,7 @@
             <tr v-if="filteredItems.length === 0" class="border-b border-[#0d2438]">
               <td colspan="8" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
-            <tr v-for="it in filteredItems" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
+            <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">{{ fmtKrw(it.balanceUsdt) }} ({{ fmt2(it.balanceUsdt) }} 테더)</td>
@@ -131,6 +145,34 @@
         </table>
       </div>
 
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-sm text-slate-400">페이지 {{ page }} / {{ totalPages }} · 총 {{ filteredItems.length }}건</div>
+        <div class="flex items-center justify-center gap-2" v-if="totalPages > 1">
+          <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
+          <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page--">‹</button>
+          <button
+            v-for="p in pageNumbers"
+            :key="`deposits-page-${p}`"
+            class="min-w-9 rounded px-3 py-1.5 text-center text-sm"
+            :class="p === page ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+            @click="page = p"
+          >
+            {{ p }}
+          </button>
+          <span v-if="showPageTail" class="px-1 text-sm text-slate-500">~</span>
+          <button
+            v-if="showPageTail"
+            class="min-w-9 rounded bg-white/5 px-3 py-1.5 text-center text-sm text-slate-300 hover:bg-white/10"
+            @click="page = totalPages"
+          >
+            {{ totalPages }}
+          </button>
+          <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page++">›</button>
+          <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page >= totalPages" @click="page = totalPages">»</button>
+        </div>
+      </div>
+
+      </template>
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
   </div>
@@ -242,6 +284,38 @@ const filteredItems = computed(() => {
     if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
     return String(av).localeCompare(String(bv)) * dir
   })
+})
+
+const page = ref(1)
+const pageSizeInput = ref(10)
+const pageSize = computed(() => {
+  const n = Number(pageSizeInput.value || 10)
+  return Math.max(1, Math.min(500, Number.isFinite(n) ? Math.floor(n) : 10))
+})
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / pageSize.value)))
+const paged = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filteredItems.value.slice(start, start + pageSize.value)
+})
+const pageNumbers = computed(() => {
+  const total = totalPages.value
+  const start = Math.floor((page.value - 1) / 5) * 5 + 1
+  const end = Math.min(total, start + 4)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+const showPageTail = computed(() => {
+  const nums = pageNumbers.value
+  return nums.length > 0 && nums[nums.length - 1] < totalPages.value
+})
+
+watch(filteredItems, () => {
+  if (page.value > totalPages.value) page.value = totalPages.value
+})
+
+watch(pageSizeInput, (v) => {
+  const next = Math.max(1, Math.min(500, Number.isFinite(Number(v)) ? Math.floor(Number(v)) : 10))
+  if (next !== Number(v)) pageSizeInput.value = next
+  if (page.value > totalPages.value) page.value = totalPages.value
 })
 
 function fmt2(v: number) {
