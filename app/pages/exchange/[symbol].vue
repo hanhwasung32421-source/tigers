@@ -4124,6 +4124,15 @@ function clearAllIndicators() {
   bolSelected.value = false
   renderIndicators()
   renderExtraIndicators()
+
+  // 요구사항: 지표모두삭제 버튼은 그려둔 수직선/수평선/추세선 등 그리기 도구도 함께 삭제한다.
+  chartPrefs.drawings = []
+  pendingShapeStart.value = null
+  liveDrawingPoint.value = null
+  clearDrawingPreviewVisuals()
+  activeTool.value = 'cursor'
+  renderSavedDrawings()
+
   scheduleSaveChartPrefs()
 }
 
