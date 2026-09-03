@@ -2094,6 +2094,18 @@ function barSeconds(tf: TimeframeValue) {
   return 2592000
 }
 
+// OKX의 '1D'(UTC 표기 없는 일봉) 캔들은 UTC 자정이 아니라 UTC+8(홍콩 시간) 자정을 기준으로
+// 나뉜다. 실시간 틱을 UTC 자정 기준으로 버킷 계산하면, 한국 시간 기준 오전~오후 시간대에
+// 아직 오늘 봉인데도 벌써 "다음날" 봉으로 착각해서 새 봉(=다음날 날짜)을 그려버리는 문제가
+// 있었다. 일봉만 OKX와 동일한 UTC+8 기준으로 버킷을 계산해서 서버가 그려둔 봉과 맞춘다.
+const OKX_DAY_BAR_OFFSET_SEC = 8 * 3600
+function barBucketStart(sec: number, intervalSeconds: number): number {
+  if (intervalSeconds === 86400) {
+    return Math.floor((sec + OKX_DAY_BAR_OFFSET_SEC) / 86400) * 86400 - OKX_DAY_BAR_OFFSET_SEC
+  }
+  return Math.floor(sec / intervalSeconds) * intervalSeconds
+}
+
 function timeToUnixSeconds(t: any): number {
   if (typeof t === 'number') return t
   if (t && typeof t === 'object' && 'year' in t) {
@@ -2633,7 +2645,7 @@ function updateLiveCandle(price: number, tsMs: number) {
   const ts = Number.isFinite(tsMs) ? tsMs : Date.now()
   const sec = Math.floor(ts / 1000)
   const bs = barSeconds(timeframe.value)
-  const bucket = Math.floor(sec / bs) * bs
+  const bucket = barBucketStart(sec, bs)
   const time = bucket as any
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
@@ -4460,7 +4472,7 @@ function applyKillWicks(candles: CandlestickData[], events: KillEvent[], interva
   for (const c of candles) byTime.set(Number((c as any).time), c)
   for (const ev of events) {
     const unix = Math.floor(new Date(ev.createdAt).getTime() / 1000)
-    const bucket = Math.floor(unix / intervalSeconds) * intervalSeconds
+    const bucket = barBucketStart(unix, intervalSeconds)
     const c = byTime.get(bucket) as any
     if (!c) continue
     c.high = Math.max(Number(c.high), ev.basePrice, ev.shockedPrice)
