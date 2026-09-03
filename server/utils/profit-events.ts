@@ -1,6 +1,6 @@
 import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
-import { getSupabaseAdminClient, isMissingColumnError, supaDelete, supaSelectWhere } from './supabase'
+import { getSupabaseAdminClient, isMissingColumnError, isMissingTableError, supaDelete, supaSelectWhere } from './supabase'
 
 // 관리자 수익/손실 버튼: 킬UP/킬DOWN과 동일하게 목표가까지 움직이지만, 그 상태를
 // hold_ms(유지 시간)만큼 유지한 뒤 복귀한다. kill-events.ts와 구조를 그대로 따른다.
@@ -103,8 +103,15 @@ export async function createProfitEvent(input: {
 export async function latestProfitEvent(symbol: string): Promise<ProfitEvent | null> {
   const sym = symbol.toUpperCase()
   if (supabaseAppDbEnabled()) {
-    const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit: 1 })
-    return rows[0] ? rowToProfitEvent(rows[0]) : null
+    try {
+      const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit: 1 })
+      return rows[0] ? rowToProfitEvent(rows[0]) : null
+    } catch (e: any) {
+      // trae_profit_events 테이블이 아직 생성되지 않은 경우(SQL 패치 미실행): 이 엔드포인트는
+      // 모든 접속자의 차트에서 1.5초마다 폴링되므로, 500으로 실패시키지 않고 조용히 "이벤트 없음"으로 처리한다.
+      if (isMissingTableError(e)) return null
+      throw e
+    }
   }
   const db = getDb()
   const row = db.prepare('SELECT * FROM profit_events WHERE symbol = ? ORDER BY id DESC LIMIT 1').get(sym) as any
@@ -115,8 +122,13 @@ export async function latestProfitEvent(symbol: string): Promise<ProfitEvent | n
 export async function listProfitEvents(symbol: string, limit = 200): Promise<ProfitEvent[]> {
   const sym = symbol.toUpperCase()
   if (supabaseAppDbEnabled()) {
-    const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit })
-    return rows.map(rowToProfitEvent)
+    try {
+      const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit })
+      return rows.map(rowToProfitEvent)
+    } catch (e: any) {
+      if (isMissingTableError(e)) return []
+      throw e
+    }
   }
   const db = getDb()
   const rows = db.prepare('SELECT * FROM profit_events WHERE symbol = ? ORDER BY id DESC LIMIT ?').all(sym, limit) as any[]
@@ -126,8 +138,13 @@ export async function listProfitEvents(symbol: string, limit = 200): Promise<Pro
 // 관리자 대시보드에서 심볼 구분 없이 전체 수익/손실 이력을 보여주기 위함
 export async function listAllProfitEvents(limit = 100): Promise<ProfitEvent[]> {
   if (supabaseAppDbEnabled()) {
-    const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, orderBy: 'id', ascending: false, limit })
-    return rows.map(rowToProfitEvent)
+    try {
+      const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, orderBy: 'id', ascending: false, limit })
+      return rows.map(rowToProfitEvent)
+    } catch (e: any) {
+      if (isMissingTableError(e)) return []
+      throw e
+    }
   }
   const db = getDb()
   const rows = db.prepare('SELECT * FROM profit_events ORDER BY id DESC LIMIT ?').all(limit) as any[]

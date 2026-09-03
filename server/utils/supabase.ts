@@ -6,6 +6,13 @@ export function isMissingColumnError(error: any, column: string) {
   return msg.includes(`Could not find the '${column}' column`)
 }
 
+// 테이블 자체가 아직 생성되지 않은 경우(SQL 패치 미실행). code 42P01 = Postgres "relation does not exist".
+export function isMissingTableError(error: any) {
+  if (error?.code === '42P01') return true
+  const msg = String(error?.message || error || '')
+  return /relation .* does not exist/i.test(msg)
+}
+
 export function getSupabaseAdminClient() {
   const config = useRuntimeConfig()
   const url = config.public.supabaseUrl as string
