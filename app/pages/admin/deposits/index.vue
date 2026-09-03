@@ -76,7 +76,7 @@
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('krwAmount')">입금/출금액<span class="sort-icon">{{ sortArrow('krwAmount') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('displayDate')">입금 일시<span class="sort-icon">{{ sortArrow('displayDate') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('displayDate')">입금 일시<span class="sort-icon">{{ sortArrow('displayDate') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('type')">구분<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('status')">처리결과<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
             </tr>
@@ -96,7 +96,7 @@
                 <div>{{ fmt0(it.krwAmount) }}원</div>
                 <div class="text-[12px] text-slate-500">({{ fmtUsdtFromKrw(it.krwAmount) }})</div>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ formatDateTime(displayDate(it)) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-center font-mono text-slate-300">{{ formatDateTime(displayDate(it)) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-center">
                 <span
                   class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
