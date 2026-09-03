@@ -1048,7 +1048,7 @@ const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: 
   positions: { label: '포지션 목록', editable: true, editLabel: '포지션 수정' },
   messages: { label: '쪽지관리', editable: false },
   settlement: { label: '정산내역', editable: false },
-  deposits: { label: '입금/출금 내역', editable: true, editLabel: '입금/출금 승인/거절' }
+  deposits: { label: '입출금 내역', editable: true, editLabel: '입금/출금 승인/거절' }
 }
 type RoleRow = { id: string; label: string; menus: Record<MenuKey, { view: boolean; edit: boolean }>; tier: number; createdAt: string }
 const roles = ref<RoleRow[]>([])

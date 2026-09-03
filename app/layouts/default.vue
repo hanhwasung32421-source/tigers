@@ -264,7 +264,7 @@ const ADMIN_MENU_LABELS: Record<string, string> = {
   positions: '포지션 목록',
   messages: '쪽지관리',
   settlement: '정산내역',
-  deposits: '입금/출금 내역'
+  deposits: '입출금 내역'
 }
 const DEFAULT_ADMIN_MENU_ORDER = Object.keys(ADMIN_MENU_ROUTES)
 const orderedAdminMenuKeys = ref<string[]>([...DEFAULT_ADMIN_MENU_ORDER])
