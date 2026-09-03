@@ -102,15 +102,15 @@
               <td class="whitespace-nowrap px-3 py-3 text-center">
                 <div v-if="it.status === 'pending' && canEdit" class="flex items-center justify-center gap-1.5">
                   <button
-                    class="flex items-center justify-center gap-1 rounded-full bg-[#1c3f8f] px-3 py-1.5 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(28,63,143,0.5)] hover:bg-[#2650ab] disabled:cursor-not-allowed disabled:opacity-50"
+                    class="flex items-center justify-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="resolvingId === it.id"
                     @click="resolve(it, 'completed')"
                   >
-                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/70 text-[9px] leading-none">✓</span>
+                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-blue-500 text-[9px] leading-none text-blue-500">✓</span>
                     완료
                   </button>
                   <button
-                    class="flex items-center justify-center gap-1 rounded-full bg-[#8f1c1c] px-3 py-1.5 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(143,28,28,0.5)] hover:bg-[#ab2626] disabled:cursor-not-allowed disabled:opacity-50"
+                    class="flex items-center justify-center gap-1 rounded-md bg-[#8f1c1c] px-3 py-1.5 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(143,28,28,0.5)] hover:bg-[#ab2626] disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="resolvingId === it.id"
                     @click="resolve(it, 'rejected')"
                   >
