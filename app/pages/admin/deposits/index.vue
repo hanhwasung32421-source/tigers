@@ -134,7 +134,7 @@
                 </div>
                 <span
                   v-else
-                  class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
+                  class="rounded px-2 py-1 text-[13px] font-semibold"
                   :class="statusBadgeClass(it.status)"
                 >
                   {{ statusLabel(it) }}
@@ -350,9 +350,9 @@ function statusLabel(it: DepositRow) {
   return it.type === 'withdrawal' ? '출금요청' : '입금요청'
 }
 function statusBadgeClass(status: DepositRow['status']) {
-  if (status === 'completed') return 'bg-emerald-500/10 text-emerald-200 ring-emerald-400/20'
-  if (status === 'rejected') return 'bg-rose-500/10 text-rose-300 ring-rose-400/20'
-  return 'bg-amber-500/15 text-amber-200 ring-amber-400/20'
+  if (status === 'completed') return 'border border-slate-300 bg-white text-black'
+  if (status === 'rejected') return 'bg-[#8f1c1c] text-white'
+  return 'ring-1 bg-amber-500/15 text-amber-200 ring-amber-400/20'
 }
 
 async function load() {
