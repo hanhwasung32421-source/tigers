@@ -116,11 +116,11 @@
               <td class="whitespace-nowrap px-3 py-3 text-center">
                 <div v-if="it.status === 'pending' && canEdit" class="flex items-center justify-center gap-1.5">
                   <button
-                    class="flex items-center justify-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="flex items-center justify-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-black shadow-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="resolvingId === it.id"
                     @click="resolve(it, 'completed')"
                   >
-                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-blue-500 text-[9px] leading-none text-blue-500">✓</span>
+                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-black text-[9px] leading-none text-black">✓</span>
                     완료
                   </button>
                   <button
