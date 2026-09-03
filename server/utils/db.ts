@@ -205,6 +205,19 @@ export function getDb() {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS profit_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      symbol TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      percent REAL NOT NULL,
+      base_price REAL NOT NULL,
+      shocked_price REAL NOT NULL,
+      duration_ms INTEGER NOT NULL DEFAULT 1000,
+      tick_count INTEGER NOT NULL DEFAULT 3,
+      hold_ms INTEGER NOT NULL DEFAULT 3000,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS password_reset_requests (
       id INTEGER PRIMARY KEY,
       user_id INTEGER NOT NULL,

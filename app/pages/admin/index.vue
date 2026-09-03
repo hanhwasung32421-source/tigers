@@ -640,6 +640,63 @@
       </div>
     </div>
 
+    <!-- 수익/손실 이력 -->
+    <div v-show="activeTab === 'profitEvents'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold">수익/손실 이력</h2>
+          <p class="mt-1 text-sm text-slate-400">
+            삭제하면 모든 유저의 차트에서도 해당 봉의 고가/저가(꼬리)가 사라집니다(잠시 후 자동 반영).
+          </p>
+        </div>
+        <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadProfitEvents">
+          새로고침
+        </button>
+      </div>
+
+      <div class="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+        <div v-if="profitEventsLoading" class="text-sm text-slate-400">불러오는 중…</div>
+        <div v-else-if="profitEvents.length === 0" class="text-sm text-slate-400">수익/손실 이력이 없습니다.</div>
+        <div v-else class="overflow-auto">
+          <table class="w-full text-sm">
+            <thead class="text-left text-slate-400">
+              <tr>
+                <th class="py-2">시각</th>
+                <th class="py-2">심볼</th>
+                <th class="py-2">방향</th>
+                <th class="py-2">퍼센트</th>
+                <th class="py-2">기준가 → 도달가</th>
+                <th class="py-2">유지시간</th>
+                <th class="py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in profitEvents" :key="p.id" class="border-t border-white/10">
+                <td class="py-2 font-mono text-xs">{{ formatKillTime(p.createdAt) }}</td>
+                <td class="py-2 font-mono">{{ p.symbol }}</td>
+                <td class="py-2" :class="p.direction === 'up' ? 'text-emerald-300' : 'text-rose-300'">
+                  {{ p.direction === 'up' ? '수익' : '손실' }}
+                </td>
+                <td class="py-2 font-mono">{{ p.percent }}%</td>
+                <td class="py-2 font-mono">{{ p.basePrice }} → {{ p.shockedPrice }}</td>
+                <td class="py-2 font-mono">{{ (p.holdMs / 1000).toFixed(1) }}초</td>
+                <td class="py-2">
+                  <button
+                    class="rounded-md bg-rose-500/15 px-3 py-1 text-xs text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="profitEventDeleting === p.id"
+                    @click="deleteProfitEvent(p.id)"
+                  >
+                    삭제
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-if="profitEventsError" class="mt-3 text-sm text-red-300">{{ profitEventsError }}</p>
+      </div>
+    </div>
+
     <!-- 역할 메뉴 권한 설정 팝업 -->
     <div
       v-if="roleModalOpen"
@@ -696,14 +753,15 @@ definePageMeta({ middleware: ['admin', 'super-admin'] })
 const { me, refresh } = useMe()
 await refresh()
 
-type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'roles' | 'killEvents'
+type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'roles' | 'killEvents' | 'profitEvents'
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'users', label: '유저 관리' },
   { key: 'liquidation', label: '강제청산 기준 설정' },
   { key: 'misc', label: '정산/기타 설정' },
   { key: 'nav', label: '메뉴구성' },
   { key: 'roles', label: '역할 관리' },
-  { key: 'killEvents', label: '킬UP/킬DOWN 이력' }
+  { key: 'killEvents', label: '킬UP/킬DOWN 이력' },
+  { key: 'profitEvents', label: '수익/손실 이력' }
 ]
 const activeTab = ref<TabKey>('users')
 
@@ -1196,6 +1254,47 @@ async function deleteKillEvent(id: number) {
   }
 }
 
+type ProfitEventRow = {
+  id: number
+  symbol: string
+  direction: 'up' | 'down'
+  percent: number
+  basePrice: number
+  shockedPrice: number
+  holdMs: number
+  createdAt: string
+}
+const profitEvents = ref<ProfitEventRow[]>([])
+const profitEventsLoading = ref(false)
+const profitEventsError = ref<string | null>(null)
+const profitEventDeleting = ref<number | null>(null)
+
+async function loadProfitEvents() {
+  profitEventsLoading.value = true
+  profitEventsError.value = null
+  try {
+    const data = await $fetch<{ items: ProfitEventRow[] }>('/api/admin/profit/list')
+    profitEvents.value = data.items || []
+  } catch (e: any) {
+    profitEventsError.value = e?.data?.statusMessage || '수익/손실 이력 불러오기 실패'
+  } finally {
+    profitEventsLoading.value = false
+  }
+}
+
+async function deleteProfitEvent(id: number) {
+  profitEventDeleting.value = id
+  profitEventsError.value = null
+  try {
+    await $fetch('/api/admin/profit/delete', { method: 'POST', body: { id } })
+    profitEvents.value = profitEvents.value.filter((p) => p.id !== id)
+  } catch (e: any) {
+    profitEventsError.value = e?.data?.statusMessage || '삭제 실패'
+  } finally {
+    profitEventDeleting.value = null
+  }
+}
+
 const liquidationPercent = ref(40)
 const liquidationPercentDraft = ref(40)
 const liquidationSettingSaving = ref(false)
@@ -1391,6 +1490,7 @@ await load()
 await loadLiquidationSetting()
 await loadMiscSettings()
 await loadKillEvents()
+await loadProfitEvents()
 await loadRoles()
 </script>
 

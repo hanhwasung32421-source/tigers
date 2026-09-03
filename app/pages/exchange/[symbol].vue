@@ -12,7 +12,7 @@
           <div class="flex items-center justify-between gap-3">
             <div class="flex min-w-0 items-center gap-2">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
-              <div class="hidden h-5 w-px bg-[#2a2e39] md:block" />
+              <div class="ml-auto flex items-center gap-2">
               <div ref="timeframeMenuRoot" class="relative hidden md:block">
                 <button
                   type="button"
@@ -98,12 +98,10 @@
                   </div>
                 </div>
               </div>
-              <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllDrawings">
-                도구 지우기
+              <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllIndicators">
+                지표모두삭제
               </button>
-              <button class="hidden rounded px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearLastDrawing">
-                최근도구 지우기
-              </button>
+              </div>
             </div>
             <div class="flex items-center gap-1.5 text-[#b2b5be]">
               <button class="rounded p-2 hover:bg-[#1e222d] hover:text-white" @click="reloadCandles" title="새로고침">
@@ -135,8 +133,25 @@
               <div v-if="isSuperAdminUser" class="mr-2 flex items-center gap-1">
                 <button
                   type="button"
+                  class="rounded bg-emerald-500/15 px-2 py-1 font-semibold text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40"
+                  :disabled="adminProfitBusy || adminKillBusy"
+                  @click="openProfitModal('up')"
+                >
+                  수익
+                </button>
+                <button
+                  type="button"
+                  class="rounded bg-amber-500/15 px-2 py-1 font-semibold text-amber-200 ring-1 ring-amber-500/20 hover:bg-amber-500/20 disabled:opacity-40"
+                  :disabled="adminProfitBusy || adminKillBusy"
+                  @click="openProfitModal('down')"
+                >
+                  손실
+                </button>
+                <div class="mx-1 h-4 w-px bg-white/10" />
+                <button
+                  type="button"
                   class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
-                  :disabled="adminKillBusy"
+                  :disabled="adminKillBusy || adminProfitBusy"
                   @click="openKillModal('up')"
                 >
                   킬UP
@@ -144,7 +159,7 @@
                 <button
                   type="button"
                   class="rounded bg-sky-500/15 px-2 py-1 font-semibold text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40"
-                  :disabled="adminKillBusy"
+                  :disabled="adminKillBusy || adminProfitBusy"
                   @click="openKillModal('down')"
                 >
                   킬DOWN
@@ -914,6 +929,87 @@
     </div>
 
     <div
+      v-if="profitModalOpen"
+      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+      @click.self="closeProfitModal"
+    >
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-semibold tracking-tight text-slate-100">
+            {{ profitModalDirection === 'up' ? '수익' : '손실' }} 실행
+          </h3>
+          <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeProfitModal">
+            ✕
+          </button>
+        </div>
+        <p class="mt-2 text-sm text-slate-400">
+          현재가에서 몇 % {{ profitModalDirection === 'up' ? '올린' : '내린' }} 뒤, 그 상태를 몇 초 동안 유지할지 입력하세요.
+          이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다.
+        </p>
+        <div class="mt-5 flex items-center gap-2">
+          <input
+            v-model.number="profitPercentDraft"
+            type="number"
+            min="0.1"
+            max="90"
+            step="0.1"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+          <span class="text-sm text-slate-400">%</span>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <input
+            v-model.number="profitDurationDraft"
+            type="number"
+            min="0.1"
+            max="10"
+            step="0.1"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+          <span class="text-sm text-slate-400">초 동안</span>
+          <input
+            v-model.number="profitTickCountDraft"
+            type="number"
+            min="1"
+            max="20"
+            step="1"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+          <span class="text-sm text-slate-400">틱에 걸쳐 움직임</span>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <input
+            v-model.number="profitHoldDraft"
+            type="number"
+            min="0.1"
+            max="120"
+            step="0.1"
+            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          />
+          <span class="text-sm text-slate-400">초 동안 유지 후 복귀</span>
+        </div>
+        <p v-if="profitError" class="mt-3 text-sm text-red-300">{{ profitError }}</p>
+        <div class="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-[#252f39]"
+            @click="closeProfitModal"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-[#0aa37f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="adminProfitBusy"
+            @click="confirmProfitModal"
+          >
+            실행
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
       v-if="bolModalOpen"
       class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
       @click.self="closeBolSettings"
@@ -1546,7 +1642,36 @@ let lastSeenKillEventId = 0
 let killPollTimer: any = null
 let killResyncTimer: any = null
 
-const displayLastPrice = computed(() => adminKillUiOverride.value ?? lastPrice.value ?? null)
+// 관리자 수익/손실: 킬UP/킬DOWN과 동일하게 목표가까지 움직이지만, 짧게 복귀하는 대신
+// holdSeconds만큼 그 상태를 유지한 뒤 복귀한다.
+const adminProfitUiOverride = ref<number | null>(null)
+const adminProfitBusy = ref(false)
+let adminProfitFreezeUntil = 0
+let adminProfitTimer: any = null
+
+type ProfitEvent = {
+  id: number
+  symbol: string
+  direction: 'up' | 'down'
+  percent: number
+  basePrice: number
+  shockedPrice: number
+  durationMs: number
+  tickCount: number
+  holdMs: number
+  createdAt: string
+}
+const profitModalOpen = ref(false)
+const profitModalDirection = ref<'up' | 'down'>('up')
+const profitDurationDraft = ref(1)
+const profitTickCountDraft = ref(3)
+const profitPercentDraft = ref(0.5)
+const profitHoldDraft = ref(3)
+const profitError = ref<string | null>(null)
+let lastSeenProfitEventId = 0
+let profitPollTimer: any = null
+
+const displayLastPrice = computed(() => adminKillUiOverride.value ?? adminProfitUiOverride.value ?? lastPrice.value ?? null)
 
 type BolPrefs = {
   enabled: boolean
@@ -1707,10 +1832,11 @@ function fmtNum(v: number) {
 
 function markOf(sym: string) {
   const s = String(sym || '').toUpperCase()
-  if (!s) return Number(adminKillUiOverride.value ?? lastPrice.value ?? 0)
+  if (!s) return Number(adminKillUiOverride.value ?? adminProfitUiOverride.value ?? lastPrice.value ?? 0)
   if (s === String(symbol.value || '').toUpperCase()) {
-    // 킬UP/킬DOWN 애니메이션 중에는 그 순간의 가격을 그대로 반영해서, 포지션 수익률도 같이 움직이게 한다.
+    // 킬UP/킬DOWN, 수익/손실 애니메이션 중에는 그 순간의 가격을 그대로 반영해서, 포지션 수익률도 같이 움직이게 한다.
     if (Number(adminKillUiOverride.value || 0) > 0) return Number(adminKillUiOverride.value)
+    if (Number(adminProfitUiOverride.value || 0) > 0) return Number(adminProfitUiOverride.value)
     // 현재 보고 있는 차트 심볼은 WS 가격을 최우선 사용
     if (Number(lastPrice.value || 0) > 0) return Number(lastPrice.value || 0)
   }
@@ -2769,9 +2895,220 @@ function startKillResync() {
   if (!process.client) return
   if (killResyncTimer) clearInterval(killResyncTimer)
   killResyncTimer = setInterval(() => {
-    if (adminKillBusy.value) return
+    if (adminKillBusy.value || adminProfitBusy.value) return
     fetchCandles().catch(() => {})
   }, 20000)
+}
+
+const PROFIT_LAST_SETTINGS_KEY = 'bitplay_profit_last_settings'
+
+function loadLastProfitSettings(): { percent: number; duration: number; tickCount: number; hold: number } | null {
+  if (!process.client) return null
+  try {
+    const raw = localStorage.getItem(PROFIT_LAST_SETTINGS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    const percent = Number(parsed?.percent)
+    const duration = Number(parsed?.duration)
+    const tickCount = Number(parsed?.tickCount)
+    const hold = Number(parsed?.hold)
+    if (![percent, duration, tickCount, hold].every(Number.isFinite)) return null
+    return { percent, duration, tickCount, hold }
+  } catch {
+    return null
+  }
+}
+
+function saveLastProfitSettings(percent: number, duration: number, tickCount: number, hold: number) {
+  if (!process.client) return
+  try {
+    localStorage.setItem(PROFIT_LAST_SETTINGS_KEY, JSON.stringify({ percent, duration, tickCount, hold }))
+  } catch {}
+}
+
+function openProfitModal(dir: 'up' | 'down') {
+  if (!isSuperAdminUser.value) return
+  profitModalDirection.value = dir
+  // 마지막으로 실행했던 수익/손실 수치를 그대로 불러온다(없으면 기본값).
+  const last = loadLastProfitSettings()
+  profitPercentDraft.value = last?.percent ?? 0.5
+  profitDurationDraft.value = last?.duration ?? 1
+  profitTickCountDraft.value = last?.tickCount ?? 3
+  profitHoldDraft.value = last?.hold ?? 3
+  profitError.value = null
+  profitModalOpen.value = true
+}
+
+function closeProfitModal() {
+  profitModalOpen.value = false
+}
+
+async function confirmProfitModal() {
+  const percent = Number(profitPercentDraft.value)
+  if (!Number.isFinite(percent) || percent < 0.1 || percent > 90) {
+    profitError.value = '0.1~90 사이의 숫자를 입력해주세요.'
+    return
+  }
+  const durationSeconds = Number(profitDurationDraft.value)
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0.1 || durationSeconds > 10) {
+    profitError.value = '몇 초는 0.1~10 사이로 입력해주세요.'
+    return
+  }
+  const tickCount = Math.round(Number(profitTickCountDraft.value))
+  if (!Number.isFinite(tickCount) || tickCount < 1 || tickCount > 20) {
+    profitError.value = '몇 틱은 1~20 사이로 입력해주세요.'
+    return
+  }
+  const holdSeconds = Number(profitHoldDraft.value)
+  if (!Number.isFinite(holdSeconds) || holdSeconds < 0.1 || holdSeconds > 120) {
+    profitError.value = '유지 시간은 0.1~120 사이로 입력해주세요.'
+    return
+  }
+  adminProfitBusy.value = true
+  profitError.value = null
+  try {
+    const res = await $fetch<{ ok: boolean; event: ProfitEvent; liquidatedCount: number }>('/api/admin/profit', {
+      method: 'POST',
+      body: { symbol: symbol.value, direction: profitModalDirection.value, percent, durationSeconds, tickCount, holdSeconds }
+    })
+    saveLastProfitSettings(percent, durationSeconds, tickCount, holdSeconds)
+    profitModalOpen.value = false
+    if (res?.event) {
+      lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
+      await runProfitAnimation(res.event)
+    }
+  } catch (e: any) {
+    profitError.value = e?.data?.statusMessage || '실행 실패'
+    adminProfitBusy.value = false
+  }
+}
+
+// 새로고침/재접속 직후에는 예전 이벤트를 "방금 일어난 일"로 재생하지 않도록 기준점만 맞춰둔다.
+async function initProfitEventBaseline() {
+  if (!me.value) return
+  try {
+    const res = await $fetch<{ event: ProfitEvent | null }>('/api/profit/latest', { query: { symbol: symbol.value } })
+    if (res?.event) {
+      lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// 킬 애니메이션과 동일하지만, 목표가에 도달한 뒤 잠깐(KILL_HOLD_MS)이 아니라
+// 관리자가 지정한 holdMs만큼 그 상태를 유지한 뒤 복귀한다.
+async function runProfitAnimation(ev: ProfitEvent) {
+  if (!process.client) return
+
+  if (String(ev.symbol).toUpperCase() !== String(symbol.value).toUpperCase()) {
+    // 다른 심볼이면 애니메이션은 생략하고, 내 계정(잔고/포지션)만 동기화
+    await loadAccount().catch(() => {})
+    return
+  }
+
+  const tickCount = Math.max(1, Math.round(ev.tickCount || 3))
+  const durationMs = Math.max(100, ev.durationMs || 1000)
+  const holdMs = Math.max(100, ev.holdMs || 3000)
+  const tickMs = durationMs / tickCount
+
+  if (adminProfitTimer) clearTimeout(adminProfitTimer)
+  adminProfitBusy.value = true
+  // 원위치로 되돌아갈 때도 동일한 속도(n틱)로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
+  adminProfitFreezeUntil = Date.now() + durationMs * 2 + holdMs + 300
+
+  const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
+  const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
+  const openPrice = last ? Number((last as any).open) : ev.basePrice
+  const priorHigh = last ? Number((last as any).high) : ev.basePrice
+  const priorLow = last ? Number((last as any).low) : ev.basePrice
+
+  const applyTick = (price: number) => {
+    adminProfitUiOverride.value = price
+    const spiked: CandlestickData = {
+      time,
+      open: openPrice,
+      high: Math.max(priorHigh, ev.basePrice, price),
+      low: Math.min(priorLow, ev.basePrice, price),
+      close: price
+    }
+    liveLastCandle.value = spiked
+    if (candleData.value.length) candleData.value[candleData.value.length - 1] = spiked
+    try { candleSeries?.update(spiked as any) } catch {}
+  }
+
+  const revert = async () => {
+    const nowLast = liveLastCandle.value || candleData.value[candleData.value.length - 1]
+    const realPrice = Number(lastPrice.value || (nowLast as any)?.close || ev.basePrice)
+    const revertHigh = Math.max(priorHigh, ev.basePrice, ev.shockedPrice, realPrice)
+    const revertLow = Math.min(priorLow, ev.basePrice, ev.shockedPrice, realPrice)
+
+    let revertIndex = 0
+    const revertTick = () => {
+      revertIndex += 1
+      const progress = revertIndex / tickCount
+      const price = ev.shockedPrice + (realPrice - ev.shockedPrice) * progress
+      const reverted: CandlestickData = {
+        time,
+        open: openPrice,
+        high: Math.max(revertHigh, price),
+        low: Math.min(revertLow, price),
+        close: price
+      }
+      liveLastCandle.value = reverted
+      if (candleData.value.length) candleData.value[candleData.value.length - 1] = reverted
+      try { candleSeries?.update(reverted as any) } catch {}
+
+      if (revertIndex < tickCount) {
+        adminProfitTimer = setTimeout(revertTick, tickMs)
+      } else {
+        adminProfitUiOverride.value = null
+        adminProfitFreezeUntil = 0
+        adminProfitBusy.value = false
+        // 청산된 내 포지션이 있으면 계정도 함께 갱신
+        loadAccount().catch(() => {})
+      }
+    }
+    revertTick()
+  }
+
+  let tickIndex = 0
+  const tick = () => {
+    tickIndex += 1
+    const progress = tickIndex / tickCount
+    applyTick(ev.basePrice + (ev.shockedPrice - ev.basePrice) * progress)
+    if (tickIndex < tickCount) {
+      adminProfitTimer = setTimeout(tick, tickMs)
+    } else {
+      // 목표가에 도달한 뒤, 관리자가 지정한 holdMs만큼 그 상태를 유지하다 복귀한다.
+      adminProfitTimer = setTimeout(() => {
+        revert()
+      }, holdMs)
+    }
+  }
+  tick()
+}
+
+async function pollProfitEvents() {
+  if (!me.value) return
+  try {
+    const res = await $fetch<{ event: ProfitEvent | null }>('/api/profit/latest', { query: { symbol: symbol.value } })
+    const ev = res?.event
+    if (ev && ev.id > lastSeenProfitEventId) {
+      lastSeenProfitEventId = ev.id
+      await runProfitAnimation(ev)
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function startProfitPolling() {
+  if (!process.client) return
+  if (profitPollTimer) clearInterval(profitPollTimer)
+  profitPollTimer = setInterval(() => {
+    pollProfitEvents()
+  }, 1500)
 }
 
 type DepthRow = { price: number; qty: number; qtyText: string; total: number; totalText: string; depthPct: number }
@@ -3777,18 +4114,12 @@ function clearAllDrawings() {
   scheduleSaveChartPrefs()
 }
 
-function clearLastDrawing() {
-  // 추세선 1번 찍고 대기 중이면 "최근 도구"는 그 대기 상태를 취소
-  if (pendingShapeStart.value) {
-    pendingShapeStart.value = null
-    liveDrawingPoint.value = null
-    clearDrawingPreviewVisuals()
-    activeTool.value = 'cursor'
-    return
-  }
-  if (!chartPrefs.drawings.length) return
-  chartPrefs.drawings.pop()
-  renderSavedDrawings()
+function clearAllIndicators() {
+  chartPrefs.indicators.bol.enabled = false
+  chartPrefs.indicators.extra = []
+  bolSelected.value = false
+  renderIndicators()
+  renderExtraIndicators()
   scheduleSaveChartPrefs()
 }
 
@@ -4142,6 +4473,15 @@ async function fetchKillEventsFor(sym: string): Promise<KillEvent[]> {
   }
 }
 
+async function fetchProfitEventsFor(sym: string): Promise<ProfitEvent[]> {
+  try {
+    const res = await $fetch<{ items: ProfitEvent[] }>('/api/profit/history', { query: { symbol: sym, limit: 200 } })
+    return res?.items || []
+  } catch {
+    return []
+  }
+}
+
 // 과거 데이터를 화면이 뜬 뒤 백그라운드로 이어받아 채운다(4일치를 한 번에 순차 로딩하면 체감 로딩이 느려짐).
 // history-candles는 1회 최대 100개라 분봉 기준 페이지가 많아, 첫 화면을 막지 않기 위해 별도로 분리.
 async function backfillOlderCandles(
@@ -4151,6 +4491,7 @@ async function backfillOlderCandles(
   firstBatch: string[][],
   neededBars: number,
   killEvents: KillEvent[],
+  profitEvents: ProfitEvent[],
   intervalSeconds: number
 ) {
   let afterCursor = firstBatch[firstBatch.length - 1]?.[0] ? String(firstBatch[firstBatch.length - 1][0]) : undefined
@@ -4184,6 +4525,7 @@ async function backfillOlderCandles(
   const merged = Array.from(new Map([...firstBatch, ...olderRows].map((r) => [String(r[0]), r])).values())
   const { candles, vols } = candleRowsToSeriesData(merged)
   applyKillWicks(candles, killEvents, intervalSeconds)
+  applyKillWicks(candles, profitEvents, intervalSeconds)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
@@ -4206,16 +4548,18 @@ async function fetchCandles() {
   const neededBars = Math.max(120, Math.ceil((4 * 24 * 60 * 60) / intervalSeconds) + 60)
 
   // 1) 최신 봉부터 먼저 한 번에 받아 바로 그린다(체감 로딩 속도를 예전 수준으로 유지).
-  //    킬 이벤트 목록도 같이 받아서, 예전 킬로 생긴 고가/저가(꼬리)를 다시 그려 넣는다.
-  const [firstRes, killEvents] = await Promise.all([
+  //    킬/수익손실 이벤트 목록도 같이 받아서, 예전에 생긴 고가/저가(꼬리)를 다시 그려 넣는다.
+  const [firstRes, killEvents, profitEvents] = await Promise.all([
     $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: Math.min(300, neededBars) } }),
-    fetchKillEventsFor(sym)
+    fetchKillEventsFor(sym),
+    fetchProfitEventsFor(sym)
   ])
   if (token !== candlesFetchToken) return
   const firstBatch = (firstRes?.data || []) as string[][]
 
   const { candles, vols } = candleRowsToSeriesData(firstBatch)
   applyKillWicks(candles, killEvents, intervalSeconds)
+  applyKillWicks(candles, profitEvents, intervalSeconds)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
@@ -4236,7 +4580,7 @@ async function fetchCandles() {
 
   // 2) 나머지 과거 봉(4일치를 채우는 데 필요한 만큼)은 백그라운드에서 이어받는다.
   if (firstBatch.length > 0 && firstBatch.length < neededBars) {
-    backfillOlderCandles(token, instId, bar, firstBatch, neededBars, killEvents, intervalSeconds).catch(() => {})
+    backfillOlderCandles(token, instId, bar, firstBatch, neededBars, killEvents, profitEvents, intervalSeconds).catch(() => {})
   }
 }
 
@@ -4793,6 +5137,7 @@ watch([() => symbol.value, timeframe], async () => {
   connectWs()
   await loadAccount()
   await initKillEventBaseline()
+  await initProfitEventBaseline()
 })
 
 watch(
@@ -4824,7 +5169,9 @@ onMounted(async () => {
   connectWs()
   await loadAccount()
   await initKillEventBaseline()
+  await initProfitEventBaseline()
   startKillPolling()
+  startProfitPolling()
   startKillResync()
 })
 
@@ -4874,6 +5221,10 @@ onBeforeUnmount(() => {
   killResyncTimer = null
   if (adminKillTimer) clearTimeout(adminKillTimer)
   adminKillTimer = null
+  if (profitPollTimer) clearInterval(profitPollTimer)
+  profitPollTimer = null
+  if (adminProfitTimer) clearTimeout(adminProfitTimer)
+  adminProfitTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
   if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)
