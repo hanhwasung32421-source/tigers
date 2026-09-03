@@ -10,6 +10,12 @@ const QuerySchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireUser(event)
   const query = QuerySchema.parse(getQuery(event))
-  const items = await listProfitEvents(query.symbol, query.limit ?? 200)
-  return { items }
+  // 캔들 로딩마다 호출되는 읽기 전용 엔드포인트라, 저장소 쪽 문제(테이블 미생성, 일시적 오류 등)로
+  // 500을 띄우지 않고 빈 목록으로 조용히 넘어간다.
+  try {
+    const items = await listProfitEvents(query.symbol, query.limit ?? 200)
+    return { items }
+  } catch {
+    return { items: [] }
+  }
 })
