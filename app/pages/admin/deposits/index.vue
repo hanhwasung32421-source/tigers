@@ -16,7 +16,7 @@
     <div class="space-y-4">
       <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
       <template v-else>
-      <div class="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+      <div class="grid gap-2 md:grid-cols-3 xl:grid-cols-5">
         <input
           v-model.trim="filterUsername"
           placeholder="아이디 검색"
@@ -25,6 +25,11 @@
         <input
           v-model.trim="filterName"
           placeholder="이름 검색"
+          class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600"
+        />
+        <input
+          v-model.trim="filterReferralCode"
+          placeholder="추천인코드 검색"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600"
         />
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
@@ -74,6 +79,7 @@
             <tr>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천인코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('krwAmount')">입금/출금액<span class="sort-icon">{{ sortArrow('krwAmount') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('displayDate')">입금 일시<span class="sort-icon">{{ sortArrow('displayDate') || ' ⇅' }}</span></th>
@@ -83,11 +89,12 @@
           </thead>
           <tbody>
             <tr v-if="filteredItems.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="7" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
+              <td colspan="8" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ it.referralCode || '—' }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">
                 <div>{{ fmtKrw(it.balanceUsdt) }}</div>
                 <div class="text-[12px] text-slate-500">({{ fmt2(it.balanceUsdt) }})</div>
@@ -183,6 +190,7 @@ type DepositRow = {
   status: 'pending' | 'completed' | 'rejected'
   requestedAt: string
   resolvedAt: string | null
+  referralCode: string
 }
 
 const { refresh } = useMe()
@@ -200,6 +208,7 @@ const krwPerUsdt = ref(0)
 const filterType = ref('')
 const filterUsername = ref('')
 const filterName = ref('')
+const filterReferralCode = ref('')
 const filterBalanceMin = ref('')
 const filterBalanceMax = ref('')
 const filterAmountMin = ref('')
@@ -228,7 +237,7 @@ function displayDate(it: DepositRow) {
   return it.resolvedAt || it.requestedAt
 }
 
-type SortKey = 'type' | 'username' | 'name' | 'balanceUsdt' | 'krwAmount' | 'displayDate' | 'status'
+type SortKey = 'type' | 'username' | 'name' | 'referralCode' | 'balanceUsdt' | 'krwAmount' | 'displayDate' | 'status'
 const sortKey = ref<SortKey | null>(null)
 const sortDir = ref<'asc' | 'desc'>('asc')
 
@@ -248,11 +257,13 @@ function sortArrow(key: SortKey) {
 const filteredItems = computed(() => {
   const uq = filterUsername.value.trim().toLowerCase()
   const nq = filterName.value.trim().toLowerCase()
+  const rq = filterReferralCode.value.trim().toLowerCase()
   const rows = items.value.filter((it) => {
     if (filterType.value && it.type !== filterType.value) return false
     if (filterStatus.value && it.status !== filterStatus.value) return false
     if (uq && !it.username.toLowerCase().includes(uq)) return false
     if (nq && !it.name.toLowerCase().includes(nq)) return false
+    if (rq && !it.referralCode.toLowerCase().includes(rq)) return false
     const balanceKrw = Math.round(it.balanceUsdt * krwPerUsdt.value)
     if (!inRange(balanceKrw, filterBalanceMin.value, filterBalanceMax.value)) return false
     if (!inRange(Number(it.krwAmount || 0), filterAmountMin.value, filterAmountMax.value)) return false
