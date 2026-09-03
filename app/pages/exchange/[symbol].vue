@@ -4450,6 +4450,18 @@ function candleRowsToSeriesData(rows: string[][]) {
   return { candles, vols }
 }
 
+// 최근 구간만 다시 받아온 fresh 데이터를, 이미 불러와져 있던 과거 봉(existing) 위에 "병합"한다.
+// fresh보다 더 과거인 봉만 existing에서 남기고 그 뒤(겹치는/최신 구간)는 fresh로 교체한다.
+// 이렇게 해야 20초마다 도는 재동기화 때마다 최근 300개짜리로 통째로 덮어써서 과거 봉이
+// 사라졌다가 backfill로 다시 채워지는 깜빡임이 생기지 않는다.
+function mergeCandleSeries<T extends { time: any }>(existing: T[], fresh: T[]): T[] {
+  if (!existing.length) return fresh
+  if (!fresh.length) return existing
+  const freshEarliest = Number(fresh[0].time)
+  const olderPart = existing.filter((c) => Number(c.time) < freshEarliest)
+  return olderPart.concat(fresh)
+}
+
 // 예전에 킬UP/킬DOWN으로 만들어진 고가/저가(꼬리)를, 새로고침 등으로 실제 데이터를 다시 받아온 뒤에도
 // 같은 자리에 다시 반영한다. 실제 시세(open/close)는 건드리지 않고 high/low만 확장한다.
 function applyKillWicks(candles: CandlestickData[], events: KillEvent[], intervalSeconds: number) {
@@ -4559,9 +4571,16 @@ async function fetchCandles() {
   if (token !== candlesFetchToken) return
   const firstBatch = (firstRes?.data || []) as string[][]
 
-  const { candles, vols } = candleRowsToSeriesData(firstBatch)
-  applyKillWicks(candles, killEvents, intervalSeconds)
-  applyKillWicks(candles, profitEvents, intervalSeconds)
+  const { candles: freshCandles, vols: freshVols } = candleRowsToSeriesData(firstBatch)
+  applyKillWicks(freshCandles, killEvents, intervalSeconds)
+  applyKillWicks(freshCandles, profitEvents, intervalSeconds)
+
+  // 이미 불러와져 있던 과거 봉(뒤로 스크롤 등으로 백필된 것)이 있으면, 최근 구간만 다시 받은
+  // fresh 데이터로 전체를 덮어쓰지 않고 병합한다(심볼/타임프레임이 바뀔 때는 호출부에서
+  // candleData/volumeData를 미리 비워두므로 여기선 항상 같은 심볼의 과거 봉만 남는다).
+  const candles = mergeCandleSeries(candleData.value, freshCandles)
+  const vols = mergeCandleSeries(volumeData.value, freshVols)
+
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
@@ -4581,7 +4600,10 @@ async function fetchCandles() {
   renderSavedDrawings()
 
   // 2) 나머지 과거 봉(4일치를 채우는 데 필요한 만큼)은 백그라운드에서 이어받는다.
-  if (firstBatch.length > 0 && firstBatch.length < neededBars) {
+  // 이미 필요한 만큼을 갖고 있으면(재동기화로 다시 불린 경우 등) 매번 다시 백필하지 않는다 —
+  // 이걸 안 하면 20초마다 전체 과거 봉을 처음부터 다시 순차로 받아오느라 계속 느리고, 그동안
+  // 예전 봉이 없어졌다가 다시 채워지는 것처럼 보였다.
+  if (candles.length < neededBars && firstBatch.length > 0 && firstBatch.length < neededBars) {
     backfillOlderCandles(token, instId, bar, firstBatch, neededBars, killEvents, profitEvents, intervalSeconds).catch(() => {})
   }
 }
@@ -5134,6 +5156,10 @@ watch([() => symbol.value, timeframe], async () => {
   // 심볼/타임프레임 변경 시 차트/WS 재연결
   chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? []
   applyPriceFormatForSymbol(symbol.value)
+  // fetchCandles()는 이제 기존 candleData/volumeData 위에 병합하므로, 심볼/타임프레임이 바뀔 때는
+  // 이전 심볼의 과거 봉과 섞이지 않도록 먼저 비워준다.
+  candleData.value = []
+  volumeData.value = []
   await fetchCandles().catch(() => {})
   chart?.timeScale().fitContent()
   connectWs()
