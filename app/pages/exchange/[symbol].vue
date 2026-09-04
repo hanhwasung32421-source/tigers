@@ -4476,6 +4476,19 @@ function mergeCandleSeries<T extends { time: any }>(existing: T[], fresh: T[]): 
   return olderPart.concat(fresh)
 }
 
+// 마지막(진행중인) 봉의 시가는 항상 그 직전 봉의 종가와 같아야 하는데, 20초마다 도는 배경
+// 재동기화가 OKX REST에서 다시 받아온 값으로 마지막 봉을 통째로 덮어쓰면서, 그 시점의 실제
+// 시가가 직전 종가와 미세하게 달라 보이는 문제가 있었다. REST로 새로 받아올 때마다 마지막 봉의
+// 시가를 직전 봉 종가로 강제로 맞춰서, 몇 틱 지난 뒤 갑자기 어긋나 보이는 일이 없게 한다.
+function stitchLiveCandleOpen(candles: CandlestickData[]) {
+  const n = candles.length
+  if (n < 2) return
+  const prevClose = Number((candles[n - 2] as any).close)
+  if (Number.isFinite(prevClose)) {
+    ;(candles[n - 1] as any).open = prevClose
+  }
+}
+
 // 예전에 킬UP/킬DOWN으로 만들어진 고가/저가(꼬리)를, 새로고침 등으로 실제 데이터를 다시 받아온 뒤에도
 // 같은 자리에 다시 반영한다. 실제 시세(open/close)는 건드리지 않고 high/low만 확장한다.
 function applyKillWicks(candles: CandlestickData[], events: KillEvent[], intervalSeconds: number) {
@@ -4554,6 +4567,7 @@ async function backfillOlderCandles(
   const { candles, vols } = candleRowsToSeriesData(merged)
   applyKillWicks(candles, killEvents, intervalSeconds)
   applyKillWicks(candles, profitEvents, intervalSeconds)
+  stitchLiveCandleOpen(candles)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
@@ -4594,6 +4608,7 @@ async function fetchCandles() {
   // candleData/volumeData를 미리 비워두므로 여기선 항상 같은 심볼의 과거 봉만 남는다).
   const candles = mergeCandleSeries(candleData.value, freshCandles)
   const vols = mergeCandleSeries(volumeData.value, freshVols)
+  stitchLiveCandleOpen(candles)
 
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
