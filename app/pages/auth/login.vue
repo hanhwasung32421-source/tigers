@@ -119,7 +119,7 @@ const { refresh } = useMe()
 const config = useRuntimeConfig()
 const appName = config.public.appName
 
-const SAVED_ID_KEY = 'bitplay_saved_login_id'
+const SAVED_ID_KEY = 'bitduck_saved_login_id'
 
 const username = ref('')
 const password = ref('')

@@ -5,7 +5,7 @@
       :class="iconSizeClass"
       aria-hidden="true"
     >
-      BP
+      BD
     </span>
     <span class="font-brand tracking-tight text-white" :class="textSizeClass">{{ appName }}</span>
   </span>

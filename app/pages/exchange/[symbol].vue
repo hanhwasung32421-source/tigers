@@ -2690,7 +2690,7 @@ function updateLiveCandle(price: number, tsMs: number) {
   })
 }
 
-const KILL_LAST_SETTINGS_KEY = 'bitplay_kill_last_settings'
+const KILL_LAST_SETTINGS_KEY = 'bitduck_kill_last_settings'
 
 function loadLastKillSettings(): { percent: number; duration: number; tickCount: number } | null {
   if (!process.client) return null
@@ -2915,7 +2915,7 @@ function startKillResync() {
   }, 20000)
 }
 
-const PROFIT_LAST_SETTINGS_KEY = 'bitplay_profit_last_settings'
+const PROFIT_LAST_SETTINGS_KEY = 'bitduck_profit_last_settings'
 
 function loadLastProfitSettings(): { percent: number; duration: number; tickCount: number; hold: number } | null {
   if (!process.client) return null
