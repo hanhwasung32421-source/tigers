@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     const ids = Array.from(new Set((sessions || []).map((s: any) => Number(s.user_id)).filter(Boolean)))
     if (!ids.length) return { items: [] }
 
-    const { data: users, error: e2 } = await supa.from('trae_users').select('id, username, role, created_at').in('id', ids)
+    const { data: users, error: e2 } = await supa.from('trae_users').select('id, username, name, role, created_at').in('id', ids)
     if (e2) throw e2
 
     const { data: events, error: e3 } = await supa
@@ -70,6 +70,7 @@ export default defineEventHandler(async (event) => {
       return {
         id: Number(id),
         username: String(u?.username || `user${id}`),
+        name: String(u?.name || ''),
         role: roleText(role),
         roleId: role,
         ip: ip?.ip ?? null,

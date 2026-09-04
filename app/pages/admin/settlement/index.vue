@@ -84,7 +84,11 @@
               <td colspan="5" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
             </tr>
             <tr v-for="it in pagedItems" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
+              <td class="px-3 py-3 font-mono text-slate-100">
+                <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(it.username)">
+                  {{ it.username }}
+                </button>
+              </td>
               <td class="px-3 py-3 text-slate-200">{{ it.name }}</td>
               <td class="px-3 py-3 text-right font-mono text-slate-200">
                 <div>{{ fmtKrw(it.balanceUsdt) }}</div>
@@ -132,6 +136,8 @@
 
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
+
+    <AdminMemberInfoModal ref="memberInfoModal" />
   </div>
 </template>
 
@@ -177,6 +183,7 @@ const initRange = thisWeekRange()
 const fromDate = ref(initRange.from)
 const toDate = ref(initRange.to)
 
+const memberInfoModal = ref<{ open: (username: string) => void } | null>(null)
 const items = ref<SettlementItem[]>([])
 const total = ref(0)
 const percent = ref(0)

@@ -31,6 +31,7 @@
           <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
             <tr>
               <th class="px-3 py-3 text-left">회원 ID</th>
+              <th class="px-3 py-3 text-left">회원아이디</th>
               <th class="px-3 py-3 text-left">회원 이름</th>
               <th class="px-3 py-3 text-left">권한</th>
               <th class="px-3 py-3 text-left">IP</th>
@@ -40,11 +41,16 @@
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="6" class="px-3 py-8 text-center text-slate-500">접속중인 유저가 없습니다.</td>
+              <td colspan="7" class="px-3 py-8 text-center text-slate-500">접속중인 유저가 없습니다.</td>
             </tr>
             <tr v-for="u in filtered" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-mono text-slate-300">#{{ u.id }}</td>
-              <td class="px-3 py-3 font-semibold text-slate-100">{{ u.username }}</td>
+              <td class="px-3 py-3 font-semibold text-slate-100">
+                <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(u.username)">
+                  {{ u.username }}
+                </button>
+              </td>
+              <td class="px-3 py-3 text-slate-200">{{ u.name || '—' }}</td>
               <td class="px-3 py-3 text-slate-300">{{ u.role }}</td>
               <td class="px-3 py-3 font-mono text-slate-300">{{ u.ip || '—' }}</td>
               <td class="px-3 py-3 font-mono text-slate-400">{{ u.lastSeenAt ? formatTime(u.lastSeenAt) : '—' }}</td>
@@ -69,6 +75,8 @@
 
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
+
+    <AdminMemberInfoModal ref="memberInfoModal" />
   </div>
 </template>
 
@@ -78,6 +86,7 @@ definePageMeta({ middleware: ['admin'] })
 type OnlineRow = {
   id: number
   username: string
+  name: string
   role: string
   roleId: string
   ip: string | null
@@ -89,6 +98,7 @@ type OnlineRow = {
 const { refresh } = useMe()
 await refresh()
 
+const memberInfoModal = ref<{ open: (username: string) => void } | null>(null)
 const items = ref<OnlineRow[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)

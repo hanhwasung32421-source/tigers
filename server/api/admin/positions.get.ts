@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
 
     const { data: userRows, error: e2 } = await supa
       .from('trae_users')
-      .select('id, username, role')
+      .select('id, username, name, role')
     if (e2) throw e2
 
     const userIds = (userRows || []).map((u: any) => Number(u.id)).filter(Boolean)
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     positions = db
       .prepare('SELECT id, user_id, symbol, side, qty, entry_price, leverage, margin, created_at FROM positions ORDER BY created_at DESC')
       .all()
-    users = db.prepare('SELECT id, username, role FROM users').all().map((u: any) => ({ ...u, online: false }))
+    users = db.prepare('SELECT id, username, name, role FROM users').all().map((u: any) => ({ ...u, online: false }))
   }
 
   const userMap = new Map(users.map((u: any) => [Number(u.id), u]))
@@ -103,6 +103,7 @@ export default defineEventHandler(async (event) => {
       id: Number(p.id),
       user_id: uid,
       username: String(user?.username || `user${uid}`),
+      name: String(user?.name || ''),
       affiliate: roleToAffiliate(String(user?.role || 'user')),
       symbol,
       orderType: 'MARKET',

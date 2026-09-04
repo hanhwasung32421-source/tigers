@@ -85,7 +85,7 @@
                 <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">승인</span>
               </td>
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">
-                <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="openProfileModal(u)">
+                <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(u.username)">
                   {{ u.username }}
                 </button>
               </td>
@@ -162,64 +162,7 @@
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
 
-    <Transition name="member-modal">
-      <div v-if="profileModalOpen && selectedMember" class="fixed inset-0 z-[82] flex items-center justify-center bg-black/60 px-4" @click.self="closeProfileModal">
-        <div class="w-full max-w-2xl rounded-2xl border border-[#12314a] bg-[#03101d] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h2 class="text-lg font-semibold text-slate-100">회원정보 수정</h2>
-              <p class="mt-1 text-sm text-slate-400">아이디 `{{ selectedMember.username }}`</p>
-            </div>
-            <button type="button" class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-100 hover:bg-white/15" @click="closeProfileModal">닫기</button>
-          </div>
-
-          <div class="mt-5 grid gap-4 md:grid-cols-2">
-            <div>
-              <label class="text-sm text-slate-300">이름</label>
-              <input v-model.trim="profileDraft.name" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-cyan-500" />
-            </div>
-            <div>
-              <label class="text-sm text-slate-300">생년월일</label>
-              <input v-model.trim="profileDraft.birthDate" placeholder="YYYY-MM-DD" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-cyan-500" />
-            </div>
-            <div>
-              <label class="text-sm text-slate-300">은행명</label>
-              <select v-model="profileDraft.bankName" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-cyan-500">
-                <option v-for="bank in banks" :key="bank" :value="bank">{{ bank }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-sm text-slate-300">은행계좌</label>
-              <input v-model.trim="profileDraft.bankAccount" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-cyan-500" />
-            </div>
-            <div>
-              <label class="text-sm text-slate-300">예금주</label>
-              <input v-model.trim="profileDraft.accountHolder" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-cyan-500" />
-            </div>
-            <div>
-              <label class="text-sm text-slate-300">추천코드</label>
-              <input
-                v-model.trim="profileDraft.referralCode"
-                :disabled="me?.role !== 'super_admin'"
-                class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-cyan-500 disabled:text-slate-500"
-              />
-            </div>
-          </div>
-
-          <div class="mt-5 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              class="rounded-md bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:opacity-50"
-              :disabled="profileSaving"
-              @click="saveProfile"
-            >
-              {{ profileSaving ? '저장 중...' : '저장' }}
-            </button>
-          </div>
-          <p v-if="profileError" class="mt-3 text-sm text-rose-300">{{ profileError }}</p>
-        </div>
-      </div>
-    </Transition>
+    <AdminMemberInfoModal ref="memberInfoModal" @saved="load(true)" />
 
     <Transition name="member-modal">
       <div v-if="tradeModalOpen && selectedMember" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4" @click.self="closeTradeModal">
@@ -433,7 +376,7 @@ const page = ref(1)
 const pageSizeInput = ref(20)
 const tradeModalOpen = ref(false)
 const balanceModalOpen = ref(false)
-const profileModalOpen = ref(false)
+const memberInfoModal = ref<{ open: (username: string) => void; isOpen: boolean } | null>(null)
 const selectedMember = ref<MemberRow | null>(null)
 const memberTrades = ref<MemberTradeRow[]>([])
 const tradeLoading = ref(false)
@@ -443,20 +386,6 @@ const memberTradePageSize = 10
 const balanceDraft = ref(0)
 const balanceSaving = ref(false)
 const balanceError = ref<string | null>(null)
-const profileSaving = ref(false)
-const profileError = ref<string | null>(null)
-const profileDraft = reactive({
-  name: '',
-  birthDate: '',
-  bankName: '국민은행',
-  bankAccount: '',
-  accountHolder: '',
-  referralCode: ''
-})
-const banks = [
-  '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
-  '수협은행', 'SC제일은행', '씨티은행', '부산은행', '대구은행', '경남은행', '광주은행', '전북은행', '제주은행', '우체국'
-]
 let pollTimer: any = null
 let loadingNow = false
 // 총관리자는 항상 가능, 부관리자는 총관리자가 부여한 "회원 목록" 수정 권한이 있을 때만
@@ -465,7 +394,7 @@ const canEditBalance = computed(() => {
   if (me.value?.role && me.value.role !== 'user') return Boolean((me.value as any)?.permissions?.menus?.members?.edit)
   return false
 })
-const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpen.value || profileModalOpen.value)
+const autoRefreshPaused = computed(() => tradeModalOpen.value || balanceModalOpen.value || Boolean(memberInfoModal.value?.isOpen))
 
 // 영업 조직 구조: "코드부여"(승격)는 총관리자는 누구에게나,
 // 부관리자는 자기 코드로 가입한 직속 하부에게만 할 수 있다.
@@ -740,24 +669,6 @@ function openBalanceModal(member: MemberRow) {
   balanceModalOpen.value = true
 }
 
-function openProfileModal(member: MemberRow) {
-  selectedMember.value = member
-  profileDraft.name = member.name || ''
-  profileDraft.birthDate = member.birthDate || ''
-  profileDraft.bankName = member.bankName || banks[0]
-  profileDraft.bankAccount = member.bankAccount || ''
-  profileDraft.accountHolder = member.accountHolder || ''
-  profileDraft.referralCode = member.referralCode || ''
-  profileError.value = null
-  profileModalOpen.value = true
-}
-
-function closeProfileModal() {
-  profileModalOpen.value = false
-  profileError.value = null
-  if (!tradeModalOpen.value && !balanceModalOpen.value) selectedMember.value = null
-}
-
 function closeBalanceModal() {
   balanceModalOpen.value = false
   balanceError.value = null
@@ -784,32 +695,6 @@ async function saveBalance() {
     balanceError.value = e?.data?.statusMessage || '보유금액 수정에 실패했습니다.'
   } finally {
     balanceSaving.value = false
-  }
-}
-
-async function saveProfile() {
-  if (!selectedMember.value) return
-  profileSaving.value = true
-  profileError.value = null
-  try {
-    await $fetch('/api/admin/users/update', {
-      method: 'POST',
-      body: {
-        userId: selectedMember.value.id,
-        name: profileDraft.name,
-        birthDate: profileDraft.birthDate,
-        bankName: profileDraft.bankName,
-        bankAccount: profileDraft.bankAccount,
-        accountHolder: profileDraft.accountHolder,
-        ...(me?.role === 'super_admin' ? { referralCode: profileDraft.referralCode } : {})
-      }
-    })
-    await load(true)
-    closeProfileModal()
-  } catch (e: any) {
-    profileError.value = e?.data?.statusMessage || '회원정보 저장에 실패했습니다.'
-  } finally {
-    profileSaving.value = false
   }
 }
 

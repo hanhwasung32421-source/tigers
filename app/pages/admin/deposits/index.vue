@@ -92,7 +92,11 @@
               <td colspan="8" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">{{ it.username }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">
+                <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(it.username)">
+                  {{ it.username }}
+                </button>
+              </td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ it.referralCode || '—' }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">
@@ -174,6 +178,8 @@
       </template>
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
+
+    <AdminMemberInfoModal ref="memberInfoModal" />
   </div>
 </template>
 
@@ -196,6 +202,7 @@ type DepositRow = {
 const { refresh } = useMe()
 await refresh()
 
+const memberInfoModal = ref<{ open: (username: string) => void } | null>(null)
 const items = ref<DepositRow[]>([])
 const canEdit = ref(false)
 const loading = ref(false)

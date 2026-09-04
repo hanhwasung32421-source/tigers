@@ -129,7 +129,7 @@
           />
         </div>
 
-        <div class="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div class="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_minmax(0,1fr)]">
           <div class="max-h-[720px] overflow-auto rounded-xl border border-white/10 bg-[#06101b] p-2">
             <button
               v-for="thread in filteredThreads"
@@ -210,6 +210,35 @@
                 <p v-if="replyError" class="mt-2 text-sm text-rose-300">{{ replyError }}</p>
               </div>
             </div>
+          </div>
+
+          <div class="flex flex-col justify-end rounded-xl border border-white/10 bg-[#06101b] p-4">
+            <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">회원을 선택하면 회원정보가 표시됩니다.</div>
+            <template v-else>
+              <div v-if="memberDetailLoading" class="text-sm text-slate-400">불러오는 중…</div>
+              <template v-else-if="memberDetail">
+                <div class="text-base font-semibold text-slate-100">회원정보</div>
+                <div class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-slate-300">
+                  <div class="text-slate-500">이름</div><div>{{ memberDetail.name || '—' }}</div>
+                  <div class="text-slate-500">생년월일</div><div>{{ memberDetail.birthDate || '—' }}</div>
+                  <div class="text-slate-500">은행</div><div>{{ memberDetail.bankName || '—' }}</div>
+                  <div class="text-slate-500">계좌</div><div>{{ memberDetail.bankAccount || '—' }}</div>
+                  <div class="text-slate-500">예금주</div><div>{{ memberDetail.accountHolder || '—' }}</div>
+                  <div class="text-slate-500">추천코드</div><div>{{ memberDetail.referralCode || '—' }}</div>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                  <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
+                    <div class="text-[11px] text-slate-400">보유잔고</div>
+                    <div class="mt-1 text-sm font-semibold text-cyan-100">{{ fmt2(memberDetail.balanceUsdt) }} USDT</div>
+                  </div>
+                  <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
+                    <div class="text-[11px] text-slate-400">보유 포지션</div>
+                    <div class="mt-1 text-sm font-semibold text-cyan-100">{{ memberDetail.positions.length }}건</div>
+                  </div>
+                </div>
+              </template>
+              <p v-else-if="memberDetailError" class="text-sm text-rose-300">{{ memberDetailError }}</p>
+            </template>
           </div>
         </div>
       </section>
@@ -395,6 +424,41 @@ async function sendGuestReply() {
   }
 }
 
+type MemberDetail = {
+  name: string
+  birthDate: string
+  bankName: string
+  bankAccount: string
+  accountHolder: string
+  referralCode: string
+  balanceUsdt: number
+  positions: unknown[]
+}
+const memberDetail = ref<MemberDetail | null>(null)
+const memberDetailLoading = ref(false)
+const memberDetailError = ref<string | null>(null)
+
+function fmt2(v: number) {
+  return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+async function loadMemberDetail(username: string) {
+  memberDetail.value = null
+  memberDetailError.value = null
+  memberDetailLoading.value = true
+  try {
+    memberDetail.value = await $fetch<MemberDetail>('/api/admin/member-detail', {
+      query: { username },
+      headers: requestHeaders,
+      credentials: 'include'
+    })
+  } catch (e: any) {
+    memberDetailError.value = e?.data?.statusMessage || '회원정보를 불러오지 못했습니다.'
+  } finally {
+    memberDetailLoading.value = false
+  }
+}
+
 const recipients = ref<Recipient[]>([])
 const threads = ref<ThreadSummary[]>([])
 const activeThread = ref<ThreadSummary | null>(null)
@@ -505,6 +569,7 @@ async function openThread(thread: ThreadSummary) {
   pendingResetRequest.value = res.pendingResetRequest || null
   await $fetch('/api/messages/mark-read', { method: 'POST', body: { userId: thread.userId }, headers: requestHeaders, credentials: 'include' }).catch(() => {})
   await loadThreads()
+  loadMemberDetail(thread.username).catch(() => {})
 }
 
 async function approveReset() {

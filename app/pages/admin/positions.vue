@@ -60,6 +60,7 @@
         <table class="w-full text-[12px] leading-tight text-slate-200">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
+              <th class="whitespace-nowrap px-2 py-3 text-left">회원아이디</th>
               <th class="whitespace-nowrap px-2 py-3 text-left">회원 이름</th>
               <th class="whitespace-nowrap px-2 py-3 text-left">소속총판</th>
               <th class="whitespace-nowrap px-2 py-3 text-left">심볼</th>
@@ -78,13 +79,16 @@
           </thead>
           <tbody>
             <tr v-if="!loading && filteredItems.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="14" class="px-2 py-10 text-center text-slate-500">표시할 포지션이 없습니다.</td>
+              <td colspan="15" class="px-2 py-10 text-center text-slate-500">표시할 포지션이 없습니다.</td>
             </tr>
             <tr v-for="row in pagedItems" :key="row.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="whitespace-nowrap px-2 py-2.5">
-                <div class="font-semibold text-slate-100">{{ row.username }}</div>
+                <button type="button" class="font-semibold text-slate-100 underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(row.username)">
+                  {{ row.username }}
+                </button>
                 <div class="mt-0.5 font-mono text-[10px] text-slate-500">(#{{ row.user_id }})</div>
               </td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-slate-100">{{ row.name || '—' }}</td>
               <td class="whitespace-nowrap px-2 py-2.5 text-slate-300">{{ row.affiliate }}</td>
               <td class="whitespace-nowrap px-2 py-2.5 font-semibold text-slate-100">{{ row.symbol }}</td>
               <td class="whitespace-nowrap px-2 py-2.5">{{ row.orderType }}</td>
@@ -147,6 +151,8 @@
 
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
+
+    <AdminMemberInfoModal ref="memberInfoModal" />
   </div>
 </template>
 
@@ -157,6 +163,7 @@ type AdminPositionRow = {
   id: number
   user_id: number
   username: string
+  name: string
   affiliate: string
   symbol: string
   orderType: string
@@ -176,6 +183,7 @@ type AdminPositionRow = {
 const { refresh } = useMe()
 await refresh()
 
+const memberInfoModal = ref<{ open: (username: string) => void } | null>(null)
 const items = ref<AdminPositionRow[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)

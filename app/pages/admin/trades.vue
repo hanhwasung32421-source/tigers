@@ -66,7 +66,11 @@
             </tr>
             <tr v-for="t in paged" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(t.created_at) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-100">{{ t.username }}</td>
+              <td class="px-3 py-3 font-mono text-slate-100">
+                <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(t.username)">
+                  {{ t.username }}
+                </button>
+              </td>
               <td class="px-3 py-3 text-slate-200">{{ t.name }}</td>
               <td class="px-3 py-3 text-slate-300">{{ t.affiliateName }}</td>
               <td class="px-3 py-3 font-semibold text-slate-100">{{ t.symbol }}</td>
@@ -119,6 +123,8 @@
 
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
+
+    <AdminMemberInfoModal ref="memberInfoModal" />
   </div>
 </template>
 
@@ -146,6 +152,7 @@ type TradeRow = {
 const { refresh } = useMe()
 await refresh()
 
+const memberInfoModal = ref<{ open: (username: string) => void } | null>(null)
 const items = ref<TradeRow[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
