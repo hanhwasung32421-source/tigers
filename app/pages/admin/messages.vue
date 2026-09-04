@@ -109,12 +109,13 @@
           </div>
           <button
             class="rounded-md bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="sending || !canSend"
+            :disabled="sending || !canSend || !canManageMessages"
             @click="sendMessage"
           >
             {{ sending ? '전송 중...' : '쪽지 보내기' }}
           </button>
         </div>
+        <p v-if="!canManageMessages" class="mt-3 text-sm text-amber-300">쪽지 답장 권한이 없어 쪽지를 보낼 수 없습니다.</p>
         <p v-if="sendError" class="mt-3 text-sm text-rose-300">{{ sendError }}</p>
         <p v-if="sendMessageText" class="mt-3 text-sm text-emerald-300">{{ sendMessageText }}</p>
       </section>
@@ -154,7 +155,15 @@
             <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">왼쪽에서 대화를 선택하세요.</div>
             <div v-else class="space-y-4">
               <div class="border-b border-white/10 pb-3">
-                <div class="text-lg font-semibold text-slate-100">{{ activeThread.username }}</div>
+                <div class="flex items-center gap-2">
+                  <div class="text-lg font-semibold text-slate-100">{{ activeThread.username }}</div>
+                  <span
+                    class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    :class="isOperator ? 'bg-amber-400 text-slate-900' : 'bg-cyan-500/20 text-cyan-100'"
+                  >
+                    {{ isOperator ? '내 아이디로 온 쪽지' : '관리자에게 온 쪽지' }}
+                  </span>
+                </div>
                 <div class="mt-1 text-xs text-slate-500">회원번호 #{{ activeThread.userId }}</div>
               </div>
 
@@ -201,12 +210,13 @@
                 <div class="mt-3 flex items-center justify-end gap-2">
                   <button
                     class="rounded-md bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                    :disabled="replySending || !replyBody"
+                    :disabled="replySending || !replyBody || !canManageMessages"
                     @click="sendReply"
                   >
                     {{ replySending ? '전송 중...' : '답장 보내기' }}
                   </button>
                 </div>
+                <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.</p>
                 <p v-if="replyError" class="mt-2 text-sm text-rose-300">{{ replyError }}</p>
               </div>
             </div>
@@ -296,12 +306,13 @@
             <div class="mt-3 flex items-center justify-end gap-2">
               <button
                 class="rounded-md bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="guestReplySending || !guestReplyBody"
+                :disabled="guestReplySending || !guestReplyBody || !canManageMessages"
                 @click="sendGuestReply"
               >
                 {{ guestReplySending ? '전송 중...' : '답장 보내기' }}
               </button>
             </div>
+            <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.</p>
             <p v-if="guestReplyError" class="mt-2 text-sm text-rose-300">{{ guestReplyError }}</p>
           </div>
         </div>
@@ -371,6 +382,16 @@ type GuestMessageItem = {
 const { me, refresh } = useMe()
 await refresh()
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+
+// 총관리자는 항상 답장 가능, 부관리자는 총관리자가 부여한 "쪽지 답장 권한"이 있을 때만.
+const canManageMessages = computed(() => {
+  if (me.value?.role === 'super_admin') return true
+  if (me.value?.role && me.value.role !== 'user') return Boolean((me.value as any)?.permissions?.menus?.messages?.edit)
+  return false
+})
+// 회원 문의는 항상 "운영자 계정" 앞으로 오므로, 지금 로그인한 관리자가 그 운영자 계정 본인인지에
+// 따라 "관리자에게 온 쪽지"(운영자가 아닌 나) / "내 아이디로 온 쪽지"(내가 곧 운영자)를 구분해서 보여준다.
+const isOperator = ref(false)
 
 const activeTab = ref<'members' | 'guests'>('members')
 const guestThreads = ref<GuestThreadSummary[]>([])
@@ -548,8 +569,9 @@ async function loadRecipients() {
 }
 
 async function loadThreads() {
-  const res = await $fetch<{ items: ThreadSummary[] }>('/api/messages/threads', { headers: requestHeaders, credentials: 'include' })
+  const res = await $fetch<{ items: ThreadSummary[]; isOperator?: boolean }>('/api/messages/threads', { headers: requestHeaders, credentials: 'include' })
   threads.value = res.items || []
+  isOperator.value = Boolean(res.isOperator)
   if (activeThread.value) {
     const fresh = threads.value.find((t) => t.threadKey === activeThread.value?.threadKey)
     if (fresh) activeThread.value = fresh

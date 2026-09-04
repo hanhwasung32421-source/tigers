@@ -1,6 +1,7 @@
 import { readBody, createError } from 'h3'
 import { z } from 'zod'
 import { requireUser } from '../../utils/auth'
+import { canEditMenu } from '../../utils/menu-permissions'
 import { ensureAdminThreadAccess, getOperatorAdminUser, insertMessages, listMessageRecipientsForAdmin, threadKeyForUser } from '../../utils/messages'
 
 const BodySchema = z.object({
@@ -20,6 +21,9 @@ export default defineEventHandler(async (event) => {
   }
 
   if (isAdmin) {
+    if (!canEditMenu(user, 'messages')) {
+      throw createError({ statusCode: 403, statusMessage: '쪽지 답장/발송 권한이 없습니다.' })
+    }
     let targetIds = (body.userIds || []).map((v) => Number(v)).filter(Boolean)
     if (body.sendToAll) {
       const users = await listMessageRecipientsForAdmin()

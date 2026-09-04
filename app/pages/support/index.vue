@@ -48,7 +48,9 @@
             class="max-w-[85%] rounded-2xl px-4 py-3 text-sm"
             :class="message.sender_id === me?.id ? 'ml-auto bg-cyan-500/15 text-slate-100' : 'bg-white/5 text-slate-200'"
           >
-            <div class="mb-1 text-[11px] text-slate-400">{{ message.senderName }}</div>
+            <div class="mb-1 text-[11px] text-slate-400">
+              {{ message.senderName }}<span v-if="message.senderUsername && message.senderName === '관리자'"> ({{ message.senderUsername }})</span>
+            </div>
             <div class="whitespace-pre-wrap leading-6">{{ message.body }}</div>
             <div class="mt-2 text-[11px] text-slate-500">{{ formatDateTime(message.created_at) }}</div>
           </div>
@@ -100,6 +102,7 @@ type MessageItem = {
   id: number
   sender_id: number
   senderName: string
+  senderUsername?: string
   body: string
   created_at: string
 }
