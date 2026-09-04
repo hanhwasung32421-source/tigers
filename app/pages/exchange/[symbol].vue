@@ -2661,10 +2661,10 @@ function updateLiveCandle(price: number, tsMs: number) {
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
 
-  // 새 캔들 생성
+  // 새 캔들 생성 (시가는 직전 봉 종가를 그대로 물려받고, 고가/저가는 시가까지 감싸도록 잡는다)
   if (!last || Number((last as any).time) !== bucket) {
     const open = last ? Number((last as any).close) : p
-    const next: CandlestickData = { time, open, high: p, low: p, close: p }
+    const next: CandlestickData = { time, open, high: Math.max(open, p), low: Math.min(open, p), close: p }
     liveLastCandle.value = next
     candleData.value = candleData.value.length ? candleData.value.concat([next]) : [next]
     candleSeries.update(next)
@@ -4516,16 +4516,20 @@ function mergeCandleSeries<T extends { time: any }>(existing: T[], fresh: T[]): 
   return olderPart.concat(fresh)
 }
 
-// 마지막(진행중인) 봉의 시가는 항상 그 직전 봉의 종가와 같아야 하는데, 20초마다 도는 배경
-// 재동기화가 OKX REST에서 다시 받아온 값으로 마지막 봉을 통째로 덮어쓰면서, 그 시점의 실제
-// 시가가 직전 종가와 미세하게 달라 보이는 문제가 있었다. REST로 새로 받아올 때마다 마지막 봉의
-// 시가를 직전 봉 종가로 강제로 맞춰서, 몇 틱 지난 뒤 갑자기 어긋나 보이는 일이 없게 한다.
-function stitchLiveCandleOpen(candles: CandlestickData[]) {
-  const n = candles.length
-  if (n < 2) return
-  const prevClose = Number((candles[n - 2] as any).close)
-  if (Number.isFinite(prevClose)) {
-    ;(candles[n - 1] as any).open = prevClose
+// 거래소 차트 관례대로 "전봉 종가 = 다음봉 시가"가 항상 정확히 맞도록 전체 봉을 이어붙인다.
+// OKX가 내려주는 원본 캔들은 거래가 뜸한 종목일수록 직전 봉 종가와 다음 봉 시가가 벌어져 있어서
+// 봉 사이에 갭이 보였다. 시가를 직전 종가로 맞추면 고가/저가가 몸통을 감싸지 못하는 경우가
+// 생기므로(꼬리 밖으로 몸통이 튀어나온 것처럼 보임) 고가/저가도 함께 넓혀준다.
+function chainCandleOpens(candles: CandlestickData[]) {
+  for (let i = 1; i < candles.length; i++) {
+    const prev = candles[i - 1] as any
+    const cur = candles[i] as any
+    const prevClose = Number(prev.close)
+    if (!Number.isFinite(prevClose)) continue
+    cur.open = prevClose
+    const close = Number(cur.close)
+    cur.high = Math.max(Number(cur.high), prevClose, close)
+    cur.low = Math.min(Number(cur.low), prevClose, close)
   }
 }
 
@@ -4607,7 +4611,7 @@ async function backfillOlderCandles(
   const { candles, vols } = candleRowsToSeriesData(merged)
   applyKillWicks(candles, killEvents, intervalSeconds)
   applyKillWicks(candles, profitEvents, intervalSeconds)
-  stitchLiveCandleOpen(candles)
+  chainCandleOpens(candles)
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
   futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
@@ -4648,7 +4652,7 @@ async function fetchCandles() {
   // candleData/volumeData를 미리 비워두므로 여기선 항상 같은 심볼의 과거 봉만 남는다).
   const candles = mergeCandleSeries(candleData.value, freshCandles)
   const vols = mergeCandleSeries(volumeData.value, freshVols)
-  stitchLiveCandleOpen(candles)
+  chainCandleOpens(candles)
 
   candleSeries?.setData(candles)
   volumeSeries?.setData(vols)
