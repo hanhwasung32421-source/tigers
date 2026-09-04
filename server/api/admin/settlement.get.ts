@@ -96,21 +96,24 @@ export default defineEventHandler(async (event) => {
       netPnlMap.set(uid, (netPnlMap.get(uid) ?? 0) + pnl - fee)
     }
 
-    const items = users.map((u: any) => {
-      const id = Number(u.id)
-      const feeSum = feeMap.get(id) ?? 0
-      const netPnl = netPnlMap.get(id) ?? 0
-      const baseAmount = type === 'loss' ? (netPnl < 0 ? -netPnl : 0) : feeSum
-      const settlementAmount = (baseAmount * percent) / 100
-      return {
-        id,
-        username: String(u.username || ''),
-        name: String(u.name || ''),
-        balanceUsdt: balanceMap.get(id) ?? 0,
-        baseAmount,
-        settlementAmount
-      }
-    })
+    // 해당 기간에 실제로 정산금이 발생한(0보다 큰) 회원만 표시한다.
+    const items = users
+      .map((u: any) => {
+        const id = Number(u.id)
+        const feeSum = feeMap.get(id) ?? 0
+        const netPnl = netPnlMap.get(id) ?? 0
+        const baseAmount = type === 'loss' ? (netPnl < 0 ? -netPnl : 0) : feeSum
+        const settlementAmount = (baseAmount * percent) / 100
+        return {
+          id,
+          username: String(u.username || ''),
+          name: String(u.name || ''),
+          balanceUsdt: balanceMap.get(id) ?? 0,
+          baseAmount,
+          settlementAmount
+        }
+      })
+      .filter((it: any) => it.settlementAmount > 0)
 
     const total = items.reduce((sum, it) => sum + it.settlementAmount, 0)
     return { items, total, percent, from, to, krwPerUsdt }
@@ -147,21 +150,24 @@ export default defineEventHandler(async (event) => {
     netPnlMap.set(uid, (netPnlMap.get(uid) ?? 0) + pnl - fee)
   }
 
-  const items = users.map((u: any) => {
-    const id = Number(u.id)
-    const feeSum = feeMap.get(id) ?? 0
-    const netPnl = netPnlMap.get(id) ?? 0
-    const baseAmount = type === 'loss' ? (netPnl < 0 ? -netPnl : 0) : feeSum
-    const settlementAmount = (baseAmount * percent) / 100
-    return {
-      id,
-      username: String(u.username || ''),
-      name: String(u.name || ''),
-      balanceUsdt: balanceMap.get(id) ?? 0,
-      baseAmount,
-      settlementAmount
-    }
-  })
+  // 해당 기간에 실제로 정산금이 발생한(0보다 큰) 회원만 표시한다.
+  const items = users
+    .map((u: any) => {
+      const id = Number(u.id)
+      const feeSum = feeMap.get(id) ?? 0
+      const netPnl = netPnlMap.get(id) ?? 0
+      const baseAmount = type === 'loss' ? (netPnl < 0 ? -netPnl : 0) : feeSum
+      const settlementAmount = (baseAmount * percent) / 100
+      return {
+        id,
+        username: String(u.username || ''),
+        name: String(u.name || ''),
+        balanceUsdt: balanceMap.get(id) ?? 0,
+        baseAmount,
+        settlementAmount
+      }
+    })
+    .filter((it: any) => it.settlementAmount > 0)
 
   const total = items.reduce((sum, it) => sum + it.settlementAmount, 0)
   return { items, total, percent, from, to, krwPerUsdt }
