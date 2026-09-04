@@ -59,9 +59,18 @@ class RectanglePaneRenderer implements IPrimitivePaneRenderer {
       if (this.options.showHandles) {
         const r = 5 * scope.horizontalPixelRatio
         const fill = this.options.handleColor || this.options.borderColor
+        const midX = left + width / 2
+        const midY = top + height / 2
+        // 모서리 4개 + 변 중앙 4개 = 8개 손잡이
         for (const [hx, hy] of [
-          [x1, y1],
-          [x2, y2]
+          [left, top],
+          [midX, top],
+          [left + width, top],
+          [left + width, midY],
+          [left + width, top + height],
+          [midX, top + height],
+          [left, top + height],
+          [left, midY]
         ]) {
           ctx.beginPath()
           ctx.arc(hx, hy, r, 0, Math.PI * 2)

@@ -1590,14 +1590,16 @@ const drawingHintVisible = computed(
 const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
 // 선(수평선/추세선) 선택 상태: 커서 도구에서 클릭하면 선택되고, 끝점을 드래그하거나 Delete로 삭제 가능
 const selectedDrawingId = ref<string | null>(null)
+// 사각형/원의 크기 조절 손잡이 8개: 모서리 4개 + 변 중앙 4개
+type ShapeHandle = 'tl' | 't' | 'tr' | 'r' | 'br' | 'b' | 'bl' | 'l'
 type DrawingHit =
   | { id: string; kind: 'trend-point'; pointIndex: 0 | 1 }
   | { id: string; kind: 'trend-line' }
   | { id: string; kind: 'hline' }
   | { id: string; kind: 'vline' }
-  | { id: string; kind: 'rect-point'; pointIndex: 0 | 1 }
+  | { id: string; kind: 'rect-handle'; handle: ShapeHandle }
   | { id: string; kind: 'rect-shape' }
-  | { id: string; kind: 'circle-point'; pointIndex: 0 | 1 }
+  | { id: string; kind: 'circle-handle'; handle: ShapeHandle }
   | { id: string; kind: 'circle-shape' }
 let drawingDragCleanup: (() => void) | null = null
 // Shift+클릭 수익률 측정 박스
@@ -2313,16 +2315,34 @@ function hitTestDrawings(x: number, y: number): DrawingHit | null {
       const x2 = resolveXForTime(d.points[1].time)
       const y2 = candleSeries.priceToCoordinate(Number(d.points[1].price))
       if (x1 === null || y1 === null || x2 === null || y2 === null) continue
-      const pointKind = d.type === 'rect' ? 'rect-point' : 'circle-point'
+      const handleKind = d.type === 'rect' ? 'rect-handle' : 'circle-handle'
       const shapeKind = d.type === 'rect' ? 'rect-shape' : 'circle-shape'
-      if (Math.hypot(x - x1, y - y1) <= HANDLE_R) return { id: d.id, kind: pointKind, pointIndex: 0 }
-      if (Math.hypot(x - x2, y - y2) <= HANDLE_R) return { id: d.id, kind: pointKind, pointIndex: 1 }
-      const left = Math.min(x1, x2) - LINE_TOL
-      const right = Math.max(x1, x2) + LINE_TOL
-      const top = Math.min(y1, y2) - LINE_TOL
-      const bottom = Math.max(y1, y2) + LINE_TOL
+      const left = Math.min(x1, x2)
+      const right = Math.max(x1, x2)
+      const top = Math.min(y1, y2)
+      const bottom = Math.max(y1, y2)
+      const midX = (left + right) / 2
+      const midY = (top + bottom) / 2
+      // 모서리 4개 + 변 중앙 4개 = 총 8개의 크기 조절 손잡이
+      const handles: Array<{ handle: ShapeHandle; hx: number; hy: number }> = [
+        { handle: 'tl', hx: left, hy: top },
+        { handle: 't', hx: midX, hy: top },
+        { handle: 'tr', hx: right, hy: top },
+        { handle: 'r', hx: right, hy: midY },
+        { handle: 'br', hx: right, hy: bottom },
+        { handle: 'b', hx: midX, hy: bottom },
+        { handle: 'bl', hx: left, hy: bottom },
+        { handle: 'l', hx: left, hy: midY }
+      ]
+      for (const h of handles) {
+        if (Math.hypot(x - h.hx, y - h.hy) <= HANDLE_R) return { id: d.id, kind: handleKind, handle: h.handle }
+      }
+      const bLeft = left - LINE_TOL
+      const bRight = right + LINE_TOL
+      const bTop = top - LINE_TOL
+      const bBottom = bottom + LINE_TOL
       if (d.type === 'rect') {
-        if (x >= left && x <= right && y >= top && y <= bottom) return { id: d.id, kind: shapeKind }
+        if (x >= bLeft && x <= bRight && y >= bTop && y <= bBottom) return { id: d.id, kind: shapeKind }
       } else {
         const cx = (x1 + x2) / 2
         const cy = (y1 + y2) / 2
@@ -2409,21 +2429,34 @@ function onChartMouseDown(e: MouseEvent) {
   renderSavedDrawings()
   if (wasBolSelected) renderIndicators()
 
-  if (hit.kind === 'rect-shape' || hit.kind === 'circle-shape') return // 몸통은 선택만, 드래그는 끝점(원)에서만
-
   const drawing = chartPrefs.drawings.find((d) => d.id === hit.id)
   if (!drawing) return
 
-  // 추세선 몸통(중간)을 잡고 이동하면, 양 끝점을 같은 만큼 평행이동시켜 각도/길이는 그대로 유지한다.
-  let trendTranslateOrigin: { points: { time: any; price: number }[]; price: number; time: any } | null = null
-  if (hit.kind === 'trend-line' && drawing.points?.length === 2) {
+  // 추세선/사각형/원의 몸통(안쪽)을 잡고 이동하면, 모든 점을 같은 만큼 평행이동시켜
+  // 각도·길이·크기는 그대로 유지한 채 위치만 옮긴다.
+  let translateOrigin: { points: { time: any; price: number }[]; price: number; time: any } | null = null
+  if ((hit.kind === 'trend-line' || hit.kind === 'rect-shape' || hit.kind === 'circle-shape') && drawing.points?.length === 2) {
     const startPrice = candleSeries.coordinateToPrice(y)
     const startTime = resolveTimeAtX(null, x)
     if (startPrice === null || startTime === null) return
-    trendTranslateOrigin = {
+    translateOrigin = {
       points: drawing.points.map((p) => ({ time: p.time, price: p.price })),
       price: Number(startPrice),
       time: startTime
+    }
+  }
+
+  // 사각형/원의 손잡이(8개) 드래그: 잡은 손잡이가 아닌 반대쪽 변/모서리는 고정한 채 크기만 바꾼다.
+  let resizeOrigin: { timeLeft: any; timeRight: any; priceTop: number; priceBottom: number; handle: ShapeHandle } | null = null
+  if ((hit.kind === 'rect-handle' || hit.kind === 'circle-handle') && drawing.points?.length === 2) {
+    const [p0, p1] = drawing.points
+    const isP0Earlier = timeToUnixSeconds(p0.time) <= timeToUnixSeconds(p1.time)
+    resizeOrigin = {
+      timeLeft: isP0Earlier ? p0.time : p1.time,
+      timeRight: isP0Earlier ? p1.time : p0.time,
+      priceTop: Math.max(p0.price, p1.price),
+      priceBottom: Math.min(p0.price, p1.price),
+      handle: hit.handle
     }
   }
 
@@ -2450,29 +2483,31 @@ function onChartMouseDown(e: MouseEvent) {
         drawing.time = time
         renderSavedDrawings()
       }
-    } else if ((hit.kind === 'rect-point' || hit.kind === 'circle-point') && drawing.points) {
+    } else if ((hit.kind === 'rect-handle' || hit.kind === 'circle-handle') && resizeOrigin && drawing.points) {
       const price = candleSeries.coordinateToPrice(my)
       const time = resolveTimeAtX(null, mx)
       if (price !== null && time !== null) {
-        drawing.points[hit.pointIndex] = { time, price: Number(price) }
+        const h = resizeOrigin.handle
+        const timeLeft = h.includes('l') ? time : resizeOrigin.timeLeft
+        const timeRight = h.includes('r') ? time : resizeOrigin.timeRight
+        const priceTop = h.includes('t') ? Number(price) : resizeOrigin.priceTop
+        const priceBottom = h.includes('b') ? Number(price) : resizeOrigin.priceBottom
+        drawing.points = [
+          { time: timeLeft, price: priceTop },
+          { time: timeRight, price: priceBottom }
+        ]
         renderSavedDrawings()
       }
-    } else if (hit.kind === 'trend-line' && trendTranslateOrigin && drawing.points) {
+    } else if ((hit.kind === 'trend-line' || hit.kind === 'rect-shape' || hit.kind === 'circle-shape') && translateOrigin && drawing.points) {
       const price = candleSeries.coordinateToPrice(my)
       const time = resolveTimeAtX(null, mx)
       if (price !== null && time !== null) {
-        const priceDelta = Number(price) - trendTranslateOrigin.price
-        const timeDelta = timeToUnixSeconds(time) - timeToUnixSeconds(trendTranslateOrigin.time)
-        drawing.points = [
-          {
-            time: (timeToUnixSeconds(trendTranslateOrigin.points[0].time) + timeDelta) as any,
-            price: trendTranslateOrigin.points[0].price + priceDelta
-          },
-          {
-            time: (timeToUnixSeconds(trendTranslateOrigin.points[1].time) + timeDelta) as any,
-            price: trendTranslateOrigin.points[1].price + priceDelta
-          }
-        ]
+        const priceDelta = Number(price) - translateOrigin.price
+        const timeDelta = timeToUnixSeconds(time) - timeToUnixSeconds(translateOrigin.time)
+        drawing.points = translateOrigin.points.map((p) => ({
+          time: (timeToUnixSeconds(p.time) + timeDelta) as any,
+          price: p.price + priceDelta
+        }))
         renderSavedDrawings()
       }
     }

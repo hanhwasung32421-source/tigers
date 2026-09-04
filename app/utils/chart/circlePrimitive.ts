@@ -65,9 +65,16 @@ class CirclePaneRenderer implements IPrimitivePaneRenderer {
       if (this.options.showHandles) {
         const r = 5 * scope.horizontalPixelRatio
         const fill = this.options.handleColor || this.options.borderColor
+        // 모서리 4개 + 변 중앙 4개 = 8개 손잡이(원을 감싸는 사각 경계 기준)
         for (const [hx, hy] of [
-          [x1, y1],
-          [x2, y2]
+          [left, top],
+          [cx, top],
+          [left + width, top],
+          [left + width, cy],
+          [left + width, top + height],
+          [cx, top + height],
+          [left, top + height],
+          [left, cy]
         ]) {
           ctx.beginPath()
           ctx.arc(hx, hy, r, 0, Math.PI * 2)
