@@ -322,6 +322,8 @@
               >
                 <span class="absolute top-1 left-1/2 -translate-x-1/2 text-lg text-white/90">{{ measureBoxView.vArrow }}</span>
                 <span class="absolute bottom-1 right-1 text-lg text-white/90">{{ measureBoxView.hArrow }}</span>
+                <div class="pointer-events-none absolute left-1/2 top-0 bottom-0 w-px border-l border-dashed border-white/50" />
+                <div class="pointer-events-none absolute top-1/2 left-0 right-0 h-px border-t border-dashed border-white/50" />
               </div>
             </template>
             <div
