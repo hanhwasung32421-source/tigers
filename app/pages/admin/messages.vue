@@ -212,7 +212,7 @@
             </div>
           </div>
 
-          <div class="flex flex-col justify-end rounded-xl border border-white/10 bg-[#06101b] p-4">
+          <div class="flex flex-col justify-start rounded-xl border border-white/10 bg-[#06101b] p-4">
             <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">회원을 선택하면 회원정보가 표시됩니다.</div>
             <template v-else>
               <div v-if="memberDetailLoading" class="text-sm text-slate-400">불러오는 중…</div>
