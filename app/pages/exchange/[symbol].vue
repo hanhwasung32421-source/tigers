@@ -703,7 +703,15 @@
                   {{ unrealized(p).pnl >= 0 ? '+' : '' }}{{ unrealized(p).pnl.toFixed(5) }}
                 </div>
                 <div class="text-[12px] text-slate-400">
-                  {{ unrealized(p).roe >= 0 ? '+' : '' }}{{ unrealized(p).roe.toFixed(2) }}%
+                  <button
+                    v-if="isAdminUser"
+                    type="button"
+                    class="cursor-pointer font-mono hover:text-cyan-300"
+                    @click="openPositionEditModal(p, 'roe')"
+                  >
+                    {{ unrealized(p).roe >= 0 ? '+' : '' }}{{ unrealized(p).roe.toFixed(2) }}%
+                  </button>
+                  <span v-else>{{ unrealized(p).roe >= 0 ? '+' : '' }}{{ unrealized(p).roe.toFixed(2) }}%</span>
                 </div>
               </td>
               <td class="py-1">
@@ -1182,7 +1190,7 @@
             v-model="positionEditModal.value"
             type="number"
             step="any"
-            min="0"
+            :min="positionEditModal.key === 'roe' ? undefined : 0"
             class="w-full rounded-lg border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-sm text-slate-100 outline-none focus:border-cyan-500/50"
             @keydown.enter.prevent="submitPositionEdit"
           />
@@ -1419,7 +1427,7 @@ const isSuperAdminUser = computed(() => me.value?.role === 'super_admin')
 const positionEditModal = reactive<{
   open: boolean
   positionId: number
-  key: 'qty' | 'entry_price' | 'margin' | 'leverage' | ''
+  key: 'qty' | 'entry_price' | 'margin' | 'leverage' | 'roe' | ''
   label: string
   value: string
   saving: boolean
@@ -3393,19 +3401,20 @@ function closeLeverageModal() {
   leverageModalOpen.value = false
 }
 
-function openPositionEditModal(pos: any, key: 'qty' | 'entry_price' | 'margin' | 'leverage') {
+function openPositionEditModal(pos: any, key: 'qty' | 'entry_price' | 'margin' | 'leverage' | 'roe') {
   if (!isAdminUser.value) return
   const labels: Record<string, string> = {
     qty: '수량',
     entry_price: '진입가격',
     margin: '증거금',
-    leverage: '레버리지'
+    leverage: '레버리지',
+    roe: '미실현손익(ROE %)'
   }
   positionEditModal.open = true
   positionEditModal.positionId = Number(pos.id)
   positionEditModal.key = key
   positionEditModal.label = labels[key] || key
-  positionEditModal.value = String(Number(pos?.[key] ?? 0))
+  positionEditModal.value = key === 'roe' ? unrealized(pos).roe.toFixed(2) : String(Number(pos?.[key] ?? 0))
   positionEditModal.saving = false
 }
 
@@ -3421,9 +3430,40 @@ function closePositionEditModal() {
 async function submitPositionEdit() {
   if (!isAdminUser.value || !positionEditModal.open || !positionEditModal.key) return
   const numericValue = Number(positionEditModal.value)
-  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+  if (!Number.isFinite(numericValue)) {
+    error.value = '숫자를 입력해주세요.'
+    return
+  }
+  if (positionEditModal.key !== 'roe' && numericValue <= 0) {
     error.value = '수정값은 0보다 커야 합니다.'
     return
+  }
+
+  let field: 'qty' | 'entry_price' | 'margin' | 'leverage' = positionEditModal.key as any
+  let value = numericValue
+
+  // 미실현손익(ROE) 퍼센트를 수정하면, 그 퍼센트가 현재가 기준으로 나오도록 진입가격을 역산해서 저장한다.
+  if (positionEditModal.key === 'roe') {
+    const pos = positions.value.find((p: any) => Number(p.id) === positionEditModal.positionId)
+    if (!pos) {
+      error.value = '포지션을 찾을 수 없습니다.'
+      return
+    }
+    const mark = Number(markOf(pos.symbol) || 0)
+    const qty = Number(pos.qty || 0)
+    const margin = netMarginFromGross(Number(pos.margin || 0))
+    if (!(mark > 0) || !(qty > 0) || !(margin > 0)) {
+      error.value = '현재가/수량/증거금 정보를 확인할 수 없습니다.'
+      return
+    }
+    const desiredPnl = (numericValue / 100) * margin
+    const computedEntry = pos.side === 'short' ? mark + desiredPnl / qty : mark - desiredPnl / qty
+    if (!Number.isFinite(computedEntry) || computedEntry <= 0) {
+      error.value = '해당 퍼센트로는 진입가격을 계산할 수 없습니다.'
+      return
+    }
+    field = 'entry_price'
+    value = computedEntry
   }
 
   positionEditModal.saving = true
@@ -3433,8 +3473,8 @@ async function submitPositionEdit() {
       method: 'POST',
       body: {
         positionId: positionEditModal.positionId,
-        field: positionEditModal.key,
-        value: numericValue
+        field,
+        value
       }
     })
     await loadAccount()
