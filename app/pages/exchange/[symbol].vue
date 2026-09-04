@@ -4379,11 +4379,15 @@ function initChart() {
   chart.subscribeClick(onChartClick)
   chart.subscribeCrosshairMove(onCrosshairMove)
   // 확대/축소/스크롤로 가격축 스케일이 바뀔 때도 진입가 뱃지 위치를 다시 계산
-  chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+  chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
     updateEntryBadges()
     if (measureBox.value) {
       measureBox.value = null
       measureBoxFrozen.value = false
+    }
+    // 왼쪽(과거) 끝에 가까워지면 그 이전 구간을 이어서 불러온다.
+    if (range && range.from < HISTORY_TRIGGER_BARS) {
+      loadOlderHistory().catch(() => {})
     }
   })
   renderIndicators()
@@ -4567,61 +4571,100 @@ async function fetchProfitEventsFor(sym: string): Promise<ProfitEvent[]> {
   }
 }
 
-// 과거 데이터를 화면이 뜬 뒤 백그라운드로 이어받아 채운다(4일치를 한 번에 순차 로딩하면 체감 로딩이 느려짐).
-// history-candles는 1회 최대 100개라 분봉 기준 페이지가 많아, 첫 화면을 막지 않기 위해 별도로 분리.
-async function backfillOlderCandles(
-  token: number,
-  instId: string,
-  bar: string,
-  firstBatch: string[][],
-  neededBars: number,
-  killEvents: KillEvent[],
-  profitEvents: ProfitEvent[],
-  intervalSeconds: number
-) {
-  let afterCursor = firstBatch[firstBatch.length - 1]?.[0] ? String(firstBatch[firstBatch.length - 1][0]) : undefined
-  if (!afterCursor) return
-  const olderRows: string[][] = []
-  let have = firstBatch.length
-  let loops = 0
-  while (have < neededBars && loops < 80) {
-    if (token !== candlesFetchToken) return // 그 사이 심볼/타임프레임이 바뀌면 중단
-    const batchSize = Math.min(100, neededBars - have)
-    const res = await $fetch<any>('/api/okx/candles', {
-      query: { instId, bar, limit: batchSize, after: afterCursor }
-    }).catch(() => null)
-    const batch = (res?.data || []) as string[][]
-    if (!batch.length) break
-    olderRows.push(...batch)
-    have += batch.length
-    const last = batch[batch.length - 1]
-    const nextAfter = last?.[0] ? String(last[0]) : undefined
-    if (!nextAfter || nextAfter === afterCursor) break
-    afterCursor = nextAfter
-    if (batch.length < batchSize) break
-    loops += 1
+// 과거 봉은 "왼쪽 끝까지 스크롤할 때마다" 이어서 불러온다(무한 스크롤).
+// 예전에는 최초 로딩 때 4일치(neededBars)를 한 번에 순차로 받아놓고 끝이라, 그 이상 과거로는
+// 아무리 스크롤해도 더 나오지 않았고(분봉 150개, 일봉 120개 같은 상한) 첫 로딩도 느렸다.
+const HISTORY_PAGE_LIMIT = 100 // OKX history-candles 1회 최대 개수
+const HISTORY_PAGES_PER_LOAD = 3 // 한 번 스크롤할 때 이어붙일 페이지 수(=최대 300봉)
+const HISTORY_TRIGGER_BARS = 30 // 왼쪽 끝에서 이만큼 남았을 때 미리 다음 구간을 불러온다
+let loadingOlderHistory = false
+let olderHistoryExhausted = false
+// 스크롤로 과거를 이어붙일 때도 킬/수익손실 꼬리를 다시 그려야 해서, 마지막으로 받아둔 목록을 재사용한다.
+let cachedKillEvents: KillEvent[] = []
+let cachedProfitEvents: ProfitEvent[] = []
+
+function resetOlderHistoryState() {
+  loadingOlderHistory = false
+  olderHistoryExhausted = false
+}
+
+async function loadOlderHistory() {
+  if (loadingOlderHistory || olderHistoryExhausted) return
+  if (!chart || !candleSeries) return
+  const existingCandles = candleData.value
+  const existingVols = volumeData.value
+  if (!existingCandles.length) return
+
+  const token = candlesFetchToken
+  const instId = toInstId(symbol.value)
+  const bar = timeframe.value
+  const intervalSeconds = barSeconds(timeframe.value)
+
+  loadingOlderHistory = true
+  try {
+    // OKX history-candles의 after는 "이 시각보다 과거"를 뜻한다. 지금 갖고 있는 가장 오래된 봉부터 이어받는다.
+    let afterCursor = String(timeToUnixSeconds(existingCandles[0].time as any) * 1000)
+    const olderRows: string[][] = []
+
+    for (let i = 0; i < HISTORY_PAGES_PER_LOAD; i++) {
+      if (token !== candlesFetchToken) return // 그 사이 심볼/타임프레임이 바뀌면 중단
+      const res = await $fetch<any>('/api/okx/candles', {
+        query: { instId, bar, limit: HISTORY_PAGE_LIMIT, after: afterCursor }
+      }).catch(() => null)
+      const batch = (res?.data || []) as string[][]
+      if (!batch.length) {
+        olderHistoryExhausted = true
+        break
+      }
+      olderRows.push(...batch)
+      const nextAfter = batch[batch.length - 1]?.[0] ? String(batch[batch.length - 1][0]) : ''
+      if (!nextAfter || nextAfter === afterCursor) {
+        olderHistoryExhausted = true
+        break
+      }
+      afterCursor = nextAfter
+      if (batch.length < HISTORY_PAGE_LIMIT) {
+        olderHistoryExhausted = true
+        break
+      }
+    }
+
+    if (token !== candlesFetchToken || !olderRows.length) return
+
+    const { candles: olderCandles, vols: olderVols } = candleRowsToSeriesData(olderRows)
+    const earliest = timeToUnixSeconds(existingCandles[0].time as any)
+    const prependCandles = olderCandles.filter((c) => timeToUnixSeconds(c.time as any) < earliest)
+    const prependVols = olderVols.filter((v) => timeToUnixSeconds(v.time as any) < earliest)
+    if (!prependCandles.length) {
+      olderHistoryExhausted = true
+      return
+    }
+
+    const candles = prependCandles.concat(existingCandles)
+    const vols = prependVols.concat(existingVols)
+    applyKillWicks(candles, cachedKillEvents, intervalSeconds)
+    applyKillWicks(candles, cachedProfitEvents, intervalSeconds)
+    chainCandleOpens(candles)
+
+    // 앞쪽에 봉이 끼어들면 logical index가 그만큼 밀리므로, 보고 있던 화면이 튀지 않게 같은 만큼 되돌려준다.
+    const ts = chart.timeScale()
+    const before = ts.getVisibleLogicalRange()
+    candleSeries.setData(candles)
+    volumeSeries?.setData(vols)
+    candleData.value = candles
+    volumeData.value = vols
+    if (before) {
+      const shift = prependCandles.length
+      try { ts.setVisibleLogicalRange({ from: before.from + shift, to: before.to + shift }) } catch {}
+    }
+
+    renderEntryLines()
+    renderIndicators()
+    renderExtraIndicators()
+    renderSavedDrawings()
+  } finally {
+    loadingOlderHistory = false
   }
-
-  if (token !== candlesFetchToken || !olderRows.length) return
-
-  // 중요: firstBatch(최신)가 먼저, olderRows(그 다음 과거, 페이지를 거칠수록 더 과거)가 뒤에 와야
-  // 전체적으로 "최신 -> 과거" 내림차순이 유지된다. 순서가 뒤바뀌면 setData에 오름차순이 아닌
-  // 데이터가 들어가 차트가 통째로 비어버린다.
-  const merged = Array.from(new Map([...firstBatch, ...olderRows].map((r) => [String(r[0]), r])).values())
-  const { candles, vols } = candleRowsToSeriesData(merged)
-  applyKillWicks(candles, killEvents, intervalSeconds)
-  applyKillWicks(candles, profitEvents, intervalSeconds)
-  chainCandleOpens(candles)
-  candleSeries?.setData(candles)
-  volumeSeries?.setData(vols)
-  futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
-  // fitContent()는 다시 호출하지 않는다 — 사용자가 보고 있는 화면(줌/스크롤)을 방해하지 않기 위함
-  candleData.value = candles
-  volumeData.value = vols
-  renderEntryLines()
-  renderIndicators()
-  renderExtraIndicators()
-  renderSavedDrawings()
 }
 
 async function fetchCandles() {
@@ -4630,18 +4673,19 @@ async function fetchCandles() {
   const bar = timeframe.value
   const sym = symbol.value
   const intervalSeconds = barSeconds(timeframe.value)
-  // 최소 4일치는 보이도록: 분봉처럼 봉 간격이 짧으면 그만큼 더 많은 봉이 필요하다.
-  const neededBars = Math.max(120, Math.ceil((4 * 24 * 60 * 60) / intervalSeconds) + 60)
 
-  // 1) 최신 봉부터 먼저 한 번에 받아 바로 그린다(체감 로딩 속도를 예전 수준으로 유지).
+  // 최신 봉 300개(요청 1번)만 먼저 받아 바로 그린다. 더 과거는 사용자가 왼쪽으로 스크롤할 때
+  // loadOlderHistory()가 이어서 불러오므로, 첫 화면은 빠르게 뜨면서도 과거는 끝까지 볼 수 있다.
   //    킬/수익손실 이벤트 목록도 같이 받아서, 예전에 생긴 고가/저가(꼬리)를 다시 그려 넣는다.
   const [firstRes, killEvents, profitEvents] = await Promise.all([
-    $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: Math.min(300, neededBars) } }),
+    $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: 300 } }),
     fetchKillEventsFor(sym),
     fetchProfitEventsFor(sym)
   ])
   if (token !== candlesFetchToken) return
   const firstBatch = (firstRes?.data || []) as string[][]
+  cachedKillEvents = killEvents
+  cachedProfitEvents = profitEvents
 
   const { candles: freshCandles, vols: freshVols } = candleRowsToSeriesData(firstBatch)
   applyKillWicks(freshCandles, killEvents, intervalSeconds)
@@ -4671,14 +4715,6 @@ async function fetchCandles() {
   renderIndicators()
   renderExtraIndicators()
   renderSavedDrawings()
-
-  // 2) 나머지 과거 봉(4일치를 채우는 데 필요한 만큼)은 백그라운드에서 이어받는다.
-  // 이미 필요한 만큼을 갖고 있으면(재동기화로 다시 불린 경우 등) 매번 다시 백필하지 않는다 —
-  // 이걸 안 하면 20초마다 전체 과거 봉을 처음부터 다시 순차로 받아오느라 계속 느리고, 그동안
-  // 예전 봉이 없어졌다가 다시 채워지는 것처럼 보였다.
-  if (candles.length < neededBars && firstBatch.length > 0 && firstBatch.length < neededBars) {
-    backfillOlderCandles(token, instId, bar, firstBatch, neededBars, killEvents, profitEvents, intervalSeconds).catch(() => {})
-  }
 }
 
 function fitChartContent() {
@@ -5228,9 +5264,10 @@ watch([() => symbol.value, timeframe], async () => {
   chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? []
   applyPriceFormatForSymbol(symbol.value)
   // fetchCandles()는 이제 기존 candleData/volumeData 위에 병합하므로, 심볼/타임프레임이 바뀔 때는
-  // 이전 심볼의 과거 봉과 섞이지 않도록 먼저 비워준다.
+  // 이전 심볼의 과거 봉과 섞이지 않도록 먼저 비워준다(과거 이어받기 상태도 같이 초기화).
   candleData.value = []
   volumeData.value = []
+  resetOlderHistoryState()
   await fetchCandles().catch(() => {})
   chart?.timeScale().fitContent()
   connectWs()
