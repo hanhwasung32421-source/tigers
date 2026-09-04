@@ -51,6 +51,17 @@ export default defineEventHandler(async (event) => {
       ipMap.set(uid, { ip, at })
     }
 
+    const { data: positions, error: e4 } = await supa.from('trae_positions').select('user_id, symbol').in('user_id', ids)
+    if (e4) throw e4
+    const posMap = new Map<number, string[]>()
+    for (const p of positions || []) {
+      const uid = Number((p as any).user_id)
+      const sym = String((p as any).symbol || '')
+      if (!uid || !sym) continue
+      if (!posMap.has(uid)) posMap.set(uid, [])
+      posMap.get(uid)!.push(sym)
+    }
+
     const userMap = new Map((users || []).map((u: any) => [Number(u.id), u]))
     const rows = ids.map((id) => {
       const u = userMap.get(Number(id))
@@ -63,7 +74,8 @@ export default defineEventHandler(async (event) => {
         roleId: role,
         ip: ip?.ip ?? null,
         lastSeenAt: ip?.at ?? null,
-        online: true
+        online: true,
+        positionSymbols: posMap.get(Number(id)) || []
       }
     })
 

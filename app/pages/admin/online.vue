@@ -35,11 +35,12 @@
               <th class="px-3 py-3 text-left">권한</th>
               <th class="px-3 py-3 text-left">IP</th>
               <th class="px-3 py-3 text-left">최근 접속</th>
+              <th class="px-3 py-3 text-center">보유 포지션</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="5" class="px-3 py-8 text-center text-slate-500">접속중인 유저가 없습니다.</td>
+              <td colspan="6" class="px-3 py-8 text-center text-slate-500">접속중인 유저가 없습니다.</td>
             </tr>
             <tr v-for="u in filtered" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-mono text-slate-300">#{{ u.id }}</td>
@@ -47,6 +48,20 @@
               <td class="px-3 py-3 text-slate-300">{{ u.role }}</td>
               <td class="px-3 py-3 font-mono text-slate-300">{{ u.ip || '—' }}</td>
               <td class="px-3 py-3 font-mono text-slate-400">{{ u.lastSeenAt ? formatTime(u.lastSeenAt) : '—' }}</td>
+              <td class="px-3 py-3 text-center">
+                <button
+                  v-if="u.positionSymbols.length"
+                  type="button"
+                  class="inline-flex flex-col items-center gap-0.5"
+                  @click="goToPositions"
+                >
+                  <span class="rounded bg-rose-500/90 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-rose-500">
+                    {{ u.positionSymbols.length }}건
+                  </span>
+                  <span class="text-[11px] text-slate-400">{{ u.positionSymbols.join(', ') }}</span>
+                </button>
+                <span v-else class="text-slate-600">—</span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -68,6 +83,7 @@ type OnlineRow = {
   ip: string | null
   lastSeenAt: string | null
   online: boolean
+  positionSymbols: string[]
 }
 
 const { refresh } = useMe()
@@ -94,6 +110,11 @@ const filtered = computed(() => {
 })
 
 const lastUpdatedText = computed(() => (lastUpdated.value ? `갱신 ${lastUpdated.value}` : '갱신 대기'))
+
+const router = useRouter()
+function goToPositions() {
+  router.push('/admin/positions')
+}
 
 function formatTime(v: string) {
   const d = new Date(v)
