@@ -311,8 +311,8 @@
               <div
                 class="pointer-events-none absolute z-30 flex items-center justify-center border"
                 :class="measureBoxView.positive
-                  ? 'border-blue-900 bg-blue-950/70'
-                  : 'border-red-900 bg-red-950/70'"
+                  ? 'border-blue-900 bg-blue-950/50'
+                  : 'border-red-900 bg-red-950/50'"
                 :style="{
                   left: measureBoxView.left + 'px',
                   top: measureBoxView.top + 'px',
@@ -2628,8 +2628,9 @@ const measureBoxView = computed(() => {
   const vArrow = m.endY <= m.startY ? '↑' : '↓'
   const hArrow = m.endX >= m.startX ? '→' : '←'
   const sign = positive ? '+' : ''
-  const tooltipLine1 = `${sign}${fmtPrice(diff)} (${sign}${pct.toFixed(2)}%)`
-  const tooltipLine2 = `${fmtPrice(m.startPrice)} , ${fmtPrice(m.endPrice)}`
+  const fmtPrice2 = (v: number) => Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const tooltipLine1 = `${sign}${fmtPrice2(diff)} (${sign}${pct.toFixed(2)}%)`
+  const tooltipLine2 = `${fmtPrice2(m.startPrice)} , ${fmtPrice2(m.endPrice)}`
   return { left, top, width, height, pct, positive, vArrow, hArrow, tooltipLine1, tooltipLine2 }
 })
 
