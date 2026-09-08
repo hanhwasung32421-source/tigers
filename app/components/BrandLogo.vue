@@ -1,11 +1,11 @@
 <template>
   <span class="inline-flex items-center gap-2">
     <span
-      class="font-brand flex shrink-0 items-center justify-center rounded-[9px] border border-white bg-black font-bold text-white"
+      class="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] border border-white bg-black"
       :class="iconSizeClass"
       aria-hidden="true"
     >
-      BD
+      <img src="/favicon.png" alt="" class="h-[80%] w-[80%] object-contain" style="image-rendering: pixelated" />
     </span>
     <span class="font-brand tracking-tight text-white" :class="textSizeClass">{{ appName }}</span>
   </span>
