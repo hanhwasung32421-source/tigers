@@ -97,10 +97,10 @@
               <th class="sortable-th max-w-[10ch] cursor-pointer select-none truncate px-3 py-3 text-left" @click="toggleSort('topCode')">총판 이름<span class="sort-icon">{{ sortArrow('topCode') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔고<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('krwAmount')">입금/출금 금액<span class="sort-icon">{{ sortArrow('krwAmount') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('rateUsed')">처리 환율<span class="sort-icon">{{ sortArrow('rateUsed') || ' ⇅' }}</span></th>
+              <th class="sortable-th max-w-[5em] cursor-pointer select-none truncate px-3 py-3 text-right" @click="toggleSort('rateUsed')">처리 환율<span class="sort-icon">{{ sortArrow('rateUsed') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('usdtAmount')">USDT 금액<span class="sort-icon">{{ sortArrow('usdtAmount') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('type')">구분<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('status')">처리결과<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
+              <th class="sortable-th max-w-[5em] cursor-pointer select-none truncate px-3 py-3 text-center" @click="toggleSort('type')">구분<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
+              <th class="sortable-th max-w-[5em] cursor-pointer select-none truncate px-3 py-3 text-center" @click="toggleSort('status')">처리결과<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('displayDate')">처리 일시<span class="sort-icon">{{ sortArrow('displayDate') || ' ⇅' }}</span></th>
             </tr>
           </thead>
@@ -118,9 +118,9 @@
               <td class="max-w-[10ch] truncate px-3 py-3 font-data text-slate-300" :title="it.topCode">{{ it.topCode || '—' }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-200">{{ fmtKrw(it.balanceUsdt) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-100">{{ fmt0(it.krwAmount) }}원</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-300">{{ fmt0(displayRate(it)) }}</td>
+              <td class="max-w-[5em] truncate px-3 py-3 text-right font-data text-slate-300">{{ fmt0(displayRate(it)) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-300">{{ fmt4(displayUsdt(it)) }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-center">
+              <td class="max-w-[5em] truncate px-3 py-3 text-center">
                 <span
                   class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
                   :class="it.type === 'withdrawal' ? 'bg-rose-500/10 text-rose-300 ring-rose-400/20' : 'bg-cyan-500/10 text-cyan-200 ring-cyan-400/20'"
@@ -128,7 +128,7 @@
                   {{ it.type === 'withdrawal' ? '출금' : '입금' }}
                 </span>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 text-center">
+              <td class="px-3 py-3 text-center">
                 <div v-if="it.status === 'pending' && canEdit" class="flex items-center justify-center gap-1.5">
                   <button
                     class="flex items-center justify-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-black shadow-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
