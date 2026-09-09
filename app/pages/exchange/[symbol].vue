@@ -613,8 +613,8 @@
         </aside>
 
         <div>
-      <div v-if="bottomTab === 'positions'">
-        <table class="w-full text-[14px]" style="table-layout: fixed">
+      <div v-if="bottomTab === 'positions'" class="overflow-x-auto">
+        <table class="w-full min-w-[720px] text-[14px]" style="table-layout: fixed">
           <colgroup>
             <col style="width: 10.7%" />
             <col style="width: 12.3%" />
