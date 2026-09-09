@@ -133,8 +133,14 @@ function formatDateTime(v: string) {
   }).format(d)
 }
 
+// SSR(주소창 직접 접속/새로고침)에서는 브라우저 쿠키가 자동으로 전달되지 않으므로 명시적으로 넘겨야
+// 로그인 상태인데도 쪽지 API가 401로 실패하는 문제를 막을 수 있다.
+function ssrHeaders() {
+  return import.meta.server ? useRequestHeaders(['cookie']) : undefined
+}
+
 async function loadThreads() {
-  const res = await $fetch<{ items: ThreadSummary[] }>('/api/messages/threads')
+  const res = await $fetch<{ items: ThreadSummary[] }>('/api/messages/threads', { headers: ssrHeaders(), credentials: 'include' })
   threads.value = res.items || []
   if (!activeThread.value && threads.value.length) {
     await openThread(threads.value[0], false)
@@ -143,7 +149,7 @@ async function loadThreads() {
 
 async function openThread(thread: ThreadSummary, refreshList = true) {
   activeThread.value = thread
-  const res = await $fetch<{ items: MessageItem[] }>('/api/messages/thread')
+  const res = await $fetch<{ items: MessageItem[] }>('/api/messages/thread', { headers: ssrHeaders(), credentials: 'include' })
   activeMessages.value = res.items || []
   await $fetch('/api/messages/mark-read', { method: 'POST', body: {} }).catch(() => {})
   await refreshUnread()

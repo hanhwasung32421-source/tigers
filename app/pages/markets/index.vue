@@ -19,7 +19,7 @@
             <h2 class="text-base font-semibold text-white">마켓 개요</h2>
             <span class="text-xs text-slate-500">24시간 기준</span>
           </div>
-          <div class="mt-5 grid grid-cols-3 gap-4">
+          <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <div class="text-xs text-slate-500">총 거래대금</div>
               <div class="mt-1 text-xl font-bold text-white">
@@ -88,13 +88,13 @@
       </div>
 
       <!-- 정렬 프리셋 + 검색 -->
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex gap-1 rounded-lg bg-white/5 p-1 text-sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-wrap gap-1 rounded-lg bg-white/5 p-1 text-sm">
           <button
             v-for="preset in sortPresets"
             :key="preset.key"
             type="button"
-            class="rounded-md px-3 py-1.5 font-medium transition"
+            class="whitespace-nowrap rounded-md px-3 py-1.5 font-medium transition"
             :class="activePreset === preset.key ? 'bg-white text-slate-950' : 'text-slate-300 hover:text-white'"
             @click="applyPreset(preset.key)"
           >
@@ -105,7 +105,7 @@
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">⌕</span>
           <input
             v-model.trim="keyword"
-            class="w-56 rounded-md border border-white/10 bg-[#06101b] py-2 pl-8 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
+            class="w-full rounded-md border border-white/10 bg-[#06101b] py-2 pl-8 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40 sm:w-56"
             placeholder="종목 검색"
           />
         </div>
