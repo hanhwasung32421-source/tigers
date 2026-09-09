@@ -629,7 +629,7 @@
           <thead class="text-[13px] text-slate-500">
             <tr class="text-left">
               <th class="py-1">종목</th>
-              <th class="py-1">포지션</th>
+              <th class="py-1 text-center">포지션</th>
               <th class="py-1">진입가격</th>
               <th class="py-1">수량</th>
               <th class="py-1">시장가</th>
@@ -662,7 +662,7 @@
                   <span v-else class="rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10">x{{ p.leverage }}</span>
                 </div>
               </td>
-              <td class="py-1 pl-[10px]" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
+              <td class="py-1 text-center" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
                 <span
                   class="rounded px-2 py-1 text-[14px] ring-1"
                   :class="
