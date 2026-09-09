@@ -7,7 +7,7 @@
         class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(260px,0.6fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_300px]"
       >
       <!-- 차트 -->
-      <section class="min-w-0 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:col-start-1 lg:row-start-1">
+      <section class="order-1 min-w-0 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
           <div class="flex min-w-0 items-center gap-3">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
@@ -357,7 +357,7 @@
       </section>
 
       <!-- 호가(첨부 스타일) -->
-      <section class="min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:col-start-2 lg:row-start-1">
+      <section class="order-3 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1">
         <div class="flex items-center justify-between">
           <div class="text-sm font-semibold text-slate-100">호가</div>
         </div>
@@ -424,7 +424,7 @@
       </section>
 
       <!-- 보유자산/주문 -->
-      <section class="min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:col-start-3 lg:row-start-1 lg:row-span-2">
+      <section class="order-2 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
         <div class="text-sm font-semibold text-slate-100">주문</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-sm text-slate-300 ring-1 ring-cyan-500/10">
@@ -585,7 +585,7 @@
       </section>
 
     <!-- 하단: 포지션 테이블 -->
-      <section class="rounded-xl border border-cyan-500/10 bg-[#06121d] p-1.5 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:col-start-1 lg:col-span-2 lg:row-start-2">
+      <section class="order-4 rounded-xl border border-cyan-500/10 bg-[#06121d] p-1.5 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-1 lg:col-span-2 lg:row-start-2">
       <div class="grid grid-cols-1 gap-1.5 lg:grid-cols-[110px_minmax(0,1fr)]">
         <aside class="self-start rounded-lg border border-cyan-500/10 bg-[#031019] p-2">
           <div class="flex flex-col gap-2 text-sm font-semibold">

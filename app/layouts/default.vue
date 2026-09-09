@@ -19,17 +19,17 @@
       </div>
     </Transition>
     <header class="font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
-      <div class="flex w-full items-center justify-between gap-3 px-5 py-4">
+      <div class="flex w-full items-center justify-between gap-3 px-4 py-3 md:px-5 md:py-4">
         <div class="flex items-center gap-1">
           <NuxtLink to="/" class="mr-4" @click="startNavLoading('/')">
             <BrandLogo />
           </NuxtLink>
 
-          <nav class="flex items-center gap-1 text-sm text-slate-300">
+          <nav class="hidden items-center gap-1 text-sm text-slate-300 md:flex">
             <template v-for="key in orderedMainNavKeys" :key="key">
               <NuxtLink
                 :to="key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key]"
-                class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white"
+                class="flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white"
                 @click="startNavLoading(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
               >
                 {{ MAIN_NAV_LABELS[key] }}
@@ -39,7 +39,7 @@
               </NuxtLink>
             </template>
             <div v-if="isAdmin" class="group relative">
-              <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
+              <NuxtLink :to="adminHomeTarget" class="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
               <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
                 <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
                   <button
@@ -66,40 +66,119 @@
         </div>
 
         <div class="flex items-center gap-2 text-sm">
-          <span class="hidden sm:inline rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 text-xs font-mono text-slate-300">
-            {{ appVersion }}
-          </span>
+          <div class="hidden items-center gap-2 md:flex">
+            <span class="hidden sm:inline rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 text-xs font-mono text-slate-300">
+              {{ appVersion }}
+            </span>
+            <template v-if="me">
+              <NuxtLink to="/profile" class="hidden sm:inline text-slate-300 underline-offset-4 hover:text-white hover:underline" @click="startNavLoading('/profile')">
+                {{ me.name || me.username }}
+              </NuxtLink>
+              <NuxtLink
+                :to="bellTarget"
+                class="relative rounded-md border px-3 py-1.5 transition"
+                :class="unread > 0 ? 'border-amber-400/60 bg-amber-400/15 text-amber-300 hover:bg-amber-400/20' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
+                @click="startNavLoading(bellTarget)"
+              >
+                <span>🔔</span>
+                <span
+                  v-if="unread > 0"
+                  class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold leading-none text-slate-900"
+                >
+                  {{ unread }}
+                </span>
+              </NuxtLink>
+              <button class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10" @click="logout">
+                로그아웃
+              </button>
+            </template>
+            <template v-else>
+              <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
+              <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">회원가입</NuxtLink>
+            </template>
+          </div>
+
+          <NuxtLink
+            v-if="me"
+            :to="bellTarget"
+            class="relative rounded-md border px-2.5 py-1.5 transition md:hidden"
+            :class="unread > 0 ? 'border-amber-400/60 bg-amber-400/15 text-amber-300 hover:bg-amber-400/20' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
+            @click="startNavLoading(bellTarget)"
+          >
+            <span>🔔</span>
+            <span
+              v-if="unread > 0"
+              class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold leading-none text-slate-900"
+            >
+              {{ unread }}
+            </span>
+          </NuxtLink>
+          <button
+            type="button"
+            class="rounded-md border border-white/10 bg-white/5 px-2.5 py-2 text-slate-200 hover:bg-white/10 md:hidden"
+            aria-label="메뉴 열기"
+            @click="mobileMenuOpen = !mobileMenuOpen"
+          >
+            <span class="block text-base leading-none">{{ mobileMenuOpen ? '✕' : '☰' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="mobileMenuOpen" class="border-t border-cyan-500/10 bg-[#020b16] px-4 py-3 md:hidden">
+        <nav class="flex flex-col gap-0.5 text-sm text-slate-200">
+          <NuxtLink
+            v-for="key in orderedMainNavKeys"
+            :key="key"
+            :to="key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key]"
+            class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white"
+            @click="onMobileNavClick(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
+          >
+            {{ MAIN_NAV_LABELS[key] }}
+            <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">
+              {{ MAIN_NAV_BADGES[key] }}
+            </span>
+          </NuxtLink>
+
+          <template v-if="isAdmin">
+            <div class="my-2 h-px bg-white/10" />
+            <div class="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">관리자</div>
+            <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick(adminHomeTarget)">
+              대시보드
+            </NuxtLink>
+            <button type="button" class="rounded-md px-3 py-2.5 text-left hover:bg-cyan-400/10 hover:text-white" @click="copyReferralLink">
+              {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
+            </button>
+            <template v-for="key in orderedAdminMenuKeys" :key="key">
+              <NuxtLink
+                v-if="canViewAdminMenu(key)"
+                :to="ADMIN_MENU_ROUTES[key]"
+                class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white"
+                @click="onMobileNavClick(ADMIN_MENU_ROUTES[key])"
+              >
+                {{ ADMIN_MENU_LABELS[key] }}
+              </NuxtLink>
+            </template>
+          </template>
+
+          <div class="my-2 h-px bg-white/10" />
           <template v-if="me">
-            <NuxtLink to="/profile" class="hidden sm:inline text-slate-300 underline-offset-4 hover:text-white hover:underline" @click="startNavLoading('/profile')">
+            <NuxtLink to="/profile" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/profile')">
               {{ me.name || me.username }}
             </NuxtLink>
-            <NuxtLink
-              :to="bellTarget"
-              class="relative rounded-md border px-3 py-1.5 transition"
-              :class="unread > 0 ? 'border-amber-400/60 bg-amber-400/15 text-amber-300 hover:bg-amber-400/20' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
-              @click="startNavLoading(bellTarget)"
-            >
-              <span>🔔</span>
-              <span
-                v-if="unread > 0"
-                class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold leading-none text-slate-900"
-              >
-                {{ unread }}
-              </span>
-            </NuxtLink>
-            <button class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10" @click="logout">
+            <button type="button" class="rounded-md px-3 py-2.5 text-left hover:bg-cyan-400/10 hover:text-white" @click="mobileMenuOpen = false; logout()">
               로그아웃
             </button>
           </template>
           <template v-else>
-            <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
-            <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">회원가입</NuxtLink>
+            <NuxtLink to="/auth/login" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/login')">로그인</NuxtLink>
+            <NuxtLink to="/auth/register" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/register')">회원가입</NuxtLink>
           </template>
-        </div>
+          <div class="px-3 pt-2 text-xs text-slate-500">{{ appVersion }}</div>
+        </nav>
       </div>
     </header>
 
-    <main class="mx-auto py-6" :class="route.path.startsWith('/admin') ? 'max-w-none px-[150px]' : 'max-w-6xl px-4'">
+    <main class="mx-auto py-4 md:py-6" :class="route.path.startsWith('/admin') ? 'max-w-none px-3 sm:px-6 lg:px-[150px]' : 'max-w-6xl px-4'">
       <slot />
     </main>
 
@@ -314,9 +393,17 @@ function startNavLoading(target?: string) {
   navLoading.value = true
 }
 
+// 모바일 상단 메뉴(햄버거 버튼으로 여닫는 드롭다운)
+const mobileMenuOpen = ref(false)
+function onMobileNavClick(target?: string) {
+  mobileMenuOpen.value = false
+  startNavLoading(target)
+}
+
 watch(
   () => route.fullPath,
   () => {
+    mobileMenuOpen.value = false
     setTimeout(() => {
       navLoading.value = false
     }, 180)
