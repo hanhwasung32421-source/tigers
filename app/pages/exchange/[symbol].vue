@@ -3053,7 +3053,10 @@ async function initProfitEventBaseline() {
 function buildWigglePath(start: number, end: number, steps: number): number[] {
   if (steps <= 1) return [end]
   const totalMove = end - start
-  const noiseScale = Math.max(Math.abs(totalMove) / steps, Math.abs(start) * 0.0006) * 1.8
+  // 흔들림 폭은 항상 실제 이동폭(totalMove)에 비례해야 한다(퍼센트가 레버리지100x 기준으로 바뀌면서
+  // 실제 가격 변동폭이 매우 작아졌는데, 절대 가격 기준의 흔들림을 쓰면 그 작은 목표폭보다 흔들림이
+  // 훨씬 커져버려 목표%와 무관하게 크게 움직이는 문제가 있었다).
+  const noiseScale = (Math.abs(totalMove) / steps || Math.abs(end) * 0.0001) * 1.6
   const walk: number[] = [0]
   for (let i = 1; i <= steps; i++) {
     walk.push(walk[i - 1] + (Math.random() * 2 - 1) * noiseScale)
@@ -3130,14 +3133,17 @@ async function runProfitAnimation(ev: ProfitEvent) {
     step()
   }
 
-  // 목표가 유지 구간: 완전히 얼어있지 않고 ±1~2% 정도 자연스럽게 오르내리다가, 실제 복귀는 목표가에서 시작한다.
+  // 목표가 유지 구간: 완전히 얼어있지 않고 ±1~2%(레버리지100x 기준, 즉 실제 가격으로는 ±0.01~0.02%) 정도
+  // 자연스럽게 오르내리다가, 실제 복귀는 목표가에서 시작한다.
+  // 주의: percent 입력값 자체가 "레버리지100x 기준 %"라서 실제 가격 변동폭은 입력%÷100로 매우 작다.
+  // 여기서도 raw 가격 기준 1~2%를 그대로 쓰면 목표 이동폭보다 흔들림이 훨씬 커져버리므로 동일하게 ÷100 한다.
   const HOLD_STEP_MS = 200
   const runHold = (onDone: () => void) => {
     const holdSteps = Math.max(1, Math.round(holdMs / HOLD_STEP_MS))
     let i = 0
     const step = () => {
       const isLast = i === holdSteps - 1
-      const magnitude = 0.01 + Math.random() * 0.01
+      const magnitude = (0.01 + Math.random() * 0.01) / 100
       const sign = Math.random() < 0.5 ? -1 : 1
       applyPrice(isLast ? ev.shockedPrice : ev.shockedPrice * (1 + sign * magnitude))
       i += 1
