@@ -92,9 +92,9 @@
         <table class="w-full text-sm text-slate-200">
           <thead class="border-b border-[#12314a] text-[13px] text-slate-400">
             <tr>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원 이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('topCode')">총판 이름<span class="sort-icon">{{ sortArrow('topCode') || ' ⇅' }}</span></th>
+              <th class="sortable-th max-w-[10ch] cursor-pointer select-none truncate px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th max-w-[10ch] cursor-pointer select-none truncate px-3 py-3 text-left" @click="toggleSort('name')">회원 이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th max-w-[10ch] cursor-pointer select-none truncate px-3 py-3 text-left" @click="toggleSort('topCode')">총판 이름<span class="sort-icon">{{ sortArrow('topCode') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔고<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('krwAmount')">입금/출금 금액<span class="sort-icon">{{ sortArrow('krwAmount') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('rateUsed')">처리 환율<span class="sort-icon">{{ sortArrow('rateUsed') || ' ⇅' }}</span></th>
@@ -109,17 +109,14 @@
               <td colspan="10" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-100">
-                <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(it.username)">
+              <td class="max-w-[10ch] truncate px-3 py-3 font-data text-slate-100" :title="it.username">
+                <button type="button" class="truncate underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(it.username)">
                   {{ it.username }}
                 </button>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
-              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ it.topCode || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-200">
-                <div>{{ fmtKrw(it.balanceUsdt) }}</div>
-                <div class="text-[12px] text-slate-500">({{ fmt2(it.balanceUsdt) }})</div>
-              </td>
+              <td class="max-w-[10ch] truncate px-3 py-3 text-slate-200" :title="it.name">{{ it.name }}</td>
+              <td class="max-w-[10ch] truncate px-3 py-3 font-data text-slate-300" :title="it.topCode">{{ it.topCode || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-200">{{ fmtKrw(it.balanceUsdt) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-100">{{ fmt0(it.krwAmount) }}원</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-300">{{ fmt0(displayRate(it)) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-300">{{ fmt4(displayUsdt(it)) }}</td>
@@ -344,9 +341,6 @@ watch(pageSizeInput, (v) => {
   if (page.value > totalPages.value) page.value = totalPages.value
 })
 
-function fmt2(v: number) {
-  return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 function fmt4(v: number) {
   return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 }
