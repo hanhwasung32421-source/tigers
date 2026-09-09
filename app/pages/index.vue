@@ -90,7 +90,7 @@
     <!-- PRODUCTS -->
     <section class="border-t border-white/10 px-6 py-14 text-center md:px-12">
       <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">PRODUCTS</div>
-      <h2 class="mx-auto mt-4 max-w-2xl text-[36px] font-black leading-tight text-white md:text-[43.2px]">거래의 모든 순간이 한 번의 클릭으로</h2>
+      <h2 class="mx-auto mt-4 max-w-2xl text-[36px] font-black leading-tight text-white md:text-[43.2px]">거래의 모든 순간이<br />한 번의 클릭으로</h2>
       <div class="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <NuxtLink
           v-for="p in products"

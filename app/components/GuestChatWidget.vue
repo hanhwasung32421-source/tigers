@@ -1,9 +1,9 @@
 <template>
-  <div class="fixed bottom-5 right-5 z-[150] flex flex-col items-end gap-3">
+  <div class="fixed bottom-4 right-4 z-[150] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-5 sm:right-5">
     <Transition name="guest-chat-panel">
       <div
         v-if="open"
-        class="flex h-[440px] w-[320px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f16] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+        class="flex h-[440px] w-[min(320px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f16] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
       >
         <div class="flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3">
           <div>
@@ -52,7 +52,7 @@
 
     <button
       type="button"
-      class="font-landing flex items-center gap-2 rounded-full bg-white px-4 py-3 text-[15.4px] font-bold text-slate-900 shadow-[0_10px_30px_rgba(0,0,0,0.4)] transition hover:bg-slate-100"
+      class="font-landing flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-2.5 text-[13px] font-bold text-slate-900 shadow-[0_10px_30px_rgba(0,0,0,0.4)] transition hover:bg-slate-100 sm:gap-2 sm:px-4 sm:py-3 sm:text-[15.4px]"
       @click="toggle"
     >
       <span class="text-base">💬</span>
