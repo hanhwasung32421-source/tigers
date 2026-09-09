@@ -1934,6 +1934,11 @@ function isServerCaughtUp(serverPos: any, optimisticPos: any) {
   return qtyDiff <= 0.000001 && entryDiff <= 0.000001 && marginDiff <= 0.01
 }
 
+// 낙관적(optimistic) 예측이 서버 실제값과 끝내 일치하지 않아도(반올림 오차, 그 사이의 다른 거래 등)
+// 매수/매도/청산 버튼이 영원히 잠기는 일이 없도록, 이 시간이 지난 pending 작업은 서버 값을 그대로
+// 신뢰하고 정리한다(빠르게 여러 번 거래를 반복할 때 드물게 발생하던 "버튼 영구 비활성화" 버그의 안전장치).
+const PENDING_OPEN_STALE_MS = 8000
+
 function reconcilePendingOpenPositions(serverPositions: any[]) {
   let next = Array.isArray(serverPositions) ? serverPositions.map((p: any) => ({ ...p })) : []
 
@@ -1947,6 +1952,11 @@ function reconcilePendingOpenPositions(serverPositions: any[]) {
     next = next.filter(
       (p: any) => !(String(p.symbol || '').toUpperCase() === sym && String(p.side || '') !== String(job.side))
     )
+
+    if (Date.now() - new Date(job.createdAt).getTime() > PENDING_OPEN_STALE_MS) {
+      removePendingOpenJob(job.key)
+      continue
+    }
 
     if (sameSideIdx >= 0) {
       const serverPos = next[sameSideIdx]
@@ -5156,6 +5166,10 @@ async function openPosition() {
     // 기존 포지션 제거 + 잔고 반영(정산금 기준)
     positions.value.splice(existingIdx, 1)
     balance.value = Math.max(0, Number(balance.value || 0) + settlementAfterFee)
+    // 반대 방향으로 전환되면 이 심볼/이전 방향으로 걸려있던 pending open 작업은
+    // 서버에도 더 이상 해당 방향 포지션이 남지 않아 영원히 매칭되지 않는다(=매수/매도 버튼이
+    // 계속 비활성화된 채 멈추는 원인). 여기서 즉시 정리해서 다음 거래를 막지 않게 한다.
+    removePendingOpenJob(pendingOpenKey(String(existing.symbol), existing.side === 'short' ? 'short' : 'long'))
   }
 
   // 3) 가용 잔고 기준으로 신규 진입 금액(gross) 계산 (수수료 포함된 금액에서 4%를 떼고 net로 포지션 시작)
