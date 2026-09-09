@@ -44,7 +44,10 @@ export default defineEventHandler(async (event) => {
   if (!Number.isFinite(basePrice) || basePrice <= 0) {
     throw createError({ statusCode: 400, statusMessage: '현재가를 불러오지 못했습니다.' })
   }
-  const shockedPrice = body.direction === 'up' ? basePrice * (1 + body.percent / 100) : basePrice * (1 - body.percent / 100)
+  // 입력값(percent)은 실제 가격 변동 %가 아니라, "레버리지 100배 포지션 기준 몇 % 수익/손실이 나는 움직임인지"를 뜻한다.
+  // ROE% = 가격변동% × 레버리지 이므로, 가격변동% = percent / 100(기준 레버리지).
+  const pricePercent = body.percent / 100
+  const shockedPrice = body.direction === 'up' ? basePrice * (1 + pricePercent / 100) : basePrice * (1 - pricePercent / 100)
 
   const liquidationRoe = await getLiquidationRoe()
   let liquidatedCount = 0

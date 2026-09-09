@@ -664,7 +664,7 @@
                 <th class="py-2">시각</th>
                 <th class="py-2">심볼</th>
                 <th class="py-2">방향</th>
-                <th class="py-2">퍼센트</th>
+                <th class="py-2">퍼센트(레버리지100x 기준)</th>
                 <th class="py-2">기준가 → 도달가</th>
                 <th class="py-2">유지시간</th>
                 <th class="py-2"></th>

@@ -943,7 +943,8 @@
           </button>
         </div>
         <p class="mt-2 text-sm text-slate-400">
-          현재가에서 몇 % {{ profitModalDirection === 'up' ? '올린' : '내린' }} 뒤, 그 상태를 몇 초 동안 유지할지 입력하세요.
+          레버리지 100배 포지션 기준으로 몇 % {{ profitModalDirection === 'up' ? '수익' : '손실' }}이 날 정도의 가격 움직임인지 입력하세요(실제 가격 변동폭 = 입력% ÷ 100).
+          그 상태를 몇 초 동안 유지할지도 함께 입력하세요.
           이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다. 이동/복귀는 위아래로 자연스럽게 흔들리며 진행되고,
           유지 중에는 목표가 근처에서 ±1~2%씩 움직이며, 복귀는 그 시점의 실시간 현재가로 향합니다.
         </p>
@@ -956,7 +957,7 @@
             step="0.1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">%</span>
+          <span class="text-sm text-slate-400">% (레버리지 100배 기준 수익률)</span>
         </div>
         <div class="mt-3 flex items-center gap-2">
           <input
