@@ -24,7 +24,7 @@
         @click="activeTab = 'guests'"
       >
         비회원 상담
-        <span v-if="guestUnreadTotal" class="ml-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">{{ guestUnreadTotal }}</span>
+        <span v-if="guestUnreadTotal" class="ml-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[12px] font-bold text-slate-900">{{ guestUnreadTotal }}</span>
       </button>
     </div>
 
@@ -88,7 +88,7 @@
                   <td class="px-2 py-2 font-data text-slate-400">{{ user.lastLoginAt ? formatDateTime(user.lastLoginAt) : '—' }}</td>
                   <td class="px-2 py-2">
                     <span
-                      class="rounded px-2 py-0.5 text-[10px] font-semibold ring-1"
+                      class="rounded px-2 py-0.5 text-[12px] font-semibold ring-1"
                       :class="user.online ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-white/5 text-slate-400 ring-white/10'"
                     >
                       {{ user.online ? '접속' : '미접속' }}
@@ -141,12 +141,12 @@
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="font-medium text-slate-100">{{ thread.username }}</div>
-                <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">
+                <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[12px] font-bold text-slate-900">
                   {{ thread.unreadCount }}
                 </span>
               </div>
               <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || thread.subject || '대화 없음' }}</div>
-              <div class="mt-2 text-[11px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
+              <div class="mt-2 text-[12px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
             </button>
             <div v-if="filteredThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">대화가 없습니다.</div>
           </div>
@@ -158,7 +158,7 @@
                 <div class="flex items-center gap-2">
                   <div class="text-lg font-semibold text-slate-100">{{ activeThread.username }}</div>
                   <span
-                    class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    class="rounded-full px-2 py-0.5 text-[12px] font-bold"
                     :class="isOperator ? 'bg-amber-400 text-slate-900' : 'bg-cyan-500/20 text-cyan-100'"
                   >
                     {{ isOperator ? '내 아이디로 온 쪽지' : '관리자에게 온 쪽지' }}
@@ -193,9 +193,9 @@
                   class="max-w-[85%] rounded-2xl px-4 py-3 text-sm"
                   :class="message.sender_id === me?.id ? 'ml-auto bg-cyan-500/15 text-slate-100' : 'bg-white/5 text-slate-200'"
                 >
-                  <div class="mb-1 text-[11px] text-slate-400">{{ message.senderName }}</div>
+                  <div class="mb-1 text-[12px] text-slate-400">{{ message.senderName }}</div>
                   <div class="whitespace-pre-wrap leading-6">{{ message.body }}</div>
-                  <div class="mt-2 text-[11px] text-slate-500">{{ formatDateTime(message.created_at) }}</div>
+                  <div class="mt-2 text-[12px] text-slate-500">{{ formatDateTime(message.created_at) }}</div>
                 </div>
                 <div v-if="activeMessages.length === 0" class="py-8 text-center text-sm text-slate-500">아직 쪽지가 없습니다.</div>
               </div>
@@ -238,11 +238,11 @@
                 </div>
                 <div class="mt-4 grid grid-cols-2 gap-2">
                   <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
-                    <div class="text-[11px] text-slate-400">보유잔고</div>
+                    <div class="text-[12px] text-slate-400">보유잔고</div>
                     <div class="mt-1 text-sm font-semibold text-cyan-100">{{ fmt2(memberDetail.balanceUsdt) }} USDT</div>
                   </div>
                   <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
-                    <div class="text-[11px] text-slate-400">보유 포지션</div>
+                    <div class="text-[12px] text-slate-400">보유 포지션</div>
                     <div class="mt-1 text-sm font-semibold text-cyan-100">{{ memberDetail.positions.length }}건</div>
                   </div>
                 </div>
@@ -265,11 +265,11 @@
         >
           <div class="flex items-center justify-between gap-3">
             <div class="font-data text-sm text-slate-100">{{ thread.guestId.slice(0, 12) }}…</div>
-            <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">{{ thread.unreadCount }}</span>
+            <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[12px] font-bold text-slate-900">{{ thread.unreadCount }}</span>
           </div>
           <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || '대화 없음' }}</div>
-          <div class="mt-1 text-[11px] text-slate-500">{{ thread.ip || 'IP 미확인' }}</div>
-          <div class="mt-1 text-[11px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
+          <div class="mt-1 text-[12px] text-slate-500">{{ thread.ip || 'IP 미확인' }}</div>
+          <div class="mt-1 text-[12px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
         </button>
         <div v-if="guestThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">비회원 상담이 없습니다.</div>
       </div>
@@ -289,9 +289,9 @@
               class="max-w-[85%] rounded-2xl px-4 py-3 text-sm"
               :class="message.sender === 'admin' ? 'ml-auto bg-cyan-500/15 text-slate-100' : 'bg-white/5 text-slate-200'"
             >
-              <div class="mb-1 text-[11px] text-slate-400">{{ message.sender === 'admin' ? '운영자' : '방문자' }}</div>
+              <div class="mb-1 text-[12px] text-slate-400">{{ message.sender === 'admin' ? '운영자' : '방문자' }}</div>
               <div class="whitespace-pre-wrap leading-6">{{ message.body }}</div>
-              <div class="mt-2 text-[11px] text-slate-500">{{ formatDateTime(message.createdAt) }}</div>
+              <div class="mt-2 text-[12px] text-slate-500">{{ formatDateTime(message.createdAt) }}</div>
             </div>
             <div v-if="guestMessages.length === 0" class="py-8 text-center text-sm text-slate-500">아직 대화가 없습니다.</div>
           </div>

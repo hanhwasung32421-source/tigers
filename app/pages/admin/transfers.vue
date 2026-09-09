@@ -38,7 +38,7 @@
 
       <div class="mt-4 overflow-x-auto">
         <table class="min-w-full text-xs text-slate-200">
-          <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
+          <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원 이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
@@ -61,7 +61,7 @@
               <td class="whitespace-nowrap px-3 py-3">{{ r.type }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-200">{{ fmt2(r.amount_usdt) }}</td>
               <td class="whitespace-nowrap px-3 py-3">
-                <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">{{ r.status }}</span>
+                <span class="rounded bg-white/10 px-2 py-1 text-[12px] font-semibold text-slate-100 ring-1 ring-white/10">{{ r.status }}</span>
               </td>
               <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ formatDateTime(r.created_at) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ r.admin }}</td>
@@ -254,7 +254,7 @@ onMounted(() => {
 }
 .sortable-th .sort-icon {
   margin-left: 2px;
-  font-size: 10px;
+  font-size: 12px;
   color: rgb(148 163 184 / 0.6);
 }
 .sortable-th:hover .sort-icon {

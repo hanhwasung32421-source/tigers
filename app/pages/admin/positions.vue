@@ -86,7 +86,7 @@
                 <button type="button" class="font-semibold text-slate-100 underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(row.username)">
                   {{ row.username }}
                 </button>
-                <div class="mt-0.5 font-data text-[10px] text-slate-500">(#{{ row.user_id }})</div>
+                <div class="mt-0.5 font-data text-[12px] text-slate-500">(#{{ row.user_id }})</div>
               </td>
               <td class="whitespace-nowrap px-2 py-2.5 text-slate-100">{{ row.name || '—' }}</td>
               <td class="whitespace-nowrap px-2 py-2.5 text-slate-300">{{ row.affiliate }}</td>
@@ -114,7 +114,7 @@
               <td class="whitespace-nowrap px-2 py-2.5 text-right font-data tabular-nums text-slate-300">{{ fmtNum(row.fee) }}</td>
               <td class="whitespace-nowrap px-2 py-2.5 text-center">
                 <span
-                  class="rounded px-2 py-1 text-[10px] font-semibold"
+                  class="rounded px-2 py-1 text-[12px] font-semibold"
                   :class="row.online ? 'bg-emerald-500/15 text-emerald-300' : 'bg-[#2b3445] text-slate-200'"
                 >
                   {{ row.online ? '접속' : '미접속' }}

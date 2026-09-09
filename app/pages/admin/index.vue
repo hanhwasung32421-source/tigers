@@ -83,7 +83,7 @@
         <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
         <div v-else>
           <table class="w-full text-sm">
-            <thead class="border-b border-[#12314a] text-[11px] text-slate-500">
+            <thead class="border-b border-[#12314a] text-[12px] text-slate-500">
               <tr>
                 <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
                 <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
@@ -442,7 +442,7 @@
             <div class="flex flex-col">
               <button
                 type="button"
-                class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                class="rounded bg-white/10 px-1.5 text-[12px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
                 :disabled="idx === 0"
                 @click="moveMainNavOrder(idx, -1)"
               >
@@ -450,7 +450,7 @@
               </button>
               <button
                 type="button"
-                class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                class="rounded bg-white/10 px-1.5 text-[12px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
                 :disabled="idx === mainNavDraft.order.length - 1"
                 @click="moveMainNavOrder(idx, 1)"
               >
@@ -535,7 +535,7 @@
               <div class="flex flex-col">
                 <button
                   type="button"
-                  class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                  class="rounded bg-white/10 px-1.5 text-[12px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
                   :disabled="idx === 0 || reorderingRoles"
                   @click="moveRoleRank(idx, -1)"
                 >
@@ -543,7 +543,7 @@
                 </button>
                 <button
                   type="button"
-                  class="rounded bg-white/10 px-1.5 text-[10px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
+                  class="rounded bg-white/10 px-1.5 text-[12px] leading-4 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
                   :disabled="idx === roles.length - 1 || reorderingRoles"
                   @click="moveRoleRank(idx, 1)"
                 >
@@ -1504,7 +1504,7 @@ await loadRoles()
 }
 .sortable-th .sort-icon {
   margin-left: 2px;
-  font-size: 10px;
+  font-size: 12px;
   color: rgb(148 163 184 / 0.6);
 }
 .sortable-th:hover .sort-icon {

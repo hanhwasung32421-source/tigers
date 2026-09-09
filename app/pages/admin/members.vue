@@ -71,7 +71,7 @@
                 <select
                   v-if="canEditRoleOf(u)"
                   v-model="roleDraft[u.id]"
-                  class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-[11px] text-slate-200 outline-none"
+                  class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2 py-1 text-[12px] text-slate-200 outline-none"
                   :disabled="grantingId === u.id"
                   @change="onRoleSelectChange(u)"
                 >
@@ -79,10 +79,10 @@
                   <option v-for="r in grantableRoles" :key="r.id" :value="r.id">{{ r.label }}</option>
                   <option v-if="me?.role === 'super_admin'" value="super_admin">최고관리자</option>
                 </select>
-                <span v-else class="rounded bg-white/5 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">{{ u.role }}</span>
+                <span v-else class="rounded bg-white/5 px-2 py-1 text-[12px] font-semibold text-slate-100 ring-1 ring-white/10">{{ u.role }}</span>
               </td>
               <td class="px-3 py-3">
-                <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">승인</span>
+                <span class="rounded bg-white/10 px-2 py-1 text-[12px] font-semibold text-slate-100 ring-1 ring-white/10">승인</span>
               </td>
               <td class="whitespace-nowrap px-3 py-3 font-data text-slate-100">
                 <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(u.username)">
@@ -121,7 +121,7 @@
               <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
               <td class="whitespace-nowrap px-3 py-3">
                 <span
-                  class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
+                  class="rounded px-2 py-1 text-[12px] font-semibold ring-1"
                   :class="u.online ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-white/5 text-slate-300 ring-white/10'"
                 >
                   {{ u.online ? '접속' : '미접속' }}
@@ -179,7 +179,7 @@
 
           <div class="mt-4 min-h-0 flex-1 overflow-auto">
             <table class="min-w-full text-xs text-slate-200">
-              <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
+              <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
                 <tr>
                   <th class="px-3 py-3 text-left">날짜</th>
                   <th class="px-3 py-3 text-left">심볼</th>
@@ -202,7 +202,7 @@
                   <td class="px-3 py-3 font-semibold text-slate-100">{{ t.symbol }}</td>
                   <td class="px-3 py-3 text-slate-200">{{ t.orderType }}</td>
                   <td class="px-3 py-3">
-                    <span class="rounded px-2 py-1 text-[10px] font-semibold ring-1" :class="tradeResultBadgeClass(t)">
+                    <span class="rounded px-2 py-1 text-[12px] font-semibold ring-1" :class="tradeResultBadgeClass(t)">
                       {{ tradeResultLabel(t) }}
                     </span>
                   </td>
@@ -215,7 +215,7 @@
                   <td class="px-3 py-3 text-right font-data text-slate-300">{{ fmt2(t.fee) }}</td>
                   <td class="px-3 py-3">
                     <span
-                      class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
+                      class="rounded px-2 py-1 text-[12px] font-semibold ring-1"
                       :class="t.online ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-white/5 text-slate-300 ring-white/10'"
                     >
                       {{ t.online ? '실시간 접속중' : '미접속중' }}
@@ -723,7 +723,7 @@ onBeforeUnmount(() => {
 }
 .sortable-th .sort-icon {
   margin-left: 2px;
-  font-size: 10px;
+  font-size: 12px;
   color: rgb(148 163 184 / 0.6);
 }
 .sortable-th:hover .sort-icon {

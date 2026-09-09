@@ -135,7 +135,7 @@
                     :disabled="resolvingId === it.id"
                     @click="resolve(it, 'completed')"
                   >
-                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-black text-[9px] leading-none text-black">✓</span>
+                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-black text-[12px] leading-none text-black">✓</span>
                     완료
                   </button>
                   <button
@@ -143,7 +143,7 @@
                     :disabled="resolvingId === it.id"
                     @click="resolve(it, 'rejected')"
                   >
-                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/70 text-[9px] leading-none">✕</span>
+                    <span class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/70 text-[12px] leading-none">✕</span>
                     거절
                   </button>
                 </div>

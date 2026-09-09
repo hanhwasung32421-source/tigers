@@ -28,7 +28,7 @@
 
       <div class="mt-4 overflow-auto">
         <table class="min-w-full text-xs text-slate-200">
-          <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
+          <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
               <th class="px-3 py-3 text-left">회원 ID</th>
               <th class="px-3 py-3 text-left">회원아이디</th>
@@ -61,10 +61,10 @@
                   class="inline-flex flex-col items-center gap-0.5"
                   @click="goToPositions"
                 >
-                  <span class="rounded bg-rose-500/90 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-rose-500">
+                  <span class="rounded bg-rose-500/90 px-2 py-0.5 text-[12px] font-semibold text-white hover:bg-rose-500">
                     {{ u.positionSymbols.length }}건
                   </span>
-                  <span class="text-[11px] text-slate-400">{{ u.positionSymbols.join(', ') }}</span>
+                  <span class="text-[12px] text-slate-400">{{ u.positionSymbols.join(', ') }}</span>
                 </button>
                 <span v-else class="text-slate-600">—</span>
               </td>

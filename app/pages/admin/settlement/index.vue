@@ -70,7 +70,7 @@
 
       <div class="mt-2 overflow-x-auto">
         <table class="min-w-full text-xs text-slate-200">
-          <thead class="border-b border-[#12314a] text-[11px] text-slate-400">
+          <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
@@ -324,7 +324,7 @@ onMounted(() => {
 }
 .sortable-th .sort-icon {
   margin-left: 2px;
-  font-size: 10px;
+  font-size: 12px;
   color: rgb(148 163 184 / 0.6);
 }
 .sortable-th:hover .sort-icon {
