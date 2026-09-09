@@ -640,11 +640,11 @@
       </div>
     </div>
 
-    <!-- 수익/손실 이력 -->
+    <!-- 상승STOP/하락STOP 이력 -->
     <div v-show="activeTab === 'profitEvents'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold">수익/손실 이력</h2>
+          <h2 class="text-lg font-semibold">상승STOP/하락STOP 이력</h2>
           <p class="mt-1 text-sm text-slate-400">
             삭제하면 모든 유저의 차트에서도 해당 봉의 고가/저가(꼬리)가 사라집니다(잠시 후 자동 반영).
           </p>
@@ -656,7 +656,7 @@
 
       <div class="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
         <div v-if="profitEventsLoading" class="text-sm text-slate-400">불러오는 중…</div>
-        <div v-else-if="profitEvents.length === 0" class="text-sm text-slate-400">수익/손실 이력이 없습니다.</div>
+        <div v-else-if="profitEvents.length === 0" class="text-sm text-slate-400">상승STOP/하락STOP 이력이 없습니다.</div>
         <div v-else class="overflow-auto">
           <table class="w-full text-sm">
             <thead class="text-left text-slate-400">
@@ -761,7 +761,7 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'nav', label: '메뉴구성' },
   { key: 'roles', label: '역할 관리' },
   { key: 'killEvents', label: '킬UP/킬DOWN 이력' },
-  { key: 'profitEvents', label: '수익/손실 이력' }
+  { key: 'profitEvents', label: '상승STOP/하락STOP 이력' }
 ]
 const activeTab = ref<TabKey>('users')
 
@@ -1276,7 +1276,7 @@ async function loadProfitEvents() {
     const data = await $fetch<{ items: ProfitEventRow[] }>('/api/admin/profit/list')
     profitEvents.value = data.items || []
   } catch (e: any) {
-    profitEventsError.value = e?.data?.statusMessage || '수익/손실 이력 불러오기 실패'
+    profitEventsError.value = e?.data?.statusMessage || '상승STOP/하락STOP 이력 불러오기 실패'
   } finally {
     profitEventsLoading.value = false
   }

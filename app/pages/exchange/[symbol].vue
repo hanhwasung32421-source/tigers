@@ -944,7 +944,8 @@
         </div>
         <p class="mt-2 text-sm text-slate-400">
           현재가에서 몇 % {{ profitModalDirection === 'up' ? '올린' : '내린' }} 뒤, 그 상태를 몇 초 동안 유지할지 입력하세요.
-          이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다.
+          이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다. 이동/복귀는 위아래로 자연스럽게 흔들리며 진행되고,
+          유지 중에는 목표가 근처에서 ±1~2%씩 움직이며, 복귀는 그 시점의 실시간 현재가로 향합니다.
         </p>
         <div class="mt-5 flex items-center gap-2">
           <input
@@ -970,12 +971,12 @@
           <input
             v-model.number="profitTickCountDraft"
             type="number"
-            min="1"
+            min="0"
             max="20"
             step="1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">틱에 걸쳐 움직임</span>
+          <span class="text-sm text-slate-400">틱에 걸쳐 움직임 (0=자동)</span>
         </div>
         <div class="mt-3 flex items-center gap-2">
           <input
@@ -3005,8 +3006,8 @@ async function confirmProfitModal() {
     return
   }
   const tickCount = Math.round(Number(profitTickCountDraft.value))
-  if (!Number.isFinite(tickCount) || tickCount < 1 || tickCount > 20) {
-    profitError.value = '몇 틱은 1~20 사이로 입력해주세요.'
+  if (!Number.isFinite(tickCount) || tickCount < 0 || tickCount > 20) {
+    profitError.value = '몇 틱은 0~20 사이로 입력해주세요. (0 = 자동)'
     return
   }
   const holdSeconds = Number(profitHoldDraft.value)
@@ -3046,8 +3047,37 @@ async function initProfitEventBaseline() {
   }
 }
 
+// start~end를 잇는 가격 경로를 "위아래로 적당히 오르내리며" 만든다(브라운 브릿지 방식).
+// steps번째(마지막) 값은 항상 정확히 end와 같아서, 중간엔 자연스럽게 흔들리면서도 목표가엔 정확히 도달한다.
+function buildWigglePath(start: number, end: number, steps: number): number[] {
+  if (steps <= 1) return [end]
+  const totalMove = end - start
+  const noiseScale = Math.max(Math.abs(totalMove) / steps, Math.abs(start) * 0.0006) * 1.8
+  const walk: number[] = [0]
+  for (let i = 1; i <= steps; i++) {
+    walk.push(walk[i - 1] + (Math.random() * 2 - 1) * noiseScale)
+  }
+  const totalWalk = walk[steps]
+  const prices: number[] = []
+  for (let i = 1; i <= steps; i++) {
+    const bridge = walk[i] - (totalWalk * i) / steps
+    prices.push(start + bridge + (totalMove * i) / steps)
+  }
+  prices[prices.length - 1] = end
+  return prices
+}
+
+// 관리자가 틱 수를 0(자동)으로 두면, duration에 맞춰 자연스러워 보이는 걸음 수를 알아서 정한다.
+function resolveWiggleSteps(userTicks: number, durationMs: number): number {
+  if (userTicks && userTicks > 0) return Math.round(userTicks)
+  const AUTO_STEP_MS = 90
+  return Math.max(6, Math.min(60, Math.round(durationMs / AUTO_STEP_MS)))
+}
+
 // 킬 애니메이션과 동일하지만, 목표가에 도달한 뒤 잠깐(KILL_HOLD_MS)이 아니라
 // 관리자가 지정한 holdMs만큼 그 상태를 유지한 뒤 복귀한다.
+// 이동 경로는 직선이 아니라 위아래로 적당히 오르내리며 목표가에 도달하고(틱=0이면 자동으로 자연스럽게),
+// 유지하는 동안에도 목표가 주변에서 ±1~2% 흔들리며, 복귀는 A가 아니라 그 시점의 OKX 실시간가로 향한다.
 async function runProfitAnimation(ev: ProfitEvent) {
   if (!process.client) return
 
@@ -3057,86 +3087,85 @@ async function runProfitAnimation(ev: ProfitEvent) {
     return
   }
 
-  const tickCount = Math.max(1, Math.round(ev.tickCount || 3))
+  const userTickCount = Math.max(0, Math.round(ev.tickCount ?? 3))
   const durationMs = Math.max(100, ev.durationMs || 1000)
   const holdMs = Math.max(100, ev.holdMs || 3000)
-  const tickMs = durationMs / tickCount
+  const steps = resolveWiggleSteps(userTickCount, durationMs)
+  const stepMs = durationMs / steps
 
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitBusy.value = true
-  // 원위치로 되돌아갈 때도 동일한 속도(n틱)로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
+  // 원위치로 되돌아갈 때도 비슷한 속도로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
   adminProfitFreezeUntil = Date.now() + durationMs * 2 + holdMs + 300
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
   const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
   const openPrice = last ? Number((last as any).open) : ev.basePrice
-  const priorHigh = last ? Number((last as any).high) : ev.basePrice
-  const priorLow = last ? Number((last as any).low) : ev.basePrice
+  let runningHigh = last ? Number((last as any).high) : ev.basePrice
+  let runningLow = last ? Number((last as any).low) : ev.basePrice
 
-  const applyTick = (price: number) => {
+  const applyPrice = (price: number) => {
     adminProfitUiOverride.value = price
-    const spiked: CandlestickData = {
-      time,
-      open: openPrice,
-      high: Math.max(priorHigh, ev.basePrice, price),
-      low: Math.min(priorLow, ev.basePrice, price),
-      close: price
-    }
-    liveLastCandle.value = spiked
-    if (candleData.value.length) candleData.value[candleData.value.length - 1] = spiked
-    try { candleSeries?.update(spiked as any) } catch {}
+    runningHigh = Math.max(runningHigh, price)
+    runningLow = Math.min(runningLow, price)
+    const candle: CandlestickData = { time, open: openPrice, high: runningHigh, low: runningLow, close: price }
+    liveLastCandle.value = candle
+    if (candleData.value.length) candleData.value[candleData.value.length - 1] = candle
+    try { candleSeries?.update(candle as any) } catch {}
   }
 
-  const revert = async () => {
-    const nowLast = liveLastCandle.value || candleData.value[candleData.value.length - 1]
-    const realPrice = Number(lastPrice.value || (nowLast as any)?.close || ev.basePrice)
-    const revertHigh = Math.max(priorHigh, ev.basePrice, ev.shockedPrice, realPrice)
-    const revertLow = Math.min(priorLow, ev.basePrice, ev.shockedPrice, realPrice)
-
-    let revertIndex = 0
-    const revertTick = () => {
-      revertIndex += 1
-      const progress = revertIndex / tickCount
-      const price = ev.shockedPrice + (realPrice - ev.shockedPrice) * progress
-      const reverted: CandlestickData = {
-        time,
-        open: openPrice,
-        high: Math.max(revertHigh, price),
-        low: Math.min(revertLow, price),
-        close: price
-      }
-      liveLastCandle.value = reverted
-      if (candleData.value.length) candleData.value[candleData.value.length - 1] = reverted
-      try { candleSeries?.update(reverted as any) } catch {}
-
-      if (revertIndex < tickCount) {
-        adminProfitTimer = setTimeout(revertTick, tickMs)
+  // path의 각 값을 stepMs 간격으로 차례로 반영한다.
+  const runPath = (path: number[], onDone: () => void) => {
+    let i = 0
+    const step = () => {
+      applyPrice(path[i])
+      i += 1
+      if (i < path.length) {
+        adminProfitTimer = setTimeout(step, stepMs)
       } else {
-        adminProfitUiOverride.value = null
-        adminProfitFreezeUntil = 0
-        adminProfitBusy.value = false
-        // 청산된 내 포지션이 있으면 계정도 함께 갱신
-        loadAccount().catch(() => {})
+        onDone()
       }
     }
-    revertTick()
+    step()
   }
 
-  let tickIndex = 0
-  const tick = () => {
-    tickIndex += 1
-    const progress = tickIndex / tickCount
-    applyTick(ev.basePrice + (ev.shockedPrice - ev.basePrice) * progress)
-    if (tickIndex < tickCount) {
-      adminProfitTimer = setTimeout(tick, tickMs)
-    } else {
-      // 목표가에 도달한 뒤, 관리자가 지정한 holdMs만큼 그 상태를 유지하다 복귀한다.
-      adminProfitTimer = setTimeout(() => {
-        revert()
-      }, holdMs)
+  // 목표가 유지 구간: 완전히 얼어있지 않고 ±1~2% 정도 자연스럽게 오르내리다가, 실제 복귀는 목표가에서 시작한다.
+  const HOLD_STEP_MS = 200
+  const runHold = (onDone: () => void) => {
+    const holdSteps = Math.max(1, Math.round(holdMs / HOLD_STEP_MS))
+    let i = 0
+    const step = () => {
+      const isLast = i === holdSteps - 1
+      const magnitude = 0.01 + Math.random() * 0.01
+      const sign = Math.random() < 0.5 ? -1 : 1
+      applyPrice(isLast ? ev.shockedPrice : ev.shockedPrice * (1 + sign * magnitude))
+      i += 1
+      if (i < holdSteps) {
+        adminProfitTimer = setTimeout(step, HOLD_STEP_MS)
+      } else {
+        onDone()
+      }
     }
+    step()
   }
-  tick()
+
+  const finish = () => {
+    adminProfitUiOverride.value = null
+    adminProfitFreezeUntil = 0
+    adminProfitBusy.value = false
+    // 청산된 내 포지션이 있으면 계정도 함께 갱신
+    loadAccount().catch(() => {})
+  }
+
+  // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 OKX 현재가로 되돌아간다.
+  const startRevert = () => {
+    const realPrice = Number(lastPrice.value || ev.shockedPrice)
+    const revertPath = buildWigglePath(ev.shockedPrice, realPrice, steps)
+    runPath(revertPath, finish)
+  }
+
+  const risePath = buildWigglePath(ev.basePrice, ev.shockedPrice, steps)
+  runPath(risePath, () => runHold(startRevert))
 }
 
 async function pollProfitEvents() {

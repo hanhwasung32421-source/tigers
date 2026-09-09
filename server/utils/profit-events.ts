@@ -31,7 +31,8 @@ function rowToProfitEvent(row: any): ProfitEvent {
     basePrice: Number(row.base_price),
     shockedPrice: Number(row.shocked_price),
     durationMs: Number.isFinite(Number(row.duration_ms)) && Number(row.duration_ms) > 0 ? Number(row.duration_ms) : DEFAULT_DURATION_MS,
-    tickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) > 0 ? Number(row.tick_count) : DEFAULT_TICK_COUNT,
+    // 0은 "자동"(틱 수 미지정, 자연스럽게 움직임)을 뜻하므로 그대로 보존한다.
+    tickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) >= 0 ? Number(row.tick_count) : DEFAULT_TICK_COUNT,
     holdMs: Number.isFinite(Number(row.hold_ms)) && Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS,
     createdAt: String(row.created_at)
   }
@@ -50,7 +51,8 @@ export async function createProfitEvent(input: {
   const createdAt = new Date().toISOString()
   const symbol = input.symbol.toUpperCase()
   const durationMs = input.durationMs && input.durationMs > 0 ? Math.round(input.durationMs) : DEFAULT_DURATION_MS
-  const tickCount = input.tickCount && input.tickCount > 0 ? Math.round(input.tickCount) : DEFAULT_TICK_COUNT
+  // 0은 "자동"을 뜻하므로(&&로 걸러지면 falsy라 기본값으로 바뀌어버림) undefined일 때만 기본값을 쓴다.
+  const tickCount = input.tickCount !== undefined && input.tickCount !== null ? Math.max(0, Math.round(input.tickCount)) : DEFAULT_TICK_COUNT
   const holdMs = input.holdMs && input.holdMs > 0 ? Math.round(input.holdMs) : DEFAULT_HOLD_MS
 
   if (supabaseAppDbEnabled()) {

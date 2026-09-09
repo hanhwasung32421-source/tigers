@@ -16,7 +16,8 @@ const BodySchema = z.object({
   percent: z.coerce.number().min(0.1).max(90),
   // 몇 초에 걸쳐 움직일지(0.1~10초), 몇 틱으로 나눠 움직일지(1~20틱)
   durationSeconds: z.coerce.number().min(0.1).max(10).optional(),
-  tickCount: z.coerce.number().int().min(1).max(20).optional(),
+  // 0은 "자동"(틱 수를 지정하지 않고 자연스럽게 움직임)을 의미한다.
+  tickCount: z.coerce.number().int().min(0).max(20).optional(),
   // 목표가에 도달한 뒤 몇 초 동안 그 상태를 유지할지(0.1~120초)
   holdSeconds: z.coerce.number().min(0.1).max(120).optional()
 })
