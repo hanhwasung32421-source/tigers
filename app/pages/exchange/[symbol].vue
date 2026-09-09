@@ -614,13 +614,24 @@
 
         <div>
       <div v-if="bottomTab === 'positions'">
-        <table class="w-full text-[14px]">
+        <table class="w-full text-[14px]" style="table-layout: fixed">
+          <colgroup>
+            <col style="width: 10.7%" />
+            <col style="width: 12.3%" />
+            <col style="width: 11%" />
+            <col style="width: 10%" />
+            <col style="width: 11%" />
+            <col style="width: 12%" />
+            <col style="width: 10%" />
+            <col style="width: 12%" />
+            <col style="width: 11%" />
+          </colgroup>
           <thead class="text-[13px] text-slate-500">
             <tr class="text-left">
               <th class="py-1">종목</th>
               <th class="py-1">포지션</th>
-              <th class="py-1">수량</th>
               <th class="py-1">진입가격</th>
+              <th class="py-1">수량</th>
               <th class="py-1">시장가</th>
               <th class="py-1">강제청산가격</th>
               <th class="py-1">증거금</th>
@@ -668,22 +679,22 @@
                   v-if="isAdminUser"
                   type="button"
                   class="cursor-pointer font-mono hover:text-cyan-300"
-                  @click="openPositionEditModal(p, 'qty')"
+                  @click="openPositionEditModal(p, 'entry_price')"
                 >
-                  {{ fmtQty(p.symbol, p.qty) }}
+                  {{ fmtPrice(Number(p.entry_price)) }}
                 </button>
-                <span v-else>{{ fmtQty(p.symbol, p.qty) }}</span>
+                <span v-else>{{ fmtPrice(Number(p.entry_price)) }}</span>
               </td>
               <td class="py-1 font-mono">
                 <button
                   v-if="isAdminUser"
                   type="button"
                   class="cursor-pointer font-mono hover:text-cyan-300"
-                  @click="openPositionEditModal(p, 'entry_price')"
+                  @click="openPositionEditModal(p, 'qty')"
                 >
-                  {{ fmtPrice(Number(p.entry_price)) }}
+                  {{ fmtQty(p.symbol, p.qty) }}
                 </button>
-                <span v-else>{{ fmtPrice(Number(p.entry_price)) }}</span>
+                <span v-else>{{ fmtQty(p.symbol, p.qty) }}</span>
               </td>
               <td class="py-1 font-mono">{{ markOf(p.symbol) ? fmtPrice(markOf(p.symbol)) : '—' }}</td>
               <td class="py-1 font-mono">{{ fmtPrice(calcLiqPrice(p)) }}</td>
