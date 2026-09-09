@@ -3053,9 +3053,10 @@ async function initProfitEventBaseline() {
 function buildWigglePath(start: number, end: number, steps: number): number[] {
   if (steps <= 1) return [end]
   const totalMove = end - start
-  // 흔들림 폭은 항상 실제 이동폭(totalMove)에 비례해야 한다(퍼센트가 레버리지100x 기준으로 바뀌면서
-  // 실제 가격 변동폭이 매우 작아졌는데, 절대 가격 기준의 흔들림을 쓰면 그 작은 목표폭보다 흔들림이
-  // 훨씬 커져버려 목표%와 무관하게 크게 움직이는 문제가 있었다).
+  // 흔들림 폭은 항상 실제 이동폭(totalMove)의 1/10 아래로 제한한다(퍼센트가 레버리지100x 기준으로
+  // 바뀌면서 실제 가격 변동폭이 매우 작아졌는데, 흔들림이 그보다 커지면 목표%와 무관하게 크게
+  // 움직이는 문제가 있었다). 브릿지 편차(bridge)를 매 스텝마다 이 한도로 직접 clamp해서 보장한다.
+  const maxDeviation = Math.abs(totalMove) * 0.09
   const noiseScale = (Math.abs(totalMove) / steps || Math.abs(end) * 0.0001) * 1.6
   const walk: number[] = [0]
   for (let i = 1; i <= steps; i++) {
@@ -3064,18 +3065,24 @@ function buildWigglePath(start: number, end: number, steps: number): number[] {
   const totalWalk = walk[steps]
   const prices: number[] = []
   for (let i = 1; i <= steps; i++) {
-    const bridge = walk[i] - (totalWalk * i) / steps
+    let bridge = walk[i] - (totalWalk * i) / steps
+    if (bridge > maxDeviation) bridge = maxDeviation
+    else if (bridge < -maxDeviation) bridge = -maxDeviation
     prices.push(start + bridge + (totalMove * i) / steps)
   }
   prices[prices.length - 1] = end
   return prices
 }
 
+// 흔들림 한 걸음의 최소 간격(너무 잦으면 부자연스럽게 떨려 보임).
+const WIGGLE_MIN_STEP_MS = 500
+
 // 관리자가 틱 수를 0(자동)으로 두면, duration에 맞춰 자연스러워 보이는 걸음 수를 알아서 정한다.
+// 걸음 간격은 항상 WIGGLE_MIN_STEP_MS 이상이 되도록(=너무 잘게 쪼개지지 않도록) 걸음 수 상한을 둔다.
 function resolveWiggleSteps(userTicks: number, durationMs: number): number {
-  if (userTicks && userTicks > 0) return Math.round(userTicks)
-  const AUTO_STEP_MS = 90
-  return Math.max(6, Math.min(60, Math.round(durationMs / AUTO_STEP_MS)))
+  const maxStepsByInterval = Math.max(1, Math.floor(durationMs / WIGGLE_MIN_STEP_MS))
+  if (userTicks && userTicks > 0) return Math.min(Math.round(userTicks), maxStepsByInterval)
+  return maxStepsByInterval
 }
 
 // 킬 애니메이션과 동일하지만, 목표가에 도달한 뒤 잠깐(KILL_HOLD_MS)이 아니라
@@ -3133,22 +3140,21 @@ async function runProfitAnimation(ev: ProfitEvent) {
     step()
   }
 
-  // 목표가 유지 구간: 완전히 얼어있지 않고 ±1~2%(레버리지100x 기준, 즉 실제 가격으로는 ±0.01~0.02%) 정도
-  // 자연스럽게 오르내리다가, 실제 복귀는 목표가에서 시작한다.
-  // 주의: percent 입력값 자체가 "레버리지100x 기준 %"라서 실제 가격 변동폭은 입력%÷100로 매우 작다.
-  // 여기서도 raw 가격 기준 1~2%를 그대로 쓰면 목표 이동폭보다 흔들림이 훨씬 커져버리므로 동일하게 ÷100 한다.
-  const HOLD_STEP_MS = 200
+  // 목표가 유지 구간: 완전히 얼어있지 않고 목표 이동폭(shockFraction)의 1/10 아래 폭으로
+  // 자연스럽게 오르내리다가, 실제 복귀는 목표가에서 시작한다. 간격은 최소 WIGGLE_MIN_STEP_MS.
+  const shockFraction = ev.basePrice ? Math.abs(ev.shockedPrice - ev.basePrice) / ev.basePrice : 0
+  const holdStepMs = WIGGLE_MIN_STEP_MS
   const runHold = (onDone: () => void) => {
-    const holdSteps = Math.max(1, Math.round(holdMs / HOLD_STEP_MS))
+    const holdSteps = Math.max(1, Math.round(holdMs / holdStepMs))
     let i = 0
     const step = () => {
       const isLast = i === holdSteps - 1
-      const magnitude = (0.01 + Math.random() * 0.01) / 100
+      const magnitude = shockFraction * (Math.random() * 0.09)
       const sign = Math.random() < 0.5 ? -1 : 1
       applyPrice(isLast ? ev.shockedPrice : ev.shockedPrice * (1 + sign * magnitude))
       i += 1
       if (i < holdSteps) {
-        adminProfitTimer = setTimeout(step, HOLD_STEP_MS)
+        adminProfitTimer = setTimeout(step, holdStepMs)
       } else {
         onDone()
       }
