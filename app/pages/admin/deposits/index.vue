@@ -1,11 +1,17 @@
 <template>
   <div class="space-y-5">
-    <div class="flex items-end justify-between gap-3">
+    <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold">입출금 내역</h1>
         <p class="mt-1 text-sm text-slate-400">회원들의 입금/출금 요청을 신청일 최신순으로 확인하고 처리합니다.</p>
       </div>
       <div class="flex items-center gap-2">
+        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
+          총 입금액: <span class="font-mono text-emerald-300">{{ fmt0(totalDepositKrw) }}원</span>
+        </span>
+        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
+          총 출금액: <span class="font-mono text-rose-300">{{ fmt0(totalWithdrawalKrw) }}원</span>
+        </span>
         <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
         <button class="rounded-md bg-cyan-500/15 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-500/20" @click="load()">
           새로고침
@@ -28,12 +34,12 @@
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600"
         />
         <input
-          v-model.trim="filterReferralCode"
-          placeholder="추천인코드 검색"
+          v-model.trim="filterTopCode"
+          placeholder="총판 이름 검색"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600"
         />
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
-          <span class="whitespace-nowrap text-slate-400">잔액</span>
+          <span class="whitespace-nowrap text-slate-400">잔고</span>
           <input v-model="filterBalanceMin" type="number" placeholder="최소(원)" class="w-full bg-transparent text-right outline-none placeholder:text-slate-600" />
           <span class="text-slate-600">~</span>
           <input v-model="filterBalanceMax" type="number" placeholder="최대(원)" class="w-full bg-transparent text-right outline-none placeholder:text-slate-600" />
@@ -73,23 +79,34 @@
         </div>
       </div>
 
+      <div class="flex items-center gap-3 text-sm text-slate-300">
+        <span>조회: <span class="font-semibold text-white">{{ filteredItems.length }}</span>건</span>
+        <span class="text-slate-600">·</span>
+        <span>
+          입금액: <span class="font-mono text-emerald-300">{{ fmt0(filteredDepositKrw) }}원</span>
+          / 출금액: <span class="font-mono text-rose-300">{{ fmt0(filteredWithdrawalKrw) }}원</span>
+        </span>
+      </div>
+
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-slate-200">
           <thead class="border-b border-[#12314a] text-[13px] text-slate-400">
             <tr>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천인코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('krwAmount')">입금/출금액<span class="sort-icon">{{ sortArrow('krwAmount') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('displayDate')">입금 일시<span class="sort-icon">{{ sortArrow('displayDate') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원 이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('topCode')">총판 이름<span class="sort-icon">{{ sortArrow('topCode') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔고<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('krwAmount')">입금/출금 금액<span class="sort-icon">{{ sortArrow('krwAmount') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('rateUsed')">처리 환율<span class="sort-icon">{{ sortArrow('rateUsed') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('usdtAmount')">USDT 금액<span class="sort-icon">{{ sortArrow('usdtAmount') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('type')">구분<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('status')">처리결과<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-center" @click="toggleSort('displayDate')">처리 일시<span class="sort-icon">{{ sortArrow('displayDate') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="filteredItems.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="8" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
+              <td colspan="10" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">
@@ -98,16 +115,14 @@
                 </button>
               </td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ it.referralCode || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ it.topCode || '—' }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">
                 <div>{{ fmtKrw(it.balanceUsdt) }}</div>
                 <div class="text-[12px] text-slate-500">({{ fmt2(it.balanceUsdt) }})</div>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-100">
-                <div>{{ fmt0(it.krwAmount) }}원</div>
-                <div class="text-[12px] text-slate-500">({{ fmtUsdtFromKrw(it.krwAmount) }})</div>
-              </td>
-              <td class="whitespace-nowrap px-3 py-3 text-center font-mono text-slate-300">{{ formatDateTime(displayDate(it)) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-100">{{ fmt0(it.krwAmount) }}원</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-300">{{ fmt0(displayRate(it)) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-300">{{ fmt4(displayUsdt(it)) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-center">
                 <span
                   class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
@@ -143,6 +158,7 @@
                   {{ statusLabel(it) }}
                 </span>
               </td>
+              <td class="whitespace-nowrap px-3 py-3 text-center font-mono text-slate-300">{{ formatDateTime(displayDate(it)) }}</td>
             </tr>
           </tbody>
         </table>
@@ -193,10 +209,13 @@ type DepositRow = {
   name: string
   balanceUsdt: number
   krwAmount: number
+  usdtAmount: number | null
+  rateUsed: number | null
   status: 'pending' | 'completed' | 'rejected'
   requestedAt: string
   resolvedAt: string | null
   referralCode: string
+  topCode: string
 }
 
 const { refresh } = useMe()
@@ -211,11 +230,11 @@ const resolvingId = ref<number | null>(null)
 const krwPerUsdt = ref(0)
 
 // 컬럼별 필터: 구분/상태는 드롭다운, 아이디/이름은 텍스트 검색,
-// 잔액/금액은 원화 기준 최소~최대 범위, 입금 일시는 화면에 보이는 날짜(신청 또는 처리)를 기준으로 범위 검색.
+// 잔고/금액은 원화 기준 최소~최대 범위, 처리 일시는 화면에 보이는 날짜(신청 또는 처리)를 기준으로 범위 검색.
 const filterType = ref('')
 const filterUsername = ref('')
 const filterName = ref('')
-const filterReferralCode = ref('')
+const filterTopCode = ref('')
 const filterBalanceMin = ref('')
 const filterBalanceMax = ref('')
 const filterAmountMin = ref('')
@@ -244,7 +263,7 @@ function displayDate(it: DepositRow) {
   return it.resolvedAt || it.requestedAt
 }
 
-type SortKey = 'type' | 'username' | 'name' | 'referralCode' | 'balanceUsdt' | 'krwAmount' | 'displayDate' | 'status'
+type SortKey = 'type' | 'username' | 'name' | 'topCode' | 'balanceUsdt' | 'krwAmount' | 'rateUsed' | 'usdtAmount' | 'displayDate' | 'status'
 const sortKey = ref<SortKey | null>(null)
 const sortDir = ref<'asc' | 'desc'>('asc')
 
@@ -264,13 +283,13 @@ function sortArrow(key: SortKey) {
 const filteredItems = computed(() => {
   const uq = filterUsername.value.trim().toLowerCase()
   const nq = filterName.value.trim().toLowerCase()
-  const rq = filterReferralCode.value.trim().toLowerCase()
+  const tq = filterTopCode.value.trim().toLowerCase()
   const rows = items.value.filter((it) => {
     if (filterType.value && it.type !== filterType.value) return false
     if (filterStatus.value && it.status !== filterStatus.value) return false
     if (uq && !it.username.toLowerCase().includes(uq)) return false
     if (nq && !it.name.toLowerCase().includes(nq)) return false
-    if (rq && !it.referralCode.toLowerCase().includes(rq)) return false
+    if (tq && !it.topCode.toLowerCase().includes(tq)) return false
     const balanceKrw = Math.round(it.balanceUsdt * krwPerUsdt.value)
     if (!inRange(balanceKrw, filterBalanceMin.value, filterBalanceMax.value)) return false
     if (!inRange(Number(it.krwAmount || 0), filterAmountMin.value, filterAmountMax.value)) return false
@@ -328,6 +347,9 @@ watch(pageSizeInput, (v) => {
 function fmt2(v: number) {
   return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+function fmt4(v: number) {
+  return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+}
 function fmt0(v: number) {
   return Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
@@ -335,10 +357,26 @@ function fmt0(v: number) {
 function fmtKrw(usdtValue: number) {
   return `${Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()}원`
 }
-function fmtUsdtFromKrw(krwValue: number) {
-  if (!krwPerUsdt.value) return '0.00'
-  return fmt2(Number(krwValue || 0) / krwPerUsdt.value)
+
+// 처리(완료/거절) 시점에 실제 적용된 환율/USDT금액이 저장돼 있으면 그대로 쓰고,
+// 아직 대기 중이라 저장된 값이 없으면 현재 환율로 추정해서 보여준다.
+function displayRate(it: DepositRow) {
+  return it.rateUsed ?? krwPerUsdt.value
 }
+function displayUsdt(it: DepositRow) {
+  if (it.usdtAmount !== null && it.usdtAmount !== undefined) return it.usdtAmount
+  const rate = displayRate(it)
+  return rate ? Number(it.krwAmount || 0) / rate : 0
+}
+
+// 상단 배지: 처리 완료된 건 전체 합계(현재 필터와 무관), 표 위 요약: 지금 필터링된 결과의 합계.
+function sumCompletedKrw(rows: DepositRow[], type: 'deposit' | 'withdrawal') {
+  return rows.filter((it) => it.type === type && it.status === 'completed').reduce((s, it) => s + Number(it.krwAmount || 0), 0)
+}
+const totalDepositKrw = computed(() => sumCompletedKrw(items.value, 'deposit'))
+const totalWithdrawalKrw = computed(() => sumCompletedKrw(items.value, 'withdrawal'))
+const filteredDepositKrw = computed(() => sumCompletedKrw(filteredItems.value, 'deposit'))
+const filteredWithdrawalKrw = computed(() => sumCompletedKrw(filteredItems.value, 'withdrawal'))
 function formatDateTime(v: string) {
   const d = new Date(v)
   if (Number.isNaN(d.getTime())) return v

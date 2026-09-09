@@ -4,7 +4,7 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canEditMenu, canViewMenu } from '../../utils/menu-permissions'
 import { listDepositRequests } from '../../utils/deposit-requests'
-import { computeDownlineUsernames } from '../../utils/referral'
+import { computeDownlineUsernames, resolveTopCode } from '../../utils/referral'
 
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
@@ -33,18 +33,23 @@ export default defineEventHandler(async (event) => {
     if (e2) throw e2
     const balanceMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
     const userMap = new Map((users || []).map((u: any) => [Number(u.id), u]))
+    const referralOf = new Map<string, string>((allUsers || []).map((u: any) => [String(u.username || ''), String(u.referral_code || '')]))
 
     const requests = await listDepositRequests(ids)
     const items = requests.map((r) => {
       const u = userMap.get(r.userId)
+      const username = String(u?.username || '')
       return {
         id: r.id,
         type: r.type,
-        username: String(u?.username || ''),
+        username,
         name: String(u?.name || ''),
         referralCode: String(u?.referral_code || ''),
+        topCode: resolveTopCode(username, referralOf),
         balanceUsdt: balanceMap.get(r.userId) ?? 0,
         krwAmount: r.krwAmount,
+        usdtAmount: r.usdtAmount,
+        rateUsed: r.rateUsed,
         status: r.status,
         requestedAt: r.createdAt,
         resolvedAt: r.resolvedAt
@@ -67,18 +72,23 @@ export default defineEventHandler(async (event) => {
   const balances = db.prepare('SELECT user_id, usdt FROM balances').all() as any[]
   const balanceMap = new Map(balances.map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
   const userMap = new Map(users.map((u: any) => [Number(u.id), u]))
+  const referralOf = new Map<string, string>(allUsers.map((u) => [String(u.username || ''), String(u.referral_code || '')]))
 
   const requests = await listDepositRequests(ids)
   const items = requests.map((r) => {
     const u = userMap.get(r.userId)
+    const username = String(u?.username || '')
     return {
       id: r.id,
       type: r.type,
-      username: String(u?.username || ''),
+      username,
       name: String(u?.name || ''),
       referralCode: String(u?.referral_code || ''),
+      topCode: resolveTopCode(username, referralOf),
       balanceUsdt: balanceMap.get(r.userId) ?? 0,
       krwAmount: r.krwAmount,
+      usdtAmount: r.usdtAmount,
+      rateUsed: r.rateUsed,
       status: r.status,
       requestedAt: r.createdAt,
       resolvedAt: r.resolvedAt

@@ -3,7 +3,7 @@ import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canViewMenu } from '../../utils/menu-permissions'
-import { computeDownlineUsernames } from '../../utils/referral'
+import { computeDownlineUsernames, resolveTopCode } from '../../utils/referral'
 import { listRoles } from '../../utils/roles'
 
 const FEE_RATE = 0.04
@@ -13,25 +13,6 @@ function calcTotalFee(entryPrice: number, qty: number, leverage: number) {
   const net = (entryPrice * qty) / leverage
   const gross = net / (1 - FEE_RATE)
   return gross * FEE_RATE * 2
-}
-
-// 추천코드 체인을 끝까지 따라 올라가서 가장 위에 있는 코드(=최상위 총판)를 찾는다.
-// referralOf: username -> 그 유저를 추천한 사람의 username(=추천코드)
-function resolveTopCode(username: string, referralOf: Map<string, string>): string {
-  let code = referralOf.get(username) || ''
-  if (!code) return ''
-  const seen = new Set<string>([username])
-  let depth = 0
-  while (depth < 50) {
-    if (seen.has(code)) break // 순환 참조 방지
-    seen.add(code)
-    const next = referralOf.get(code)
-    if (next === undefined) break // code가 알 수 없는 유저 → 여기까지가 확인 가능한 최상위
-    if (!next) break // code인 유저는 추천인이 없음 → code가 곧 최상위
-    code = next
-    depth++
-  }
-  return code
 }
 
 export default defineEventHandler(async (event) => {

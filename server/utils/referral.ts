@@ -35,6 +35,25 @@ export function computeDownlineUsernames(root: string, edges: Array<{ username: 
   return result
 }
 
+// 추천코드 체인을 끝까지 따라 올라가서 가장 위에 있는 코드(=최상위 총판)를 찾는다.
+// referralOf: username -> 그 유저를 추천한 사람의 username(=추천코드)
+export function resolveTopCode(username: string, referralOf: Map<string, string>): string {
+  let code = referralOf.get(username) || ''
+  if (!code) return ''
+  const seen = new Set<string>([username])
+  let depth = 0
+  while (depth < 50) {
+    if (seen.has(code)) break // 순환 참조 방지
+    seen.add(code)
+    const next = referralOf.get(code)
+    if (next === undefined) break // code가 알 수 없는 유저 → 여기까지가 확인 가능한 최상위
+    if (!next) break // code인 유저는 추천인이 없음 → code가 곧 최상위
+    code = next
+    depth++
+  }
+  return code
+}
+
 // members.get.ts처럼 이미 전체 유저 목록(username/referral_code 포함)을 들고 있지 않은
 // 엔드포인트(settlement/deposits 등)를 위한 편의 함수: 그래프만 새로 조회해서 하부 조직을 구한다.
 export async function fetchDownlineUsernames(root: string): Promise<Set<string>> {
