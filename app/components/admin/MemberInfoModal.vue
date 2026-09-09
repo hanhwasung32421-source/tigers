@@ -85,10 +85,10 @@
                 <tr v-for="p in detail.positions" :key="p.id" class="border-t border-white/5">
                   <td class="px-3 py-2 font-semibold text-slate-100">{{ p.symbol }}</td>
                   <td class="px-3 py-2" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">{{ p.side === 'long' ? '롱' : '숏' }}</td>
-                  <td class="px-3 py-2 text-right font-mono text-slate-300">x{{ p.leverage }}</td>
-                  <td class="px-3 py-2 text-right font-mono text-slate-300">{{ fmt2(p.qty) }}</td>
-                  <td class="px-3 py-2 text-right font-mono text-slate-300">{{ fmt2(p.entryPrice) }}</td>
-                  <td class="px-3 py-2 text-right font-mono text-slate-300">{{ fmt2(p.margin) }}</td>
+                  <td class="px-3 py-2 text-right font-data text-slate-300">x{{ p.leverage }}</td>
+                  <td class="px-3 py-2 text-right font-data text-slate-300">{{ fmt2(p.qty) }}</td>
+                  <td class="px-3 py-2 text-right font-data text-slate-300">{{ fmt2(p.entryPrice) }}</td>
+                  <td class="px-3 py-2 text-right font-data text-slate-300">{{ fmt2(p.margin) }}</td>
                 </tr>
               </tbody>
             </table>

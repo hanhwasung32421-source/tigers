@@ -83,9 +83,9 @@
                     <input v-model="selectedRecipientIds" :value="user.id" type="checkbox" class="rounded border-white/20 bg-white/5" :disabled="sendToAll" />
                   </td>
                   <td class="px-2 py-2 text-slate-100">{{ user.username }}{{ user.name ? `(${user.name})` : '' }}</td>
-                  <td class="px-2 py-2 text-right font-mono text-slate-300">{{ Number(user.usdt || 0).toFixed(2) }}</td>
-                  <td class="px-2 py-2 font-mono text-slate-400">{{ dateOnly(user.created_at) }}</td>
-                  <td class="px-2 py-2 font-mono text-slate-400">{{ user.lastLoginAt ? formatDateTime(user.lastLoginAt) : '—' }}</td>
+                  <td class="px-2 py-2 text-right font-data text-slate-300">{{ Number(user.usdt || 0).toFixed(2) }}</td>
+                  <td class="px-2 py-2 font-data text-slate-400">{{ dateOnly(user.created_at) }}</td>
+                  <td class="px-2 py-2 font-data text-slate-400">{{ user.lastLoginAt ? formatDateTime(user.lastLoginAt) : '—' }}</td>
                   <td class="px-2 py-2">
                     <span
                       class="rounded px-2 py-0.5 text-[10px] font-semibold ring-1"
@@ -264,7 +264,7 @@
           @click="openGuestThread(thread)"
         >
           <div class="flex items-center justify-between gap-3">
-            <div class="font-mono text-sm text-slate-100">{{ thread.guestId.slice(0, 12) }}…</div>
+            <div class="font-data text-sm text-slate-100">{{ thread.guestId.slice(0, 12) }}…</div>
             <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">{{ thread.unreadCount }}</span>
           </div>
           <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || '대화 없음' }}</div>
@@ -278,7 +278,7 @@
         <div v-if="!activeGuestThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">왼쪽에서 대화를 선택하세요.</div>
         <div v-else class="space-y-4">
           <div class="border-b border-white/10 pb-3">
-            <div class="font-mono text-sm text-slate-100">{{ activeGuestThread.guestId }}</div>
+            <div class="font-data text-sm text-slate-100">{{ activeGuestThread.guestId }}</div>
             <div class="mt-1 text-xs text-slate-500">접속 IP: {{ activeGuestThread.ip || '미확인' }}</div>
           </div>
 

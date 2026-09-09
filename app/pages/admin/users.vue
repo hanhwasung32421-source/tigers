@@ -28,7 +28,7 @@
           </thead>
           <tbody>
             <tr v-for="(u, idx) in users" :key="u.id" class="border-t border-white/10">
-              <td class="py-2 font-mono">{{ idx + 1 }}</td>
+              <td class="py-2 font-data">{{ idx + 1 }}</td>
               <td class="py-2">{{ u.username }}</td>
               <td class="py-2">
                 <select
@@ -42,7 +42,7 @@
                   <option value="super_admin">최고관리자 (super_admin)</option>
                 </select>
               </td>
-              <td class="py-2 font-mono">{{ (u.usdt ?? 0).toFixed(2) }}</td>
+              <td class="py-2 font-data">{{ (u.usdt ?? 0).toFixed(2) }}</td>
               <td class="py-2">
                 <div class="flex items-center gap-2">
                   <input
@@ -71,7 +71,7 @@
                   {{ u.online ? '온라인' : '오프라인' }}
                 </span>
               </td>
-              <td class="py-2 font-mono text-slate-300">{{ u.last_ip || '-' }}</td>
+              <td class="py-2 font-data text-slate-300">{{ u.last_ip || '-' }}</td>
             </tr>
           </tbody>
         </table>

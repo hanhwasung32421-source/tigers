@@ -7,10 +7,10 @@
       </div>
       <div class="flex items-center gap-2">
         <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
-          총 입금액: <span class="font-mono text-emerald-300">{{ fmt0(totalDepositKrw) }}원</span>
+          총 입금액: <span class="font-data-plain text-emerald-300">{{ fmt0(totalDepositKrw) }}원</span>
         </span>
         <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
-          총 출금액: <span class="font-mono text-rose-300">{{ fmt0(totalWithdrawalKrw) }}원</span>
+          총 출금액: <span class="font-data-plain text-rose-300">{{ fmt0(totalWithdrawalKrw) }}원</span>
         </span>
         <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
         <button class="rounded-md bg-cyan-500/15 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-500/20" @click="load()">
@@ -83,8 +83,8 @@
         <span>조회: <span class="font-semibold text-white">{{ filteredItems.length }}</span>건</span>
         <span class="text-slate-600">·</span>
         <span>
-          입금액: <span class="font-mono text-emerald-300">{{ fmt0(filteredDepositKrw) }}원</span>
-          / 출금액: <span class="font-mono text-rose-300">{{ fmt0(filteredWithdrawalKrw) }}원</span>
+          입금액: <span class="font-data-plain text-emerald-300">{{ fmt0(filteredDepositKrw) }}원</span>
+          / 출금액: <span class="font-data-plain text-rose-300">{{ fmt0(filteredWithdrawalKrw) }}원</span>
         </span>
       </div>
 
@@ -109,20 +109,20 @@
               <td colspan="10" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-100">
                 <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(it.username)">
                   {{ it.username }}
                 </button>
               </td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ it.name }}</td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ it.topCode || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ it.topCode || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-200">
                 <div>{{ fmtKrw(it.balanceUsdt) }}</div>
                 <div class="text-[12px] text-slate-500">({{ fmt2(it.balanceUsdt) }})</div>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-100">{{ fmt0(it.krwAmount) }}원</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-300">{{ fmt0(displayRate(it)) }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-300">{{ fmt4(displayUsdt(it)) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-100">{{ fmt0(it.krwAmount) }}원</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-300">{{ fmt0(displayRate(it)) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-300">{{ fmt4(displayUsdt(it)) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-center">
                 <span
                   class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
@@ -158,7 +158,7 @@
                   {{ statusLabel(it) }}
                 </span>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 text-center font-mono text-slate-300">{{ formatDateTime(displayDate(it)) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-center font-data text-slate-300">{{ formatDateTime(displayDate(it)) }}</td>
             </tr>
           </tbody>
         </table>

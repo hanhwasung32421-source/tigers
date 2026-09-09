@@ -43,9 +43,9 @@
         <button class="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10" @click="resetToThisWeek">이번주</button>
 
         <div class="ml-auto rounded-md border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
-          <div>기간 총 정산금 <span class="font-mono text-base font-semibold">{{ fmtKrw(total) }}</span></div>
+          <div>기간 총 정산금 <span class="font-data text-base font-semibold">{{ fmtKrw(total) }}</span></div>
           <div class="text-xs text-cyan-300/70">(정산비율 {{ percent }}%, 환율 {{ fmt0(krwPerUsdt) }}원/USDT)</div>
-          <div class="font-mono text-xs text-cyan-300/70">({{ fmt2(total) }})</div>
+          <div class="font-data text-xs text-cyan-300/70">({{ fmt2(total) }})</div>
         </div>
       </div>
 
@@ -84,21 +84,21 @@
               <td colspan="5" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
             </tr>
             <tr v-for="it in pagedItems" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-3 py-3 font-mono text-slate-100">
+              <td class="px-3 py-3 font-data text-slate-100">
                 <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(it.username)">
                   {{ it.username }}
                 </button>
               </td>
               <td class="px-3 py-3 text-slate-200">{{ it.name }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-200">
+              <td class="px-3 py-3 text-right font-data text-slate-200">
                 <div>{{ fmtKrw(it.balanceUsdt) }}</div>
                 <div class="text-slate-500">({{ fmt2(it.balanceUsdt) }})</div>
               </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-300">
+              <td class="px-3 py-3 text-right font-data text-slate-300">
                 <div>{{ fmtKrw(it.baseAmount) }}</div>
                 <div class="text-slate-500">({{ fmt2(it.baseAmount) }})</div>
               </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-100">
+              <td class="px-3 py-3 text-right font-data text-slate-100">
                 <div>{{ fmtKrw(it.settlementAmount) }}</div>
                 <div class="text-slate-500">({{ fmt2(it.settlementAmount) }})</div>
               </td>

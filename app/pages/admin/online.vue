@@ -7,7 +7,7 @@
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
-        <span class="rounded-md border border-cyan-500/10 bg-cyan-500/5 px-3 py-2 text-xs font-mono text-slate-300">{{ lastUpdatedText }}</span>
+        <span class="rounded-md border border-cyan-500/10 bg-cyan-500/5 px-3 py-2 text-xs font-data text-slate-300">{{ lastUpdatedText }}</span>
       </div>
     </div>
 
@@ -44,7 +44,7 @@
               <td colspan="7" class="px-3 py-8 text-center text-slate-500">접속중인 유저가 없습니다.</td>
             </tr>
             <tr v-for="u in filtered" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-3 py-3 font-mono text-slate-300">#{{ u.id }}</td>
+              <td class="px-3 py-3 font-data text-slate-300">#{{ u.id }}</td>
               <td class="px-3 py-3 font-semibold text-slate-100">
                 <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(u.username)">
                   {{ u.username }}
@@ -52,8 +52,8 @@
               </td>
               <td class="px-3 py-3 text-slate-200">{{ u.name || '—' }}</td>
               <td class="px-3 py-3 text-slate-300">{{ u.role }}</td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ u.ip || '—' }}</td>
-              <td class="px-3 py-3 font-mono text-slate-400">{{ u.lastSeenAt ? formatTime(u.lastSeenAt) : '—' }}</td>
+              <td class="px-3 py-3 font-data text-slate-300">{{ u.ip || '—' }}</td>
+              <td class="px-3 py-3 font-data text-slate-400">{{ u.lastSeenAt ? formatTime(u.lastSeenAt) : '—' }}</td>
               <td class="px-3 py-3 text-center">
                 <button
                   v-if="u.positionSymbols.length"

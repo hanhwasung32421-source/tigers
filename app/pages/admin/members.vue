@@ -6,7 +6,7 @@
         <p class="mt-1 text-sm text-slate-400">회원 목록을 조회합니다.</p>
       </div>
       <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
-        총 보유금액 <span class="font-mono text-base font-semibold">{{ fmt2(totalBalance) }}</span> USDT
+        총 보유금액 <span class="font-data text-base font-semibold">{{ fmt2(totalBalance) }}</span> USDT
       </div>
     </div>
 
@@ -84,15 +84,15 @@
               <td class="px-3 py-3">
                 <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">승인</span>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-100">
                 <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(u.username)">
                   {{ u.username }}
                 </button>
               </td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ u.name }}</td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.referralCode || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.topCode || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ u.referralCode || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ u.topCode || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data">
                 <button
                   v-if="canEditBalance"
                   type="button"
@@ -103,7 +103,7 @@
                 </button>
                 <span v-else class="px-2 py-1 text-slate-300">{{ fmt2(u.balanceUsdt) }}</span>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono">
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data">
                 <button
                   type="button"
                   class="rounded px-2 py-1 ring-1"
@@ -117,8 +117,8 @@
                   {{ signedProfitText(u.cumulativeProfit) }}
                 </button>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ dateOnly(u.created_at) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
               <td class="whitespace-nowrap px-3 py-3">
                 <span
                   class="rounded px-2 py-1 text-[10px] font-semibold ring-1"
@@ -198,7 +198,7 @@
                   <td colspan="10" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
                 </tr>
                 <tr v-for="t in pagedMemberTrades" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-                  <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(t.created_at) }}</td>
+                  <td class="px-3 py-3 font-data text-slate-300">{{ formatDateTime(t.created_at) }}</td>
                   <td class="px-3 py-3 font-semibold text-slate-100">{{ t.symbol }}</td>
                   <td class="px-3 py-3 text-slate-200">{{ t.orderType }}</td>
                   <td class="px-3 py-3">
@@ -206,13 +206,13 @@
                       {{ tradeResultLabel(t) }}
                     </span>
                   </td>
-                  <td class="px-3 py-3 text-right font-mono text-slate-300">x{{ t.leverage }}</td>
-                  <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmtPrice(t.price) }}</td>
-                  <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(t.qty) }}</td>
-                  <td class="px-3 py-3 text-right font-mono" :class="t.pnl >= 0 ? 'text-emerald-400' : 'text-blue-400'">
+                  <td class="px-3 py-3 text-right font-data text-slate-300">x{{ t.leverage }}</td>
+                  <td class="px-3 py-3 text-right font-data text-slate-200">{{ fmtPrice(t.price) }}</td>
+                  <td class="px-3 py-3 text-right font-data text-slate-200">{{ fmt2(t.qty) }}</td>
+                  <td class="px-3 py-3 text-right font-data-plain" :class="t.pnl >= 0 ? 'text-emerald-400' : 'text-blue-400'">
                     {{ t.pnl >= 0 ? '+' : '' }}{{ fmt2(t.pnl) }}
                   </td>
-                  <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmt2(t.fee) }}</td>
+                  <td class="px-3 py-3 text-right font-data text-slate-300">{{ fmt2(t.fee) }}</td>
                   <td class="px-3 py-3">
                     <span
                       class="rounded px-2 py-1 text-[10px] font-semibold ring-1"

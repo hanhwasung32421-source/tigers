@@ -44,6 +44,37 @@ body {
   font-family: 'Space Grotesk', 'Pretendard Variable', Pretendard, system-ui, sans-serif;
 }
 
+/* 관리자 하부메뉴 데이터셋(표의 아이디/금액/환율/날짜 등 숫자·글자) 전용:
+   기존 font-mono(등록폭 글꼴)를 Pretendard Variable로, 색상은 #f8fafc로 통일한다.
+   text-slate-* 등 다른 색상 유틸리티와 같이 쓰여도 항상 이 색이 이기도록 !important. */
+.font-data {
+  font-family:
+    'Pretendard Variable',
+    Pretendard,
+    Inter,
+    'Inter Fallback',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: #f8fafc !important;
+}
+
+/* 수익/손실 등 의미가 있는 색상(초록/빨강)을 유지해야 하는 데이터는 글꼴만 바꾸고 색은 그대로 둔다. */
+.font-data-plain {
+  font-family:
+    'Pretendard Variable',
+    Pretendard,
+    Inter,
+    'Inter Fallback',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
 /* 거래소 기본 드롭다운 스타일: 검정 배경 + 흰 글씨 */
 select {
   background-color: rgba(0, 0, 0, 0.7) !important;

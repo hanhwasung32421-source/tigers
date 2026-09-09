@@ -65,8 +65,8 @@
               <td colspan="11" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
             </tr>
             <tr v-for="t in paged" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="px-3 py-3 font-mono text-slate-300">{{ formatDateTime(t.created_at) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-100">
+              <td class="px-3 py-3 font-data text-slate-300">{{ formatDateTime(t.created_at) }}</td>
+              <td class="px-3 py-3 font-data text-slate-100">
                 <button type="button" class="underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(t.username)">
                   {{ t.username }}
                 </button>
@@ -82,13 +82,13 @@
                   {{ tradeResultLabel(t) }}
                 </span>
               </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-300">x{{ t.leverage }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmtPrice(t.price) }}</td>
-              <td class="px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(t.qty) }}</td>
-              <td class="px-3 py-3 text-right font-mono" :class="t.pnl >= 0 ? 'text-emerald-400' : 'text-blue-400'">
+              <td class="px-3 py-3 text-right font-data text-slate-300">x{{ t.leverage }}</td>
+              <td class="px-3 py-3 text-right font-data text-slate-200">{{ fmtPrice(t.price) }}</td>
+              <td class="px-3 py-3 text-right font-data text-slate-200">{{ fmt2(t.qty) }}</td>
+              <td class="px-3 py-3 text-right font-data-plain" :class="t.pnl >= 0 ? 'text-emerald-400' : 'text-blue-400'">
                 {{ t.pnl >= 0 ? '+' : '' }}{{ fmt2(t.pnl) }}
               </td>
-              <td class="px-3 py-3 text-right font-mono text-slate-300">{{ fmt2(t.fee) }}</td>
+              <td class="px-3 py-3 text-right font-data text-slate-300">{{ fmt2(t.fee) }}</td>
             </tr>
           </tbody>
         </table>

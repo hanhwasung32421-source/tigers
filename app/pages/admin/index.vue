@@ -39,7 +39,7 @@
         </div>
         <div class="flex items-center gap-2">
           <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
-            총 유저수 <span class="font-mono text-base font-semibold">{{ sortedUsers.length }}</span>명
+            총 유저수 <span class="font-data text-base font-semibold">{{ sortedUsers.length }}</span>명
           </div>
           <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="load">
             새로고침
@@ -187,8 +187,8 @@
                     </div>
                     <span v-else class="text-xs text-slate-600">—</span>
                   </td>
-                  <td class="whitespace-nowrap px-3 py-2.5 font-mono text-slate-300">{{ dateOnly(u.created_at) }}</td>
-                  <td class="whitespace-nowrap px-3 py-2.5 font-mono text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
+                  <td class="whitespace-nowrap px-3 py-2.5 font-data text-slate-300">{{ dateOnly(u.created_at) }}</td>
+                  <td class="whitespace-nowrap px-3 py-2.5 font-data text-slate-300">{{ u.last_login ? dateOnly(u.last_login) : '—' }}</td>
                   <td class="px-3 py-2.5 text-center">
                     <button
                       class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
@@ -350,7 +350,7 @@
             class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
           <p class="mt-1 text-xs text-slate-500">
-            현재 자동 환율(매일 오전 9시 빗썸 기준 고정): <span class="font-mono text-slate-300">{{ dailyKrwRate ? `${fmt0(dailyKrwRate)}원` : '아직 없음' }}</span>
+            현재 자동 환율(매일 오전 9시 빗썸 기준 고정): <span class="font-data text-slate-300">{{ dailyKrwRate ? `${fmt0(dailyKrwRate)}원` : '아직 없음' }}</span>
             <span v-if="dailyKrwRateDay"> ({{ dailyKrwRateDay }} 갱신)</span>
           </p>
         </div>
@@ -531,7 +531,7 @@
         <div v-else class="space-y-2">
           <div v-for="(r, idx) in roles" :key="r.id" class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
             <div class="flex items-center gap-3">
-              <span class="w-6 text-center font-mono text-xs text-slate-500">{{ idx + 1 }}</span>
+              <span class="w-6 text-center font-data text-xs text-slate-500">{{ idx + 1 }}</span>
               <div class="flex flex-col">
                 <button
                   type="button"
@@ -552,7 +552,7 @@
               </div>
               <div>
                 <span class="text-sm font-semibold text-slate-100">{{ r.label }}</span>
-                <span class="ml-2 font-mono text-xs text-slate-500">{{ r.id }}</span>
+                <span class="ml-2 font-data text-xs text-slate-500">{{ r.id }}</span>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -616,13 +616,13 @@
             </thead>
             <tbody>
               <tr v-for="k in killEvents" :key="k.id" class="border-t border-white/10">
-                <td class="py-2 font-mono text-xs">{{ formatKillTime(k.createdAt) }}</td>
-                <td class="py-2 font-mono">{{ k.symbol }}</td>
+                <td class="py-2 font-data text-xs">{{ formatKillTime(k.createdAt) }}</td>
+                <td class="py-2 font-data">{{ k.symbol }}</td>
                 <td class="py-2" :class="k.direction === 'up' ? 'text-emerald-300' : 'text-rose-300'">
                   {{ k.direction === 'up' ? '킬UP' : '킬DOWN' }}
                 </td>
-                <td class="py-2 font-mono">{{ k.percent }}%</td>
-                <td class="py-2 font-mono">{{ k.basePrice }} → {{ k.shockedPrice }}</td>
+                <td class="py-2 font-data">{{ k.percent }}%</td>
+                <td class="py-2 font-data">{{ k.basePrice }} → {{ k.shockedPrice }}</td>
                 <td class="py-2">
                   <button
                     class="rounded-md bg-rose-500/15 px-3 py-1 text-xs text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
@@ -672,14 +672,14 @@
             </thead>
             <tbody>
               <tr v-for="p in profitEvents" :key="p.id" class="border-t border-white/10">
-                <td class="py-2 font-mono text-xs">{{ formatKillTime(p.createdAt) }}</td>
-                <td class="py-2 font-mono">{{ p.symbol }}</td>
+                <td class="py-2 font-data text-xs">{{ formatKillTime(p.createdAt) }}</td>
+                <td class="py-2 font-data">{{ p.symbol }}</td>
                 <td class="py-2" :class="p.direction === 'up' ? 'text-emerald-300' : 'text-rose-300'">
                   {{ p.direction === 'up' ? '수익' : '손실' }}
                 </td>
-                <td class="py-2 font-mono">{{ p.percent }}%</td>
-                <td class="py-2 font-mono">{{ p.basePrice }} → {{ p.shockedPrice }}</td>
-                <td class="py-2 font-mono">{{ (p.holdMs / 1000).toFixed(1) }}초</td>
+                <td class="py-2 font-data">{{ p.percent }}%</td>
+                <td class="py-2 font-data">{{ p.basePrice }} → {{ p.shockedPrice }}</td>
+                <td class="py-2 font-data">{{ (p.holdMs / 1000).toFixed(1) }}초</td>
                 <td class="py-2">
                   <button
                     class="rounded-md bg-rose-500/15 px-3 py-1 text-xs text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"

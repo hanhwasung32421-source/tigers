@@ -7,7 +7,7 @@
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
-        <span class="rounded-md border border-cyan-500/10 bg-cyan-500/5 px-3 py-2 text-xs font-mono text-slate-300">
+        <span class="rounded-md border border-cyan-500/10 bg-cyan-500/5 px-3 py-2 text-xs font-data text-slate-300">
           {{ lastUpdatedText }}
         </span>
       </div>
@@ -86,7 +86,7 @@
                 <button type="button" class="font-semibold text-slate-100 underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(row.username)">
                   {{ row.username }}
                 </button>
-                <div class="mt-0.5 font-mono text-[10px] text-slate-500">(#{{ row.user_id }})</div>
+                <div class="mt-0.5 font-data text-[10px] text-slate-500">(#{{ row.user_id }})</div>
               </td>
               <td class="whitespace-nowrap px-2 py-2.5 text-slate-100">{{ row.name || '—' }}</td>
               <td class="whitespace-nowrap px-2 py-2.5 text-slate-300">{{ row.affiliate }}</td>
@@ -100,18 +100,18 @@
                   {{ row.position }}
                 </span>
               </td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtNum(row.margin) }}</td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ row.leverage }}x</td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtPrice(row.entryPrice) }}</td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtQty(row.qty) }}</td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums">{{ fmtPrice(row.liqPrice) }}</td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums" :class="profitClass(row.pnl)">
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data tabular-nums">{{ fmtNum(row.margin) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data tabular-nums">{{ row.leverage }}x</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data tabular-nums">{{ fmtPrice(row.entryPrice) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data tabular-nums">{{ fmtQty(row.qty) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data tabular-nums">{{ fmtPrice(row.liqPrice) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data-plain tabular-nums" :class="profitClass(row.pnl)">
                 {{ signed(row.pnl) }}
               </td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums" :class="profitClass(row.roe)">
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data-plain tabular-nums" :class="profitClass(row.roe)">
                 {{ signed(row.roe, '%') }}
               </td>
-              <td class="whitespace-nowrap px-2 py-2.5 text-right font-mono tabular-nums text-slate-300">{{ fmtNum(row.fee) }}</td>
+              <td class="whitespace-nowrap px-2 py-2.5 text-right font-data tabular-nums text-slate-300">{{ fmtNum(row.fee) }}</td>
               <td class="whitespace-nowrap px-2 py-2.5 text-center">
                 <span
                   class="rounded px-2 py-1 text-[10px] font-semibold"

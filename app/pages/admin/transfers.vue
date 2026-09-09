@@ -13,8 +13,8 @@
 
     <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
       <div class="flex flex-wrap items-center gap-2 text-sm text-slate-200">
-        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">총입금: <span class="font-mono">{{ fmt2(summary.totalInUsdt) }}</span> USDT</span>
-        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">총출금: <span class="font-mono">{{ fmt2(summary.totalOutUsdt) }}</span> USDT</span>
+        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">총입금: <span class="font-data">{{ fmt2(summary.totalInUsdt) }}</span> USDT</span>
+        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">총출금: <span class="font-data">{{ fmt2(summary.totalOutUsdt) }}</span> USDT</span>
       </div>
 
       <div class="mt-3 grid gap-2 md:grid-cols-[360px_180px_minmax(240px,1fr)_120px]">
@@ -55,15 +55,15 @@
               <td colspan="8" class="px-3 py-8 text-center text-slate-500">입출금 내역이 없습니다.</td>
             </tr>
             <tr v-for="r in paged" :key="`${r.created_at}-${r.user_id}-${r.amount_usdt}`" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-100">{{ r.username }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-100">{{ r.username }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ r.name }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ r.affiliateName }}</td>
               <td class="whitespace-nowrap px-3 py-3">{{ r.type }}</td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-slate-200">{{ fmt2(r.amount_usdt) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-200">{{ fmt2(r.amount_usdt) }}</td>
               <td class="whitespace-nowrap px-3 py-3">
                 <span class="rounded bg-white/10 px-2 py-1 text-[10px] font-semibold text-slate-100 ring-1 ring-white/10">{{ r.status }}</span>
               </td>
-              <td class="whitespace-nowrap px-3 py-3 font-mono text-slate-300">{{ formatDateTime(r.created_at) }}</td>
+              <td class="whitespace-nowrap px-3 py-3 font-data text-slate-300">{{ formatDateTime(r.created_at) }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ r.admin }}</td>
             </tr>
           </tbody>
