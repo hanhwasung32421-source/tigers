@@ -662,7 +662,7 @@
                   <span v-else class="rounded bg-white/10 px-2 py-0.5 font-mono text-[12px] ring-1 ring-white/10">x{{ p.leverage }}</span>
                 </div>
               </td>
-              <td class="py-1" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
+              <td class="py-1 pl-[10px]" :class="p.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
                 <span
                   class="rounded px-2 py-1 text-[14px] ring-1"
                   :class="
@@ -1518,7 +1518,6 @@ const fillsHasMore = ref(true)
 const fillsLoading = ref(false)
 const fillsWrap = ref<HTMLElement | null>(null)
 const pendingCloseTimers = new Map<number, any>()
-let closeSummaryTimer: any = null
 let lastAccountTs = 0
 let accountWatchTimer: any = null
 const accountSyncing = ref(false)
@@ -2010,12 +2009,9 @@ function pruneHiddenClosingPositions(serverPositions: any[]) {
   hiddenClosingPositionIds.value = hiddenClosingPositionIds.value.filter((id) => serverIds.has(Number(id)))
 }
 
-function showCloseSummaryDelayed(payload: NonNullable<typeof closeSummary.value>) {
-  if (closeSummaryTimer) clearTimeout(closeSummaryTimer)
-  closeSummary.value = null
-  closeSummaryTimer = setTimeout(() => {
-    closeSummary.value = payload
-  }, 500)
+// 뜰 때는 지연/애니메이션 없이 즉시 표시(요구사항: "한 번에 딱 뜨게"). 닫을 때만 CSS 전환(close-card-pop)이 붙는다.
+function showCloseSummary(payload: NonNullable<typeof closeSummary.value>) {
+  closeSummary.value = payload
 }
 
 function schedulePendingCloseRetry(positionId: number, delayMs: number) {
@@ -3417,6 +3413,8 @@ function calcTradeFeeText(t: any) {
 }
 
 function openProfitCardFromTrade(t: any) {
+  // 강제청산된 거래는 수익카드를 띄우지 않는다.
+  if (Boolean(t?.liquidation) || isFullMarginLoss(t)) return
   const pnl = Number(t.pnl || 0)
   const entryPrice = Number(t.entry_price || 0)
   const exitPrice = Number(t.exit_price || 0)
@@ -5144,7 +5142,7 @@ async function openPosition() {
     const { settlementAfterFee } = calcSettlementAfterFee(gross0, pnlClamped)
 
     const roeCalc = net0 > 0 ? (pnlClamped / net0) * 100 : 0
-    showCloseSummaryDelayed({
+    showCloseSummary({
       symbol: String(existing.symbol),
       side: existing.side === 'short' ? 'short' : 'long',
       leverage: Number(existing.leverage || 1),
@@ -5289,7 +5287,7 @@ async function closePosition(
       }
       const roeCalc = net0 > 0 ? (pnlCalc / net0) * 100 : 0
       if (!suppressSummary) {
-        showCloseSummaryDelayed({
+        showCloseSummary({
           symbol: String(pos.symbol),
           side: isShort ? 'short' : 'long',
           leverage: Number(pos.leverage || 1),
@@ -5433,8 +5431,6 @@ onBeforeUnmount(() => {
   ws = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
   pendingCloseTimers.clear()
-  if (closeSummaryTimer) clearTimeout(closeSummaryTimer)
-  closeSummaryTimer = null
   if (markPollTimer) clearInterval(markPollTimer)
   markPollTimer = null
   if (liquidationSettingsPollTimer) clearInterval(liquidationSettingsPollTimer)
@@ -5478,11 +5474,14 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.close-card-pop-enter-active,
+/* 뜰 때는 애니메이션 없이 한 번에 표시하고, 닫을 때만 기존보다 50% 빠른(0.25s) 애니메이션을 보여준다. */
+.close-card-pop-enter-active {
+  transition: none;
+}
 .close-card-pop-leave-active {
   transition:
-    opacity 0.5s ease,
-    transform 0.5s ease;
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .close-card-pop-enter-from,
