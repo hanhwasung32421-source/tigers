@@ -7,7 +7,7 @@
         class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(260px,0.6fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_300px]"
       >
       <!-- 차트 -->
-      <section class="order-1 min-w-0 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
+      <section class="order-1 flex min-w-0 flex-col overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
           <div class="flex min-w-0 items-center gap-3">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
@@ -164,7 +164,7 @@
           </div>
         </div>
 
-        <div class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
+        <div class="flex min-h-0 flex-1 bg-[#131722]" :style="{ minHeight: chartContainerHeightPx + 'px' }">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2">
             <button
               type="button"
@@ -434,21 +434,21 @@
         <div v-else class="mt-3 flex flex-col rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
           <div>
             <!-- 레버리지 (첨부2 스타일) -->
-            <div class="rounded-lg border border-white/10 bg-[#071722] p-3">
+            <div class="overflow-hidden rounded-lg border border-white/10 bg-[#071722] p-2.5">
               <div class="flex items-center justify-between">
                 <div class="text-[15px] font-semibold text-slate-100">레버리지</div>
                 <button type="button" class="font-mono text-[15px] text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
               </div>
-              <div class="mt-3 flex items-center justify-between text-[13px] text-slate-300">
+              <div class="mt-2 flex items-center justify-between text-[13px] text-slate-300">
                 <span class="whitespace-nowrap text-slate-400">레버리지 배율</span>
                 <span class="font-mono text-slate-200">x{{ leverage }}</span>
               </div>
-              <div class="mt-2 flex items-center justify-between text-[13px] text-slate-400">
+              <div class="mt-1.5 flex items-center justify-between text-[13px] text-slate-400">
                 <span>최대 레버리지</span>
                 <span class="font-mono text-slate-200">x100</span>
               </div>
 
-              <div class="mt-3">
+              <div class="mt-2">
                 <div class="relative">
                   <div
                     v-if="showLeverageTooltip"
@@ -1731,7 +1731,9 @@ const bolSelected = ref(false)
 
 // 보조지표(BOL 제외 29종) 상태: 하단(오실레이터) 지표 하나당 별도 창(pane)을 만들고,
 // 그만큼 차트 전체 높이를 늘린다.
-const CHART_BASE_HEIGHT = 500
+// 이제 차트 영역은 flex-1로 레이아웃이 허용하는 만큼 늘어나므로, 이 값은 "최소 높이"
+// 역할만 한다(보조지표 pane이 늘어날 때 필요한 공간을 보장하기 위함).
+const CHART_BASE_HEIGHT = 600
 const OSCILLATOR_PANE_HEIGHT = 130
 const chartContainerHeightPx = ref(CHART_BASE_HEIGHT)
 let extraIndicatorSeries: Map<string, ISeriesApi<any>[]> = new Map()
