@@ -575,7 +575,7 @@
             </div>
 
             <div class="mt-4">
-              <div class="text-[15px] font-semibold text-slate-200">사용가능 금액</div>
+              <div class="text-[13px] text-slate-400">사용가능 금액</div>
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ balanceDisplay }} USDT</div>
               <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ availableWonText }} 원</div>
             </div>
@@ -1588,13 +1588,14 @@ const vlinePreviewX = computed(() => {
   if (activeTool.value !== 'vline' || !liveDrawingPoint.value) return null
   return mouseCrosshair.x
 })
-// 도구를 고르고 아직 차트를 클릭하기 전(=첫 점을 찍기 전)에만 안내 배너를 보여준다.
+// 도구를 고른 뒤부터(수평선/수직선은 클릭 한 번, 추세선/사각형/원은 두 번째 점을 찍기 전까지)
+// 계속 안내 배너를 보여준다 — 두 번째 클릭 전에 안내가 사라지면 도구가 취소된 것처럼 보이는 문제 수정.
 const TWO_CLICK_TOOLS = ['trend', 'rect', 'circle'] as const
 const drawingHintVisible = computed(
   () =>
     activeTool.value === 'hline' ||
     activeTool.value === 'vline' ||
-    ((TWO_CLICK_TOOLS as readonly string[]).includes(activeTool.value) && !pendingShapeStart.value)
+    (TWO_CLICK_TOOLS as readonly string[]).includes(activeTool.value)
 )
 // Alt+H(수평선) 단축키에서 "지금 마우스가 차트 위 어디 있는지"를 알아야 하므로
 // 도구 상태와 무관하게 항상 최신 좌표를 기록해둔다.
@@ -2125,7 +2126,7 @@ function startPendingCloseRecovery() {
 
 const balanceDisplay = computed(() => {
   const v = Number(balance.value || 0)
-  return v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 5 })
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 })
 
 const KRW_RATE = 1350
