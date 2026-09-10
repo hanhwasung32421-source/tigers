@@ -25,7 +25,7 @@
             <BrandLogo />
           </NuxtLink>
 
-          <nav class="hidden items-center gap-1 text-sm text-slate-300 md:flex">
+          <nav class="hidden items-center gap-1 text-[15px] text-slate-300 md:flex">
             <template v-for="key in orderedMainNavKeys" :key="key">
               <NuxtLink
                 :to="key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key]"
@@ -33,7 +33,7 @@
                 @click="startNavLoading(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
               >
                 {{ MAIN_NAV_LABELS[key] }}
-                <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">
+                <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[11px] font-bold leading-none text-yellow-300">
                   {{ MAIN_NAV_BADGES[key] }}
                 </span>
               </NuxtLink>
@@ -44,7 +44,7 @@
                 <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
                   <button
                     type="button"
-                    class="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                    class="block w-full rounded-lg px-3 py-2 text-left text-[15px] text-slate-200 hover:bg-cyan-400/10 hover:text-white"
                     @click="copyReferralLink"
                   >
                     {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
@@ -53,7 +53,7 @@
                     <NuxtLink
                       v-if="canViewAdminMenu(key)"
                       :to="ADMIN_MENU_ROUTES[key]"
-                      class="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-cyan-400/10 hover:text-white"
+                      class="block rounded-lg px-3 py-2 text-[15px] text-slate-200 hover:bg-cyan-400/10 hover:text-white"
                       @click="startNavLoading(ADMIN_MENU_ROUTES[key])"
                     >
                       {{ ADMIN_MENU_LABELS[key] }}
@@ -65,9 +65,9 @@
           </nav>
         </div>
 
-        <div class="flex items-center gap-2 text-sm">
+        <div class="flex items-center gap-2 text-[15px]">
           <div class="hidden items-center gap-2 md:flex">
-            <span class="hidden sm:inline rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 text-xs font-mono text-slate-300">
+            <span class="hidden sm:inline rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 text-[13px] font-mono text-slate-300">
               {{ appVersion }}
             </span>
             <template v-if="me">
@@ -83,7 +83,7 @@
                 <span>🔔</span>
                 <span
                   v-if="unread > 0"
-                  class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold leading-none text-slate-900"
+                  class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold leading-none text-slate-900"
                 >
                   {{ unread }}
                 </span>
@@ -108,7 +108,7 @@
             <span>🔔</span>
             <span
               v-if="unread > 0"
-              class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold leading-none text-slate-900"
+              class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold leading-none text-slate-900"
             >
               {{ unread }}
             </span>
@@ -125,7 +125,7 @@
       </div>
 
       <div v-if="mobileMenuOpen" class="border-t border-cyan-500/10 bg-[#020b16] px-4 py-3 md:hidden">
-        <nav class="flex flex-col gap-0.5 text-sm text-slate-200">
+        <nav class="flex flex-col gap-0.5 text-[15px] text-slate-200">
           <NuxtLink
             v-for="key in orderedMainNavKeys"
             :key="key"
@@ -134,14 +134,14 @@
             @click="onMobileNavClick(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
           >
             {{ MAIN_NAV_LABELS[key] }}
-            <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[10px] font-bold leading-none text-yellow-300">
+            <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[11px] font-bold leading-none text-yellow-300">
               {{ MAIN_NAV_BADGES[key] }}
             </span>
           </NuxtLink>
 
           <template v-if="isAdmin">
             <div class="my-2 h-px bg-white/10" />
-            <div class="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">관리자</div>
+            <div class="px-3 py-1 text-[13px] font-semibold uppercase tracking-wide text-slate-500">관리자</div>
             <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick(adminHomeTarget)">
               대시보드
             </NuxtLink>
@@ -173,7 +173,7 @@
             <NuxtLink to="/auth/login" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/login')">로그인</NuxtLink>
             <NuxtLink to="/auth/register" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/register')">회원가입</NuxtLink>
           </template>
-          <div class="px-3 pt-2 text-xs text-slate-500">{{ appVersion }}</div>
+          <div class="px-3 pt-2 text-[13px] text-slate-500">{{ appVersion }}</div>
         </nav>
       </div>
     </header>

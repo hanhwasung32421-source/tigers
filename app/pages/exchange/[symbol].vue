@@ -359,10 +359,10 @@
       <!-- 호가(첨부 스타일) -->
       <section class="order-3 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1">
         <div class="flex items-center justify-between">
-          <div class="text-sm font-semibold text-slate-100">호가</div>
+          <div class="text-[15px] font-semibold text-slate-100">호가</div>
         </div>
 
-        <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-500">
+        <div class="mt-3 grid grid-cols-3 gap-2 text-[13px] text-slate-500">
           <div>가격</div>
           <div class="text-center">수량</div>
           <div class="text-right">총금액</div>
@@ -371,7 +371,7 @@
         <div class="mt-2 rounded-lg bg-[#031019] p-2 ring-1 ring-cyan-500/10">
           <!-- 매도(위) -->
           <div class="space-y-0.5">
-            <div v-for="(r, idx) in askRows" :key="'a' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[11px]">
+            <div v-for="(r, idx) in askRows" :key="'a' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[12px]">
               <div class="text-[#f23645]">{{ r ? fmtPrice(r.price) : '—' }}</div>
               <div class="relative overflow-hidden rounded-sm bg-[#3a1015] px-1.5 py-0.5 text-center text-slate-100">
                 {{ r ? r.qtyText : '—' }}
@@ -384,14 +384,14 @@
           </div>
 
           <!-- 현재가 -->
-          <div class="my-2 flex items-center justify-end font-mono text-base text-[#36f2c6]">
+          <div class="my-2 flex items-center justify-end font-mono text-[17px] text-[#36f2c6]">
             <span>{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</span>
-            <span class="ml-1 text-sm text-slate-300">USDT</span>
+            <span class="ml-1 text-[15px] text-slate-300">USDT</span>
           </div>
 
           <!-- 매수(아래) -->
           <div class="space-y-0.5">
-            <div v-for="(r, idx) in bidRows" :key="'b' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[11px]">
+            <div v-for="(r, idx) in bidRows" :key="'b' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[12px]">
               <div class="text-[#22ab94]">{{ r ? fmtPrice(r.price) : '—' }}</div>
               <div class="relative overflow-hidden rounded-sm bg-[#062a22] px-1.5 py-0.5 text-center text-slate-100">
                 {{ r ? r.qtyText : '—' }}
@@ -411,11 +411,11 @@
                 <div class="bg-[#f23645]" :style="{ width: 100 - buyPct + '%' }" />
               </div>
             </div>
-            <div class="mt-1 flex items-center justify-between text-xs">
+            <div class="mt-1 flex items-center justify-between text-[13px]">
               <div class="font-mono text-[#22ab94]">{{ buyPct.toFixed(0) }}%</div>
               <div class="font-mono text-[#f23645]">{{ (100 - buyPct).toFixed(0) }}%</div>
             </div>
-            <div class="mt-1 flex items-center justify-between text-xs text-slate-400">
+            <div class="mt-1 flex items-center justify-between text-[13px] text-slate-400">
               <div class="font-semibold text-[#22ab94]">BUY</div>
               <div class="font-semibold text-[#f23645]">SELL</div>
             </div>
@@ -559,7 +559,7 @@
           </div>
 
           <!-- 하단: 보유자산/사용가능 -->
-          <div class="mt-8 rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-3 ring-1 ring-white/10">
+          <div class="mt-8 rounded-lg border border-white/10 bg-[#071722] p-3">
             <div class="text-[15px] font-semibold text-slate-100">보유자산</div>
             <div class="mt-3 flex items-center justify-between">
               <div class="text-[13px] text-slate-400">보유자산(증거금포함)</div>
