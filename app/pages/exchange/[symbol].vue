@@ -3674,9 +3674,9 @@ function toInstId(sym: string) {
   return 'BTC-USDT-SWAP'
 }
 
-// SAMSUNGUSDT는 실제로 바이낸스 선물에 상장된 종목이라(펀딩비/마크프라이스까지 있는 정식 상품),
-// 이 종목만 OKX 대신 바이낸스 공개 API(캔들/호가/실시간)를 그대로 쓴다. 다른 종목은 기존 OKX 그대로.
-const BINANCE_FEED_SYMBOLS = new Set(['SAMSUNGUSDT'])
+// 아래 종목들은 실제로 바이낸스 선물에도 상장돼 있어서(펀딩비/마크프라이스까지 있는 정식 상품),
+// 캔들/실시간 체결가만 OKX 대신 바이낸스 공개 API를 쓴다(호가는 종목과 무관하게 항상 OKX).
+const BINANCE_FEED_SYMBOLS = new Set(['SAMSUNGUSDT', 'SKHYNIXUSDT'])
 function usesBinanceFeed(sym: string) {
   return BINANCE_FEED_SYMBOLS.has(String(sym || '').toUpperCase())
 }
