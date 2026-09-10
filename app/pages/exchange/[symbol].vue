@@ -425,9 +425,9 @@
 
       <!-- 보유자산/주문 -->
       <section class="order-2 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
-        <div class="text-sm font-semibold text-slate-100">주문</div>
+        <div class="text-[15px] font-semibold text-slate-100">주문</div>
 
-        <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-sm text-slate-300 ring-1 ring-cyan-500/10">
+        <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
           주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
         </div>
 
@@ -436,14 +436,14 @@
             <!-- 레버리지 (첨부2 스타일) -->
             <div class="rounded-lg border border-white/10 bg-[#071722] p-3">
               <div class="flex items-center justify-between">
-                <div class="text-sm font-semibold text-slate-100">레버리지</div>
-                <button type="button" class="font-mono text-sm text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
+                <div class="text-[15px] font-semibold text-slate-100">레버리지</div>
+                <button type="button" class="font-mono text-[15px] text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
               </div>
-              <div class="mt-3 flex items-center justify-between text-xs text-slate-300">
+              <div class="mt-3 flex items-center justify-between text-[13px] text-slate-300">
                 <span class="whitespace-nowrap text-slate-400">레버리지 배율</span>
                 <span class="font-mono text-slate-200">x{{ leverage }}</span>
               </div>
-              <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+              <div class="mt-2 flex items-center justify-between text-[13px] text-slate-400">
                 <span>최대 레버리지</span>
                 <span class="font-mono text-slate-200">x100</span>
               </div>
@@ -452,7 +452,7 @@
                 <div class="relative">
                   <div
                     v-if="showLeverageTooltip"
-                    class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[11px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
+                    class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[12px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
                     :style="leverageTooltipStyle"
                   >
                     x{{ leverage }}
@@ -471,20 +471,13 @@
                     @pointercancel="showLeverageTooltip = false"
                   />
                 </div>
-                <div class="mt-2 grid grid-cols-5 gap-2">
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(10)">x10</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(25)">x25</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(50)">x50</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(75)">x75</button>
-                  <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setLeverage(100)">x100</button>
-                </div>
               </div>
             </div>
 
             <form class="mt-4 space-y-3" @submit.prevent>
               <!-- 구매가격 -->
               <div>
-                <div class="flex items-center justify-between text-xs text-slate-300">
+                <div class="flex items-center justify-between text-[13px] text-slate-300">
                   <span class="font-medium whitespace-nowrap">구매가격</span>
                   <span class="font-mono text-slate-400">USDT</span>
                 </div>
@@ -495,18 +488,18 @@
               </div>
 
             <!-- 수량/비중 -->
-            <div class="flex items-center justify-between text-xs text-slate-300">
+            <div class="flex items-center justify-between text-[13px] text-slate-300">
               <span class="font-medium whitespace-nowrap">수량</span>
               <span class="font-mono text-slate-400">{{ coinUnit }}</span>
             </div>
 
-            <div class="mt-1 flex items-center justify-between text-[11px] text-slate-400">
+            <div class="mt-1 flex items-center justify-between text-[12px] text-slate-400">
               <span class="font-mono">{{ qtyText }} {{ coinUnit }}</span>
             </div>
             <div class="relative mt-2">
               <div
                 v-if="showPercentTooltip"
-                class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[11px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
+                class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[12px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
                 :style="percentTooltipStyle"
               >
                 {{ percent }}%
@@ -528,56 +521,56 @@
             <!-- 요구사항: 수량 조절 바 아래 % 글자 제거 -->
 
             <div class="grid grid-cols-5 gap-2 pt-1">
-              <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(10)">10%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(25)">25%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(50)">50%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(75)">75%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(100)">100%</button>
+              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(10)">10%</button>
+              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(25)">25%</button>
+              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(50)">50%</button>
+              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(75)">75%</button>
+              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(100)">100%</button>
             </div>
 
             <div class="grid grid-cols-2 gap-3 pt-2">
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-sm font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="isTradeSyncing"
                   @click="onOpen('long')"
                 >
                   구매 / 롱
                 </button>
-                <div class="mt-2 text-center text-xs text-slate-400">비용 0.0 USDT</div>
+                <div class="mt-2 text-center text-[13px] text-slate-400">비용 0.0 USDT</div>
               </div>
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-sm font-semibold text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="isTradeSyncing"
                   @click="onOpen('short')"
                 >
                   판매 / 숏
                 </button>
-                <div class="mt-2 text-center text-xs text-slate-400">비용 0.0 USDT</div>
+                <div class="mt-2 text-center text-[13px] text-slate-400">비용 0.0 USDT</div>
               </div>
             </div>
 
-            <p v-if="error" class="text-sm text-rose-300">{{ error }}</p>
-            <p v-if="tradeMsg" class="text-sm text-emerald-300">{{ tradeMsg }}</p>
+            <p v-if="error" class="text-[15px] text-rose-300">{{ error }}</p>
+            <p v-if="tradeMsg" class="text-[15px] text-emerald-300">{{ tradeMsg }}</p>
           </form>
           </div>
 
           <!-- 하단: 보유자산/사용가능 -->
-          <div class="mt-2 rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-3 ring-1 ring-white/10">
-            <div class="text-sm font-semibold text-slate-100">보유자산</div>
+          <div class="mt-8 rounded-lg bg-gradient-to-r from-[#020b16] to-[#040c18] px-3 py-3 ring-1 ring-white/10">
+            <div class="text-[15px] font-semibold text-slate-100">보유자산</div>
             <div class="mt-3 flex items-center justify-between">
-              <div class="text-xs text-slate-400">보유자산(증거금포함)</div>
-              <div class="font-mono text-sm text-slate-100">{{ totalAssetsDisplay }} USDT</div>
+              <div class="text-[13px] text-slate-400">보유자산(증거금포함)</div>
+              <div class="font-mono text-[15px] text-slate-100">{{ totalAssetsDisplay }} USDT</div>
             </div>
 
             <div class="mt-4 flex items-start justify-between">
-              <div class="text-sm font-semibold text-slate-200">사용가능 금액</div>
+              <div class="text-[15px] font-semibold text-slate-200">사용가능 금액</div>
               <div class="text-right">
-                <div class="font-mono text-sm text-slate-100">{{ balanceDisplay }} USDT</div>
-                <div class="mt-0.5 font-mono text-xs text-slate-500">{{ availableWonText }} 원</div>
+                <div class="font-mono text-[15px] text-slate-100">{{ balanceDisplay }} USDT</div>
+                <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ availableWonText }} 원</div>
               </div>
             </div>
           </div>
