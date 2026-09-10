@@ -1736,10 +1736,10 @@ const bolSelected = ref(false)
 // 보조지표(BOL 제외 29종) 상태: 하단(오실레이터) 지표 하나당 별도 창(pane)을 만들고,
 // 그만큼 차트 전체 높이를 늘린다.
 // 차트 카드와 호가 카드의 세로 크기를 서로 맞춘다(기존엔 차트가 더 크고 호가가 더 작았는데,
-// 그 둘의 중간 정도 높이로 통일). 차트 카드는 위쪽 종목정보/툴바(약 117px)와 아래 여백(약
-// 25px)을 뺀 나머지를 실제 캔들 영역 높이로 쓴다. 보조지표 pane을 켜면 그만큼 더 늘어난다.
+// 그 둘의 중간 정도 높이로 통일). 차트 카드는 위쪽 종목정보/툴바(약 118px)를 뺀 나머지를
+// 실제 캔들 영역 높이로 쓴다. 보조지표 pane을 켜면 그만큼 더 늘어난다.
 const MATCHED_PANEL_HEIGHT = 666
-const CHART_BASE_HEIGHT = MATCHED_PANEL_HEIGHT - 142
+const CHART_BASE_HEIGHT = MATCHED_PANEL_HEIGHT - 118
 const OSCILLATOR_PANE_HEIGHT = 130
 const chartContainerHeightPx = ref(CHART_BASE_HEIGHT)
 let extraIndicatorSeries: Map<string, ISeriesApi<any>[]> = new Map()
