@@ -450,31 +450,6 @@
                 <span>최대 레버리지</span>
                 <span class="font-mono text-slate-200">x100</span>
               </div>
-
-              <div class="mt-2">
-                <div class="relative">
-                  <div
-                    v-if="showLeverageTooltip"
-                    class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[12px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
-                    :style="leverageTooltipStyle"
-                  >
-                    x{{ leverage }}
-                  </div>
-                  <input
-                    v-model.number="leverage"
-                    type="range"
-                    min="1"
-                    max="100"
-                    step="1"
-                    class="w-full accent-[#0c9f8e]"
-                    @pointerdown="showLeverageTooltip = true"
-                    @input="showLeverageTooltip = true"
-                    @change="showLeverageTooltip = false"
-                    @pointerup="showLeverageTooltip = false"
-                    @pointercancel="showLeverageTooltip = false"
-                  />
-                </div>
-              </div>
             </div>
 
             <form class="mt-4 space-y-3" @submit.prevent>
@@ -492,7 +467,7 @@
 
             <!-- 수량/비중 -->
             <div class="flex items-center justify-between text-[13px] text-slate-300">
-              <span class="font-medium whitespace-nowrap">수량</span>
+              <span class="font-medium whitespace-nowrap">비중/수량</span>
               <span class="font-mono text-slate-400">{{ coinUnit }}</span>
             </div>
 
@@ -1353,10 +1328,6 @@ const percent = ref<number>(50)
 const showPercentTooltip = ref(false)
 const percentTooltipStyle = computed(() => ({
   left: `calc(${percent.value}% - ${(percent.value / 100) * 16}px)`
-}))
-const showLeverageTooltip = ref(false)
-const leverageTooltipStyle = computed(() => ({
-  left: `calc(${Math.max(0, Number(leverage.value || 0))}% - ${(Math.max(0, Number(leverage.value || 0)) / 100) * 16}px)`
 }))
 // 지정가 입력 제거
 
