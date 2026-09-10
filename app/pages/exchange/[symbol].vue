@@ -1731,9 +1731,10 @@ const bolSelected = ref(false)
 
 // 보조지표(BOL 제외 29종) 상태: 하단(오실레이터) 지표 하나당 별도 창(pane)을 만들고,
 // 그만큼 차트 전체 높이를 늘린다.
-// 이제 차트 영역은 flex-1로 레이아웃이 허용하는 만큼 늘어나므로, 이 값은 "최소 높이"
-// 역할만 한다(보조지표 pane이 늘어날 때 필요한 공간을 보장하기 위함).
-const CHART_BASE_HEIGHT = 600
+// 차트 영역은 flex-1로 레이아웃(호가 등)이 정한 높이만큼 늘어난다. 이 값은 그 높이를
+// 억지로 밀어올리지 않는 아주 작은 기술적 최솟값일 뿐이고, 실제 표시 높이는 거의 항상
+// 옆 호가 칸의 자연스러운 높이로 결정된다. 보조지표 pane을 켜면 그만큼만 더해서 늘어난다.
+const CHART_BASE_HEIGHT = 200
 const OSCILLATOR_PANE_HEIGHT = 130
 const chartContainerHeightPx = ref(CHART_BASE_HEIGHT)
 let extraIndicatorSeries: Map<string, ISeriesApi<any>[]> = new Map()
