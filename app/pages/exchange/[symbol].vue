@@ -3345,10 +3345,12 @@ function refreshDisplayIfNeeded() {
   }
 }
 
-function ensureSyntheticOrderbook() {
+// 실시간 가격(lastPrice)을 중심으로 호가 사다리를 새로 만든다. usesBinanceFeed 종목은 lastPrice가
+// (호가와는 무관한) 바이낸스 체결가라서, 매번 이 가격을 기준으로 다시 만들어야 중간값과 위/아래
+// 호가 줄이 항상 순서대로 맞는다.
+function regenerateSyntheticOrderbook() {
   const mid = Number(lastPrice.value || 0)
   if (!Number.isFinite(mid) || mid <= 0) return
-  if (obAsks.value.size && obBids.value.size) return
 
   const askMap = new Map<number, number>()
   const bidMap = new Map<number, number>()
@@ -3368,6 +3370,11 @@ function ensureSyntheticOrderbook() {
   obAsks.value = askMap
   obBids.value = bidMap
   initDisplayFromMaps()
+}
+
+function ensureSyntheticOrderbook() {
+  if (obAsks.value.size && obBids.value.size) return
+  regenerateSyntheticOrderbook()
 }
 
 function buildRowsFromDisplay(side: 'ask' | 'bid', count: number): Array<DepthRow | null> {
@@ -4960,6 +4967,13 @@ async function refreshOrderbookFromRest() {
   if (orderbookRefreshing) return false
   orderbookRefreshing = true
   try {
+    // usesBinanceFeed 종목은 REST 폴백도 OKX 실호가 대신 현재가 기준 합성 사다리로 대체한다.
+    if (usesBinanceFeed(symbol.value)) {
+      regenerateSyntheticOrderbook()
+      lastOrderbookTs = Date.now()
+      orderbookRestFail = 0
+      return true
+    }
     const instId = toInstId(symbol.value)
     const res = await $fetch<any>('/api/okx/books', { query: { instId, sz: 20 } })
     const data = res?.data
@@ -4992,7 +5006,13 @@ function jitterOrderbookMap(source: Map<number, number>) {
 }
 
 function simulateOrderbookLevels() {
-  // 현재가는 차트(lastPrice)만 따르고, 위/아래 호가 물량만 강제로 계속 움직이게 함
+  // usesBinanceFeed 종목은 호가 가격 자체가 실시간 가격과 무관하게 어긋날 수 있어서(호가는 OKX,
+  // 현재가는 바이낸스), 틱마다 현재가를 기준으로 사다리를 통째로 다시 만든다.
+  if (usesBinanceFeed(symbol.value)) {
+    regenerateSyntheticOrderbook()
+    return
+  }
+  // 그 외 종목은 현재가(lastPrice)만 따르고, 위/아래 호가 물량만 강제로 계속 움직이게 함
   ensureSyntheticOrderbook()
   if (obAsks.value.size) obAsks.value = jitterOrderbookMap(obAsks.value)
   if (obBids.value.size) obBids.value = jitterOrderbookMap(obBids.value)
@@ -5062,6 +5082,9 @@ function connectOkxWs() {
 
       if (arg.channel === 'books') {
         lastOrderbookTs = Date.now()
+        // usesBinanceFeed 종목은 호가를 현재가(바이낸스) 기준 합성 사다리로만 표시하므로,
+        // OKX의 실제 호가 데이터는 받되 적용하지 않는다(연결 유지/무음 감지용으로만 사용).
+        if (usesBinanceFeed(symbol.value)) return
         if (msg?.action === 'snapshot') {
           resetOrderbook()
         }
