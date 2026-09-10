@@ -1718,6 +1718,10 @@ const chartPrefs = reactive<{
   drawings: []
 })
 
+// 서버에 저장된 종목별 지표/선 설정(symbol -> {indicators, drawings}). 로그인 시 한 번 받아와서,
+// 이 기기에 아직 로컬 캐시가 없는 종목으로 넘어갈 때 그 종목의 서버 저장값으로 대체하기 위함.
+let serverChartPrefsMap: Record<string, { indicators?: any; drawings?: any[] }> = {}
+
 // BOL 더블클릭 설정 팝업 + 클릭 선택(Delete로 삭제)
 const bolModalOpen = ref(false)
 const bolModalTab = ref<'input' | 'style'>('input')
@@ -1806,6 +1810,42 @@ function getChartDrawingStorageKeys(sym = symbol.value) {
   if (uid) keys.push(chartDrawingStorageKeyV1(s, uid))
   keys.push(chartDrawingStorageKeyV1(s, 'guest'))
   return keys
+}
+
+// 지표(BOL/보조지표)도 선/도형과 동일하게 종목별로 따로 저장한다(다른 종목 차트로 넘어가도
+// 그 종목에서 켜둔 지표만 보이게 하기 위함).
+function chartIndicatorsStorageKey(sym = symbol.value) {
+  return `trae:chart-indicators:v1:${String(sym || '').toUpperCase()}`
+}
+
+function loadLocalIndicators(sym = symbol.value): { bol?: any; extra?: string[] } | null {
+  if (!process.client) return null
+  try {
+    const raw = localStorage.getItem(chartIndicatorsStorageKey(sym))
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+// 종목을 전환할 때(최초 진입 포함) 그 종목에 저장된 지표/선 설정을 반영한다.
+// 우선순위: 이 기기의 로컬 캐시 > 로그인 시 받아온 서버 저장값 > 기본값(끔/빈 배열).
+function applyChartPrefsForSymbol(sym: string) {
+  const localIndicators = loadLocalIndicators(sym)
+  const serverSlice = serverChartPrefsMap[String(sym || '').toUpperCase()]
+  const ind = localIndicators ?? serverSlice?.indicators ?? {}
+
+  if (ind?.bol && typeof ind.bol === 'object') {
+    Object.assign(chartPrefs.indicators.bol, defaultBolPrefs(), ind.bol)
+  } else {
+    Object.assign(chartPrefs.indicators.bol, defaultBolPrefs())
+    chartPrefs.indicators.bol.enabled = !!ind?.bol
+  }
+  chartPrefs.indicators.extra = Array.isArray(ind?.extra) ? ind.extra.filter((id: any) => typeof id === 'string') : []
+
+  chartPrefs.drawings = loadLocalChartDrawings(sym) ?? (Array.isArray(serverSlice?.drawings) ? serverSlice.drawings : [])
 }
 
 const currentCandleMeta = computed(() => {
@@ -3642,27 +3682,37 @@ function applyDynamicPriceFormat(price: number) {
 }
 
 function scheduleSaveChartPrefs() {
+  // 지금 적용 중인 지표/선이 어느 종목 것인지 고정해둔다(디바운스 타이머가 실행되는 사이
+  // 다른 종목으로 넘어가도, 엉뚱한 종목에 저장되지 않게).
+  const sym = symbol.value
+
   // 로컬(같은 기기/브라우저) 캐시는 "서버 설정 로드 여부"와 무관하게 항상 저장한다.
-  // 그래야 F5/재접속 후에도 수평선/추세선이 유지된다.
+  // 그래야 F5/재접속 후에도 지표/수평선/추세선이 유지된다. 종목별로 따로 저장.
   if (process.client) {
     try {
+      localStorage.setItem(chartIndicatorsStorageKey(sym), JSON.stringify(chartPrefs.indicators || {}))
       // v2(기기 단위) 저장
-      localStorage.setItem(chartDrawingStorageKeyV2(), JSON.stringify(chartPrefs.drawings || []))
+      localStorage.setItem(chartDrawingStorageKeyV2(sym), JSON.stringify(chartPrefs.drawings || []))
       // v1(legacy)도 같이 저장해두면, 예전 키로 저장된 사용자들도 자연스럽게 이어진다.
       const uid = Number((me.value as any)?.id || 0)
-      if (uid) localStorage.setItem(chartDrawingStorageKeyV1(symbol.value, uid), JSON.stringify(chartPrefs.drawings || []))
+      if (uid) localStorage.setItem(chartDrawingStorageKeyV1(sym, uid), JSON.stringify(chartPrefs.drawings || []))
     } catch {}
   }
 
   // 서버 저장은 로그인/하이드레이션 이후에만 수행(서버 장애/스키마 문제여도 로컬 캐시는 유지됨)
   if (!chartPrefsHydrated.value || !me.value) return
   if (saveChartPrefsTimer) clearTimeout(saveChartPrefsTimer)
+  const indicatorsSnapshot = { ...chartPrefs.indicators, bol: { ...chartPrefs.indicators.bol } }
+  const drawingsSnapshot = [...chartPrefs.drawings]
   saveChartPrefsTimer = setTimeout(async () => {
+    // 서버에도 종목별로 저장(다른 기기/브라우저에서 접속했을 때도 종목별로 복원되도록).
+    serverChartPrefsMap[sym.toUpperCase()] = { indicators: indicatorsSnapshot, drawings: drawingsSnapshot }
     await $fetch('/api/settings/chart', {
       method: 'POST',
       body: {
-        indicators: chartPrefs.indicators,
-        drawings: chartPrefs.drawings
+        symbol: sym,
+        indicators: indicatorsSnapshot,
+        drawings: drawingsSnapshot
       }
     }).catch(() => {})
   }, 400)
@@ -5008,24 +5058,12 @@ async function loadAccount() {
     prefsHydrated.value = true
   }
 
-  if (!chartPrefsHydrated.value && data?.settings?.chartPrefs) {
-    const cp = data.settings.chartPrefs || {}
-    if (cp?.indicators?.bol && typeof cp.indicators.bol === 'object') {
-      Object.assign(chartPrefs.indicators.bol, defaultBolPrefs(), cp.indicators.bol)
-    } else {
-      chartPrefs.indicators.bol.enabled = !!cp?.indicators?.bol
-    }
-    if (Array.isArray(cp?.indicators?.extra)) {
-      chartPrefs.indicators.extra = cp.indicators.extra.filter((id: any) => typeof id === 'string')
-    }
-    chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? (Array.isArray(cp?.drawings) ? cp.drawings : [])
-    chartPrefsHydrated.value = true
-  }
-
-  // 서버에서 chartPrefs가 내려오지 않는 경우에도,
-  // 로컬 캐시가 있으면 우선 복원해서 F5/재접속 시 도구가 유지되게 한다.
   if (!chartPrefsHydrated.value) {
-    chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? []
+    // data.settings.chartPrefs는 이제 종목별 맵({SYMBOL: {indicators, drawings}})이다.
+    // 예전 형식(플랫 {indicators, drawings})이 남아있으면 종목 구분이 불가능하므로 버리고 새로 시작한다.
+    const cp = data?.settings?.chartPrefs
+    serverChartPrefsMap = cp && typeof cp === 'object' && !Array.isArray(cp) && !('indicators' in cp) && !('drawings' in cp) ? cp : {}
+    applyChartPrefsForSymbol(symbol.value)
     chartPrefsHydrated.value = true
   }
 
@@ -5358,8 +5396,9 @@ async function closePosition(
 }
 
 watch([() => symbol.value, timeframe], async () => {
-  // 심볼/타임프레임 변경 시 차트/WS 재연결
-  chartPrefs.drawings = loadLocalChartDrawings(symbol.value) ?? []
+  // 심볼/타임프레임 변경 시 차트/WS 재연결. 지표/선은 종목별로 저장되므로, 종목이 바뀌면
+  // 그 종목에 저장된 것만 반영되게 다시 불러온다(다른 종목에서 그린 게 그대로 보이던 문제 수정).
+  applyChartPrefsForSymbol(symbol.value)
   applyPriceFormatForSymbol(symbol.value)
   // fetchCandles()는 이제 기존 candleData/volumeData 위에 병합하므로, 심볼/타임프레임이 바뀔 때는
   // 이전 심볼의 과거 봉과 섞이지 않도록 먼저 비워준다(과거 이어받기 상태도 같이 초기화).
