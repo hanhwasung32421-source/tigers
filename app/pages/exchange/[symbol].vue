@@ -249,8 +249,8 @@
                 <span>{{ timeframe }}</span>
               </div>
               <div class="flex items-center gap-3">
-                <span>고가 {{ high24 ? fmtPrice(high24) : '—' }}</span>
-                <span>저가 {{ low24 ? fmtPrice(low24) : '—' }}</span>
+                <span>고가 {{ visibleHigh ? fmtPrice(visibleHigh) : '—' }}</span>
+                <span>저가 {{ visibleLow ? fmtPrice(visibleLow) : '—' }}</span>
               </div>
             </div>
             <div v-if="drawingHintVisible" class="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
@@ -347,12 +347,6 @@
                 {{ b.pctText }}
               </span>
             </div>
-          </div>
-
-          <div class="flex w-[44px] shrink-0 flex-col items-center gap-1 border-l border-[#2a2e39] bg-[#131722] px-1 py-2">
-            <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" title="비율 50%" @click="setPercent(50)">
-              50
-            </button>
           </div>
         </div>
 
@@ -1136,16 +1130,16 @@
             <div class="bg-[#081726] px-4 py-3.5">
               <div class="text-[12px] text-slate-500">손익</div>
               <div class="mt-1 text-[16px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
-                {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(6) }} USDT
+                {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(2) }} USDT
               </div>
             </div>
             <div class="bg-[#081726] px-4 py-3.5">
               <div class="text-[12px] text-slate-500">진입가격</div>
-              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ fmtPrice(closeSummary.entryPrice) }}</div>
+              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ closeSummary.entryPrice.toFixed(2) }}</div>
             </div>
             <div class="bg-[#081726] px-4 py-3.5">
               <div class="text-[12px] text-slate-500">종료가격</div>
-              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ fmtPrice(closeSummary.exitPrice) }}</div>
+              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ closeSummary.exitPrice.toFixed(2) }}</div>
             </div>
           </div>
         </div>
@@ -1329,8 +1323,9 @@ await refreshMe()
 
 // ticker
 const lastPrice = ref<number | null>(null)
-const high24 = ref<number | null>(null)
-const low24 = ref<number | null>(null)
+// 차트 우측 상단 고가/저가: 24시간 전체가 아니라, 지금 화면에 보이는(스크롤/줌 범위 안의) 봉만 기준으로 계산한다.
+const visibleHigh = ref<number | null>(null)
+const visibleLow = ref<number | null>(null)
 const vol24 = ref<number | null>(null)
 const chartNow = ref(Date.now())
 let chartClockTimer: any = null
@@ -2775,6 +2770,7 @@ function updateLiveCandle(price: number, tsMs: number) {
     candleData.value = candleData.value.length ? candleData.value.concat([next]) : [next]
     candleSeries.update(next)
     volumeSeries?.update({ time, value: 0, color: 'rgba(148,163,184,0.25)' })
+    updateVisibleHighLow()
     return
   }
 
@@ -2794,6 +2790,7 @@ function updateLiveCandle(price: number, tsMs: number) {
     value: 0,
     color: p >= updated.open ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'
   })
+  updateVisibleHighLow()
 }
 
 const KILL_LAST_SETTINGS_KEY = 'bitduck_kill_last_settings'
@@ -4535,6 +4532,7 @@ function initChart() {
   // 확대/축소/스크롤로 가격축 스케일이 바뀔 때도 진입가 뱃지 위치를 다시 계산
   chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
     updateEntryBadges()
+    updateVisibleHighLow()
     if (measureBox.value) {
       measureBox.value = null
       measureBoxFrozen.value = false
@@ -4655,6 +4653,27 @@ function updateEntryBadges() {
     })
   }
   entryBadges.value = list
+}
+
+// 차트 우측 상단 고가/저가를 "지금 화면에 보이는 봉" 기준으로 계산한다.
+// candleData는 setData()에 쓴 것과 같은 배열이라, 로지컬 레인지의 인덱스가 그대로 배열 인덱스와 맞는다.
+function updateVisibleHighLow() {
+  if (!chart) return
+  const range = chart.timeScale().getVisibleLogicalRange()
+  const candles = candleData.value
+  if (!range || !candles.length) return
+  const from = Math.max(0, Math.floor(range.from))
+  const to = Math.min(candles.length - 1, Math.ceil(range.to))
+  if (from > to) return
+  let hi = -Infinity
+  let lo = Infinity
+  for (let i = from; i <= to; i++) {
+    const c = candles[i] as any
+    if (typeof c?.high === 'number') hi = Math.max(hi, c.high)
+    if (typeof c?.low === 'number') lo = Math.min(lo, c.low)
+  }
+  visibleHigh.value = Number.isFinite(hi) ? hi : null
+  visibleLow.value = Number.isFinite(lo) ? lo : null
 }
 
 let candlesFetchToken = 0
@@ -4983,8 +5002,6 @@ function connectWs() {
           lastPrice.value = p
           updateLiveCandle(p, Number(data.ts ?? Date.now()))
         }
-        high24.value = Number(data.high24h ?? data.high24) || high24.value
-        low24.value = Number(data.low24h ?? data.low24) || low24.value
         vol24.value = Number(data.vol24h ?? data.vol24) || vol24.value
       }
 
