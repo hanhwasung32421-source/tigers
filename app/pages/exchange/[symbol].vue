@@ -744,8 +744,8 @@
             <tr class="text-left">
               <th class="px-3 py-2">시간</th>
               <th class="px-3 py-2">종목</th>
+              <th class="px-3 py-2">포지션</th>
               <th class="px-3 py-2">구분</th>
-              <th class="px-3 py-2">방향</th>
               <th class="px-3 py-2">체결가</th>
               <th class="px-3 py-2">수량</th>
               <th class="px-3 py-2">수수료</th>
@@ -759,6 +759,9 @@
             <tr v-for="t in fills" :key="`fill-${t.id}`" class="border-t border-white/10">
               <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(t.created_at) }}</td>
               <td class="px-3 py-3 text-slate-100">{{ shortSymbol(t.symbol) }}</td>
+              <td class="px-3 py-3" :class="t.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
+                {{ t.side === 'long' ? '롱' : '숏' }}
+              </td>
               <td class="px-3 py-3">
                 <span
                   class="rounded px-2 py-1 text-xs font-semibold ring-1"
@@ -766,9 +769,6 @@
                 >
                   {{ tradeResultLabel(t) }}
                 </span>
-              </td>
-              <td class="px-3 py-3" :class="fillDirection(t) === 'BUY' ? 'text-emerald-300' : 'text-rose-300'">
-                {{ fillDirection(t) }}
               </td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice(Number(t.exit_price)) }}</td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty(t.symbol, Number(t.qty)) }} {{ baseCoin(t.symbol) }}</td>
@@ -3368,10 +3368,6 @@ function shortSymbol(sym: string) {
 
 function baseCoin(sym: string) {
   return shortSymbol(sym)
-}
-
-function fillDirection(t: any) {
-  return t.side === 'short' ? 'BUY' : 'SELL'
 }
 
 // liquidation 플래그가 없어도(예: 청산가에 도달한 뒤 자동감지보다 먼저 수동으로 닫힌 경우),
