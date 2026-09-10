@@ -1346,8 +1346,6 @@ const asks = ref<[string, string][]>([])
 const bids = ref<[string, string][]>([])
 const wsStatus = ref('')
 let ws: WebSocket | null = null
-// SAMSUNGUSDT처럼 바이낸스 시세를 쓰는 종목의 실시간 체결가 전용 보조 연결(호가는 그대로 OKX만 사용).
-let priceWs: WebSocket | null = null
 let lastOrderbookTs = 0
 let orderbookWatchTimer: any = null
 let orderbookRefreshing = false
@@ -3345,9 +3343,7 @@ function refreshDisplayIfNeeded() {
   }
 }
 
-// 실시간 가격(lastPrice)을 중심으로 호가 사다리를 새로 만든다. usesBinanceFeed 종목은 lastPrice가
-// (호가와는 무관한) 바이낸스 체결가라서, 매번 이 가격을 기준으로 다시 만들어야 중간값과 위/아래
-// 호가 줄이 항상 순서대로 맞는다.
+// 실시간 가격(lastPrice)을 중심으로 호가 사다리를 새로 만든다. 실제 호가가 끊겼을 때만 쓰는 대체용.
 function regenerateSyntheticOrderbook() {
   const mid = Number(lastPrice.value || 0)
   if (!Number.isFinite(mid) || mid <= 0) return
@@ -4967,15 +4963,10 @@ async function refreshOrderbookFromRest() {
   if (orderbookRefreshing) return false
   orderbookRefreshing = true
   try {
-    // usesBinanceFeed 종목은 REST 폴백도 OKX 실호가 대신 현재가 기준 합성 사다리로 대체한다.
-    if (usesBinanceFeed(symbol.value)) {
-      regenerateSyntheticOrderbook()
-      lastOrderbookTs = Date.now()
-      orderbookRestFail = 0
-      return true
-    }
-    const instId = toInstId(symbol.value)
-    const res = await $fetch<any>('/api/okx/books', { query: { instId, sz: 20 } })
+    const sym = symbol.value
+    const res = usesBinanceFeed(sym)
+      ? await $fetch<any>('/api/binance/books', { query: { symbol: sym.toUpperCase(), limit: 20 } })
+      : await $fetch<any>('/api/okx/books', { query: { instId: toInstId(sym), sz: 20 } })
     const data = res?.data
     if (!data) return false
     // REST는 스냅샷이므로 전체 재구성
@@ -5006,13 +4997,7 @@ function jitterOrderbookMap(source: Map<number, number>) {
 }
 
 function simulateOrderbookLevels() {
-  // usesBinanceFeed 종목은 호가 가격 자체가 실시간 가격과 무관하게 어긋날 수 있어서(호가는 OKX,
-  // 현재가는 바이낸스), 틱마다 현재가를 기준으로 사다리를 통째로 다시 만든다.
-  if (usesBinanceFeed(symbol.value)) {
-    regenerateSyntheticOrderbook()
-    return
-  }
-  // 그 외 종목은 현재가(lastPrice)만 따르고, 위/아래 호가 물량만 강제로 계속 움직이게 함
+  // 현재가는 차트(lastPrice)만 따르고, 위/아래 호가 물량만 강제로 계속 움직이게 함
   ensureSyntheticOrderbook()
   if (obAsks.value.size) obAsks.value = jitterOrderbookMap(obAsks.value)
   if (obBids.value.size) obBids.value = jitterOrderbookMap(obBids.value)
@@ -5022,17 +5007,12 @@ function simulateBuySellBand() {
   forcedBuyPct.value = 40 + Math.random() * 20
 }
 
-// 호가(오더북)는 종목과 무관하게 항상 OKX 연결 하나로만 처리한다(기존 방식 그대로 유지).
-// SAMSUNGUSDT처럼 바이낸스 시세를 쓰는 종목은 여기에 더해서, 실시간 체결가만 별도로 바이낸스에서
-// 받아와 lastPrice/캔들을 갱신한다(호가에는 전혀 관여하지 않음).
 function connectWs() {
-  connectOkxWs()
   if (usesBinanceFeed(symbol.value)) {
-    connectBinancePriceWs()
-  } else {
-    priceWs?.close()
-    priceWs = null
+    connectBinanceWs()
+    return
   }
+  connectOkxWs()
 }
 
 function connectOkxWs() {
@@ -5069,9 +5049,7 @@ function connectOkxWs() {
       const data = msg?.data?.[0]
       if (!arg || !data) return
 
-      // SAMSUNGUSDT 등 바이낸스 시세를 쓰는 종목은 가격/거래량을 바이낸스 쪽에서 갱신하므로
-      // OKX 티커는 무시한다(호가 채널만 계속 사용).
-      if (arg.channel === 'tickers' && !usesBinanceFeed(symbol.value)) {
+      if (arg.channel === 'tickers') {
         const p = Number(data.last)
         if (Number.isFinite(p)) {
           lastPrice.value = p
@@ -5082,9 +5060,6 @@ function connectOkxWs() {
 
       if (arg.channel === 'books') {
         lastOrderbookTs = Date.now()
-        // usesBinanceFeed 종목은 호가를 현재가(바이낸스) 기준 합성 사다리로만 표시하므로,
-        // OKX의 실제 호가 데이터는 받되 적용하지 않는다(연결 유지/무음 감지용으로만 사용).
-        if (usesBinanceFeed(symbol.value)) return
         if (msg?.action === 'snapshot') {
           resetOrderbook()
         }
@@ -5103,21 +5078,43 @@ function connectOkxWs() {
   startOrderbookAutoReconnect()
 }
 
-// 바이낸스 선물 공개 웹소켓(실시간 체결가 전용, 호가는 건드리지 않음).
-function connectBinancePriceWs() {
+// 바이낸스 선물 공개 웹소켓. combined stream으로 실시간 체결가(aggTrade) + 호가 스냅샷(depth20) +
+// 24시간 통계(ticker)를 한 번에 받는다. depth20은 OKX와 달리 매번 전체 스냅샷으로 내려오므로
+// 매 메시지마다 그대로 재구성한다.
+function connectBinanceWs() {
   if (!process.client) return
-  priceWs?.close()
+  ws?.close()
+  asks.value = []
+  bids.value = []
+  resetOrderbook()
+  wsStatus.value = 'connecting'
+  lastOrderbookTs = Date.now()
 
   const lower = symbol.value.toLowerCase()
-  const streams = [`${lower}@aggTrade`, `${lower}@ticker`].join('/')
-  priceWs = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
+  const streams = [`${lower}@aggTrade`, `${lower}@depth20@100ms`, `${lower}@ticker`].join('/')
+  ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
 
-  priceWs.onmessage = (ev) => {
+  ws.onopen = () => (wsStatus.value = 'open')
+  ws.onclose = () => (wsStatus.value = 'closed')
+  ws.onerror = () => (wsStatus.value = 'error')
+
+  ws.onmessage = (ev) => {
     try {
       const msg = JSON.parse(ev.data)
       const data = msg?.data
       if (!data) return
 
+      // 호가 스냅샷(depth20): bids/asks가 있으면 전체 재구성
+      if (Array.isArray(data.bids) && Array.isArray(data.asks)) {
+        lastOrderbookTs = Date.now()
+        resetOrderbook()
+        applyOrderbookUpdate(data.asks, 'ask')
+        applyOrderbookUpdate(data.bids, 'bid')
+        initDisplayFromMaps()
+        return
+      }
+
+      // 실시간 체결가(aggTrade)
       if (data.e === 'aggTrade') {
         const p = Number(data.p)
         if (Number.isFinite(p)) {
@@ -5127,6 +5124,7 @@ function connectBinancePriceWs() {
         return
       }
 
+      // 24시간 통계(ticker): 거래량만 반영
       if (data.e === '24hrTicker') {
         vol24.value = Number(data.v) || vol24.value
       }
@@ -5134,6 +5132,7 @@ function connectBinancePriceWs() {
       // ignore
     }
   }
+  startOrderbookAutoReconnect()
 }
 
 function startOrderbookAutoReconnect() {
@@ -5650,8 +5649,6 @@ onBeforeUnmount(() => {
   chartHeaderResizeRaf = 0
   ws?.close()
   ws = null
-  priceWs?.close()
-  priceWs = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
   pendingCloseTimers.clear()
   if (markPollTimer) clearInterval(markPollTimer)
