@@ -4514,7 +4514,9 @@ function initChart() {
 
   volumeSeries = chart.addSeries(HistogramSeries, {
     priceFormat: { type: 'volume' },
-    priceScaleId: ''
+    priceScaleId: '',
+    priceLineVisible: false,
+    lastValueVisible: false
   })
   volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } })
 
