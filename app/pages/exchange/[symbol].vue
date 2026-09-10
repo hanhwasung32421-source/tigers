@@ -1725,6 +1725,14 @@ function currentOscillatorCount() {
     (id) => INDICATOR_LIST.find((m) => m.id === id)?.category === 'oscillator'
   ).length
 }
+// 브라우저 창 크기 변경(줄바꿈 여부 변화)에도 ResizeObserver와 별개로 한 번 더 재계산한다(이중 안전장치).
+function onWindowResizeForChartHeight() {
+  if (chartHeaderResizeRaf) cancelAnimationFrame(chartHeaderResizeRaf)
+  chartHeaderResizeRaf = requestAnimationFrame(() => {
+    chartHeaderResizeRaf = 0
+    syncChartBaseHeight()
+  })
+}
 function syncChartBaseHeight() {
   if (!chartHeaderEl.value) return
   const headerHeight = chartHeaderEl.value.getBoundingClientRect().height
@@ -5457,6 +5465,7 @@ watch(
 
 onMounted(async () => {
   document.addEventListener('click', onDropdownMenuDocClick, { capture: true })
+  window.addEventListener('resize', onWindowResizeForChartHeight)
   chartClockTimer = setInterval(() => {
     chartNow.value = Date.now()
   }, 1000)
@@ -5511,6 +5520,7 @@ watch(
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
+  window.removeEventListener('resize', onWindowResizeForChartHeight)
   chartResizeObserver?.disconnect()
   chartResizeObserver = null
   if (chartResizeRaf) cancelAnimationFrame(chartResizeRaf)
