@@ -1346,6 +1346,8 @@ const asks = ref<[string, string][]>([])
 const bids = ref<[string, string][]>([])
 const wsStatus = ref('')
 let ws: WebSocket | null = null
+// SAMSUNGUSDT처럼 바이낸스 시세를 쓰는 종목의 실시간 체결가 전용 보조 연결(호가는 그대로 OKX만 사용).
+let priceWs: WebSocket | null = null
 let lastOrderbookTs = 0
 let orderbookWatchTimer: any = null
 let orderbookRefreshing = false
@@ -2178,7 +2180,8 @@ function barSeconds(tf: TimeframeValue) {
 // 있었다. 일봉만 OKX와 동일한 UTC+8 기준으로 버킷을 계산해서 서버가 그려둔 봉과 맞춘다.
 const OKX_DAY_BAR_OFFSET_SEC = 8 * 3600
 function barBucketStart(sec: number, intervalSeconds: number): number {
-  if (intervalSeconds === 86400) {
+  // 바이낸스 기반 종목(SAMSUNGUSDT)의 일봉은 표준대로 UTC 자정 기준이라 이 보정이 필요 없다.
+  if (intervalSeconds === 86400 && !usesBinanceFeed(symbol.value)) {
     return Math.floor((sec + OKX_DAY_BAR_OFFSET_SEC) / 86400) * 86400 - OKX_DAY_BAR_OFFSET_SEC
   }
   return Math.floor(sec / intervalSeconds) * intervalSeconds
@@ -3671,6 +3674,46 @@ function toInstId(sym: string) {
   return 'BTC-USDT-SWAP'
 }
 
+// SAMSUNGUSDT는 실제로 바이낸스 선물에 상장된 종목이라(펀딩비/마크프라이스까지 있는 정식 상품),
+// 이 종목만 OKX 대신 바이낸스 공개 API(캔들/호가/실시간)를 그대로 쓴다. 다른 종목은 기존 OKX 그대로.
+const BINANCE_FEED_SYMBOLS = new Set(['SAMSUNGUSDT'])
+function usesBinanceFeed(sym: string) {
+  return BINANCE_FEED_SYMBOLS.has(String(sym || '').toUpperCase())
+}
+
+function toBinanceInterval(bar: TimeframeValue): string {
+  if (bar === '1H') return '1h'
+  if (bar === '1D') return '1d'
+  if (bar === '1W') return '1w'
+  if (bar === '1M') return '1M'
+  return bar
+}
+
+// 바이낸스 캔들(오름차순, [openTime,o,h,l,c,vol,...])을 OKX 캔들 행 형태(내림차순 문자열 배열)로
+// 바꿔서, candleRowsToSeriesData/이력 페이지네이션 등 기존 OKX 파이프라인을 그대로 재사용한다.
+function binanceKlinesToOkxRows(rows: any[]): string[][] {
+  return rows
+    .map((r) => [String(r[0]), String(r[1]), String(r[2]), String(r[3]), String(r[4]), String(r[5] ?? 0)])
+    .reverse()
+}
+
+// 캔들 한 페이지를 가져온다. beforeMs가 있으면 그 시각보다 과거 구간을 요청한다(이력 페이지네이션용).
+// 반환 형식은 항상 OKX 스타일(내림차순 문자열 배열)로 통일한다.
+async function fetchCandlesPage(sym: string, bar: TimeframeValue, limit: number, beforeMs?: number): Promise<string[][]> {
+  if (usesBinanceFeed(sym)) {
+    const interval = toBinanceInterval(bar)
+    const res = await $fetch<any[]>('/api/binance/candles', {
+      query: { symbol: sym.toUpperCase(), interval, limit, ...(beforeMs ? { endTime: beforeMs - 1 } : {}) }
+    }).catch(() => [])
+    return binanceKlinesToOkxRows(Array.isArray(res) ? res : [])
+  }
+  const instId = toInstId(sym)
+  const res = await $fetch<any>('/api/okx/candles', {
+    query: { instId, bar, limit, ...(beforeMs ? { after: String(beforeMs) } : {}) }
+  }).catch(() => null)
+  return (res?.data || []) as string[][]
+}
+
 // 종목마다 가격 자릿수가 크게 다르므로(예: 삼성전자 188원대 vs 도지코인 0.08달러대),
 // 실제 가격을 알기 전(초기)에는 무난한 기본값을 쓰고, fetchCandles에서 첫 가격을 받으면
 // applyDynamicPriceFormat으로 그 가격대에 맞는 자릿수로 다시 맞춘다.
@@ -4793,22 +4836,19 @@ async function loadOlderHistory() {
   if (!existingCandles.length) return
 
   const token = candlesFetchToken
-  const instId = toInstId(symbol.value)
+  const sym = symbol.value
   const bar = timeframe.value
   const intervalSeconds = barSeconds(timeframe.value)
 
   loadingOlderHistory = true
   try {
-    // OKX history-candles의 after는 "이 시각보다 과거"를 뜻한다. 지금 갖고 있는 가장 오래된 봉부터 이어받는다.
+    // "이 시각보다 과거"를 이어받는다. 지금 갖고 있는 가장 오래된 봉부터 이어받는다.
     let afterCursor = String(timeToUnixSeconds(existingCandles[0].time as any) * 1000)
     const olderRows: string[][] = []
 
     for (let i = 0; i < HISTORY_PAGES_PER_LOAD; i++) {
       if (token !== candlesFetchToken) return // 그 사이 심볼/타임프레임이 바뀌면 중단
-      const res = await $fetch<any>('/api/okx/candles', {
-        query: { instId, bar, limit: HISTORY_PAGE_LIMIT, after: afterCursor }
-      }).catch(() => null)
-      const batch = (res?.data || []) as string[][]
+      const batch = await fetchCandlesPage(sym, bar, HISTORY_PAGE_LIMIT, Number(afterCursor))
       if (!batch.length) {
         olderHistoryExhausted = true
         break
@@ -4866,7 +4906,6 @@ async function loadOlderHistory() {
 
 async function fetchCandles() {
   const token = ++candlesFetchToken
-  const instId = toInstId(symbol.value)
   const bar = timeframe.value
   const sym = symbol.value
   const intervalSeconds = barSeconds(timeframe.value)
@@ -4874,13 +4913,12 @@ async function fetchCandles() {
   // 최신 봉 300개(요청 1번)만 먼저 받아 바로 그린다. 더 과거는 사용자가 왼쪽으로 스크롤할 때
   // loadOlderHistory()가 이어서 불러오므로, 첫 화면은 빠르게 뜨면서도 과거는 끝까지 볼 수 있다.
   //    킬/수익손실 이벤트 목록도 같이 받아서, 예전에 생긴 고가/저가(꼬리)를 다시 그려 넣는다.
-  const [firstRes, killEvents, profitEvents] = await Promise.all([
-    $fetch<any>('/api/okx/candles', { query: { instId, bar, limit: 300 } }),
+  const [firstBatch, killEvents, profitEvents] = await Promise.all([
+    fetchCandlesPage(sym, bar, 300),
     fetchKillEventsFor(sym),
     fetchProfitEventsFor(sym)
   ])
   if (token !== candlesFetchToken) return
-  const firstBatch = (firstRes?.data || []) as string[][]
   cachedKillEvents = killEvents
   cachedProfitEvents = profitEvents
 
@@ -4964,7 +5002,20 @@ function simulateBuySellBand() {
   forcedBuyPct.value = 40 + Math.random() * 20
 }
 
+// 호가(오더북)는 종목과 무관하게 항상 OKX 연결 하나로만 처리한다(기존 방식 그대로 유지).
+// SAMSUNGUSDT처럼 바이낸스 시세를 쓰는 종목은 여기에 더해서, 실시간 체결가만 별도로 바이낸스에서
+// 받아와 lastPrice/캔들을 갱신한다(호가에는 전혀 관여하지 않음).
 function connectWs() {
+  connectOkxWs()
+  if (usesBinanceFeed(symbol.value)) {
+    connectBinancePriceWs()
+  } else {
+    priceWs?.close()
+    priceWs = null
+  }
+}
+
+function connectOkxWs() {
   if (!process.client) return
   ws?.close()
   asks.value = []
@@ -4998,7 +5049,9 @@ function connectWs() {
       const data = msg?.data?.[0]
       if (!arg || !data) return
 
-      if (arg.channel === 'tickers') {
+      // SAMSUNGUSDT 등 바이낸스 시세를 쓰는 종목은 가격/거래량을 바이낸스 쪽에서 갱신하므로
+      // OKX 티커는 무시한다(호가 채널만 계속 사용).
+      if (arg.channel === 'tickers' && !usesBinanceFeed(symbol.value)) {
         const p = Number(data.last)
         if (Number.isFinite(p)) {
           lastPrice.value = p
@@ -5025,6 +5078,39 @@ function connectWs() {
     }
   }
   startOrderbookAutoReconnect()
+}
+
+// 바이낸스 선물 공개 웹소켓(실시간 체결가 전용, 호가는 건드리지 않음).
+function connectBinancePriceWs() {
+  if (!process.client) return
+  priceWs?.close()
+
+  const lower = symbol.value.toLowerCase()
+  const streams = [`${lower}@aggTrade`, `${lower}@ticker`].join('/')
+  priceWs = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
+
+  priceWs.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data)
+      const data = msg?.data
+      if (!data) return
+
+      if (data.e === 'aggTrade') {
+        const p = Number(data.p)
+        if (Number.isFinite(p)) {
+          lastPrice.value = p
+          updateLiveCandle(p, Number(data.T ?? Date.now()))
+        }
+        return
+      }
+
+      if (data.e === '24hrTicker') {
+        vol24.value = Number(data.v) || vol24.value
+      }
+    } catch {
+      // ignore
+    }
+  }
 }
 
 function startOrderbookAutoReconnect() {
@@ -5541,6 +5627,8 @@ onBeforeUnmount(() => {
   chartHeaderResizeRaf = 0
   ws?.close()
   ws = null
+  priceWs?.close()
+  priceWs = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
   pendingCloseTimers.clear()
   if (markPollTimer) clearInterval(markPollTimer)
