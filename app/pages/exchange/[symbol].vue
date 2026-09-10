@@ -7,7 +7,7 @@
         class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(260px,0.6fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_300px]"
       >
       <!-- 차트 -->
-      <section class="order-1 flex min-w-0 flex-col overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
+      <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
           <div class="flex min-w-0 items-center gap-3">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
@@ -164,7 +164,7 @@
           </div>
         </div>
 
-        <div class="flex min-h-0 flex-1 bg-[#131722]" :style="{ minHeight: chartContainerHeightPx + 'px' }">
+        <div class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2">
             <button
               type="button"
@@ -357,7 +357,10 @@
       </section>
 
       <!-- 호가(첨부 스타일) -->
-      <section class="order-3 min-w-0 self-start rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1">
+      <section
+        class="order-3 min-w-0 self-start rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1"
+        :style="{ height: MATCHED_PANEL_HEIGHT + 'px' }"
+      >
         <div class="flex items-center justify-between">
           <div class="text-[15px] font-semibold text-slate-100">호가</div>
         </div>
@@ -538,7 +541,6 @@
                 >
                   구매 / 롱
                 </button>
-                <div class="mt-2 text-center text-[13px] text-slate-400">비용 0.0 USDT</div>
               </div>
               <div>
                 <button
@@ -549,7 +551,6 @@
                 >
                   판매 / 숏
                 </button>
-                <div class="mt-2 text-center text-[13px] text-slate-400">비용 0.0 USDT</div>
               </div>
             </div>
 
@@ -1546,6 +1547,8 @@ function scheduleSavePrefs() {
 // chart
 const chartEl = ref<HTMLElement | null>(null)
 let chart: IChartApi | null = null
+let chartResizeObserver: ResizeObserver | null = null
+let chartResizeRaf = 0
 let candleSeries: ISeriesApi<'Candlestick'> | null = null
 let volumeSeries: ISeriesApi<'Histogram'> | null = null
 // 마지막 봉 오른쪽 여백에 미래 시간축 눈금을 미리 표시하기 위한, 화면엔 안 보이는 전용 시리즈.
@@ -1732,10 +1735,11 @@ const bolSelected = ref(false)
 
 // 보조지표(BOL 제외 29종) 상태: 하단(오실레이터) 지표 하나당 별도 창(pane)을 만들고,
 // 그만큼 차트 전체 높이를 늘린다.
-// 차트 영역은 flex-1로 레이아웃(호가 등)이 정한 높이만큼 늘어난다. 이 값은 그 높이를
-// 억지로 밀어올리지 않는 아주 작은 기술적 최솟값일 뿐이고, 실제 표시 높이는 거의 항상
-// 옆 호가 칸의 자연스러운 높이로 결정된다. 보조지표 pane을 켜면 그만큼만 더해서 늘어난다.
-const CHART_BASE_HEIGHT = 200
+// 차트 카드와 호가 카드의 세로 크기를 서로 맞춘다(기존엔 차트가 더 크고 호가가 더 작았는데,
+// 그 둘의 중간 정도 높이로 통일). 차트 카드는 위쪽 종목정보/툴바(약 117px)와 아래 여백(약
+// 25px)을 뺀 나머지를 실제 캔들 영역 높이로 쓴다. 보조지표 pane을 켜면 그만큼 더 늘어난다.
+const MATCHED_PANEL_HEIGHT = 666
+const CHART_BASE_HEIGHT = MATCHED_PANEL_HEIGHT - 142
 const OSCILLATOR_PANE_HEIGHT = 130
 const chartContainerHeightPx = ref(CHART_BASE_HEIGHT)
 let extraIndicatorSeries: Map<string, ISeriesApi<any>[]> = new Map()
@@ -4558,14 +4562,21 @@ function initChart() {
   // capture 단계에서 붙여서, 다른 요소의 키 핸들러가 먼저 stopPropagation 하더라도 놓치지 않게 한다.
   window.addEventListener('keydown', onDrawingKeydown, true)
 
-  // ResizeObserver
+  // ResizeObserver: 콜백 안에서 바로 차트 크기를 바꾸면(그 자체가 또 레이아웃에 영향을 줄 수 있어서)
+  // "ResizeObserver loop completed with undelivered notifications" 경고가 뜰 수 있다.
+  // 실제 리사이즈 작업은 requestAnimationFrame으로 한 프레임 미뤄서 그 루프를 끊는다(표준적인 해결 방법).
   const ro = new ResizeObserver(() => {
-    if (!chartEl.value || !chart) return
-    const r = chartEl.value.getBoundingClientRect()
-    chart.applyOptions({ width: Math.floor(r.width), height: Math.floor(r.height) })
-    updateEntryBadges()
+    if (chartResizeRaf) cancelAnimationFrame(chartResizeRaf)
+    chartResizeRaf = requestAnimationFrame(() => {
+      chartResizeRaf = 0
+      if (!chartEl.value || !chart) return
+      const r = chartEl.value.getBoundingClientRect()
+      chart.applyOptions({ width: Math.floor(r.width), height: Math.floor(r.height) })
+      updateEntryBadges()
+    })
   })
   ro.observe(chartEl.value)
+  chartResizeObserver = ro
 }
 
 async function ensureChartReady() {
@@ -5489,6 +5500,10 @@ watch(
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
+  chartResizeObserver?.disconnect()
+  chartResizeObserver = null
+  if (chartResizeRaf) cancelAnimationFrame(chartResizeRaf)
+  chartResizeRaf = 0
   ws?.close()
   ws = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
