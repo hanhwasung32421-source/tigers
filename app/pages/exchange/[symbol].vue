@@ -430,7 +430,7 @@
           주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
         </div>
 
-        <div v-else class="mt-3 flex flex-col rounded-lg bg-[#031019] p-4 ring-1 ring-cyan-500/10">
+        <div v-else class="mt-3 flex flex-col rounded-lg bg-[#031019] px-4 pt-4 pb-[40px] ring-1 ring-cyan-500/10">
           <div>
             <!-- 레버리지 (첨부2 스타일) -->
             <div class="overflow-hidden rounded-lg border border-white/10 bg-[#071722] p-2.5">
@@ -531,7 +531,7 @@
           </div>
 
           <!-- 하단: 보유자산/사용가능 -->
-          <div class="mt-3">
+          <div class="mt-9">
             <div class="text-[15px] font-semibold text-slate-100">보유자산</div>
 
             <div class="mt-3">
@@ -1702,7 +1702,7 @@ const bolSelected = ref(false)
 // 실제 캔들 영역 높이로 쓴다. 보조지표 pane을 켜면 그만큼 더 늘어난다.
 // 위쪽 종목정보/툴바 높이는 고정값이 아니라(화면 폭에 따라 줄바꿈 여부가 달라져 실제 높이가 바뀐다),
 // chartHeaderEl의 실제 렌더링 높이를 측정해서 그만큼을 뺀 나머지를 캔들 영역 높이로 쓴다.
-const MATCHED_PANEL_HEIGHT = 666
+const MATCHED_PANEL_HEIGHT = 690
 const OSCILLATOR_PANE_HEIGHT = 130
 const chartBaseHeight = ref(MATCHED_PANEL_HEIGHT - 118)
 const chartContainerHeightPx = ref(chartBaseHeight.value)
