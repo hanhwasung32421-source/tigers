@@ -8,6 +8,7 @@
       >
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
+        <div ref="chartHeaderEl">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
           <div class="flex min-w-0 items-center gap-3">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
@@ -162,6 +163,7 @@
               <span class="text-[#868993]">{{ chartClockDisplay }}</span>
             </div>
           </div>
+        </div>
         </div>
 
         <div class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
@@ -1517,9 +1519,12 @@ function scheduleSavePrefs() {
 
 // chart
 const chartEl = ref<HTMLElement | null>(null)
+const chartHeaderEl = ref<HTMLElement | null>(null)
 let chart: IChartApi | null = null
 let chartResizeObserver: ResizeObserver | null = null
 let chartResizeRaf = 0
+let chartHeaderResizeObserver: ResizeObserver | null = null
+let chartHeaderResizeRaf = 0
 let candleSeries: ISeriesApi<'Candlestick'> | null = null
 let volumeSeries: ISeriesApi<'Histogram'> | null = null
 // 마지막 봉 오른쪽 여백에 미래 시간축 눈금을 미리 표시하기 위한, 화면엔 안 보이는 전용 시리즈.
@@ -1709,10 +1714,30 @@ const bolSelected = ref(false)
 // 차트 카드와 호가 카드의 세로 크기를 서로 맞춘다(기존엔 차트가 더 크고 호가가 더 작았는데,
 // 그 둘의 중간 정도 높이로 통일). 차트 카드는 위쪽 종목정보/툴바(약 118px)를 뺀 나머지를
 // 실제 캔들 영역 높이로 쓴다. 보조지표 pane을 켜면 그만큼 더 늘어난다.
+// 위쪽 종목정보/툴바 높이는 고정값이 아니라(화면 폭에 따라 줄바꿈 여부가 달라져 실제 높이가 바뀐다),
+// chartHeaderEl의 실제 렌더링 높이를 측정해서 그만큼을 뺀 나머지를 캔들 영역 높이로 쓴다.
 const MATCHED_PANEL_HEIGHT = 666
-const CHART_BASE_HEIGHT = MATCHED_PANEL_HEIGHT - 118
 const OSCILLATOR_PANE_HEIGHT = 130
-const chartContainerHeightPx = ref(CHART_BASE_HEIGHT)
+const chartBaseHeight = ref(MATCHED_PANEL_HEIGHT - 118)
+const chartContainerHeightPx = ref(chartBaseHeight.value)
+function currentOscillatorCount() {
+  return chartPrefs.indicators.extra.filter(
+    (id) => INDICATOR_LIST.find((m) => m.id === id)?.category === 'oscillator'
+  ).length
+}
+function syncChartBaseHeight() {
+  if (!chartHeaderEl.value) return
+  const headerHeight = chartHeaderEl.value.getBoundingClientRect().height
+  const base = Math.max(200, Math.round(MATCHED_PANEL_HEIGHT - headerHeight))
+  if (base === chartBaseHeight.value) return
+  chartBaseHeight.value = base
+  const newHeight = base + currentOscillatorCount() * OSCILLATOR_PANE_HEIGHT
+  chartContainerHeightPx.value = newHeight
+  nextTick(() => {
+    const width = chartEl.value?.clientWidth || 0
+    if (chart && width) chart.resize(width, newHeight)
+  })
+}
 let extraIndicatorSeries: Map<string, ISeriesApi<any>[]> = new Map()
 const indicatorMenuOpen = ref(false)
 const indicatorSearch = ref('')
@@ -4008,7 +4033,7 @@ function renderExtraIndicators() {
   })
 
   // 오실레이터 지표 개수만큼 차트 전체 높이를 늘리고(각 pane 130px), 새 높이로 즉시 리사이즈한다.
-  const newHeight = CHART_BASE_HEIGHT + oscillatorIds.length * OSCILLATOR_PANE_HEIGHT
+  const newHeight = chartBaseHeight.value + oscillatorIds.length * OSCILLATOR_PANE_HEIGHT
   if (newHeight !== chartContainerHeightPx.value) {
     chartContainerHeightPx.value = newHeight
     const width = chartEl.value?.clientWidth || 0
@@ -4548,6 +4573,21 @@ function initChart() {
   })
   ro.observe(chartEl.value)
   chartResizeObserver = ro
+
+  // 위쪽 종목정보/툴바는 화면 폭에 따라 줄바꿈 여부가 달라져 실제 높이가 바뀐다.
+  // 그 높이가 바뀔 때마다 캔들 영역 높이를 다시 계산해서 차트 카드 전체 높이를 호가 카드와 맞춘다.
+  syncChartBaseHeight()
+  if (chartHeaderEl.value) {
+    const hro = new ResizeObserver(() => {
+      if (chartHeaderResizeRaf) cancelAnimationFrame(chartHeaderResizeRaf)
+      chartHeaderResizeRaf = requestAnimationFrame(() => {
+        chartHeaderResizeRaf = 0
+        syncChartBaseHeight()
+      })
+    })
+    hro.observe(chartHeaderEl.value)
+    chartHeaderResizeObserver = hro
+  }
 }
 
 async function ensureChartReady() {
@@ -5475,6 +5515,10 @@ onBeforeUnmount(() => {
   chartResizeObserver = null
   if (chartResizeRaf) cancelAnimationFrame(chartResizeRaf)
   chartResizeRaf = 0
+  chartHeaderResizeObserver?.disconnect()
+  chartHeaderResizeObserver = null
+  if (chartHeaderResizeRaf) cancelAnimationFrame(chartHeaderResizeRaf)
+  chartHeaderResizeRaf = 0
   ws?.close()
   ws = null
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
