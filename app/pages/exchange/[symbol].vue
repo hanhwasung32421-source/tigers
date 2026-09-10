@@ -559,7 +559,7 @@
           </div>
 
           <!-- 하단: 보유자산/사용가능 -->
-          <div class="mt-3 rounded-lg border border-white/10 bg-[#071722] p-3">
+          <div class="mt-3">
             <div class="text-[15px] font-semibold text-slate-100">보유자산</div>
 
             <div class="mt-3">
