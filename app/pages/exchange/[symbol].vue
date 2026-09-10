@@ -1096,65 +1096,56 @@
         class="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 px-4"
         @click.self="closeSummary = null"
       >
-        <div
-          class="relative w-full max-w-[360px] overflow-hidden rounded-[28px] border border-emerald-400/10 bg-[linear-gradient(180deg,#071816_0%,#03110f_52%,#020b0b_100%)] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
-        >
-          <div class="pointer-events-none absolute inset-0">
-            <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(20,184,166,0.16),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(15,118,110,0.14),transparent_24%),radial-gradient(circle_at_52%_58%,rgba(16,185,129,0.10),transparent_26%)]" />
-            <div class="absolute right-[-18px] top-[62px] h-[220px] w-[220px] rounded-full border border-emerald-300/10" />
-            <div class="absolute right-[2px] top-[82px] h-[180px] w-[180px] rounded-full border border-emerald-300/10" />
-            <div class="absolute right-[22px] top-[102px] h-[140px] w-[140px] rounded-full border border-emerald-300/10" />
-            <div class="absolute right-[42px] top-[122px] flex h-[100px] w-[100px] items-center justify-center rounded-full border border-emerald-300/10 bg-emerald-300/[0.015] text-[56px] font-black leading-none text-white/[0.08]">
-              B
-            </div>
-            <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.018)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.014)_1px,transparent_1px)] bg-[length:26px_26px] opacity-[0.10]" />
-          </div>
+        <div class="relative w-full max-w-[340px] rounded-2xl border border-cyan-500/10 bg-[#06121d] px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
           <button
             type="button"
-            class="absolute right-4 top-4 z-10 rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-slate-200 ring-1 ring-white/10 hover:bg-white/15"
+            class="absolute right-4 top-4 z-10 rounded-full bg-white/6 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/10"
             @click="closeSummary = null"
           >
             ✕
           </button>
-          <div class="relative z-10">
-            <div class="text-[16px] font-semibold tracking-tight text-white/90">futureusdt</div>
-            <div class="mt-5 text-[36px] font-black leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
-              {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }} %
+
+          <div class="flex flex-col items-center">
+            <BrandLogo size="sm" />
+
+            <div class="mt-5 h-[2px] w-9 rounded-full opacity-50" :class="closeSummary.roe >= 0 ? 'bg-[#22c55e]' : 'bg-[#ef4444]'" />
+
+            <div class="mt-4 text-[40px] font-extrabold leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+              {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }}%
             </div>
-            <div class="mt-2 text-[19px] font-semibold tracking-tight" :class="closeSummary.pnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+            <div class="mt-1.5 text-[15px] font-medium text-slate-400">
               {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} 원
             </div>
 
-            <div class="mt-3 text-[13px] font-medium text-slate-400">코인</div>
-            <div class="mt-1 flex items-center gap-3">
-              <div class="text-[18px] font-bold tracking-tight text-white">{{ shortSymbol(closeSummary.symbol) }}USDT</div>
-              <div
-                class="rounded px-2.5 py-1 text-[15px] font-bold leading-none"
-                :class="closeSummary.side === 'short' ? 'text-rose-500' : 'text-emerald-400'"
+            <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
+              <span
+                class="rounded-full px-2 py-0.5 text-[12px] font-bold"
+                :class="closeSummary.side === 'short' ? 'bg-rose-500/15 text-rose-300' : 'bg-emerald-500/15 text-emerald-300'"
               >
                 {{ closeSummary.side === 'long' ? '롱' : '숏' }}
+              </span>
+              <span class="text-[14px] font-semibold text-slate-200">{{ shortSymbol(closeSummary.symbol) }}USDT</span>
+            </div>
+          </div>
+
+          <div class="mt-[26px] grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06]">
+            <div class="bg-[#081726] px-4 py-3.5">
+              <div class="text-[12px] text-slate-500">레버리지</div>
+              <div class="mt-1 text-[16px] font-bold text-slate-200">격리 x{{ closeSummary.leverage }}</div>
+            </div>
+            <div class="bg-[#081726] px-4 py-3.5">
+              <div class="text-[12px] text-slate-500">손익</div>
+              <div class="mt-1 text-[16px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+                {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(6) }} USDT
               </div>
             </div>
-
-            <div class="mt-7 space-y-3.5">
-              <div>
-                <div class="text-[13px] font-medium text-slate-400">레버리지</div>
-                <div class="mt-1 text-[18px] font-bold text-white">격리 x{{ closeSummary.leverage }}</div>
-              </div>
-              <div>
-                <div class="text-[13px] font-medium text-slate-400">진입가격</div>
-                <div class="mt-1 text-[18px] font-bold text-white">{{ fmtPrice(closeSummary.entryPrice) }} USDT</div>
-              </div>
-              <div>
-                <div class="text-[13px] font-medium text-slate-400">종료가격</div>
-                <div class="mt-1 text-[18px] font-bold text-white">{{ fmtPrice(closeSummary.exitPrice) }} USDT</div>
-              </div>
-              <div>
-                <div class="text-[13px] font-medium text-slate-400">손익</div>
-                <div class="mt-1 text-[18px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
-                  {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(6) }} USDT
-                </div>
-              </div>
+            <div class="bg-[#081726] px-4 py-3.5">
+              <div class="text-[12px] text-slate-500">진입가격</div>
+              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ fmtPrice(closeSummary.entryPrice) }}</div>
+            </div>
+            <div class="bg-[#081726] px-4 py-3.5">
+              <div class="text-[12px] text-slate-500">종료가격</div>
+              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ fmtPrice(closeSummary.exitPrice) }}</div>
             </div>
           </div>
         </div>
