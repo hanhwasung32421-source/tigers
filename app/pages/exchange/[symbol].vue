@@ -566,6 +566,11 @@
               <div class="font-mono text-[15px] text-slate-100">{{ totalAssetsDisplay }} USDT</div>
             </div>
 
+            <div class="mt-1.5 flex items-center justify-between">
+              <div class="text-[13px] text-slate-400">매매포지션(증거금)</div>
+              <div class="font-mono text-[15px] text-slate-100">{{ positionsMarginWonText }}원</div>
+            </div>
+
             <div class="mt-4 flex items-start justify-between">
               <div class="text-[15px] font-semibold text-slate-200">사용가능 금액</div>
               <div class="text-right">
@@ -2087,14 +2092,18 @@ function setLeverage(v: number) {
   scheduleSavePrefs()
 }
 
-const totalAssetsUsdt = computed(() => {
-  const marginNet = positions.value.reduce((s: number, p: any) => s + Math.max(0, netMarginFromGross(Number(p?.margin || 0))), 0)
-  return Number(balance.value || 0) + marginNet
-})
+// 현재 잡고 있는 모든 포지션의 증거금(net) 합계. 없으면 0.
+const positionsMarginUsdt = computed(() =>
+  positions.value.reduce((s: number, p: any) => s + Math.max(0, netMarginFromGross(Number(p?.margin || 0))), 0)
+)
+
+const totalAssetsUsdt = computed(() => Number(balance.value || 0) + positionsMarginUsdt.value)
 
 const totalAssetsDisplay = computed(() =>
   Number(totalAssetsUsdt.value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 )
+
+const positionsMarginWonText = computed(() => Math.round(positionsMarginUsdt.value * KRW_RATE).toLocaleString())
 
 const availableWonText = computed(() => Math.round(Number(balance.value || 0) * KRW_RATE).toLocaleString())
 
