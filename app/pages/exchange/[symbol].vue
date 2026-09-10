@@ -561,22 +561,23 @@
           <!-- 하단: 보유자산/사용가능 -->
           <div class="mt-8 rounded-lg border border-white/10 bg-[#071722] p-3">
             <div class="text-[15px] font-semibold text-slate-100">보유자산</div>
-            <div class="mt-3 flex items-center justify-between">
+
+            <div class="mt-3">
               <div class="text-[13px] text-slate-400">보유자산(증거금포함)</div>
-              <div class="font-mono text-[15px] text-slate-100">{{ totalAssetsDisplay }} USDT</div>
+              <div class="mt-1 font-mono text-[15px] text-slate-100">{{ totalAssetsDisplay }} USDT</div>
+              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ totalAssetsWonText }} 원</div>
             </div>
 
-            <div class="mt-1.5 flex items-center justify-between">
+            <div class="mt-3">
               <div class="text-[13px] text-slate-400">매매포지션(증거금)</div>
-              <div class="font-mono text-[15px] text-slate-100">{{ positionsMarginWonText }}원</div>
+              <div class="mt-1 font-mono text-[15px] text-slate-100">{{ positionsMarginDisplay }} USDT</div>
+              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ positionsMarginWonText }} 원</div>
             </div>
 
-            <div class="mt-4 flex items-start justify-between">
+            <div class="mt-4">
               <div class="text-[15px] font-semibold text-slate-200">사용가능 금액</div>
-              <div class="text-right">
-                <div class="font-mono text-[15px] text-slate-100">{{ balanceDisplay }} USDT</div>
-                <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ availableWonText }} 원</div>
-              </div>
+              <div class="mt-1 font-mono text-[15px] text-slate-100">{{ balanceDisplay }} USDT</div>
+              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ availableWonText }} 원</div>
             </div>
           </div>
         </div>
@@ -2141,6 +2142,12 @@ const totalAssetsUsdt = computed(() => Number(balance.value || 0) + positionsMar
 
 const totalAssetsDisplay = computed(() =>
   Number(totalAssetsUsdt.value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+)
+
+const totalAssetsWonText = computed(() => Math.round(totalAssetsUsdt.value * KRW_RATE).toLocaleString())
+
+const positionsMarginDisplay = computed(() =>
+  Number(positionsMarginUsdt.value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 )
 
 const positionsMarginWonText = computed(() => Math.round(positionsMarginUsdt.value * KRW_RATE).toLocaleString())
