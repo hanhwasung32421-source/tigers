@@ -4,7 +4,7 @@
     <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
     <div class="overflow-x-hidden">
       <div
-        class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(260px,0.6fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_300px]"
+        class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(260px,0.6fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_300px]"
       >
       <!-- 차트 -->
       <section class="order-1 min-w-0 overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
@@ -357,7 +357,7 @@
       </section>
 
       <!-- 호가(첨부 스타일) -->
-      <section class="order-3 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1">
+      <section class="order-3 min-w-0 self-start rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1">
         <div class="flex items-center justify-between">
           <div class="text-[15px] font-semibold text-slate-100">호가</div>
         </div>
@@ -559,7 +559,7 @@
           </div>
 
           <!-- 하단: 보유자산/사용가능 -->
-          <div class="mt-8 rounded-lg border border-white/10 bg-[#071722] p-3">
+          <div class="mt-3 rounded-lg border border-white/10 bg-[#071722] p-3">
             <div class="text-[15px] font-semibold text-slate-100">보유자산</div>
 
             <div class="mt-3">
@@ -1731,7 +1731,7 @@ const bolSelected = ref(false)
 
 // 보조지표(BOL 제외 29종) 상태: 하단(오실레이터) 지표 하나당 별도 창(pane)을 만들고,
 // 그만큼 차트 전체 높이를 늘린다.
-const CHART_BASE_HEIGHT = 600
+const CHART_BASE_HEIGHT = 500
 const OSCILLATOR_PANE_HEIGHT = 130
 const chartContainerHeightPx = ref(CHART_BASE_HEIGHT)
 let extraIndicatorSeries: Map<string, ISeriesApi<any>[]> = new Map()
