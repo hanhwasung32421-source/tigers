@@ -652,9 +652,9 @@
                   class="cursor-pointer font-mono hover:text-cyan-300"
                   @click="openPositionEditModal(p, 'entry_price')"
                 >
-                  {{ fmtPrice(Number(p.entry_price)) }}
+                  {{ fmtPrice2(Number(p.entry_price)) }}
                 </button>
-                <span v-else>{{ fmtPrice(Number(p.entry_price)) }}</span>
+                <span v-else>{{ fmtPrice2(Number(p.entry_price)) }}</span>
               </td>
               <td class="py-1 font-mono">
                 <button
@@ -663,12 +663,12 @@
                   class="cursor-pointer font-mono hover:text-cyan-300"
                   @click="openPositionEditModal(p, 'qty')"
                 >
-                  {{ fmtQty(p.symbol, p.qty) }}
+                  {{ fmtQty2(p.symbol, p.qty) }}
                 </button>
-                <span v-else>{{ fmtQty(p.symbol, p.qty) }}</span>
+                <span v-else>{{ fmtQty2(p.symbol, p.qty) }}</span>
               </td>
-              <td class="py-1 font-mono">{{ markOf(p.symbol) ? fmtPrice(markOf(p.symbol)) : '—' }}</td>
-              <td class="py-1 font-mono">{{ fmtPrice(calcLiqPrice(p)) }}</td>
+              <td class="py-1 font-mono">{{ markOf(p.symbol) ? fmtPrice2(markOf(p.symbol)) : '—' }}</td>
+              <td class="py-1 font-mono">{{ fmtPrice2(calcLiqPrice(p)) }}</td>
               <td class="py-1 font-mono">
                 <button
                   v-if="isAdminUser"
@@ -676,13 +676,13 @@
                   class="cursor-pointer font-mono hover:text-cyan-300"
                   @click="openPositionEditModal(p, 'margin')"
                 >
-                  {{ Number(p.margin).toFixed(5) }}
+                  {{ Number(p.margin).toFixed(2) }}
                 </button>
-                <span v-else>{{ Number(p.margin).toFixed(5) }}</span>
+                <span v-else>{{ Number(p.margin).toFixed(2) }}</span>
               </td>
               <td class="py-1">
                 <div class="font-mono" :class="unrealized(p).pnl >= 0 ? 'text-emerald-300' : 'text-rose-300'">
-                  {{ unrealized(p).pnl >= 0 ? '+' : '' }}{{ unrealized(p).pnl.toFixed(5) }}
+                  {{ unrealized(p).pnl >= 0 ? '+' : '' }}{{ unrealized(p).pnl.toFixed(2) }}
                 </div>
                 <div class="text-[12px] text-slate-400">
                   <button
@@ -697,7 +697,7 @@
                 </div>
               </td>
               <td class="py-1">
-                <div class="flex items-center gap-2">
+                <div class="flex flex-col items-start gap-1">
                   <button
                     class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
                     :disabled="isTradeSyncing || closeClickCooldown.has(p.id)"
@@ -705,6 +705,24 @@
                   >
                     시장가청산
                   </button>
+                  <div v-if="isSuperAdminUser" class="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      class="h-3.5 w-3.5 cursor-pointer accent-amber-400"
+                      title="알람"
+                      :checked="getPositionAlarm(p.id).enabled"
+                      @change="onToggleAlarm(p.id, ($event.target as HTMLInputElement).checked)"
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="%"
+                      class="w-14 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
+                      :value="getPositionAlarm(p.id).percent ?? ''"
+                      @input="onAlarmPercentInput(p.id, ($event.target as HTMLInputElement).value)"
+                    />
+                    <span v-if="getPositionAlarm(p.id).triggered" class="text-[11px] font-semibold text-amber-300">울림</span>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -1880,6 +1898,11 @@ function fmtPrice(v: number) {
   if (!Number.isFinite(v)) return '—'
   return v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 5 })
 }
+// 포지션 테이블 전용: 소수점 2자리까지만 표시
+function fmtPrice2(v: number) {
+  if (!Number.isFinite(v)) return '—'
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 function fmtNum(v: number) {
   if (!Number.isFinite(v)) return '—'
   return v.toLocaleString('en-US', { maximumFractionDigits: 2 })
@@ -1909,6 +1932,7 @@ async function refreshMarks() {
     markPrices.value = { ...(markPrices.value || {}), ...(res?.prices || {}) }
     updateEntryBadges()
     await checkAutoLiquidations().catch(() => {})
+    checkPositionAlarms()
   } finally {
     markPolling = false
   }
@@ -3417,6 +3441,10 @@ const buyPct = computed(() => forcedBuyPct.value)
 
 function fmtQty(sym: string, qty: number) {
   return Number(qty).toFixed(5)
+}
+// 포지션 테이블 전용: 소수점 2자리까지만 표시
+function fmtQty2(sym: string, qty: number) {
+  return Number(qty).toFixed(2)
 }
 
 function shortSymbol(sym: string) {
@@ -5353,6 +5381,103 @@ const TRADE_CLICK_COOLDOWN_MS = 200
 const openClickCooldown = ref(false)
 const closeClickCooldown = reactive(new Set<number>())
 
+// 총관리자 전용 포지션 알람: 미실현손익(ROE)이 지정한 %에 도달하면 소리로 알림.
+// 새로고침(F5)이나 체크박스 해제 전까지는 계속 울린 상태를 유지한다(서버 저장 없이 클라이언트 상태만 사용).
+type PositionAlarm = { enabled: boolean; percent: number | null; triggered: boolean }
+const positionAlarms = reactive<Record<number, PositionAlarm>>({})
+const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: null, triggered: false }
+let alarmAudioCtx: AudioContext | null = null
+let alarmLoopTimer: any = null
+
+function getPositionAlarm(id: number) {
+  return positionAlarms[Number(id)] || ALARM_DEFAULT
+}
+
+function setPositionAlarm(id: number, patch: Partial<PositionAlarm>) {
+  const key = Number(id)
+  const cur = positionAlarms[key] || { enabled: false, percent: null, triggered: false }
+  positionAlarms[key] = { ...cur, ...patch }
+}
+
+function onToggleAlarm(id: number, checked: boolean) {
+  setPositionAlarm(id, { enabled: checked, triggered: checked ? getPositionAlarm(id).triggered : false })
+  checkPositionAlarms()
+}
+
+function onAlarmPercentInput(id: number, raw: string) {
+  const trimmed = raw.trim()
+  const n = trimmed === '' ? null : Number(trimmed)
+  setPositionAlarm(id, { percent: n !== null && Number.isFinite(n) ? n : null })
+  checkPositionAlarms()
+}
+
+function ensureAlarmAudioCtx() {
+  if (!process.client) return null
+  if (!alarmAudioCtx) {
+    try {
+      alarmAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    } catch {
+      alarmAudioCtx = null
+    }
+  }
+  return alarmAudioCtx
+}
+
+function playAlarmBeep() {
+  const ctx = ensureAlarmAudioCtx()
+  if (!ctx) return
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = 'square'
+  osc.frequency.value = 880
+  gain.gain.setValueAtTime(0.0001, ctx.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02)
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35)
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.start()
+  osc.stop(ctx.currentTime + 0.4)
+}
+
+function startAlarmLoop() {
+  if (alarmLoopTimer) return
+  playAlarmBeep()
+  alarmLoopTimer = setInterval(() => playAlarmBeep(), 800)
+}
+
+function stopAlarmLoop() {
+  if (alarmLoopTimer) {
+    clearInterval(alarmLoopTimer)
+    alarmLoopTimer = null
+  }
+}
+
+function checkPositionAlarms() {
+  if (!process.client || !isSuperAdminUser.value) return
+  let anyTriggered = false
+  for (const p of visiblePositions.value) {
+    const id = Number(p.id)
+    if (!id) continue
+    const a = positionAlarms[id]
+    if (!a || !a.enabled) continue
+    if (a.triggered) {
+      anyTriggered = true
+      continue
+    }
+    const threshold = Number(a.percent)
+    if (!Number.isFinite(threshold) || threshold === 0) continue
+    const roe = unrealized(p).roe
+    const hit = threshold > 0 ? roe >= threshold : roe <= threshold
+    if (hit) {
+      a.triggered = true
+      anyTriggered = true
+    }
+  }
+  if (anyTriggered) startAlarmLoop()
+  else stopAlarmLoop()
+}
+
 async function onOpen(s: 'long' | 'short') {
   if (openClickCooldown.value || isTradeSyncing.value) return
   openClickCooldown.value = true
@@ -5706,12 +5831,16 @@ watch(
     }
     updateEntryBadges()
     checkAutoLiquidations().catch(() => {})
+    checkPositionAlarms()
   }
 )
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   window.removeEventListener('resize', onWindowResizeForChartHeight)
+  stopAlarmLoop()
+  alarmAudioCtx?.close().catch(() => {})
+  alarmAudioCtx = null
   chartResizeObserver?.disconnect()
   chartResizeObserver = null
   if (chartResizeRaf) cancelAnimationFrame(chartResizeRaf)
