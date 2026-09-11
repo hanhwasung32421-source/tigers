@@ -4549,7 +4549,9 @@ function initChart() {
       mouseWheel: true,
       pinch: true
     },
-    kineticScroll: { mouse: true, touch: true }
+    // 마우스로 드래그하다 놓으면 관성으로 미끄러지듯 계속 움직이는 게 거슬린다는 요청으로 마우스는 끔
+    // (터치는 모바일에서 자연스러운 스와이프 감각을 위해 유지).
+    kineticScroll: { mouse: false, touch: true }
   })
 
   candleSeries = chart.addSeries(CandlestickSeries, {
@@ -4959,8 +4961,25 @@ async function fetchCandles() {
   renderSavedDrawings()
 }
 
+// autoScale를 켜둔 채로 두면, 세로로 드래그해서 가격축을 옮겨도 다음 프레임에 라이브러리가
+// 바로 다시 데이터에 맞춰 자동으로 되돌려버려서 "위아래는 안 움직이고 좌우만 되는" 것처럼 보인다.
+// fitContent() 직후에는 켜서 예쁘게 맞추고, 한 프레임 뒤에 꺼서 그 시점 가격축을 고정해야
+// 처음 화면부터 위/아래(가격축)도 자유롭게 드래그할 수 있다.
+function lockPriceScaleAfterFit() {
+  requestAnimationFrame(() => {
+    candleSeries?.priceScale().applyOptions({ autoScale: false })
+  })
+}
+
+function fitChartAndLockPriceScale() {
+  if (!chart) return
+  candleSeries?.priceScale().applyOptions({ autoScale: true })
+  chart.timeScale().fitContent()
+  lockPriceScaleAfterFit()
+}
+
 function fitChartContent() {
-  chart?.timeScale().fitContent()
+  fitChartAndLockPriceScale()
 }
 
 async function refreshOrderbookFromRest() {
@@ -5619,7 +5638,7 @@ watch([() => symbol.value, timeframe], async () => {
   volumeData.value = []
   resetOlderHistoryState()
   await fetchCandles().catch(() => {})
-  chart?.timeScale().fitContent()
+  fitChartAndLockPriceScale()
   connectWs()
   await loadAccount()
   await initKillEventBaseline()
@@ -5652,7 +5671,7 @@ onMounted(async () => {
   startBuySellBandMotion()
   await ensureChartReady()
   await fetchCandles().catch(() => {})
-  chart?.timeScale().fitContent()
+  fitChartAndLockPriceScale()
   connectWs()
   await loadAccount()
   await initKillEventBaseline()
@@ -5668,7 +5687,7 @@ watch(
     if (!el || chart) return
     await ensureChartReady()
     await fetchCandles().catch(() => {})
-    chart?.timeScale().fitContent()
+    fitChartAndLockPriceScale()
   }
 )
 
