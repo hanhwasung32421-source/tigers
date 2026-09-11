@@ -30,12 +30,12 @@
         <div class="text-sm text-slate-400">입금요청 (원화)</div>
         <div class="mt-2 flex items-center gap-2">
           <input
-            v-model="krwInput"
-            type="number"
-            min="0"
-            step="1"
+            :value="krwInput"
+            type="text"
+            inputmode="numeric"
             placeholder="입금할 금액(원)"
             class="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/40"
+            @input="onKrwInput('deposit', ($event.target as HTMLInputElement).value)"
           />
           <span class="whitespace-nowrap text-sm text-slate-400">원</span>
         </div>
@@ -66,12 +66,12 @@
         <div class="text-sm text-slate-400">출금요청 (원화)</div>
         <div class="mt-2 flex items-center gap-2">
           <input
-            v-model="krwWithdrawInput"
-            type="number"
-            min="0"
-            step="1"
+            :value="krwWithdrawInput"
+            type="text"
+            inputmode="numeric"
             placeholder="출금할 금액(원)"
             class="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/40"
+            @input="onKrwInput('withdraw', ($event.target as HTMLInputElement).value)"
           />
           <span class="whitespace-nowrap text-sm text-slate-400">원</span>
         </div>
@@ -179,15 +179,34 @@ try {
 function fmtKrw(usdtValue: number) {
   return `${Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()}원`
 }
+
+// 입력칸 표시값(콤마 포함)에서 순수 숫자만 뽑아낸다.
+function parseKrw(value: string): number {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  return digits ? Number(digits) : 0
+}
+
+// 입력칸에 직접 타이핑할 때 1,000,000 처럼 천단위 콤마를 자동으로 붙여준다.
+function formatKrwDisplay(value: string): string {
+  const n = parseKrw(value)
+  return n > 0 ? n.toLocaleString('en-US') : ''
+}
+
+function onKrwInput(field: 'deposit' | 'withdraw', raw: string) {
+  const formatted = formatKrwDisplay(raw)
+  if (field === 'deposit') krwInput.value = formatted
+  else krwWithdrawInput.value = formatted
+}
+
 function usdtPreview(krwValue: string) {
-  const krw = Number(krwValue)
+  const krw = parseKrw(krwValue)
   if (!(krw > 0) || !(krwPerUsdt.value > 0)) return '0.00'
   return (krw / krwPerUsdt.value).toFixed(2)
 }
 
 // 조/억/만 단위로 끊어서 "1,234만원" 같은 한글식 금액 표기를 만든다.
 function krwToKoreanText(krwValue: string) {
-  const n = Math.floor(Number(krwValue))
+  const n = parseKrw(krwValue)
   if (!Number.isFinite(n) || n <= 0) return ''
   const units: Array<[number, string]> = [
     [1e12, '조'],
@@ -215,17 +234,17 @@ const QUICK_KRW_AMOUNTS = [
 ]
 
 function addDepositAmount(amount: number) {
-  const cur = Number(krwInput.value) || 0
-  krwInput.value = String(cur + amount)
+  const cur = parseKrw(krwInput.value)
+  krwInput.value = (cur + amount).toLocaleString('en-US')
 }
 
 function addWithdrawAmount(amount: number) {
-  const cur = Number(krwWithdrawInput.value) || 0
-  krwWithdrawInput.value = String(cur + amount)
+  const cur = parseKrw(krwWithdrawInput.value)
+  krwWithdrawInput.value = (cur + amount).toLocaleString('en-US')
 }
 
-const canSubmitDeposit = computed(() => Number(krwInput.value) > 0)
-const canSubmitWithdraw = computed(() => Number(krwWithdrawInput.value) > 0)
+const canSubmitDeposit = computed(() => parseKrw(krwInput.value) > 0)
+const canSubmitWithdraw = computed(() => parseKrw(krwWithdrawInput.value) > 0)
 
 function openTelegram() {
   if (!telegramUrl.value) return
@@ -239,7 +258,7 @@ function contactSupport() {
 }
 
 async function submitDepositRequest() {
-  const krwAmount = Number(krwInput.value)
+  const krwAmount = parseKrw(krwInput.value)
   if (!(krwAmount > 0) || submittingDeposit.value) return
   submittingDeposit.value = true
   try {
@@ -258,7 +277,7 @@ async function submitDepositRequest() {
 }
 
 async function submitWithdrawRequest() {
-  const krwAmount = Number(krwWithdrawInput.value)
+  const krwAmount = parseKrw(krwWithdrawInput.value)
   if (!(krwAmount > 0) || submittingWithdraw.value) return
   submittingWithdraw.value = true
   try {
