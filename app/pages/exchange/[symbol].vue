@@ -5331,8 +5331,11 @@ async function onClosePositionClick(positionId: number, pos: any) {
 async function openPosition() {
   if (!me.value) return
 
-  const wantMargin = Number(marginUsdt.value)
-  if (!Number.isFinite(wantMargin) || wantMargin <= 0) {
+  // 비중(%) 자체의 유효성만 먼저 확인한다. 실제 USDT 금액(wantMargin)은 반대 포지션을
+  // 정산해서 잔고에 반영한 "이후"에 다시 계산해야, 롱 50%로 잡고 있다가 숏으로 전환할 때
+  // 잔고가 반토막난 상태(청산 전 가용잔고) 기준으로 계산돼서 절반(25%)만 잡히는 문제가 없다.
+  const wantPercent = Math.max(0, Math.min(100, Number(percent.value || 0)))
+  if (!Number.isFinite(wantPercent) || wantPercent <= 0) {
     error.value = '비중을 1~100%로 설정해주세요.'
     return
   }
@@ -5390,7 +5393,9 @@ async function openPosition() {
   }
 
   // 3) 가용 잔고 기준으로 신규 진입 금액(gross) 계산 (수수료 포함된 금액에서 4%를 떼고 net로 포지션 시작)
+  // 반대 포지션을 정산한 직후의 잔고(usdtNow) 기준으로 비중(%)을 적용한다.
   const usdtNow = Number(balance.value || 0)
+  const wantMargin = (usdtNow * wantPercent) / 100
   let usedGross = Math.min(wantMargin, usdtNow)
   usedGross = round2(usedGross)
   const openFee = usedGross * TRADE_FEE_RATE
