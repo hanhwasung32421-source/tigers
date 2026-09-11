@@ -507,7 +507,7 @@
                 <button
                   type="button"
                   class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="isTradeSyncing"
+                  :disabled="isTradeSyncing || openClickCooldown"
                   @click="onOpen('long')"
                 >
                   구매 / 롱
@@ -517,7 +517,7 @@
                 <button
                   type="button"
                   class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="isTradeSyncing"
+                  :disabled="isTradeSyncing || openClickCooldown"
                   @click="onOpen('short')"
                 >
                   판매 / 숏
@@ -700,8 +700,8 @@
                 <div class="flex items-center gap-2">
                   <button
                     class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
-                    :disabled="isTradeSyncing"
-                    @click="closePosition(p.id, 'market', p)"
+                    :disabled="isTradeSyncing || closeClickCooldown.has(p.id)"
+                    @click="onClosePositionClick(p.id, p)"
                   >
                     시장가청산
                   </button>
@@ -5301,9 +5301,31 @@ async function checkAutoLiquidations() {
 
 // 지정가/예약 삭제: 주문 타입 전환 기능 제거
 
+// 과도한 연타로 DB에 중복 요청이 쌓이는 걸 막기 위해, 클릭 시 0.2초간 버튼을 비활성화하고
+// 그 뒤에 실제 포지션 진입/청산 요청을 보낸다.
+const TRADE_CLICK_COOLDOWN_MS = 200
+const openClickCooldown = ref(false)
+const closeClickCooldown = reactive(new Set<number>())
+
 async function onOpen(s: 'long' | 'short') {
+  if (openClickCooldown.value || isTradeSyncing.value) return
+  openClickCooldown.value = true
+  setTimeout(() => {
+    openClickCooldown.value = false
+  }, TRADE_CLICK_COOLDOWN_MS)
+  await new Promise((resolve) => setTimeout(resolve, TRADE_CLICK_COOLDOWN_MS))
   side.value = s
   await openPosition()
+}
+
+async function onClosePositionClick(positionId: number, pos: any) {
+  if (closeClickCooldown.has(positionId) || isTradeSyncing.value) return
+  closeClickCooldown.add(positionId)
+  setTimeout(() => {
+    closeClickCooldown.delete(positionId)
+  }, TRADE_CLICK_COOLDOWN_MS)
+  await new Promise((resolve) => setTimeout(resolve, TRADE_CLICK_COOLDOWN_MS))
+  await closePosition(positionId, 'market', pos)
 }
 
 async function openPosition() {
