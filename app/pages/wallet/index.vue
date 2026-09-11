@@ -40,6 +40,18 @@
           <span class="whitespace-nowrap text-sm text-slate-400">원</span>
         </div>
         <div class="mt-1 text-xs text-slate-500">≈ {{ usdtPreview(krwInput) }} USDT</div>
+        <div v-if="krwToKoreanText(krwInput)" class="mt-0.5 text-xs text-cyan-300">{{ krwToKoreanText(krwInput) }}</div>
+        <div class="mt-2 grid grid-cols-3 gap-2">
+          <button
+            v-for="q in QUICK_KRW_AMOUNTS"
+            :key="q.value"
+            type="button"
+            class="rounded-md bg-white/5 px-2 py-1.5 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-white/10"
+            @click="addDepositAmount(q.value)"
+          >
+            {{ q.label }}
+          </button>
+        </div>
         <button
           type="button"
           class="mt-3 w-full rounded-md bg-[#1d4ed8] px-3 py-2 text-sm font-medium text-white hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-50"
@@ -64,6 +76,18 @@
           <span class="whitespace-nowrap text-sm text-slate-400">원</span>
         </div>
         <div class="mt-1 text-xs text-slate-500">≈ {{ usdtPreview(krwWithdrawInput) }} USDT</div>
+        <div v-if="krwToKoreanText(krwWithdrawInput)" class="mt-0.5 text-xs text-cyan-300">{{ krwToKoreanText(krwWithdrawInput) }}</div>
+        <div class="mt-2 grid grid-cols-3 gap-2">
+          <button
+            v-for="q in QUICK_KRW_AMOUNTS"
+            :key="q.value"
+            type="button"
+            class="rounded-md bg-white/5 px-2 py-1.5 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-white/10"
+            @click="addWithdrawAmount(q.value)"
+          >
+            {{ q.label }}
+          </button>
+        </div>
         <button
           type="button"
           class="mt-3 w-full rounded-md bg-[#1d4ed8] px-3 py-2 text-sm font-medium text-white hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-50"
@@ -159,6 +183,45 @@ function usdtPreview(krwValue: string) {
   const krw = Number(krwValue)
   if (!(krw > 0) || !(krwPerUsdt.value > 0)) return '0.00'
   return (krw / krwPerUsdt.value).toFixed(2)
+}
+
+// 조/억/만 단위로 끊어서 "1,234만원" 같은 한글식 금액 표기를 만든다.
+function krwToKoreanText(krwValue: string) {
+  const n = Math.floor(Number(krwValue))
+  if (!Number.isFinite(n) || n <= 0) return ''
+  const units: Array<[number, string]> = [
+    [1e12, '조'],
+    [1e8, '억'],
+    [1e4, '만']
+  ]
+  let remain = n
+  const parts: string[] = []
+  for (const [unitValue, label] of units) {
+    const count = Math.floor(remain / unitValue)
+    if (count > 0) {
+      parts.push(`${count.toLocaleString()}${label}`)
+      remain -= count * unitValue
+    }
+  }
+  if (remain > 0) parts.push(remain.toLocaleString())
+  if (!parts.length) return ''
+  return `${parts.join(' ')}원`
+}
+
+const QUICK_KRW_AMOUNTS = [
+  { label: '100만원', value: 1_000_000 },
+  { label: '1000만원', value: 10_000_000 },
+  { label: '5000만원', value: 50_000_000 }
+]
+
+function addDepositAmount(amount: number) {
+  const cur = Number(krwInput.value) || 0
+  krwInput.value = String(cur + amount)
+}
+
+function addWithdrawAmount(amount: number) {
+  const cur = Number(krwWithdrawInput.value) || 0
+  krwWithdrawInput.value = String(cur + amount)
 }
 
 const canSubmitDeposit = computed(() => Number(krwInput.value) > 0)
