@@ -273,10 +273,11 @@ export function getDb() {
     // ignore
   }
 
-  // 마이그레이션: deposit_requests에 type(deposit/withdrawal) 컬럼 추가
+  // 마이그레이션: deposit_requests에 type(deposit/withdrawal), deleted_at(소프트 삭제) 컬럼 추가
   try {
     const depositReqCols = (db.prepare("PRAGMA table_info('deposit_requests')").all() as any[]).map((c) => String(c?.name))
     if (!depositReqCols.includes('type')) db.exec("ALTER TABLE deposit_requests ADD COLUMN type TEXT NOT NULL DEFAULT 'deposit';")
+    if (!depositReqCols.includes('deleted_at')) db.exec('ALTER TABLE deposit_requests ADD COLUMN deleted_at TEXT;')
   } catch {
     // ignore
   }

@@ -92,6 +92,9 @@
         <table class="w-full text-sm text-slate-200">
           <thead class="border-b border-[#12314a] text-[13px] text-slate-400">
             <tr>
+              <th v-if="isSuperAdmin" class="w-9 px-3 py-3 text-left">
+                <input type="checkbox" class="rounded border-white/20 bg-white/5" :checked="allPagedSelected" @change="toggleSelectAll" />
+              </th>
               <th class="sortable-th max-w-[10ch] cursor-pointer select-none truncate px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
               <th class="sortable-th max-w-[10ch] cursor-pointer select-none truncate px-3 py-3 text-left" @click="toggleSort('name')">회원 이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
               <th class="sortable-th max-w-[10ch] cursor-pointer select-none truncate px-3 py-3 text-left" @click="toggleSort('topCode')">총판 이름<span class="sort-icon">{{ sortArrow('topCode') || ' ⇅' }}</span></th>
@@ -106,9 +109,12 @@
           </thead>
           <tbody>
             <tr v-if="filteredItems.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="10" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
+              <td :colspan="isSuperAdmin ? 11 : 10" class="px-3 py-8 text-center text-slate-500">조건에 맞는 입금/출금 요청 내역이 없습니다.</td>
             </tr>
             <tr v-for="it in paged" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
+              <td v-if="isSuperAdmin" class="px-3 py-3">
+                <input type="checkbox" class="rounded border-white/20 bg-white/5" :checked="selectedIds.includes(it.id)" @change="toggleSelectOne(it.id)" />
+              </td>
               <td class="max-w-[10ch] truncate px-3 py-3 font-data text-slate-100" :title="it.username">
                 <button type="button" class="truncate underline-offset-4 hover:text-cyan-300 hover:underline" @click="memberInfoModal?.open(it.username)">
                   {{ it.username }}
@@ -188,11 +194,82 @@
         </div>
       </div>
 
+      <div v-if="isSuperAdmin" class="flex items-center justify-end gap-2">
+        <span v-if="selectedIds.length" class="text-sm text-slate-400">{{ selectedIds.length }}건 선택됨</span>
+        <button
+          type="button"
+          class="rounded-md bg-[#8f1c1c] px-3 py-2 text-sm font-semibold text-white hover:bg-[#ab2626] disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="!selectedIds.length || deleting"
+          @click="deleteSelected"
+        >
+          {{ deleting ? '삭제 중…' : '삭제' }}
+        </button>
+        <button type="button" class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="openDeletedModal">
+          삭제내역
+        </button>
+      </div>
+
       </template>
       <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
     </div>
 
     <AdminMemberInfoModal ref="memberInfoModal" />
+
+    <div
+      v-if="deletedModalOpen"
+      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+      @click.self="deletedModalOpen = false"
+    >
+      <div class="w-full max-w-4xl rounded-xl border border-white/10 bg-[#0b1420] p-5 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">삭제내역</h2>
+          <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="deletedModalOpen = false">✕</button>
+        </div>
+
+        <div v-if="deletedLoading" class="mt-4 text-sm text-slate-400">불러오는 중…</div>
+        <div v-else-if="!deletedItems.length" class="mt-4 text-sm text-slate-500">삭제된 내역이 없습니다.</div>
+        <div v-else class="mt-4 max-h-[60vh] overflow-y-auto">
+          <table class="w-full text-sm text-slate-200">
+            <thead class="border-b border-[#12314a] text-[13px] text-slate-400">
+              <tr>
+                <th class="px-3 py-2 text-left">회원 아이디</th>
+                <th class="px-3 py-2 text-left">회원 이름</th>
+                <th class="px-3 py-2 text-right">입금/출금 금액</th>
+                <th class="px-3 py-2 text-center">구분</th>
+                <th class="px-3 py-2 text-center">삭제 일시</th>
+                <th class="px-3 py-2 text-center">복구</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="it in deletedItems" :key="it.id" class="border-b border-[#0d2438]">
+                <td class="max-w-[10ch] truncate px-3 py-2 font-data text-slate-100" :title="it.username">{{ it.username }}</td>
+                <td class="max-w-[10ch] truncate px-3 py-2 text-slate-200" :title="it.name">{{ it.name }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-right font-data text-slate-100">{{ fmt0(it.krwAmount) }}원</td>
+                <td class="px-3 py-2 text-center">
+                  <span
+                    class="rounded px-2 py-1 text-[13px] font-semibold ring-1"
+                    :class="it.type === 'withdrawal' ? 'bg-rose-500/10 text-rose-300 ring-rose-400/20' : 'bg-cyan-500/10 text-cyan-200 ring-cyan-400/20'"
+                  >
+                    {{ it.type === 'withdrawal' ? '출금' : '입금' }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap px-3 py-2 text-center font-data text-slate-300">{{ it.deletedAt ? formatDateTime(it.deletedAt) : '—' }}</td>
+                <td class="px-3 py-2 text-center">
+                  <button
+                    type="button"
+                    class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-semibold text-black shadow-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="restoringId === it.id"
+                    @click="restoreItem(it)"
+                  >
+                    {{ restoringId === it.id ? '복구 중…' : '복구' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -213,10 +290,13 @@ type DepositRow = {
   resolvedAt: string | null
   referralCode: string
   topCode: string
+  deletedAt?: string | null
 }
 
-const { refresh } = useMe()
+const { me, refresh } = useMe()
 await refresh()
+
+const isSuperAdmin = computed(() => me.value?.role === 'super_admin')
 
 const memberInfoModal = ref<{ open: (username: string) => void } | null>(null)
 const items = ref<DepositRow[]>([])
@@ -225,6 +305,71 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const resolvingId = ref<number | null>(null)
 const krwPerUsdt = ref(0)
+
+// 체크박스 선택(총관리자 전용) — 삭제 버튼으로 일괄 소프트 삭제하기 위함.
+const selectedIds = ref<number[]>([])
+const allPagedSelected = computed(() => paged.value.length > 0 && paged.value.every((it) => selectedIds.value.includes(it.id)))
+function toggleSelectAll() {
+  if (allPagedSelected.value) {
+    const pagedIds = new Set(paged.value.map((it) => it.id))
+    selectedIds.value = selectedIds.value.filter((id) => !pagedIds.has(id))
+  } else {
+    const next = new Set(selectedIds.value)
+    for (const it of paged.value) next.add(it.id)
+    selectedIds.value = Array.from(next)
+  }
+}
+function toggleSelectOne(id: number) {
+  const idx = selectedIds.value.indexOf(id)
+  if (idx === -1) selectedIds.value = [...selectedIds.value, id]
+  else selectedIds.value = selectedIds.value.filter((v) => v !== id)
+}
+
+const deleting = ref(false)
+async function deleteSelected() {
+  if (!selectedIds.value.length || deleting.value) return
+  if (!confirm(`선택한 ${selectedIds.value.length}건을 삭제할까요? 삭제내역에서 복구할 수 있습니다.`)) return
+  deleting.value = true
+  try {
+    await $fetch('/api/admin/deposit-requests/delete', { method: 'POST', body: { ids: selectedIds.value } })
+    selectedIds.value = []
+    await load()
+  } catch (e: any) {
+    alert(e?.data?.statusMessage || '삭제 중 오류가 발생했습니다.')
+  } finally {
+    deleting.value = false
+  }
+}
+
+// 삭제내역(복구) 모달
+const deletedModalOpen = ref(false)
+const deletedLoading = ref(false)
+const deletedItems = ref<DepositRow[]>([])
+const restoringId = ref<number | null>(null)
+async function openDeletedModal() {
+  deletedModalOpen.value = true
+  deletedLoading.value = true
+  try {
+    const res = await $fetch<any>('/api/admin/deposit-requests/deleted')
+    deletedItems.value = res.items || []
+  } catch (e: any) {
+    alert(e?.data?.statusMessage || '삭제내역을 불러오지 못했습니다.')
+  } finally {
+    deletedLoading.value = false
+  }
+}
+async function restoreItem(it: DepositRow) {
+  restoringId.value = it.id
+  try {
+    await $fetch('/api/admin/deposit-requests/restore', { method: 'POST', body: { ids: [it.id] } })
+    deletedItems.value = deletedItems.value.filter((row) => row.id !== it.id)
+    await load()
+  } catch (e: any) {
+    alert(e?.data?.statusMessage || '복구 중 오류가 발생했습니다.')
+  } finally {
+    restoringId.value = null
+  }
+}
 
 // 컬럼별 필터: 구분/상태는 드롭다운, 아이디/이름은 텍스트 검색,
 // 잔고/금액은 원화 기준 최소~최대 범위, 처리 일시는 화면에 보이는 날짜(신청 또는 처리)를 기준으로 범위 검색.

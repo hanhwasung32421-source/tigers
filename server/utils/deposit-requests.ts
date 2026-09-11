@@ -16,6 +16,7 @@ export type DepositRequest = {
   rateUsed: number | null
   createdAt: string
   resolvedAt: string | null
+  deletedAt: string | null
 }
 
 function rowToDepositRequest(row: any): DepositRequest {
@@ -28,7 +29,8 @@ function rowToDepositRequest(row: any): DepositRequest {
     usdtAmount: row.usdt_amount === null || row.usdt_amount === undefined ? null : Number(row.usdt_amount),
     rateUsed: row.rate_used === null || row.rate_used === undefined ? null : Number(row.rate_used),
     createdAt: String(row.created_at),
-    resolvedAt: row.resolved_at ? String(row.resolved_at) : null
+    resolvedAt: row.resolved_at ? String(row.resolved_at) : null,
+    deletedAt: row.deleted_at ? String(row.deleted_at) : null
   }
 }
 
@@ -49,7 +51,7 @@ export async function createDepositRequest(
       status: 'pending',
       created_at: createdAt
     })
-    return { id, userId, type, krwAmount, status: 'pending', usdtAmount: null, rateUsed: null, createdAt, resolvedAt: null }
+    return { id, userId, type, krwAmount, status: 'pending', usdtAmount: null, rateUsed: null, createdAt, resolvedAt: null, deletedAt: null }
   }
 
   const db = getDb()
@@ -65,25 +67,74 @@ export async function createDepositRequest(
     usdtAmount: null,
     rateUsed: null,
     createdAt,
-    resolvedAt: null
+    resolvedAt: null,
+    deletedAt: null
   }
 }
 
-// 입금/출금 내역 화면용: 지정된 유저들의 요청 전체(건당 1행), 최신 신청 순으로 정렬
+// 입금/출금 내역 화면용: 지정된 유저들의 요청 전체(건당 1행, 삭제된 건 제외), 최신 신청 순으로 정렬
 export async function listDepositRequests(userIds: number[]): Promise<DepositRequest[]> {
   if (!userIds.length) return []
 
   if (supabaseAppDbEnabled()) {
     const rows = await supaSelectWhere<any>({ table: T_DEPOSIT_REQUESTS, orderBy: 'id', ascending: false })
-    return rows.filter((row) => userIds.includes(Number(row.user_id))).map(rowToDepositRequest)
+    return rows.filter((row) => userIds.includes(Number(row.user_id)) && !row.deleted_at).map(rowToDepositRequest)
   }
 
   const db = getDb()
   const placeholders = userIds.map(() => '?').join(',')
   const rows = db
-    .prepare(`SELECT * FROM deposit_requests WHERE user_id IN (${placeholders}) ORDER BY id DESC`)
+    .prepare(`SELECT * FROM deposit_requests WHERE user_id IN (${placeholders}) AND deleted_at IS NULL ORDER BY id DESC`)
     .all(...userIds) as any[]
   return rows.map(rowToDepositRequest)
+}
+
+// 삭제내역 화면용: 지정된 유저들의 "삭제된" 요청만, 최신 신청 순으로 정렬
+export async function listDeletedDepositRequests(userIds: number[]): Promise<DepositRequest[]> {
+  if (!userIds.length) return []
+
+  if (supabaseAppDbEnabled()) {
+    const rows = await supaSelectWhere<any>({ table: T_DEPOSIT_REQUESTS, orderBy: 'id', ascending: false })
+    return rows.filter((row) => userIds.includes(Number(row.user_id)) && row.deleted_at).map(rowToDepositRequest)
+  }
+
+  const db = getDb()
+  const placeholders = userIds.map(() => '?').join(',')
+  const rows = db
+    .prepare(`SELECT * FROM deposit_requests WHERE user_id IN (${placeholders}) AND deleted_at IS NOT NULL ORDER BY id DESC`)
+    .all(...userIds) as any[]
+  return rows.map(rowToDepositRequest)
+}
+
+export async function softDeleteDepositRequests(ids: number[]): Promise<void> {
+  if (!ids.length) return
+  const deletedAt = new Date().toISOString()
+
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    const { error } = await supa.from(T_DEPOSIT_REQUESTS).update({ deleted_at: deletedAt }).in('id', ids)
+    if (error) throw error
+    return
+  }
+
+  const db = getDb()
+  const placeholders = ids.map(() => '?').join(',')
+  db.prepare(`UPDATE deposit_requests SET deleted_at = ? WHERE id IN (${placeholders})`).run(deletedAt, ...ids)
+}
+
+export async function restoreDepositRequests(ids: number[]): Promise<void> {
+  if (!ids.length) return
+
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    const { error } = await supa.from(T_DEPOSIT_REQUESTS).update({ deleted_at: null }).in('id', ids)
+    if (error) throw error
+    return
+  }
+
+  const db = getDb()
+  const placeholders = ids.map(() => '?').join(',')
+  db.prepare(`UPDATE deposit_requests SET deleted_at = NULL WHERE id IN (${placeholders})`).run(...ids)
 }
 
 export async function getDepositRequest(id: number): Promise<DepositRequest | null> {
