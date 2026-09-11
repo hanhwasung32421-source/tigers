@@ -5083,6 +5083,7 @@ function connectOkxWs() {
 // 매 메시지마다 그대로 재구성한다.
 function connectBinanceWs() {
   if (!process.client) return
+  console.debug('[bw-debug] connectBinanceWs called', new Error().stack)
   ws?.close()
   asks.value = []
   bids.value = []
@@ -5092,13 +5093,17 @@ function connectBinanceWs() {
 
   const lower = symbol.value.toLowerCase()
   const streams = [`${lower}@aggTrade`, `${lower}@depth20@100ms`, `${lower}@ticker`].join('/')
-  ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
+  const wsInstance = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
+  ws = wsInstance
+  let msgCount = 0
 
-  ws.onopen = () => (wsStatus.value = 'open')
-  ws.onclose = () => (wsStatus.value = 'closed')
+  ws.onopen = () => { wsStatus.value = 'open'; console.debug('[bw-debug] open') }
+  ws.onclose = (e) => console.debug('[bw-debug] close', e.code, e.reason, 'sameInstance=', ws === wsInstance)
   ws.onerror = () => (wsStatus.value = 'error')
 
   ws.onmessage = (ev) => {
+    msgCount++
+    if (msgCount % 10 === 1) console.debug('[bw-debug] msg#' + msgCount, 'sameInstance=', ws === wsInstance)
     try {
       const msg = JSON.parse(ev.data)
       const data = msg?.data
