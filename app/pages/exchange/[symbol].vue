@@ -1374,7 +1374,6 @@ let orderbookWatchTimer: any = null
 let orderbookRefreshing = false
 let orderbookRestFail = 0
 let orderbookLevelTimer: any = null
-let buySellBandTimer: any = null
 
 // trade panel
 const side = ref<'long' | 'short'>('long')
@@ -3309,7 +3308,6 @@ const ASK_COUNT = 8
 const BID_COUNT = 8
 const askDisplay = ref<number[]>([])
 const bidDisplay = ref<number[]>([])
-const forcedBuyPct = ref(50)
 
 function resetOrderbook() {
   obAsks.value = new Map()
@@ -3438,7 +3436,16 @@ function buildRowsFromDisplay(side: 'ask' | 'bid', count: number): Array<DepthRo
 const askRows = computed(() => buildRowsFromDisplay('ask', ASK_COUNT))
 const bidRows = computed(() => buildRowsFromDisplay('bid', BID_COUNT))
 
-const buyPct = computed(() => forcedBuyPct.value)
+// BUY/SELL 비율: 위에 표시된 호가(매수/매도 각 8줄)의 수량 합산 비교로 계산(랜덤 시뮬레이션 아님).
+const buyPct = computed(() => {
+  let bidSum = 0
+  for (const p of bidDisplay.value) bidSum += Number(obBids.value.get(p) ?? 0)
+  let askSum = 0
+  for (const p of askDisplay.value) askSum += Number(obAsks.value.get(p) ?? 0)
+  const total = bidSum + askSum
+  if (total <= 0) return 50
+  return (bidSum / total) * 100
+})
 
 function fmtQty(sym: string, qty: number) {
   return Number(qty).toFixed(5)
@@ -5058,10 +5065,6 @@ function simulateOrderbookLevels() {
   if (obBids.value.size) obBids.value = jitterOrderbookMap(obBids.value)
 }
 
-function simulateBuySellBand() {
-  forcedBuyPct.value = 40 + Math.random() * 20
-}
-
 function connectWs() {
   if (usesBinanceFeed(symbol.value)) {
     connectBinanceWs()
@@ -5223,7 +5226,6 @@ function startOrderbookAutoReconnect() {
           if (ok) return
           // REST도 실패하면 표시용 흔들림 + 재연결
           simulateOrderbookLevels()
-          simulateBuySellBand()
           if (orderbookRestFail >= 2) connectWs()
         })
         .catch(() => {})
@@ -5239,17 +5241,6 @@ function startOrderbookLevelMotion() {
     refreshDisplayIfNeeded()
     const nextDelay = 300 + Math.floor(Math.random() * 701) // 0.3초 ~ 1초
     orderbookLevelTimer = setTimeout(tick, nextDelay)
-  }
-  tick()
-}
-
-function startBuySellBandMotion() {
-  if (!process.client) return
-  if (buySellBandTimer) clearTimeout(buySellBandTimer)
-  const tick = () => {
-    simulateBuySellBand()
-    const nextDelay = 500 + Math.floor(Math.random() * 501) // 0.5초 ~ 1초
-    buySellBandTimer = setTimeout(tick, nextDelay)
   }
   tick()
 }
@@ -5803,7 +5794,6 @@ onMounted(async () => {
   startAccountAutoRefresh()
   startMarksPolling()
   startOrderbookLevelMotion()
-  startBuySellBandMotion()
   await ensureChartReady()
   await fetchCandles().catch(() => {})
   fitChartAndLockPriceScale()
@@ -5881,8 +5871,6 @@ onBeforeUnmount(() => {
   orderbookWatchTimer = null
   if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)
   orderbookLevelTimer = null
-  if (buySellBandTimer) clearTimeout(buySellBandTimer)
-  buySellBandTimer = null
   if (accountWatchTimer) clearInterval(accountWatchTimer)
   accountWatchTimer = null
   if (chartClockTimer) clearInterval(chartClockTimer)
