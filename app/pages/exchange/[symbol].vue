@@ -1348,8 +1348,8 @@ const wsStatus = ref('')
 let ws: WebSocket | null = null
 let lastOrderbookTs = 0
 // 바이낸스 호가(depth20)는 최소 100ms~최대 250ms 간격으로 오는데, 그대로 다 화면에 반영하면
-// 너무 정신없이 바뀌어 보인다. 화면 갱신 자체는 최소 이 간격(0.2초)으로만 하도록 제한한다.
-const ORDERBOOK_UI_MIN_INTERVAL_MS = 200
+// 너무 정신없이 바뀌어 보인다. 화면 갱신 자체는 최소 이 간격(0.3초)으로만 하도록 제한한다.
+const ORDERBOOK_UI_MIN_INTERVAL_MS = 300
 let lastOrderbookApplyTs = 0
 let orderbookWatchTimer: any = null
 let orderbookRefreshing = false
@@ -5001,6 +5001,9 @@ function jitterOrderbookMap(source: Map<number, number>) {
 }
 
 function simulateOrderbookLevels() {
+  // usesBinanceFeed 종목은 실제 바이낸스 호가를 그대로 쓰므로, 여기서 물량을 따로 흔들면
+  // 실제 데이터 위에 가짜 움직임이 덧씌워져 더 정신없어 보인다(0.3초 간격 실제 갱신만 사용).
+  if (usesBinanceFeed(symbol.value)) return
   // 현재가는 차트(lastPrice)만 따르고, 위/아래 호가 물량만 강제로 계속 움직이게 함
   ensureSyntheticOrderbook()
   if (obAsks.value.size) obAsks.value = jitterOrderbookMap(obAsks.value)
