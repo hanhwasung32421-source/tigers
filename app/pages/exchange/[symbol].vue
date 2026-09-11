@@ -1347,6 +1347,10 @@ const bids = ref<[string, string][]>([])
 const wsStatus = ref('')
 let ws: WebSocket | null = null
 let lastOrderbookTs = 0
+// 바이낸스 호가(depth20)는 최소 100ms~최대 250ms 간격으로 오는데, 그대로 다 화면에 반영하면
+// 너무 정신없이 바뀌어 보인다. 화면 갱신 자체는 최소 이 간격(0.2초)으로만 하도록 제한한다.
+const ORDERBOOK_UI_MIN_INTERVAL_MS = 200
+let lastOrderbookApplyTs = 0
 let orderbookWatchTimer: any = null
 let orderbookRefreshing = false
 let orderbookRestFail = 0
@@ -5089,6 +5093,7 @@ function connectBinanceWs() {
   resetOrderbook()
   wsStatus.value = 'connecting'
   lastOrderbookTs = Date.now()
+  lastOrderbookApplyTs = 0
 
   const lower = symbol.value.toLowerCase()
   const streams = [`${lower}@aggTrade`, `${lower}@depth20@100ms`, `${lower}@ticker`].join('/')
@@ -5109,6 +5114,12 @@ function connectBinanceWs() {
       // 통째로 무시되고, 대신 1초에 한 번 도는 REST 폴백만 돌고 있었다).
       if (data.e === 'depthUpdate' && Array.isArray(data.b) && Array.isArray(data.a)) {
         lastOrderbookTs = Date.now()
+        // 화면 갱신 자체는 최소 0.2초 간격으로 제한(메시지는 그보다 자주 와도 그냥 흘려보냄).
+        // "연결이 살아있는지" 판단용 lastOrderbookTs는 위에서 매 메시지마다 갱신해뒀으므로
+        // 여기서 걸러내도 무음 감지/재연결 로직에는 영향이 없다.
+        const now = Date.now()
+        if (now - lastOrderbookApplyTs < ORDERBOOK_UI_MIN_INTERVAL_MS) return
+        lastOrderbookApplyTs = now
         resetOrderbook()
         applyOrderbookUpdate(data.a, 'ask')
         applyOrderbookUpdate(data.b, 'bid')
