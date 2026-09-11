@@ -731,7 +731,7 @@
         </table>
       </div>
       <div v-else-if="bottomTab === 'fills'" ref="fillsWrap" class="max-h-[360px] overflow-auto rounded-lg bg-black/10" @scroll="onFillsScroll">
-        <table class="w-full text-xs">
+        <table class="w-full text-[14px]">
           <thead class="sticky top-0 bg-slate-950/95 text-slate-400">
             <tr class="text-left">
               <th class="px-3 py-2">시간</th>
@@ -756,23 +756,23 @@
               </td>
               <td class="px-3 py-3">
                 <span
-                  class="rounded px-2 py-1 text-xs font-semibold ring-1"
+                  class="rounded px-2 py-1 text-[14px] font-semibold ring-1"
                   :class="tradeResultBadgeClass(t)"
                 >
                   {{ tradeResultLabel(t) }}
                 </span>
               </td>
-              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice(Number(t.exit_price)) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty(t.symbol, Number(t.qty)) }} {{ baseCoin(t.symbol) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(t.exit_price)) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty2(t.symbol, Number(t.qty)) }} {{ baseCoin(t.symbol) }}</td>
               <td class="px-3 py-3 font-mono text-slate-300">{{ calcTradeFeeText(t) }}</td>
               <td class="px-3 py-3">
                 <div class="flex items-center justify-between gap-2">
                   <div class="font-mono" :class="Number(t.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
-                    {{ Number(t.pnl) >= 0 ? '+' : '' }}{{ Number(t.pnl).toFixed(6) }} USDT
+                    {{ Number(t.pnl) >= 0 ? '+' : '' }}{{ Number(t.pnl).toFixed(2) }} USDT
                   </div>
                   <button
                     type="button"
-                    class="rounded-md bg-white/10 px-2 py-1 text-[10px] text-slate-100 ring-1 ring-white/10 hover:bg-white/15"
+                    class="rounded-md bg-white/10 px-2 py-1 text-[14px] text-slate-100 ring-1 ring-white/10 hover:bg-white/15"
                     @click="openProfitCardFromTrade(t)"
                   >
                     카드
