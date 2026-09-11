@@ -714,11 +714,12 @@
                       @change="onToggleAlarm(p.id, ($event.target as HTMLInputElement).checked)"
                     />
                     <input
-                      type="number"
-                      step="0.01"
-                      placeholder="%"
-                      class="w-14 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
-                      :value="getPositionAlarm(p.id).percent ?? ''"
+                      type="text"
+                      inputmode="decimal"
+                      placeholder="+20,-20"
+                      title="예: 20 또는 +20,-20 (콤마로 여러 개 지정 시 하나라도 도달하면 알람)"
+                      class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
+                      :value="getPositionAlarm(p.id).percent"
                       @input="onAlarmPercentInput(p.id, ($event.target as HTMLInputElement).value)"
                     />
                     <span v-if="getPositionAlarm(p.id).triggered" class="text-[11px] font-semibold text-amber-300">울림</span>
@@ -5383,9 +5384,11 @@ const closeClickCooldown = reactive(new Set<number>())
 
 // 총관리자 전용 포지션 알람: 미실현손익(ROE)이 지정한 %에 도달하면 소리로 알림.
 // 새로고침(F5)이나 체크박스 해제 전까지는 계속 울린 상태를 유지한다(서버 저장 없이 클라이언트 상태만 사용).
-type PositionAlarm = { enabled: boolean; percent: number | null; triggered: boolean }
+// percent는 "20" 처럼 하나만 쓸 수도 있고, "+20,-20" 처럼 콤마로 여러 값을 넣으면
+// 그 중 하나라도(양수는 도달 이상, 음수는 도달 이하) 맞으면 알람이 울린다(OR 조건).
+type PositionAlarm = { enabled: boolean; percent: string; triggered: boolean }
 const positionAlarms = reactive<Record<number, PositionAlarm>>({})
-const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: null, triggered: false }
+const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '', triggered: false }
 let alarmAudioCtx: AudioContext | null = null
 let alarmLoopTimer: any = null
 
@@ -5395,8 +5398,17 @@ function getPositionAlarm(id: number) {
 
 function setPositionAlarm(id: number, patch: Partial<PositionAlarm>) {
   const key = Number(id)
-  const cur = positionAlarms[key] || { enabled: false, percent: null, triggered: false }
+  const cur = positionAlarms[key] || { enabled: false, percent: '', triggered: false }
   positionAlarms[key] = { ...cur, ...patch }
+}
+
+function parseAlarmThresholds(raw: string): number[] {
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n) && n !== 0)
 }
 
 function onToggleAlarm(id: number, checked: boolean) {
@@ -5405,9 +5417,7 @@ function onToggleAlarm(id: number, checked: boolean) {
 }
 
 function onAlarmPercentInput(id: number, raw: string) {
-  const trimmed = raw.trim()
-  const n = trimmed === '' ? null : Number(trimmed)
-  setPositionAlarm(id, { percent: n !== null && Number.isFinite(n) ? n : null })
+  setPositionAlarm(id, { percent: raw })
   checkPositionAlarms()
 }
 
@@ -5465,10 +5475,10 @@ function checkPositionAlarms() {
       anyTriggered = true
       continue
     }
-    const threshold = Number(a.percent)
-    if (!Number.isFinite(threshold) || threshold === 0) continue
+    const thresholds = parseAlarmThresholds(a.percent)
+    if (!thresholds.length) continue
     const roe = unrealized(p).roe
-    const hit = threshold > 0 ? roe >= threshold : roe <= threshold
+    const hit = thresholds.some((t) => (t > 0 ? roe >= t : roe <= t))
     if (hit) {
       a.triggered = true
       anyTriggered = true
