@@ -384,7 +384,7 @@
 
           <!-- 현재가 -->
           <div class="my-2 flex items-center justify-end font-mono text-[17px] text-[#36f2c6]">
-            <span>{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</span>
+            <span>{{ lastPrice ? Number(lastPrice).toFixed(2) : '—' }}</span>
             <span class="ml-1 text-[15px] text-slate-300">USDT</span>
           </div>
 
