@@ -5111,6 +5111,17 @@ function connectBinanceWs() {
         applyOrderbookUpdate(data.asks, 'ask')
         applyOrderbookUpdate(data.bids, 'bid')
         initDisplayFromMaps()
+        // SAMSUNGUSDT/SKHYNIXUSDT 같은 종목은 실제 체결(aggTrade)이 몇 초에 한 번씩만 일어나서,
+        // 체결가만 따라가면 차트가 몇 초씩 멈춰 보인다. 호가(매수/매도 1호가)는 100ms마다 계속
+        // 갱신되므로, 그 중간값으로 현재가를 계속 갱신해 실제 체결이 뜸한 구간에도 실시간처럼
+        // 움직이게 한다(실제 체결이 오면 그 즉시 그 가격으로 덮어써진다).
+        const bestBid = Number(data.bids[0]?.[0])
+        const bestAsk = Number(data.asks[0]?.[0])
+        if (Number.isFinite(bestBid) && Number.isFinite(bestAsk) && bestBid > 0 && bestAsk > 0) {
+          const mid = (bestBid + bestAsk) / 2
+          lastPrice.value = mid
+          updateLiveCandle(mid, Date.now())
+        }
         return
       }
 
