@@ -5083,7 +5083,6 @@ function connectOkxWs() {
 // 매 메시지마다 그대로 재구성한다.
 function connectBinanceWs() {
   if (!process.client) return
-  console.debug('[bw-debug] connectBinanceWs called', new Error().stack)
   ws?.close()
   asks.value = []
   bids.value = []
@@ -5093,40 +5092,36 @@ function connectBinanceWs() {
 
   const lower = symbol.value.toLowerCase()
   const streams = [`${lower}@aggTrade`, `${lower}@depth20@100ms`, `${lower}@ticker`].join('/')
-  const wsInstance = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
-  ws = wsInstance
-  let msgCount = 0
+  ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
 
-  ws.onopen = () => { wsStatus.value = 'open'; console.debug('[bw-debug] open') }
-  ws.onclose = (e) => console.debug('[bw-debug] close', e.code, e.reason, 'sameInstance=', ws === wsInstance)
+  ws.onopen = () => (wsStatus.value = 'open')
+  ws.onclose = () => (wsStatus.value = 'closed')
   ws.onerror = () => (wsStatus.value = 'error')
 
   ws.onmessage = (ev) => {
-    msgCount++
-    if (msgCount % 10 === 1) console.debug('[bw-debug] msg#' + msgCount, 'sameInstance=', ws === wsInstance)
     try {
       const msg = JSON.parse(ev.data)
       const data = msg?.data
       if (!data) return
 
-      // 호가 스냅샷(depth20): bids/asks가 있으면 전체 재구성
-      if (Array.isArray(data.bids) && Array.isArray(data.asks)) {
+      // 호가 스냅샷(depth20, 100ms마다): partial book depth 스트림은 필드명이 b/a로 축약돼 있다
+      // (REST 응답의 bids/asks와 다름 — 처음에 이걸 놓쳐서 WS 메시지가 매번 조건에 안 맞아
+      // 통째로 무시되고, 대신 1초에 한 번 도는 REST 폴백만 돌고 있었다).
+      if (data.e === 'depthUpdate' && Array.isArray(data.b) && Array.isArray(data.a)) {
         lastOrderbookTs = Date.now()
         resetOrderbook()
-        applyOrderbookUpdate(data.asks, 'ask')
-        applyOrderbookUpdate(data.bids, 'bid')
+        applyOrderbookUpdate(data.a, 'ask')
+        applyOrderbookUpdate(data.b, 'bid')
         initDisplayFromMaps()
         // SAMSUNGUSDT/SKHYNIXUSDT 같은 종목은 실제 체결(aggTrade)이 몇 초에 한 번씩만 일어나서,
         // 체결가만 따라가면 차트가 몇 초씩 멈춰 보인다. 호가(매수/매도 1호가)는 100ms마다 계속
         // 갱신되므로, 그 중간값으로 현재가를 계속 갱신해 실제 체결이 뜸한 구간에도 실시간처럼
         // 움직이게 한다(실제 체결이 오면 그 즉시 그 가격으로 덮어써진다).
-        const bestBid = Number(data.bids[0]?.[0])
-        const bestAsk = Number(data.asks[0]?.[0])
+        const bestBid = Number(data.b[0]?.[0])
+        const bestAsk = Number(data.a[0]?.[0])
         if (Number.isFinite(bestBid) && Number.isFinite(bestAsk) && bestBid > 0 && bestAsk > 0) {
           const mid = (bestBid + bestAsk) / 2
-          if (msgCount % 10 === 1) console.debug('[bw-debug] mid=' + mid.toFixed(4), 'lastPrice.value before=' + lastPrice.value)
           lastPrice.value = mid
-          if (msgCount % 10 === 1) console.debug('[bw-debug] lastPrice.value after=' + lastPrice.value)
           updateLiveCandle(mid, Date.now())
         }
         return
