@@ -5124,7 +5124,9 @@ function connectBinanceWs() {
         const bestAsk = Number(data.asks[0]?.[0])
         if (Number.isFinite(bestBid) && Number.isFinite(bestAsk) && bestBid > 0 && bestAsk > 0) {
           const mid = (bestBid + bestAsk) / 2
+          if (msgCount % 10 === 1) console.debug('[bw-debug] mid=' + mid.toFixed(4), 'lastPrice.value before=' + lastPrice.value)
           lastPrice.value = mid
+          if (msgCount % 10 === 1) console.debug('[bw-debug] lastPrice.value after=' + lastPrice.value)
           updateLiveCandle(mid, Date.now())
         }
         return
