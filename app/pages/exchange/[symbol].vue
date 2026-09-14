@@ -716,8 +716,8 @@
                     <input
                       type="text"
                       inputmode="decimal"
-                      placeholder="+20,-20"
-                      title="예: 20 또는 +20,-20 (콤마로 여러 개 지정 시 하나라도 도달하면 알람)"
+                      placeholder="+-20"
+                      title="예: 20 / +20,-20 / +-20(양쪽 다) — 콤마로 여러 개 지정 시 하나라도 도달하면 알람"
                       class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
                       :value="getPositionAlarm(p.id).percent"
                       @input="onAlarmPercentInput(p.id, ($event.target as HTMLInputElement).value)"
@@ -5375,11 +5375,12 @@ const closeClickCooldown = reactive(new Set<number>())
 
 // 총관리자 전용 포지션 알람: 미실현손익(ROE)이 지정한 %에 도달하면 소리로 알림.
 // 새로고침(F5)이나 체크박스 해제 전까지는 계속 울린 상태를 유지한다(서버 저장 없이 클라이언트 상태만 사용).
-// percent는 "20" 처럼 하나만 쓸 수도 있고, "+20,-20" 처럼 콤마로 여러 값을 넣으면
-// 그 중 하나라도(양수는 도달 이상, 음수는 도달 이하) 맞으면 알람이 울린다(OR 조건).
+// percent는 "20" 처럼 하나만 쓸 수도 있고, "+20,-20" 처럼 콤마로 여러 값을 넣거나,
+// "+-20"(양쪽 다) 처럼 쓸 수도 있다. 기본값은 체크 안 된 상태 + "+-20"이 미리 채워져 있어서
+// 체크만 하면 바로 +20%/-20% 알람이 적용된다.
 type PositionAlarm = { enabled: boolean; percent: string; triggered: boolean }
 const positionAlarms = reactive<Record<number, PositionAlarm>>({})
-const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '', triggered: false }
+const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '+-20', triggered: false }
 let alarmAudioCtx: AudioContext | null = null
 let alarmLoopTimer: any = null
 
@@ -5389,17 +5390,28 @@ function getPositionAlarm(id: number) {
 
 function setPositionAlarm(id: number, patch: Partial<PositionAlarm>) {
   const key = Number(id)
-  const cur = positionAlarms[key] || { enabled: false, percent: '', triggered: false }
+  const cur = positionAlarms[key] || { ...ALARM_DEFAULT }
   positionAlarms[key] = { ...cur, ...patch }
 }
 
 function parseAlarmThresholds(raw: string): number[] {
-  return raw
+  const out: number[] = []
+  const tokens = String(raw || '')
     .split(',')
     .map((s) => s.trim())
     .filter((s) => s !== '')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n) && n !== 0)
+  for (const tok of tokens) {
+    // "+-20" / "-+20" / "±20": 양방향(+N, -N) 둘 다 등록
+    const both = tok.match(/^(?:[+-]{2}|±)(\d+(?:\.\d+)?)$/)
+    if (both) {
+      const v = Number(both[1])
+      if (Number.isFinite(v) && v !== 0) out.push(v, -v)
+      continue
+    }
+    const n = Number(tok)
+    if (Number.isFinite(n) && n !== 0) out.push(n)
+  }
+  return out
 }
 
 function onToggleAlarm(id: number, checked: boolean) {
