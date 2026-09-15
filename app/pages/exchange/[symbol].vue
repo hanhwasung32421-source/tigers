@@ -1109,7 +1109,10 @@
         class="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 px-4"
         @click.self="closeSummary = null"
       >
-        <div class="relative w-full max-w-[340px] rounded-2xl border border-cyan-500/10 bg-[#06121d] px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]">
+        <div
+          class="relative w-full max-w-[340px] rounded-2xl border border-cyan-500/10 px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
+          style="background-color: #06121d; background-image: repeating-conic-gradient(#04101a 0% 25%, transparent 0% 50%); background-size: 28px 28px;"
+        >
           <button
             type="button"
             class="absolute right-4 top-4 z-10 rounded-full bg-white/6 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/10"
