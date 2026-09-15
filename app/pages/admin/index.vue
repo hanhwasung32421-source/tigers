@@ -484,92 +484,196 @@
     <!-- 카드 디자인(수익카드) -->
     <div v-show="activeTab === 'profitCard'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <h2 class="text-lg font-semibold">카드 디자인</h2>
-      <p class="mt-1 text-sm text-slate-400">거래내역 "카드" 버튼을 누르면 뜨는 수익카드(청산카드)의 색상을 조정합니다.</p>
+      <p class="mt-1 text-sm text-slate-400">
+        거래내역 "카드" 버튼을 누르면 뜨는 수익카드(청산카드) 디자인을 조정합니다. 아래 미리보기에서
+        <span class="text-slate-200">바꾸고 싶은 글자나 영역을 직접 클릭</span>하면 오른쪽에 그 부분의 설정이 나타납니다.
+      </p>
 
-      <div class="mt-4 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div class="grid gap-3 sm:grid-cols-2">
-          <label
-            v-for="f in PROFIT_CARD_FIELDS"
-            :key="f.key"
-            class="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
-          >
-            <span class="text-sm text-slate-300">{{ f.label }}</span>
-            <span class="flex items-center gap-2">
-              <input v-model="profitCardDraft[f.key]" type="color" class="h-7 w-10 cursor-pointer rounded border border-white/10 bg-transparent p-0" />
-              <input
-                v-model="profitCardDraft[f.key]"
-                type="text"
-                class="w-24 rounded border border-white/10 bg-black/20 px-2 py-1 font-mono text-xs text-slate-200 outline-none focus:border-cyan-400/40"
-              />
-            </span>
-          </label>
-        </div>
-
-        <div class="flex flex-col items-center gap-6">
+      <div class="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <!-- 미리보기(클릭해서 편집) -->
+        <div class="flex flex-wrap items-start justify-center gap-8 rounded-xl border border-white/10 bg-black/20 p-6">
           <div v-for="v in PROFIT_CARD_PREVIEW_VARIANTS" :key="v.key" class="flex flex-col items-center gap-3">
-            <p class="text-sm text-slate-400">미리보기 — {{ v.title }}</p>
+            <p class="text-sm text-slate-400">{{ v.title }}</p>
             <div
-              class="relative w-full max-w-[300px] rounded-2xl px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
+              class="relative cursor-pointer shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
               :style="{
-                borderWidth: '1px',
+                width: Math.min(300, profitCardDraft.cardWidth) + 'px',
+                padding: profitCardDraft.cardPaddingY + 'px ' + profitCardDraft.cardPaddingX + 'px',
+                borderRadius: profitCardDraft.cardRadius + 'px',
+                borderWidth: profitCardDraft.borderWidth + 'px',
                 borderStyle: 'solid',
                 borderColor: profitCardDraft.borderColor,
                 backgroundColor: profitCardDraft.bgColor,
                 backgroundImage: `repeating-conic-gradient(${profitCardDraft.gridColor} 0% 25%, transparent 0% 50%)`,
-                backgroundSize: '28px 28px'
+                backgroundSize: profitCardDraft.gridSize + 'px ' + profitCardDraft.gridSize + 'px',
+                fontFamily: profitCardDraft.fontFamily,
+                outline: selectedTarget === 'card' ? '2px solid #818cf8' : 'none',
+                outlineOffset: '2px'
               }"
+              @click="selectTarget('card')"
             >
               <div class="flex flex-col items-center">
-                <BrandLogo size="sm" />
+                <span
+                  class="inline-flex cursor-pointer items-center gap-2 rounded"
+                  :style="{ outline: selectedTarget === 'logo' ? '2px solid #818cf8' : 'none', outlineOffset: '3px' }"
+                  @click.stop="selectTarget('logo')"
+                >
+                  <span
+                    class="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] border border-white bg-black"
+                    :style="{ height: Math.round(profitCardDraft.logoFontSize * 1.5) + 'px', width: Math.round(profitCardDraft.logoFontSize * 1.5) + 'px' }"
+                  >
+                    <img src="/favicon.png" alt="" class="h-[80%] w-[80%] object-contain" style="image-rendering: pixelated" />
+                  </span>
+                  <span class="font-bold tracking-tight" :style="{ fontSize: profitCardDraft.logoFontSize + 'px', color: profitCardDraft.logoColor }">
+                    BITDUCK
+                  </span>
+                </span>
+
                 <div
                   class="mt-5 h-[2px] w-9 rounded-full opacity-50"
                   :style="{ backgroundColor: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
                 />
+
                 <div
-                  class="mt-4 text-[40px] font-extrabold leading-none tracking-tight"
-                  :style="{ color: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
+                  class="mt-4 cursor-pointer rounded font-extrabold leading-none tracking-tight"
+                  :style="{
+                    fontSize: profitCardDraft.roeFontSize + 'px',
+                    color: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor,
+                    outline: selectedTarget === 'roe' ? '2px solid #818cf8' : 'none',
+                    outlineOffset: '3px'
+                  }"
+                  @click.stop="selectTarget('roe')"
                 >
                   {{ v.roeText }}
                 </div>
-                <div class="mt-1.5 text-[17px] font-medium" :style="{ color: profitCardDraft.wonTextColor }">{{ v.wonText }}</div>
+                <div
+                  class="mt-1.5 cursor-pointer rounded font-medium"
+                  :style="{
+                    fontSize: profitCardDraft.wonFontSize + 'px',
+                    color: profitCardDraft.wonTextColor,
+                    outline: selectedTarget === 'won' ? '2px solid #818cf8' : 'none',
+                    outlineOffset: '3px'
+                  }"
+                  @click.stop="selectTarget('won')"
+                >
+                  {{ v.wonText }}
+                </div>
+
                 <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
                   <span
-                    class="rounded-full px-2 py-0.5 text-[14px] font-bold"
+                    class="cursor-pointer rounded-full px-2 py-0.5 font-bold"
                     :style="{
+                      fontSize: profitCardDraft.badgeFontSize + 'px',
                       backgroundColor: v.side === 'short' ? profitCardDraft.shortBadgeBg : profitCardDraft.longBadgeBg,
-                      color: v.side === 'short' ? profitCardDraft.shortBadgeText : profitCardDraft.longBadgeText
+                      color: v.side === 'short' ? profitCardDraft.shortBadgeText : profitCardDraft.longBadgeText,
+                      outline: selectedTarget === 'badge' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px'
                     }"
+                    @click.stop="selectTarget('badge')"
                   >
                     {{ v.side === 'short' ? '숏' : '롱' }}
                   </span>
-                  <span class="text-[16px] font-semibold" :style="{ color: profitCardDraft.symbolTextColor }">{{ v.symbol }}</span>
+                  <span
+                    class="cursor-pointer rounded font-semibold"
+                    :style="{
+                      fontSize: profitCardDraft.symbolFontSize + 'px',
+                      color: profitCardDraft.symbolTextColor,
+                      outline: selectedTarget === 'symbol' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px'
+                    }"
+                    @click.stop="selectTarget('symbol')"
+                  >
+                    {{ v.symbol }}
+                  </span>
                 </div>
               </div>
-              <div class="mt-[26px] grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06]">
-                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">레버리지</div>
-                  <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">격리 x{{ v.leverage }}</div>
-                </div>
-                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">손익</div>
+
+              <div
+                class="mt-[26px] grid cursor-pointer grid-cols-2 gap-px overflow-hidden bg-white/[0.06]"
+                :style="{
+                  borderRadius: profitCardDraft.statBoxRadius + 'px',
+                  outline: selectedTarget === 'statBox' ? '2px solid #818cf8' : 'none',
+                  outlineOffset: '2px'
+                }"
+                @click.stop="selectTarget('statBox')"
+              >
+                <div
+                  v-for="box in [
+                    { label: '레버리지', value: '격리 x' + v.leverage, positive: null },
+                    { label: '손익', value: v.pnlText, positive: v.positive },
+                    { label: '진입가격', value: v.entry, positive: null },
+                    { label: '종료가격', value: v.exit, positive: null }
+                  ]"
+                  :key="box.label"
+                  :style="{
+                    backgroundColor: profitCardDraft.statBoxBg,
+                    padding: profitCardDraft.statBoxPaddingY + 'px ' + profitCardDraft.statBoxPaddingX + 'px'
+                  }"
+                >
                   <div
-                    class="mt-1 text-[16px] font-bold"
-                    :style="{ color: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
+                    class="cursor-pointer rounded"
+                    :style="{
+                      fontSize: profitCardDraft.statLabelFontSize + 'px',
+                      color: profitCardDraft.statLabelColor,
+                      outline: selectedTarget === 'statLabel' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px'
+                    }"
+                    @click.stop="selectTarget('statLabel')"
                   >
-                    {{ v.pnlText }}
+                    {{ box.label }}
                   </div>
-                </div>
-                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">진입가격</div>
-                  <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">{{ v.entry }}</div>
-                </div>
-                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">종료가격</div>
-                  <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">{{ v.exit }}</div>
+                  <div
+                    class="mt-1 cursor-pointer rounded font-bold"
+                    :style="{
+                      fontSize: profitCardDraft.statValueFontSize + 'px',
+                      color: box.positive === null ? profitCardDraft.statValueColor : box.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor,
+                      outline: selectedTarget === 'statValue' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px'
+                    }"
+                    @click.stop="selectTarget('statValue')"
+                  >
+                    {{ box.value }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- 선택한 요소의 설정 패널 -->
+        <div class="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 lg:sticky lg:top-4 lg:self-start">
+          <div class="text-sm font-semibold text-indigo-300">{{ PROFIT_CARD_TARGET_LABELS[selectedTarget] }}</div>
+          <p v-if="PROFIT_CARD_TARGET_HINTS[selectedTarget]" class="text-xs text-slate-500">{{ PROFIT_CARD_TARGET_HINTS[selectedTarget] }}</p>
+
+          <div v-if="selectedTarget === 'card'" class="flex flex-col gap-1">
+            <label class="text-xs text-slate-400">폰트</label>
+            <select
+              v-model="profitCardDraft.fontFamily"
+              class="w-full rounded border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-cyan-400/40"
+            >
+              <option v-for="f in PROFIT_CARD_FONT_OPTIONS" :key="f.value" :value="f.value" :style="{ fontFamily: f.value }">{{ f.label }}</option>
+            </select>
+          </div>
+
+          <div v-for="f in currentNumberFields" :key="f.key" class="flex flex-col gap-1">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>{{ f.label }}</span>
+              <span class="font-mono text-slate-300">{{ profitCardDraft[f.key] }}px</span>
+            </div>
+            <input v-model.number="profitCardDraft[f.key]" type="range" :min="f.min" :max="f.max" class="w-full accent-indigo-400" />
+          </div>
+
+          <label v-for="f in currentColorFields" :key="f.key" class="flex flex-col gap-1">
+            <span class="text-xs text-slate-400">{{ f.label }}</span>
+            <span class="flex items-center gap-2">
+              <input v-model="profitCardDraft[f.key]" type="color" class="h-8 w-10 cursor-pointer rounded border border-white/10 bg-transparent p-0" />
+              <input
+                v-model="profitCardDraft[f.key]"
+                type="text"
+                class="w-full rounded border border-white/10 bg-black/30 px-2 py-1 font-mono text-xs text-slate-200 outline-none focus:border-cyan-400/40"
+              />
+            </span>
+          </label>
         </div>
       </div>
 
@@ -1515,55 +1619,160 @@ const mainNavSaving = ref(false)
 const mainNavError = ref<string | null>(null)
 const mainNavMsg = ref<string | null>(null)
 
-// 카드 디자인: 거래내역 "카드" 버튼으로 뜨는 수익카드(청산카드)의 색상 커스터마이징
+// 카드 디자인: 거래내역 "카드" 버튼으로 뜨는 수익카드(청산카드)의 색상/글자크기/크기 커스터마이징.
+// 미리보기에서 요소를 클릭하면 그 요소에 맞는 필드만 오른쪽 패널에 나타나는 방식(서버의
+// ProfitCardStyle/DEFAULT_PROFIT_CARD_STYLE과 항상 같은 값을 유지해야 함).
 type ProfitCardStyle = {
+  fontFamily: string
+  cardWidth: number
+  cardPaddingX: number
+  cardPaddingY: number
+  cardRadius: number
+  borderWidth: number
+  borderColor: string
   bgColor: string
   gridColor: string
-  borderColor: string
+  gridSize: number
   positiveColor: string
   negativeColor: string
+  logoFontSize: number
+  logoColor: string
+  roeFontSize: number
+  wonFontSize: number
   wonTextColor: string
-  statBoxBg: string
-  statLabelColor: string
-  statValueColor: string
+  badgeFontSize: number
+  symbolFontSize: number
   symbolTextColor: string
   longBadgeBg: string
   longBadgeText: string
   shortBadgeBg: string
   shortBadgeText: string
+  statBoxBg: string
+  statBoxRadius: number
+  statBoxPaddingX: number
+  statBoxPaddingY: number
+  statLabelColor: string
+  statLabelFontSize: number
+  statValueColor: string
+  statValueFontSize: number
 }
 const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
+  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+  cardWidth: 340,
+  cardPaddingX: 24,
+  cardPaddingY: 28,
+  cardRadius: 16,
+  borderWidth: 1,
+  borderColor: '#0e3a52',
   bgColor: '#06121d',
   gridColor: '#04101a',
-  borderColor: '#0e3a52',
+  gridSize: 28,
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
+  logoFontSize: 16,
+  logoColor: '#ffffff',
+  roeFontSize: 40,
+  wonFontSize: 17,
   wonTextColor: '#94a3b8',
-  statBoxBg: '#081726',
-  statLabelColor: '#64748b',
-  statValueColor: '#e2e8f0',
+  badgeFontSize: 14,
+  symbolFontSize: 16,
   symbolTextColor: '#e2e8f0',
   longBadgeBg: '#22c55e',
   longBadgeText: '#ffffff',
   shortBadgeBg: '#ef4444',
-  shortBadgeText: '#ffffff'
+  shortBadgeText: '#ffffff',
+  statBoxBg: '#081726',
+  statBoxRadius: 12,
+  statBoxPaddingX: 16,
+  statBoxPaddingY: 14,
+  statLabelColor: '#64748b',
+  statLabelFontSize: 12,
+  statValueColor: '#e2e8f0',
+  statValueFontSize: 16
 }
-const PROFIT_CARD_FIELDS: Array<{ key: keyof ProfitCardStyle; label: string }> = [
-  { key: 'bgColor', label: '카드 배경색' },
-  { key: 'gridColor', label: '격자무늬 색' },
-  { key: 'borderColor', label: '테두리 색' },
-  { key: 'positiveColor', label: '수익(+) 강조색' },
-  { key: 'negativeColor', label: '손실(-) 강조색' },
-  { key: 'wonTextColor', label: '원화 보조텍스트 색' },
-  { key: 'statBoxBg', label: '하단 정보박스 배경색' },
-  { key: 'statLabelColor', label: '정보박스 라벨색' },
-  { key: 'statValueColor', label: '정보박스 값 텍스트색' },
-  { key: 'symbolTextColor', label: '종목명 텍스트색' },
-  { key: 'longBadgeBg', label: '롱 배지 배경색' },
-  { key: 'longBadgeText', label: '롱 배지 글자색' },
-  { key: 'shortBadgeBg', label: '숏 배지 배경색' },
-  { key: 'shortBadgeText', label: '숏 배지 글자색' }
+
+const PROFIT_CARD_FONT_OPTIONS = [
+  { value: 'ui-sans-serif, system-ui, sans-serif', label: '기본(시스템 폰트)' },
+  { value: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif", label: '맑은 고딕' },
+  { value: "Georgia, 'Times New Roman', serif", label: '세리프(Georgia)' },
+  { value: "'Courier New', ui-monospace, monospace", label: '고정폭(Courier New)' },
+  { value: "'Trebuchet MS', 'Segoe UI', sans-serif", label: 'Trebuchet MS' },
+  { value: 'Arial, Helvetica, sans-serif', label: 'Arial' }
 ]
+
+type ProfitCardTarget = 'card' | 'logo' | 'roe' | 'won' | 'badge' | 'symbol' | 'statBox' | 'statLabel' | 'statValue'
+const selectedTarget = ref<ProfitCardTarget>('card')
+function selectTarget(t: ProfitCardTarget) {
+  selectedTarget.value = t
+}
+
+const PROFIT_CARD_TARGET_LABELS: Record<ProfitCardTarget, string> = {
+  card: '카드 전체',
+  logo: '로고(BITDUCK)',
+  roe: '수익률(%) 큰 글씨',
+  won: '원화 보조텍스트',
+  badge: '롱/숏 배지',
+  symbol: '종목명',
+  statBox: '하단 정보박스(공통)',
+  statLabel: '정보박스 라벨',
+  statValue: '정보박스 값'
+}
+const PROFIT_CARD_TARGET_HINTS: Partial<Record<ProfitCardTarget, string>> = {
+  statValue: '"손익" 값의 색은 위 "수익률" 항목의 수익(+)/손실(-) 색을 그대로 따릅니다.',
+  badge: '롱/숏 각각 배경색·글자색을 따로 지정할 수 있습니다.'
+}
+
+type ProfitCardNumField = { key: keyof ProfitCardStyle; label: string; min: number; max: number }
+type ProfitCardColorField = { key: keyof ProfitCardStyle; label: string }
+
+const PROFIT_CARD_TARGET_NUMBER_FIELDS: Record<ProfitCardTarget, ProfitCardNumField[]> = {
+  card: [
+    { key: 'cardWidth', label: '카드 너비', min: 260, max: 420 },
+    { key: 'cardPaddingX', label: '가로 여백', min: 8, max: 48 },
+    { key: 'cardPaddingY', label: '세로 여백', min: 8, max: 56 },
+    { key: 'cardRadius', label: '모서리 둥글기', min: 0, max: 32 },
+    { key: 'borderWidth', label: '테두리 두께', min: 0, max: 4 },
+    { key: 'gridSize', label: '격자 크기', min: 8, max: 48 }
+  ],
+  logo: [{ key: 'logoFontSize', label: '글자 크기', min: 10, max: 28 }],
+  roe: [{ key: 'roeFontSize', label: '글자 크기', min: 24, max: 60 }],
+  won: [{ key: 'wonFontSize', label: '글자 크기', min: 10, max: 28 }],
+  badge: [{ key: 'badgeFontSize', label: '글자 크기', min: 10, max: 22 }],
+  symbol: [{ key: 'symbolFontSize', label: '글자 크기', min: 10, max: 26 }],
+  statBox: [
+    { key: 'statBoxRadius', label: '모서리 둥글기', min: 0, max: 24 },
+    { key: 'statBoxPaddingX', label: '가로 여백', min: 4, max: 32 },
+    { key: 'statBoxPaddingY', label: '세로 여백', min: 4, max: 32 }
+  ],
+  statLabel: [{ key: 'statLabelFontSize', label: '글자 크기', min: 8, max: 18 }],
+  statValue: [{ key: 'statValueFontSize', label: '글자 크기', min: 10, max: 24 }]
+}
+const PROFIT_CARD_TARGET_COLOR_FIELDS: Record<ProfitCardTarget, ProfitCardColorField[]> = {
+  card: [
+    { key: 'borderColor', label: '테두리 색' },
+    { key: 'bgColor', label: '배경색' },
+    { key: 'gridColor', label: '격자무늬 색' }
+  ],
+  logo: [{ key: 'logoColor', label: '글자색' }],
+  roe: [
+    { key: 'positiveColor', label: '수익(+) 색' },
+    { key: 'negativeColor', label: '손실(-) 색' }
+  ],
+  won: [{ key: 'wonTextColor', label: '글자색' }],
+  badge: [
+    { key: 'longBadgeBg', label: '롱 배경색' },
+    { key: 'longBadgeText', label: '롱 글자색' },
+    { key: 'shortBadgeBg', label: '숏 배경색' },
+    { key: 'shortBadgeText', label: '숏 글자색' }
+  ],
+  symbol: [{ key: 'symbolTextColor', label: '글자색' }],
+  statBox: [{ key: 'statBoxBg', label: '배경색' }],
+  statLabel: [{ key: 'statLabelColor', label: '글자색' }],
+  statValue: [{ key: 'statValueColor', label: '글자색' }]
+}
+const currentNumberFields = computed(() => PROFIT_CARD_TARGET_NUMBER_FIELDS[selectedTarget.value])
+const currentColorFields = computed(() => PROFIT_CARD_TARGET_COLOR_FIELDS[selectedTarget.value])
+
 const PROFIT_CARD_PREVIEW_VARIANTS = [
   {
     key: 'profit',

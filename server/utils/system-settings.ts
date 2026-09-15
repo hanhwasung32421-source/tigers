@@ -52,42 +52,130 @@ export type MainNavKey = (typeof MAIN_NAV_KEYS)[number]
 // 기본값: 요청에 따라 "투자내역"은 처음부터 숨김 처리.
 const DEFAULT_MAIN_NAV_HIDDEN: MainNavKey[] = ['invest']
 
-// 거래내역 "카드" 버튼으로 뜨는 수익카드(청산카드)의 색상 커스터마이징. 관리자 대시보드에서 조정.
+// 거래내역 "카드" 버튼으로 뜨는 수익카드(청산카드)의 색상/글자크기/크기 커스터마이징. 관리자 대시보드에서 조정.
 export type ProfitCardStyle = {
+  // 카드 전체
+  fontFamily: string
+  cardWidth: number
+  cardPaddingX: number
+  cardPaddingY: number
+  cardRadius: number
+  borderWidth: number
+  borderColor: string
   bgColor: string
   gridColor: string
-  borderColor: string
+  gridSize: number
+  // 수익/손실 공통 강조색
   positiveColor: string
   negativeColor: string
+  // 로고(BITDUCK)
+  logoFontSize: number
+  logoColor: string
+  // 수익률(%) 큰 글씨
+  roeFontSize: number
+  // 원화 보조텍스트
+  wonFontSize: number
   wonTextColor: string
-  statBoxBg: string
-  statLabelColor: string
-  statValueColor: string
+  // 롱/숏 배지 + 종목명
+  badgeFontSize: number
+  symbolFontSize: number
   symbolTextColor: string
   longBadgeBg: string
   longBadgeText: string
   shortBadgeBg: string
   shortBadgeText: string
+  // 하단 정보박스(레버리지/손익/진입가격/종료가격)
+  statBoxBg: string
+  statBoxRadius: number
+  statBoxPaddingX: number
+  statBoxPaddingY: number
+  statLabelColor: string
+  statLabelFontSize: number
+  statValueColor: string
+  statValueFontSize: number
 }
 
+// 외부 폰트 로딩 없이 항상 안전하게 렌더되는 폰트 스택만 허용.
+export const PROFIT_CARD_FONT_FAMILIES = [
+  'ui-sans-serif, system-ui, sans-serif',
+  "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif",
+  "Georgia, 'Times New Roman', serif",
+  "'Courier New', ui-monospace, monospace",
+  "'Trebuchet MS', 'Segoe UI', sans-serif",
+  "Arial, Helvetica, sans-serif"
+] as const
+
 export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
+  fontFamily: PROFIT_CARD_FONT_FAMILIES[0],
+  cardWidth: 340,
+  cardPaddingX: 24,
+  cardPaddingY: 28,
+  cardRadius: 16,
+  borderWidth: 1,
+  borderColor: '#0e3a52',
   bgColor: '#06121d',
   gridColor: '#04101a',
-  borderColor: '#0e3a52',
+  gridSize: 28,
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
+  logoFontSize: 16,
+  logoColor: '#ffffff',
+  roeFontSize: 40,
+  wonFontSize: 17,
   wonTextColor: '#94a3b8',
-  statBoxBg: '#081726',
-  statLabelColor: '#64748b',
-  statValueColor: '#e2e8f0',
+  badgeFontSize: 14,
+  symbolFontSize: 16,
   symbolTextColor: '#e2e8f0',
   longBadgeBg: '#22c55e',
   longBadgeText: '#ffffff',
   shortBadgeBg: '#ef4444',
-  shortBadgeText: '#ffffff'
+  shortBadgeText: '#ffffff',
+  statBoxBg: '#081726',
+  statBoxRadius: 12,
+  statBoxPaddingX: 16,
+  statBoxPaddingY: 14,
+  statLabelColor: '#64748b',
+  statLabelFontSize: 12,
+  statValueColor: '#e2e8f0',
+  statValueFontSize: 16
 }
 
-const PROFIT_CARD_STYLE_KEYS = Object.keys(DEFAULT_PROFIT_CARD_STYLE) as Array<keyof ProfitCardStyle>
+type ProfitCardFieldDef = { kind: 'color' } | { kind: 'number'; min: number; max: number } | { kind: 'font' }
+
+const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> = {
+  fontFamily: { kind: 'font' },
+  cardWidth: { kind: 'number', min: 260, max: 420 },
+  cardPaddingX: { kind: 'number', min: 8, max: 48 },
+  cardPaddingY: { kind: 'number', min: 8, max: 56 },
+  cardRadius: { kind: 'number', min: 0, max: 32 },
+  borderWidth: { kind: 'number', min: 0, max: 4 },
+  borderColor: { kind: 'color' },
+  bgColor: { kind: 'color' },
+  gridColor: { kind: 'color' },
+  gridSize: { kind: 'number', min: 8, max: 48 },
+  positiveColor: { kind: 'color' },
+  negativeColor: { kind: 'color' },
+  logoFontSize: { kind: 'number', min: 10, max: 28 },
+  logoColor: { kind: 'color' },
+  roeFontSize: { kind: 'number', min: 24, max: 60 },
+  wonFontSize: { kind: 'number', min: 10, max: 28 },
+  wonTextColor: { kind: 'color' },
+  badgeFontSize: { kind: 'number', min: 10, max: 22 },
+  symbolFontSize: { kind: 'number', min: 10, max: 26 },
+  symbolTextColor: { kind: 'color' },
+  longBadgeBg: { kind: 'color' },
+  longBadgeText: { kind: 'color' },
+  shortBadgeBg: { kind: 'color' },
+  shortBadgeText: { kind: 'color' },
+  statBoxBg: { kind: 'color' },
+  statBoxRadius: { kind: 'number', min: 0, max: 24 },
+  statBoxPaddingX: { kind: 'number', min: 4, max: 32 },
+  statBoxPaddingY: { kind: 'number', min: 4, max: 32 },
+  statLabelColor: { kind: 'color' },
+  statLabelFontSize: { kind: 'number', min: 8, max: 18 },
+  statValueColor: { kind: 'color' },
+  statValueFontSize: { kind: 'number', min: 10, max: 24 }
+}
 
 // 색상 문자열만 허용(#rgb/#rrggbb/#rrggbbaa, rgb()/rgba()). 저장된 값이 깨져 있어도 항상 기본값으로 안전하게 대체.
 function isValidCssColor(v: any): v is string {
@@ -100,8 +188,17 @@ function isValidCssColor(v: any): v is string {
 function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_PROFIT_CARD_STYLE): ProfitCardStyle {
   const src = raw && typeof raw === 'object' ? raw : {}
   const next = { ...fallback }
-  for (const key of PROFIT_CARD_STYLE_KEYS) {
-    if (isValidCssColor(src[key])) next[key] = src[key]
+  for (const key of Object.keys(PROFIT_CARD_FIELD_DEFS) as Array<keyof ProfitCardStyle>) {
+    const def = PROFIT_CARD_FIELD_DEFS[key]
+    const v = (src as any)[key]
+    if (def.kind === 'color') {
+      if (isValidCssColor(v)) (next as any)[key] = v
+    } else if (def.kind === 'number') {
+      const n = Number(v)
+      if (Number.isFinite(n)) (next as any)[key] = Math.max(def.min, Math.min(def.max, Math.round(n)))
+    } else if (def.kind === 'font') {
+      if (typeof v === 'string' && (PROFIT_CARD_FONT_FAMILIES as readonly string[]).includes(v)) (next as any)[key] = v
+    }
   }
   return next
 }
@@ -219,7 +316,9 @@ export async function getSystemSettingsExtra(): Promise<SystemSettingsExtra> {
   return rowToExtra(row)
 }
 
-export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExtra>): Promise<SystemSettingsExtra> {
+export async function updateSystemSettingsExtra(
+  patch: Partial<Omit<SystemSettingsExtra, 'profitCardStyle'>> & { profitCardStyle?: Record<string, any> }
+): Promise<SystemSettingsExtra> {
   const current = await getSystemSettingsExtra()
   const next: SystemSettingsExtra = {
     ...current,
