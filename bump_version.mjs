@@ -1,11 +1,18 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+// 이 스크립트를 UTC 타임존인 환경(CI 등)에서 돌려도 항상 한국(KST) 기준 날짜가 나오게 한다.
 function todayStamp() {
-  const d = new Date()
-  const yy = String(d.getFullYear()).slice(-2)
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date())
+  const get = (type) => parts.find((p) => p.type === type)?.value || ''
+  const yy = get('year').slice(-2)
+  const mm = get('month').padStart(2, '0')
+  const dd = get('day').padStart(2, '0')
   return `${yy}${mm}${dd}`
 }
 

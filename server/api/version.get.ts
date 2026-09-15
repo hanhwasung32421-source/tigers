@@ -6,16 +6,33 @@ import versionInfo from '../../version.json'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
+// 중요: Vercel 서버는 UTC로 동작하므로 new Date().getDate() 등을 그냥 쓰면
+// KST 00시~09시 사이에는 계속 "어제" 날짜가 표시된다(예: KST 9/16 08시 = UTC 9/15 23시).
+// 항상 한국(Asia/Seoul) 기준 날짜로 계산한다.
+function kstParts(d: Date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(d)
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value)
+  return { year: get('year'), month: get('month'), day: get('day') }
+}
+
 function todayStamp(d: Date) {
-  const yy = String(d.getFullYear()).slice(-2)
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
+  const { year, month, day } = kstParts(d)
+  const yy = String(year).slice(-2)
+  const mm = String(month).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
   return `${yy}${mm}${dd}`
 }
 
 function formatKoreanDate(d: Date) {
-  const weekday = WEEKDAYS[d.getDay()]
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${weekday})`
+  const { year, month, day } = kstParts(d)
+  // 요일은 시간대에 영향받지 않는 순수 달력 계산이므로 UTC 기준으로 만들어도 무방
+  const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]
+  return `${year}년 ${month}월 ${day}일 (${weekday})`
 }
 
 export default defineEventHandler(() => {
