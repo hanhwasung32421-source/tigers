@@ -505,52 +505,68 @@
           </label>
         </div>
 
-        <div class="flex flex-col items-center gap-3">
-          <p class="text-sm text-slate-400">미리보기</p>
-          <div
-            class="relative w-full max-w-[300px] rounded-2xl px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
-            :style="{
-              borderWidth: '1px',
-              borderStyle: 'solid',
-              borderColor: profitCardDraft.borderColor,
-              backgroundColor: profitCardDraft.bgColor,
-              backgroundImage: `repeating-conic-gradient(${profitCardDraft.gridColor} 0% 25%, transparent 0% 50%)`,
-              backgroundSize: '28px 28px'
-            }"
-          >
-            <div class="flex flex-col items-center">
-              <BrandLogo size="sm" />
-              <div class="mt-5 h-[2px] w-9 rounded-full opacity-50" :style="{ backgroundColor: profitCardDraft.positiveColor }" />
-              <div class="mt-4 text-[40px] font-extrabold leading-none tracking-tight" :style="{ color: profitCardDraft.positiveColor }">
-                +12.34%
-              </div>
-              <div class="mt-1.5 text-[17px] font-medium" :style="{ color: profitCardDraft.wonTextColor }">+173,407 원</div>
-              <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
-                <span
-                  class="rounded-full px-2 py-0.5 text-[14px] font-bold"
-                  :style="{ backgroundColor: profitCardDraft.shortBadgeBg, color: profitCardDraft.shortBadgeText }"
+        <div class="flex flex-col items-center gap-6">
+          <div v-for="v in PROFIT_CARD_PREVIEW_VARIANTS" :key="v.key" class="flex flex-col items-center gap-3">
+            <p class="text-sm text-slate-400">미리보기 — {{ v.title }}</p>
+            <div
+              class="relative w-full max-w-[300px] rounded-2xl px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
+              :style="{
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderColor: profitCardDraft.borderColor,
+                backgroundColor: profitCardDraft.bgColor,
+                backgroundImage: `repeating-conic-gradient(${profitCardDraft.gridColor} 0% 25%, transparent 0% 50%)`,
+                backgroundSize: '28px 28px'
+              }"
+            >
+              <div class="flex flex-col items-center">
+                <BrandLogo size="sm" />
+                <div
+                  class="mt-5 h-[2px] w-9 rounded-full opacity-50"
+                  :style="{ backgroundColor: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
+                />
+                <div
+                  class="mt-4 text-[40px] font-extrabold leading-none tracking-tight"
+                  :style="{ color: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
                 >
-                  숏
-                </span>
-                <span class="text-[16px] font-semibold" :style="{ color: profitCardDraft.symbolTextColor }">SAMSUNGUSDT</span>
+                  {{ v.roeText }}
+                </div>
+                <div class="mt-1.5 text-[17px] font-medium" :style="{ color: profitCardDraft.wonTextColor }">{{ v.wonText }}</div>
+                <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-[14px] font-bold"
+                    :style="{
+                      backgroundColor: v.side === 'short' ? profitCardDraft.shortBadgeBg : profitCardDraft.longBadgeBg,
+                      color: v.side === 'short' ? profitCardDraft.shortBadgeText : profitCardDraft.longBadgeText
+                    }"
+                  >
+                    {{ v.side === 'short' ? '숏' : '롱' }}
+                  </span>
+                  <span class="text-[16px] font-semibold" :style="{ color: profitCardDraft.symbolTextColor }">{{ v.symbol }}</span>
+                </div>
               </div>
-            </div>
-            <div class="mt-[26px] grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06]">
-              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">레버리지</div>
-                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">격리 x10</div>
-              </div>
-              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">손익</div>
-                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.positiveColor }">+128.45 USDT</div>
-              </div>
-              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">진입가격</div>
-                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">71950.00</div>
-              </div>
-              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
-                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">종료가격</div>
-                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">68500.00</div>
+              <div class="mt-[26px] grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06]">
+                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">레버리지</div>
+                  <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">격리 x{{ v.leverage }}</div>
+                </div>
+                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">손익</div>
+                  <div
+                    class="mt-1 text-[16px] font-bold"
+                    :style="{ color: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
+                  >
+                    {{ v.pnlText }}
+                  </div>
+                </div>
+                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">진입가격</div>
+                  <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">{{ v.entry }}</div>
+                </div>
+                <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                  <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">종료가격</div>
+                  <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">{{ v.exit }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1547,6 +1563,34 @@ const PROFIT_CARD_FIELDS: Array<{ key: keyof ProfitCardStyle; label: string }> =
   { key: 'longBadgeText', label: '롱 배지 글자색' },
   { key: 'shortBadgeBg', label: '숏 배지 배경색' },
   { key: 'shortBadgeText', label: '숏 배지 글자색' }
+]
+const PROFIT_CARD_PREVIEW_VARIANTS = [
+  {
+    key: 'profit',
+    title: '수익일 때',
+    positive: true,
+    roeText: '+12.34%',
+    wonText: '+173,407 원',
+    side: 'long' as const,
+    symbol: 'SAMSUNGUSDT',
+    leverage: 10,
+    pnlText: '+128.45 USDT',
+    entry: '68500.00',
+    exit: '71950.00'
+  },
+  {
+    key: 'loss',
+    title: '손실일 때',
+    positive: false,
+    roeText: '-8.21%',
+    wonText: '-54,320 원',
+    side: 'short' as const,
+    symbol: 'SKHYNIXUSDT',
+    leverage: 10,
+    pnlText: '-42.10 USDT',
+    entry: '182300.00',
+    exit: '175100.00'
+  }
 ]
 const profitCardDraft = reactive<ProfitCardStyle>({ ...DEFAULT_PROFIT_CARD_STYLE })
 const profitCardSaving = ref(false)
