@@ -1,6 +1,6 @@
 import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
-import { supaSelectOne, supaUpsertStrict } from './supabase'
+import { supaSelectOne, supaUpsertStrict, isMissingColumnError } from './supabase'
 
 const T_SYSTEM_SETTINGS = 'trae_system_settings'
 export const DEFAULT_LIQUIDATION_ROE = -40
@@ -232,22 +232,33 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
   const now = new Date().toISOString()
 
   if (supabaseAppDbEnabled()) {
-    await supaUpsertStrict(
-      T_SYSTEM_SETTINGS,
-      {
-        id: 1,
-        telegram_url: next.telegramUrl,
-        krw_per_usdt: next.krwPerUsdt,
-        loss_settlement_percent: next.lossSettlementPercent,
-        referral_settlement_percent: next.referralSettlementPercent,
-        menu_order: next.menuOrder,
-        main_nav_order: next.mainNavOrder,
-        main_nav_hidden: next.mainNavHidden,
-        profit_card_style: next.profitCardStyle,
-        updated_at: now
-      },
-      'id'
-    )
+    const payload = {
+      id: 1,
+      telegram_url: next.telegramUrl,
+      krw_per_usdt: next.krwPerUsdt,
+      loss_settlement_percent: next.lossSettlementPercent,
+      referral_settlement_percent: next.referralSettlementPercent,
+      menu_order: next.menuOrder,
+      main_nav_order: next.mainNavOrder,
+      main_nav_hidden: next.mainNavHidden,
+      profit_card_style: next.profitCardStyle,
+      updated_at: now
+    }
+    try {
+      await supaUpsertStrict(T_SYSTEM_SETTINGS, payload, 'id')
+    } catch (e: any) {
+      // profit_card_style 컬럼이 아직 없는 Supabase 프로젝트(SQL 패치 미실행)에서도 나머지 설정은
+      // 저장되게 하고, 무슨 문제인지 명확한 메시지로 알려준다(그냥 500만 뜨면 원인 파악이 안 됨).
+      if (isMissingColumnError(e, 'profit_card_style')) {
+        const { profit_card_style, ...withoutCardStyle } = payload
+        await supaUpsertStrict(T_SYSTEM_SETTINGS, withoutCardStyle, 'id')
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Supabase에 profit_card_style 컬럼이 없습니다. 안내된 SUPABASE_TRAE_DB_patch_profit_card_style.sql을 먼저 실행해주세요.'
+        })
+      }
+      throw e
+    }
     return next
   }
 
