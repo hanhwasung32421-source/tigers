@@ -1110,8 +1110,15 @@
         @click.self="closeSummary = null"
       >
         <div
-          class="relative w-full max-w-[340px] rounded-2xl border border-cyan-500/10 px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
-          style="background-color: #06121d; background-image: repeating-conic-gradient(#04101a 0% 25%, transparent 0% 50%); background-size: 28px 28px;"
+          class="relative w-full max-w-[340px] rounded-2xl px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
+          :style="{
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: profitCardStyle.borderColor,
+            backgroundColor: profitCardStyle.bgColor,
+            backgroundImage: `repeating-conic-gradient(${profitCardStyle.gridColor} 0% 25%, transparent 0% 50%)`,
+            backgroundSize: '28px 28px'
+          }"
         >
           <button
             type="button"
@@ -1124,44 +1131,56 @@
           <div class="flex flex-col items-center">
             <BrandLogo size="sm" />
 
-            <div class="mt-5 h-[2px] w-9 rounded-full opacity-50" :class="closeSummary.roe >= 0 ? 'bg-[#22c55e]' : 'bg-[#ef4444]'" />
+            <div
+              class="mt-5 h-[2px] w-9 rounded-full opacity-50"
+              :style="{ backgroundColor: closeSummary.roe >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor }"
+            />
 
-            <div class="mt-4 text-[40px] font-extrabold leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+            <div
+              class="mt-4 text-[40px] font-extrabold leading-none tracking-tight"
+              :style="{ color: closeSummary.roe >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor }"
+            >
               {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }}%
             </div>
-            <div class="mt-1.5 text-[17px] font-medium text-slate-400">
+            <div class="mt-1.5 text-[17px] font-medium" :style="{ color: profitCardStyle.wonTextColor }">
               {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} 원
             </div>
 
             <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
               <span
                 class="rounded-full px-2 py-0.5 text-[14px] font-bold"
-                :class="closeSummary.side === 'short' ? 'bg-rose-500/15 text-rose-300' : 'bg-emerald-500/15 text-emerald-300'"
+                :style="{
+                  backgroundColor: closeSummary.side === 'short' ? profitCardStyle.shortBadgeBg : profitCardStyle.longBadgeBg,
+                  color: closeSummary.side === 'short' ? profitCardStyle.shortBadgeText : profitCardStyle.longBadgeText
+                }"
               >
                 {{ closeSummary.side === 'long' ? '롱' : '숏' }}
               </span>
-              <span class="text-[16px] font-semibold text-slate-200">{{ shortSymbol(closeSummary.symbol) }}USDT</span>
+              <span class="text-[16px] font-semibold" :style="{ color: profitCardStyle.symbolTextColor }">{{ shortSymbol(closeSummary.symbol) }}USDT</span>
             </div>
           </div>
 
           <div class="mt-[26px] grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06]">
-            <div class="bg-[#081726] px-4 py-3.5">
-              <div class="text-[12px] text-slate-500">레버리지</div>
-              <div class="mt-1 text-[16px] font-bold text-slate-200">격리 x{{ closeSummary.leverage }}</div>
+            <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardStyle.statBoxBg }">
+              <div class="text-[12px]" :style="{ color: profitCardStyle.statLabelColor }">레버리지</div>
+              <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardStyle.statValueColor }">격리 x{{ closeSummary.leverage }}</div>
             </div>
-            <div class="bg-[#081726] px-4 py-3.5">
-              <div class="text-[12px] text-slate-500">손익</div>
-              <div class="mt-1 text-[16px] font-bold" :class="closeSummary.pnl >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+            <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardStyle.statBoxBg }">
+              <div class="text-[12px]" :style="{ color: profitCardStyle.statLabelColor }">손익</div>
+              <div
+                class="mt-1 text-[16px] font-bold"
+                :style="{ color: closeSummary.pnl >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor }"
+              >
                 {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(2) }} USDT
               </div>
             </div>
-            <div class="bg-[#081726] px-4 py-3.5">
-              <div class="text-[12px] text-slate-500">진입가격</div>
-              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ closeSummary.entryPrice.toFixed(2) }}</div>
+            <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardStyle.statBoxBg }">
+              <div class="text-[12px]" :style="{ color: profitCardStyle.statLabelColor }">진입가격</div>
+              <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardStyle.statValueColor }">{{ closeSummary.entryPrice.toFixed(2) }}</div>
             </div>
-            <div class="bg-[#081726] px-4 py-3.5">
-              <div class="text-[12px] text-slate-500">종료가격</div>
-              <div class="mt-1 text-[16px] font-bold text-slate-200">{{ closeSummary.exitPrice.toFixed(2) }}</div>
+            <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardStyle.statBoxBg }">
+              <div class="text-[12px]" :style="{ color: profitCardStyle.statLabelColor }">종료가격</div>
+              <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardStyle.statValueColor }">{{ closeSummary.exitPrice.toFixed(2) }}</div>
             </div>
           </div>
         </div>
@@ -1393,13 +1412,51 @@ let LIQUIDATION_TRIGGER_ROE = -40
 let LIQUIDATION_TRIGGER_FRACTION = 0.4
 let liquidationSettingsPollTimer: any = null
 
+// 수익카드(청산카드) 색상: 관리자 대시보드 "카드 디자인" 탭에서 조정. 기본값은 서버 응답이 오기 전 표시용.
+type ProfitCardStyle = {
+  bgColor: string
+  gridColor: string
+  borderColor: string
+  positiveColor: string
+  negativeColor: string
+  wonTextColor: string
+  statBoxBg: string
+  statLabelColor: string
+  statValueColor: string
+  symbolTextColor: string
+  longBadgeBg: string
+  longBadgeText: string
+  shortBadgeBg: string
+  shortBadgeText: string
+}
+const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
+  bgColor: '#06121d',
+  gridColor: '#04101a',
+  borderColor: '#0e3a52',
+  positiveColor: '#22c55e',
+  negativeColor: '#ef4444',
+  wonTextColor: '#94a3b8',
+  statBoxBg: '#081726',
+  statLabelColor: '#64748b',
+  statValueColor: '#e2e8f0',
+  symbolTextColor: '#e2e8f0',
+  longBadgeBg: '#22c55e',
+  longBadgeText: '#ffffff',
+  shortBadgeBg: '#ef4444',
+  shortBadgeText: '#ffffff'
+}
+const profitCardStyle = ref<ProfitCardStyle>({ ...DEFAULT_PROFIT_CARD_STYLE })
+
 async function refreshLiquidationSettings() {
   try {
-    const res = await $fetch<{ liquidationRoe: number }>('/api/settings/system')
+    const res = await $fetch<{ liquidationRoe: number; profitCardStyle?: Partial<ProfitCardStyle> }>('/api/settings/system')
     const roe = Number(res?.liquidationRoe)
     if (Number.isFinite(roe) && roe < 0) {
       LIQUIDATION_TRIGGER_ROE = roe
       LIQUIDATION_TRIGGER_FRACTION = Math.abs(roe) / 100
+    }
+    if (res?.profitCardStyle && typeof res.profitCardStyle === 'object') {
+      profitCardStyle.value = { ...DEFAULT_PROFIT_CARD_STYLE, ...res.profitCardStyle }
     }
   } catch {
     // 네트워크 실패 시 이전 값 유지

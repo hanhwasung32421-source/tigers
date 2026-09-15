@@ -481,6 +481,102 @@
       </div>
     </div>
 
+    <!-- 카드 디자인(수익카드) -->
+    <div v-show="activeTab === 'profitCard'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <h2 class="text-lg font-semibold">카드 디자인</h2>
+      <p class="mt-1 text-sm text-slate-400">거래내역 "카드" 버튼을 누르면 뜨는 수익카드(청산카드)의 색상을 조정합니다.</p>
+
+      <div class="mt-4 grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label
+            v-for="f in PROFIT_CARD_FIELDS"
+            :key="f.key"
+            class="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+          >
+            <span class="text-sm text-slate-300">{{ f.label }}</span>
+            <span class="flex items-center gap-2">
+              <input v-model="profitCardDraft[f.key]" type="color" class="h-7 w-10 cursor-pointer rounded border border-white/10 bg-transparent p-0" />
+              <input
+                v-model="profitCardDraft[f.key]"
+                type="text"
+                class="w-24 rounded border border-white/10 bg-black/20 px-2 py-1 font-mono text-xs text-slate-200 outline-none focus:border-cyan-400/40"
+              />
+            </span>
+          </label>
+        </div>
+
+        <div class="flex flex-col items-center gap-3">
+          <p class="text-sm text-slate-400">미리보기</p>
+          <div
+            class="relative w-full max-w-[300px] rounded-2xl px-6 py-7 shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
+            :style="{
+              borderWidth: '1px',
+              borderStyle: 'solid',
+              borderColor: profitCardDraft.borderColor,
+              backgroundColor: profitCardDraft.bgColor,
+              backgroundImage: `repeating-conic-gradient(${profitCardDraft.gridColor} 0% 25%, transparent 0% 50%)`,
+              backgroundSize: '28px 28px'
+            }"
+          >
+            <div class="flex flex-col items-center">
+              <BrandLogo size="sm" />
+              <div class="mt-5 h-[2px] w-9 rounded-full opacity-50" :style="{ backgroundColor: profitCardDraft.positiveColor }" />
+              <div class="mt-4 text-[40px] font-extrabold leading-none tracking-tight" :style="{ color: profitCardDraft.positiveColor }">
+                +12.34%
+              </div>
+              <div class="mt-1.5 text-[17px] font-medium" :style="{ color: profitCardDraft.wonTextColor }">+173,407 원</div>
+              <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
+                <span
+                  class="rounded-full px-2 py-0.5 text-[14px] font-bold"
+                  :style="{ backgroundColor: profitCardDraft.shortBadgeBg, color: profitCardDraft.shortBadgeText }"
+                >
+                  숏
+                </span>
+                <span class="text-[16px] font-semibold" :style="{ color: profitCardDraft.symbolTextColor }">SAMSUNGUSDT</span>
+              </div>
+            </div>
+            <div class="mt-[26px] grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06]">
+              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">레버리지</div>
+                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">격리 x10</div>
+              </div>
+              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">손익</div>
+                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.positiveColor }">+128.45 USDT</div>
+              </div>
+              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">진입가격</div>
+                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">71950.00</div>
+              </div>
+              <div class="px-4 py-3.5" :style="{ backgroundColor: profitCardDraft.statBoxBg }">
+                <div class="text-[12px]" :style="{ color: profitCardDraft.statLabelColor }">종료가격</div>
+                <div class="mt-1 text-[16px] font-bold" :style="{ color: profitCardDraft.statValueColor }">68500.00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center gap-3">
+        <button
+          class="rounded-md bg-indigo-500 px-4 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="profitCardSaving"
+          @click="saveProfitCardStyle"
+        >
+          저장
+        </button>
+        <button
+          type="button"
+          class="rounded-md bg-white/10 px-4 py-2 text-sm hover:bg-white/15"
+          @click="resetProfitCardStyle"
+        >
+          기본값으로 초기화
+        </button>
+        <p v-if="profitCardError" class="text-sm text-red-300">{{ profitCardError }}</p>
+        <p v-if="profitCardMsg" class="text-sm text-emerald-300">{{ profitCardMsg }}</p>
+      </div>
+    </div>
+
     <!-- 역할 관리 -->
     <div v-show="activeTab === 'roles'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-end justify-between gap-3">
@@ -753,12 +849,13 @@ definePageMeta({ middleware: ['admin', 'super-admin'] })
 const { me, refresh } = useMe()
 await refresh()
 
-type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'roles' | 'killEvents' | 'profitEvents'
+type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'profitCard' | 'roles' | 'killEvents' | 'profitEvents'
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'users', label: '유저 관리' },
   { key: 'liquidation', label: '강제청산 기준 설정' },
   { key: 'misc', label: '정산/기타 설정' },
   { key: 'nav', label: '메뉴구성' },
+  { key: 'profitCard', label: '카드 디자인' },
   { key: 'roles', label: '역할 관리' },
   { key: 'killEvents', label: '킬UP/킬DOWN 이력' },
   { key: 'profitEvents', label: '상승STOP/하락STOP 이력' }
@@ -1402,6 +1499,78 @@ const mainNavSaving = ref(false)
 const mainNavError = ref<string | null>(null)
 const mainNavMsg = ref<string | null>(null)
 
+// 카드 디자인: 거래내역 "카드" 버튼으로 뜨는 수익카드(청산카드)의 색상 커스터마이징
+type ProfitCardStyle = {
+  bgColor: string
+  gridColor: string
+  borderColor: string
+  positiveColor: string
+  negativeColor: string
+  wonTextColor: string
+  statBoxBg: string
+  statLabelColor: string
+  statValueColor: string
+  symbolTextColor: string
+  longBadgeBg: string
+  longBadgeText: string
+  shortBadgeBg: string
+  shortBadgeText: string
+}
+const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
+  bgColor: '#06121d',
+  gridColor: '#04101a',
+  borderColor: '#0e3a52',
+  positiveColor: '#22c55e',
+  negativeColor: '#ef4444',
+  wonTextColor: '#94a3b8',
+  statBoxBg: '#081726',
+  statLabelColor: '#64748b',
+  statValueColor: '#e2e8f0',
+  symbolTextColor: '#e2e8f0',
+  longBadgeBg: '#22c55e',
+  longBadgeText: '#ffffff',
+  shortBadgeBg: '#ef4444',
+  shortBadgeText: '#ffffff'
+}
+const PROFIT_CARD_FIELDS: Array<{ key: keyof ProfitCardStyle; label: string }> = [
+  { key: 'bgColor', label: '카드 배경색' },
+  { key: 'gridColor', label: '격자무늬 색' },
+  { key: 'borderColor', label: '테두리 색' },
+  { key: 'positiveColor', label: '수익(+) 강조색' },
+  { key: 'negativeColor', label: '손실(-) 강조색' },
+  { key: 'wonTextColor', label: '원화 보조텍스트 색' },
+  { key: 'statBoxBg', label: '하단 정보박스 배경색' },
+  { key: 'statLabelColor', label: '정보박스 라벨색' },
+  { key: 'statValueColor', label: '정보박스 값 텍스트색' },
+  { key: 'symbolTextColor', label: '종목명 텍스트색' },
+  { key: 'longBadgeBg', label: '롱 배지 배경색' },
+  { key: 'longBadgeText', label: '롱 배지 글자색' },
+  { key: 'shortBadgeBg', label: '숏 배지 배경색' },
+  { key: 'shortBadgeText', label: '숏 배지 글자색' }
+]
+const profitCardDraft = reactive<ProfitCardStyle>({ ...DEFAULT_PROFIT_CARD_STYLE })
+const profitCardSaving = ref(false)
+const profitCardError = ref<string | null>(null)
+const profitCardMsg = ref<string | null>(null)
+
+function resetProfitCardStyle() {
+  Object.assign(profitCardDraft, DEFAULT_PROFIT_CARD_STYLE)
+}
+
+async function saveProfitCardStyle() {
+  profitCardSaving.value = true
+  profitCardError.value = null
+  profitCardMsg.value = null
+  try {
+    await $fetch('/api/admin/settings/misc', { method: 'POST', body: { profitCardStyle: { ...profitCardDraft } } })
+    profitCardMsg.value = '저장되었습니다.'
+  } catch (e: any) {
+    profitCardError.value = e?.data?.statusMessage || '저장 실패'
+  } finally {
+    profitCardSaving.value = false
+  }
+}
+
 function moveMainNavOrder(idx: number, dir: -1 | 1) {
   const next = idx + dir
   if (next < 0 || next >= mainNavDraft.order.length) return
@@ -1457,6 +1626,9 @@ async function loadMiscSettings() {
     if (Array.isArray(data.mainNavHidden)) {
       const known = new Set(MAIN_NAV_KEYS)
       mainNavDraft.hidden = data.mainNavHidden.filter((k: string) => known.has(k as MainNavKey))
+    }
+    if (data.profitCardStyle && typeof data.profitCardStyle === 'object') {
+      Object.assign(profitCardDraft, DEFAULT_PROFIT_CARD_STYLE, data.profitCardStyle)
     }
   } catch {
     // 기본값 유지

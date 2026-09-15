@@ -52,6 +52,60 @@ export type MainNavKey = (typeof MAIN_NAV_KEYS)[number]
 // 기본값: 요청에 따라 "투자내역"은 처음부터 숨김 처리.
 const DEFAULT_MAIN_NAV_HIDDEN: MainNavKey[] = ['invest']
 
+// 거래내역 "카드" 버튼으로 뜨는 수익카드(청산카드)의 색상 커스터마이징. 관리자 대시보드에서 조정.
+export type ProfitCardStyle = {
+  bgColor: string
+  gridColor: string
+  borderColor: string
+  positiveColor: string
+  negativeColor: string
+  wonTextColor: string
+  statBoxBg: string
+  statLabelColor: string
+  statValueColor: string
+  symbolTextColor: string
+  longBadgeBg: string
+  longBadgeText: string
+  shortBadgeBg: string
+  shortBadgeText: string
+}
+
+export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
+  bgColor: '#06121d',
+  gridColor: '#04101a',
+  borderColor: '#0e3a52',
+  positiveColor: '#22c55e',
+  negativeColor: '#ef4444',
+  wonTextColor: '#94a3b8',
+  statBoxBg: '#081726',
+  statLabelColor: '#64748b',
+  statValueColor: '#e2e8f0',
+  symbolTextColor: '#e2e8f0',
+  longBadgeBg: '#22c55e',
+  longBadgeText: '#ffffff',
+  shortBadgeBg: '#ef4444',
+  shortBadgeText: '#ffffff'
+}
+
+const PROFIT_CARD_STYLE_KEYS = Object.keys(DEFAULT_PROFIT_CARD_STYLE) as Array<keyof ProfitCardStyle>
+
+// 색상 문자열만 허용(#rgb/#rrggbb/#rrggbbaa, rgb()/rgba()). 저장된 값이 깨져 있어도 항상 기본값으로 안전하게 대체.
+function isValidCssColor(v: any): v is string {
+  if (typeof v !== 'string') return false
+  const s = v.trim()
+  if (!s || s.length > 40) return false
+  return /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s) || /^rgba?\([\d\s.,%]+\)$/.test(s)
+}
+
+function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_PROFIT_CARD_STYLE): ProfitCardStyle {
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const next = { ...fallback }
+  for (const key of PROFIT_CARD_STYLE_KEYS) {
+    if (isValidCssColor(src[key])) next[key] = src[key]
+  }
+  return next
+}
+
 export type SystemSettingsExtra = {
   telegramUrl: string
   krwPerUsdt: number
@@ -60,6 +114,7 @@ export type SystemSettingsExtra = {
   menuOrder: string[]
   mainNavOrder: string[]
   mainNavHidden: string[]
+  profitCardStyle: ProfitCardStyle
 }
 
 const DEFAULT_EXTRA: SystemSettingsExtra = {
@@ -69,7 +124,8 @@ const DEFAULT_EXTRA: SystemSettingsExtra = {
   referralSettlementPercent: 0,
   menuOrder: [...REORDERABLE_MENU_KEYS],
   mainNavOrder: [...MAIN_NAV_KEYS],
-  mainNavHidden: [...DEFAULT_MAIN_NAV_HIDDEN]
+  mainNavHidden: [...DEFAULT_MAIN_NAV_HIDDEN],
+  profitCardStyle: { ...DEFAULT_PROFIT_CARD_STYLE }
 }
 
 // 저장된 값이 없거나 최근에 메뉴가 추가/삭제되어 목록이 어긋나도 항상 유효한 순서를 돌려준다.
@@ -119,6 +175,14 @@ function rowToExtra(row: any): SystemSettingsExtra {
       mainNavHiddenRaw = null
     }
   }
+  let profitCardStyleRaw: any = row.profit_card_style
+  if (typeof profitCardStyleRaw === 'string') {
+    try {
+      profitCardStyleRaw = JSON.parse(profitCardStyleRaw)
+    } catch {
+      profitCardStyleRaw = null
+    }
+  }
   // main_nav_hidden 컬럼이 아예 비어있으면(=한 번도 저장된 적 없음) 기본 숨김값을 쓰고,
   // 관리자가 빈 배열로 명시적으로 저장했으면(=전부 표시) 그 값을 그대로 존중한다.
   const hiddenFallback = row.main_nav_hidden === undefined || row.main_nav_hidden === null || row.main_nav_hidden === ''
@@ -131,7 +195,8 @@ function rowToExtra(row: any): SystemSettingsExtra {
     referralSettlementPercent: Number(row.referral_settlement_percent || 0),
     menuOrder: normalizeMenuOrder(menuOrderRaw),
     mainNavOrder: normalizeMainNavOrder(mainNavOrderRaw),
-    mainNavHidden: normalizeMainNavHidden(mainNavHiddenRaw, hiddenFallback)
+    mainNavHidden: normalizeMainNavHidden(mainNavHiddenRaw, hiddenFallback),
+    profitCardStyle: normalizeProfitCardStyle(profitCardStyleRaw)
   }
 }
 
@@ -148,7 +213,7 @@ export async function getSystemSettingsExtra(): Promise<SystemSettingsExtra> {
   const db = getDb()
   const row = db
     .prepare(
-      'SELECT telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, main_nav_order, main_nav_hidden FROM system_settings WHERE id = 1'
+      'SELECT telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, main_nav_order, main_nav_hidden, profit_card_style FROM system_settings WHERE id = 1'
     )
     .get()
   return rowToExtra(row)
@@ -161,7 +226,8 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
     ...patch,
     menuOrder: patch.menuOrder ? normalizeMenuOrder(patch.menuOrder) : current.menuOrder,
     mainNavOrder: patch.mainNavOrder ? normalizeMainNavOrder(patch.mainNavOrder) : current.mainNavOrder,
-    mainNavHidden: patch.mainNavHidden ? normalizeMainNavHidden(patch.mainNavHidden, current.mainNavHidden) : current.mainNavHidden
+    mainNavHidden: patch.mainNavHidden ? normalizeMainNavHidden(patch.mainNavHidden, current.mainNavHidden) : current.mainNavHidden,
+    profitCardStyle: patch.profitCardStyle ? normalizeProfitCardStyle(patch.profitCardStyle, current.profitCardStyle) : current.profitCardStyle
   }
   const now = new Date().toISOString()
 
@@ -177,6 +243,7 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
         menu_order: next.menuOrder,
         main_nav_order: next.mainNavOrder,
         main_nav_hidden: next.mainNavHidden,
+        profit_card_style: next.profitCardStyle,
         updated_at: now
       },
       'id'
@@ -186,8 +253,8 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
 
   const db = getDb()
   db.prepare(
-    `INSERT INTO system_settings (id, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, main_nav_order, main_nav_hidden, updated_at)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO system_settings (id, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, main_nav_order, main_nav_hidden, profit_card_style, updated_at)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        telegram_url = excluded.telegram_url,
        krw_per_usdt = excluded.krw_per_usdt,
@@ -196,6 +263,7 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
        menu_order = excluded.menu_order,
        main_nav_order = excluded.main_nav_order,
        main_nav_hidden = excluded.main_nav_hidden,
+       profit_card_style = excluded.profit_card_style,
        updated_at = excluded.updated_at`
   ).run(
     next.telegramUrl,
@@ -205,6 +273,7 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
     JSON.stringify(next.menuOrder),
     JSON.stringify(next.mainNavOrder),
     JSON.stringify(next.mainNavHidden),
+    JSON.stringify(next.profitCardStyle),
     now
   )
   return next

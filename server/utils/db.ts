@@ -269,6 +269,7 @@ export function getDb() {
     if (!sysCols.includes('menu_order')) db.exec("ALTER TABLE system_settings ADD COLUMN menu_order TEXT NOT NULL DEFAULT '';")
     if (!sysCols.includes('main_nav_order')) db.exec("ALTER TABLE system_settings ADD COLUMN main_nav_order TEXT NOT NULL DEFAULT '';")
     if (!sysCols.includes('main_nav_hidden')) db.exec("ALTER TABLE system_settings ADD COLUMN main_nav_hidden TEXT NOT NULL DEFAULT '';")
+    if (!sysCols.includes('profit_card_style')) db.exec('ALTER TABLE system_settings ADD COLUMN profit_card_style TEXT NULL;')
   } catch {
     // ignore
   }
