@@ -1129,18 +1129,18 @@
             <div class="mt-4 text-[40px] font-extrabold leading-none tracking-tight" :class="closeSummary.roe >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'">
               {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }}%
             </div>
-            <div class="mt-1.5 text-[15px] font-medium text-slate-400">
+            <div class="mt-1.5 text-[17px] font-medium text-slate-400">
               {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} 원
             </div>
 
             <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
               <span
-                class="rounded-full px-2 py-0.5 text-[12px] font-bold"
+                class="rounded-full px-2 py-0.5 text-[14px] font-bold"
                 :class="closeSummary.side === 'short' ? 'bg-rose-500/15 text-rose-300' : 'bg-emerald-500/15 text-emerald-300'"
               >
                 {{ closeSummary.side === 'long' ? '롱' : '숏' }}
               </span>
-              <span class="text-[14px] font-semibold text-slate-200">{{ shortSymbol(closeSummary.symbol) }}USDT</span>
+              <span class="text-[16px] font-semibold text-slate-200">{{ shortSymbol(closeSummary.symbol) }}USDT</span>
             </div>
           </div>
 
