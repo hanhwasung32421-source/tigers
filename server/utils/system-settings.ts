@@ -257,7 +257,9 @@ export async function updateSystemSettingsExtra(patch: Partial<SystemSettingsExt
           statusMessage: 'Supabase에 profit_card_style 컬럼이 없습니다. 안내된 SUPABASE_TRAE_DB_patch_profit_card_style.sql을 먼저 실행해주세요.'
         })
       }
-      throw e
+      // 그 외의 실패 원인은 원인 불명 500으로 삼키지 말고 실제 메시지를 그대로 노출한다.
+      const detail = String(e?.message || e?.error_description || e?.hint || e || '알 수 없는 오류')
+      throw createError({ statusCode: 500, statusMessage: `Supabase 저장 실패: ${detail}` })
     }
     return next
   }
