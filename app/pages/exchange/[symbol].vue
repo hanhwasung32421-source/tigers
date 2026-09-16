@@ -231,14 +231,15 @@
             </button>
             <div class="my-1 h-px w-7 bg-[#2a2e39]" />
             <button
+              ref="toolIndicatorBtnRoot"
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[10px] transition"
-              :class="chartPrefs.indicators.bol.enabled ? 'bg-[#f59e0b] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              :title="t('볼린저밴드(20, 2)', 'Bollinger Bands (20, 2)')"
-              :key="`tool-bol-${locale}`"
-              @click="toggleIndicator('bol')"
+              :class="indicatorMenuOpen ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :title="t('보조지표', 'Indicators')"
+              :key="`tool-indicator-${locale}`"
+              @click="indicatorMenuOpen = !indicatorMenuOpen; timeframeMenuOpen = false"
             >
-              BOL
+              {{ t('지표', 'IND') }}
             </button>
             <div class="mt-auto flex flex-col gap-1">
               <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" :title="t('전체보기', 'Fit Content')" :key="`tool-fit-${locale}`" @click="fitChartContent">
@@ -1937,13 +1938,18 @@ const indicatorSearch = ref('')
 const timeframeMenuOpen = ref(false)
 const timeframeMenuRoot = ref<HTMLElement | null>(null)
 const indicatorMenuRoot = ref<HTMLElement | null>(null)
+// 좌측 도구모음의 "지표" 버튼(구 BOL 버튼)도 우측상단과 같은 보조지표 메뉴를 여닫는다 —
+// 이 버튼은 indicatorMenuRoot 바깥에 있으므로, 바깥클릭 감지에서 함께 제외해줘야
+// 버튼을 눌러 열자마자 캡처 단계에서 즉시 닫혀버리는 것을 막을 수 있다.
+const toolIndicatorBtnRoot = ref<HTMLElement | null>(null)
 
 function onDropdownMenuDocClick(e: MouseEvent) {
   const t = e.target as Node | null
   if (timeframeMenuOpen.value && timeframeMenuRoot.value && !(t && timeframeMenuRoot.value.contains(t))) {
     timeframeMenuOpen.value = false
   }
-  if (indicatorMenuOpen.value && indicatorMenuRoot.value && !(t && indicatorMenuRoot.value.contains(t))) {
+  const insideIndicatorMenu = Boolean(t && (indicatorMenuRoot.value?.contains(t) || toolIndicatorBtnRoot.value?.contains(t)))
+  if (indicatorMenuOpen.value && !insideIndicatorMenu) {
     indicatorMenuOpen.value = false
   }
 }
