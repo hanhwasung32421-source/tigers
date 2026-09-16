@@ -2,28 +2,28 @@
   <div class="space-y-6">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">유저 및 권한 관리</h1>
-        <p class="mt-1 text-sm text-slate-400">사용자 역할 설정 및 가상 USDT 잔고를 직접 변경할 수 있습니다.</p>
+        <h1 class="text-xl font-semibold">{{ t('유저 및 권한 관리', 'User & Permission Management') }}</h1>
+        <p class="mt-1 text-sm text-slate-400">{{ t('사용자 역할 설정 및 가상 USDT 잔고를 직접 변경할 수 있습니다.', 'Set user roles and directly edit virtual USDT balances.') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
-        <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="load">새로고침</button>
+        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
+        <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="load">{{ t('새로고침', 'Refresh') }}</button>
       </div>
     </div>
 
     <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
+      <div v-if="loading" class="text-sm text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</div>
       <div v-else class="overflow-auto">
         <table class="w-full text-sm">
           <thead class="text-left text-slate-400">
             <tr>
-              <th class="py-2">순번</th>
-              <th class="py-2">아이디</th>
-              <th class="py-2">역할</th>
-              <th class="py-2">현재 USDT</th>
-              <th class="py-2">USDT잔액 수정</th>
-              <th class="py-2">실시간접속</th>
-              <th class="py-2">접속 아이피</th>
+              <th class="py-2">{{ t('순번', 'No.') }}</th>
+              <th class="py-2">{{ t('아이디', 'Username') }}</th>
+              <th class="py-2">{{ t('역할', 'Role') }}</th>
+              <th class="py-2">{{ t('현재 USDT', 'Current USDT') }}</th>
+              <th class="py-2">{{ t('USDT잔액 수정', 'Edit USDT Balance') }}</th>
+              <th class="py-2">{{ t('실시간접속', 'Live Status') }}</th>
+              <th class="py-2">{{ t('접속 아이피', 'IP Address') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -37,9 +37,9 @@
                   :disabled="!canEditRole"
                   @change="updateRole(u.id)"
                 >
-                  <option value="user">회원 (user)</option>
+                  <option value="user">{{ t('회원', 'Member') }} (user)</option>
                   <option v-for="r in roleOptions" :key="r.id" :value="r.id">{{ r.label }} ({{ r.id }})</option>
-                  <option value="super_admin">최고관리자 (super_admin)</option>
+                  <option value="super_admin">{{ t('최고관리자', 'Super Admin') }} (super_admin)</option>
                 </select>
               </td>
               <td class="py-2 font-data">{{ (u.usdt ?? 0).toFixed(2) }}</td>
@@ -51,7 +51,7 @@
                     min="0"
                     step="0.01"
                     class="w-28 rounded-md bg-white/5 px-2 py-1 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
-                    placeholder="예: 1000"
+                    :placeholder="t('예: 1000', 'e.g. 1000')"
                     :disabled="!canEditBalance"
                   />
                   <button
@@ -59,7 +59,7 @@
                     :disabled="!canEditBalance"
                     @click="updateBalance(u.id)"
                   >
-                    수정
+                    {{ t('수정', 'Edit') }}
                   </button>
                 </div>
               </td>
@@ -68,7 +68,7 @@
                   class="rounded-full px-2 py-0.5 text-xs"
                   :class="u.online ? 'bg-emerald-500/20 text-emerald-200' : 'bg-white/10 text-slate-300'"
                 >
-                  {{ u.online ? '온라인' : '오프라인' }}
+                  {{ u.online ? t('온라인', 'Online') : t('오프라인', 'Offline') }}
                 </span>
               </td>
               <td class="py-2 font-data text-slate-300">{{ u.last_ip || '-' }}</td>
@@ -84,6 +84,7 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: ['admin'] })
+const { t } = useLocale()
 
 type AdminUserRow = { id: number; username: string; role: string; usdt: number; created_at: string; online?: boolean; last_ip?: string | null }
 
@@ -122,7 +123,7 @@ async function load() {
       roleDraft[u.id] = String(u.role || 'user')
     }
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '불러오기 실패'
+    error.value = e?.data?.statusMessage || t('불러오기 실패', 'Failed to load')
   } finally {
     loading.value = false
   }
@@ -134,9 +135,9 @@ async function updateBalance(userId: number) {
   try {
     await $fetch('/api/admin/users/update', { method: 'POST', body: { userId, usdt } })
     await load()
-    msg.value = '잔고가 수정되었습니다.'
+    msg.value = t('잔고가 수정되었습니다.', 'Balance updated.')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '잔고 수정 실패'
+    error.value = e?.data?.statusMessage || t('잔고 수정 실패', 'Failed to update balance')
   }
 }
 
@@ -145,9 +146,9 @@ async function updateRole(userId: number) {
   try {
     await $fetch('/api/admin/users/update', { method: 'POST', body: { userId, role } })
     await load()
-    msg.value = '역할이 수정되었습니다.'
+    msg.value = t('역할이 수정되었습니다.', 'Role updated.')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '역할 수정 실패'
+    error.value = e?.data?.statusMessage || t('역할 수정 실패', 'Failed to update role')
   }
 }
 

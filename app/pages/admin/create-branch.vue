@@ -3,31 +3,31 @@
     <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <h1 class="text-xl font-semibold">계정생성</h1>
-          <p class="mt-1 text-sm text-slate-400">총관리자만 지사(관리자) 계정을 생성할 수 있습니다.</p>
+          <h1 class="text-xl font-semibold">{{ t('계정생성', 'Create Account') }}</h1>
+          <p class="mt-1 text-sm text-slate-400">{{ t('총관리자만 지사(관리자) 계정을 생성할 수 있습니다.', 'Only the super admin can create branch (admin) accounts.') }}</p>
         </div>
-        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
+        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
       </div>
     </div>
 
     <div v-if="me?.role !== 'super_admin'" class="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
-      이 메뉴는 총관리자만 사용할 수 있습니다.
+      {{ t('이 메뉴는 총관리자만 사용할 수 있습니다.', 'This menu is only available to the super admin.') }}
     </div>
 
     <div v-else class="rounded-2xl border border-white/10 bg-white/5 p-6">
-      <h2 class="font-semibold">지사(관리자) 계정 생성</h2>
-      <p class="mt-1 text-sm text-slate-400">권한에 따라 메뉴/기능 제한을 확장할 수 있습니다.</p>
+      <h2 class="font-semibold">{{ t('지사(관리자) 계정 생성', 'Create Branch (Admin) Account') }}</h2>
+      <p class="mt-1 text-sm text-slate-400">{{ t('권한에 따라 메뉴/기능 제한을 확장할 수 있습니다.', 'Menu/feature restrictions can be extended based on permissions.') }}</p>
 
       <form class="mt-4 grid gap-3 sm:grid-cols-3" @submit.prevent="createBranch">
         <div>
-          <label class="text-sm text-slate-300">지사 아이디</label>
+          <label class="text-sm text-slate-300">{{ t('지사 아이디', 'Branch Username') }}</label>
           <input
             v-model.trim="bUser"
             class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
         </div>
         <div>
-          <label class="text-sm text-slate-300">비밀번호</label>
+          <label class="text-sm text-slate-300">{{ t('비밀번호', 'Password') }}</label>
           <input
             v-model="bPass"
             type="password"
@@ -35,7 +35,7 @@
           />
         </div>
         <div>
-          <label class="text-sm text-slate-300">역할</label>
+          <label class="text-sm text-slate-300">{{ t('역할', 'Role') }}</label>
           <select
             v-model="bRole"
             class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
@@ -45,13 +45,13 @@
         </div>
         <div class="flex items-end">
           <button class="w-full rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium hover:bg-indigo-400" :disabled="creating">
-            생성
+            {{ t('생성', 'Create') }}
           </button>
         </div>
 
         <label class="flex items-center gap-2 text-sm text-slate-300 sm:col-span-3">
           <input v-model="canCredit" type="checkbox" class="h-4 w-4" />
-          가상 입금 권한(canCredit)
+          {{ t('가상 입금 권한(canCredit)', 'Virtual Deposit Permission (canCredit)') }}
         </label>
       </form>
       <p v-if="msg" class="mt-3 text-sm text-emerald-300">{{ msg }}</p>
@@ -62,6 +62,7 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: ['admin'] })
+const { t } = useLocale()
 const { me, refresh } = useMe()
 await refresh()
 
@@ -99,12 +100,12 @@ async function createBranch() {
         permissions: { canViewUsers: true, canCredit: canCredit.value }
       }
     })
-    msg.value = '지사 계정이 생성되었습니다.'
+    msg.value = t('지사 계정이 생성되었습니다.', 'Branch account created.')
     bUser.value = ''
     bPass.value = ''
     canCredit.value = false
   } catch (e: any) {
-    err.value = e?.data?.statusMessage || '생성 실패'
+    err.value = e?.data?.statusMessage || t('생성 실패', 'Creation failed')
   } finally {
     creating.value = false
   }

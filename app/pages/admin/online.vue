@@ -2,11 +2,11 @@
   <div class="space-y-5">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">실시간 접속</h1>
-        <p class="mt-1 text-sm text-slate-400">1초마다 갱신됩니다.</p>
+        <h1 class="text-xl font-semibold">{{ t('실시간 접속', 'Live Connections') }}</h1>
+        <p class="mt-1 text-sm text-slate-400">{{ t('1초마다 갱신됩니다.', 'Refreshes every second.') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
+        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
         <span class="rounded-md border border-cyan-500/10 bg-cyan-500/5 px-3 py-2 text-xs font-data text-slate-300">{{ lastUpdatedText }}</span>
       </div>
     </div>
@@ -16,13 +16,14 @@
         <input
           v-model.trim="keyword"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500"
-          placeholder="검색어를 입력하세요"
+          :placeholder="t('검색어를 입력하세요', 'Enter a search term')"
+          :key="`online-search-${locale}`"
         />
         <select v-model="roleFilter" class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none">
-          <option value="">유저권한</option>
-          <option value="super_admin">관리자</option>
-          <option value="admin">부관리자</option>
-          <option value="user">회원</option>
+          <option value="">{{ t('유저권한', 'User Role') }}</option>
+          <option value="super_admin">{{ t('관리자', 'Admin') }}</option>
+          <option value="admin">{{ t('부관리자', 'Sub Admin') }}</option>
+          <option value="user">{{ t('회원', 'Member') }}</option>
         </select>
       </div>
 
@@ -30,18 +31,18 @@
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
-              <th class="px-3 py-3 text-left">회원 ID</th>
-              <th class="px-3 py-3 text-left">회원아이디</th>
-              <th class="px-3 py-3 text-left">회원 이름</th>
-              <th class="px-3 py-3 text-left">권한</th>
+              <th class="px-3 py-3 text-left">{{ t('회원 ID', 'Member ID') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('회원아이디', 'Username') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('회원 이름', 'Name') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('권한', 'Role') }}</th>
               <th class="px-3 py-3 text-left">IP</th>
-              <th class="px-3 py-3 text-left">최근 접속</th>
-              <th class="px-3 py-3 text-center">보유 포지션</th>
+              <th class="px-3 py-3 text-left">{{ t('최근 접속', 'Last Seen') }}</th>
+              <th class="px-3 py-3 text-center">{{ t('보유 포지션', 'Positions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="7" class="px-3 py-8 text-center text-slate-500">접속중인 유저가 없습니다.</td>
+              <td colspan="7" class="px-3 py-8 text-center text-slate-500">{{ t('접속중인 유저가 없습니다.', 'No users are currently connected.') }}</td>
             </tr>
             <tr v-for="u in filtered" :key="u.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-data text-slate-300">#{{ u.id }}</td>
@@ -62,7 +63,7 @@
                   @click="goToPositions"
                 >
                   <span class="rounded bg-rose-500/90 px-2 py-0.5 text-[12px] font-semibold text-white hover:bg-rose-500">
-                    {{ u.positionSymbols.length }}건
+                    {{ t(`${u.positionSymbols.length}건`, `${u.positionSymbols.length}`) }}
                   </span>
                   <span class="text-[12px] text-slate-400">{{ u.positionSymbols.join(', ') }}</span>
                 </button>
@@ -95,6 +96,7 @@ type OnlineRow = {
   positionSymbols: string[]
 }
 
+const { t, locale } = useLocale()
 const { refresh } = useMe()
 await refresh()
 
@@ -119,7 +121,7 @@ const filtered = computed(() => {
   })
 })
 
-const lastUpdatedText = computed(() => (lastUpdated.value ? `갱신 ${lastUpdated.value}` : '갱신 대기'))
+const lastUpdatedText = computed(() => (lastUpdated.value ? t(`갱신 ${lastUpdated.value}`, `Updated ${lastUpdated.value}`) : t('갱신 대기', 'Waiting to update')))
 
 const router = useRouter()
 function goToPositions() {
@@ -142,7 +144,7 @@ async function load(silent = false) {
     lastUpdated.value = new Date().toLocaleTimeString('ko-KR', { hour12: false })
     error.value = null
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '실시간 접속 목록을 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('실시간 접속 목록을 불러오지 못했습니다.', 'Failed to load live connection list.')
   } finally {
     loading.value = false
     loadingNow = false
