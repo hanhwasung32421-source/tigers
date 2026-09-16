@@ -2,10 +2,10 @@
   <div class="space-y-6">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">쪽지관리</h1>
-        <p class="mt-1 text-sm text-slate-400">전체회원 또는 선택 회원에게 쪽지를 보내고 답장을 확인합니다.</p>
+        <h1 class="text-xl font-semibold">{{ t('쪽지관리', 'Message Management') }}</h1>
+        <p class="mt-1 text-sm text-slate-400">{{ t('전체회원 또는 선택 회원에게 쪽지를 보내고 답장을 확인합니다.', 'Send messages to all or selected members and view replies.') }}</p>
       </div>
-      <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="activeTab === 'members' ? loadAll() : loadGuestThreads()">새로고침</button>
+      <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="activeTab === 'members' ? loadAll() : loadGuestThreads()">{{ t('새로고침', 'Refresh') }}</button>
     </div>
 
     <div class="flex gap-1 border-b border-white/10">
@@ -15,7 +15,7 @@
         :class="activeTab === 'members' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
         @click="activeTab = 'members'"
       >
-        회원 쪽지
+        {{ t('회원 쪽지', 'Member Messages') }}
       </button>
       <button
         type="button"
@@ -23,7 +23,7 @@
         :class="activeTab === 'guests' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
         @click="activeTab = 'guests'"
       >
-        비회원 상담
+        {{ t('비회원 상담', 'Guest Inquiries') }}
         <span v-if="guestUnreadTotal" class="ml-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[12px] font-bold text-slate-900">{{ guestUnreadTotal }}</span>
       </button>
     </div>
@@ -31,10 +31,10 @@
     <div v-show="activeTab === 'members'" class="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="text-base font-semibold">쪽지쓰기</h2>
+          <h2 class="text-base font-semibold">{{ t('쪽지쓰기', 'Compose Message') }}</h2>
           <label class="flex items-center gap-2 text-xs text-slate-300">
             <input v-model="sendToAll" type="checkbox" class="rounded border-white/20 bg-white/5" />
-            전체회원
+            {{ t('전체회원', 'All Members') }}
           </label>
         </div>
 
@@ -42,34 +42,37 @@
           <input
             v-model.trim="subject"
             class="w-full rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-            placeholder="제목"
+            :placeholder="t('제목', 'Subject')"
+            :key="`msg-subject-${locale}`"
           />
           <textarea
             v-model.trim="body"
             rows="6"
             class="w-full rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-            placeholder="보낼 내용을 입력하세요"
+            :placeholder="t('보낼 내용을 입력하세요', 'Enter the message to send')"
+            :key="`msg-body-${locale}`"
           />
         </div>
 
         <div class="mt-5">
-          <div class="mb-2 text-sm font-medium text-slate-200">회원 선택</div>
+          <div class="mb-2 text-sm font-medium text-slate-200">{{ t('회원 선택', 'Select Members') }}</div>
           <input
             v-model.trim="recipientKeyword"
             class="mb-3 w-full rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-            placeholder="회원 검색"
+            :placeholder="t('회원 검색', 'Search members')"
             :disabled="sendToAll"
+            :key="`msg-recipient-search-${locale}`"
           />
           <div class="max-h-80 overflow-auto rounded-xl border border-white/10 bg-[#06101b]">
             <table class="w-full text-xs">
               <thead class="sticky top-0 bg-[#06101b] text-slate-400">
                 <tr>
                   <th class="px-2 py-2"></th>
-                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('id')">아이디{{ recipientSortArrow('id') }}</th>
-                  <th class="cursor-pointer select-none px-2 py-2 text-right" @click="toggleRecipientSort('usdt')">지갑잔액{{ recipientSortArrow('usdt') }}</th>
-                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('created_at')">가입일자{{ recipientSortArrow('created_at') }}</th>
-                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('lastLoginAt')">최근로그인{{ recipientSortArrow('lastLoginAt') }}</th>
-                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('online')">접속상태{{ recipientSortArrow('online') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('id')">{{ t('아이디', 'Username') }}{{ recipientSortArrow('id') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-right" @click="toggleRecipientSort('usdt')">{{ t('지갑잔액', 'Wallet Balance') }}{{ recipientSortArrow('usdt') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('created_at')">{{ t('가입일자', 'Joined') }}{{ recipientSortArrow('created_at') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('lastLoginAt')">{{ t('최근로그인', 'Last Login') }}{{ recipientSortArrow('lastLoginAt') }}</th>
+                  <th class="cursor-pointer select-none px-2 py-2 text-left" @click="toggleRecipientSort('online')">{{ t('접속상태', 'Status') }}{{ recipientSortArrow('online') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,12 +94,12 @@
                       class="rounded px-2 py-0.5 text-[12px] font-semibold ring-1"
                       :class="user.online ? 'bg-[#0c2c26] text-[#22ab94] ring-[#089981]/30' : 'bg-white/5 text-slate-400 ring-white/10'"
                     >
-                      {{ user.online ? '접속' : '미접속' }}
+                      {{ user.online ? t('접속', 'Online') : t('미접속', 'Offline') }}
                     </span>
                   </td>
                 </tr>
                 <tr v-if="sortedRecipients.length === 0">
-                  <td colspan="6" class="px-2 py-6 text-center text-sm text-slate-500">선택 가능한 회원이 없습니다.</td>
+                  <td colspan="6" class="px-2 py-6 text-center text-sm text-slate-500">{{ t('선택 가능한 회원이 없습니다.', 'No members available to select.') }}</td>
                 </tr>
               </tbody>
             </table>
@@ -105,28 +108,29 @@
 
         <div class="mt-4 flex items-center justify-between gap-3">
           <div class="text-xs text-slate-400">
-            {{ sendToAll ? `전체회원 ${recipients.length}명에게 발송` : `${selectedRecipientIds.length}명 선택됨` }}
+            {{ sendToAll ? t(`전체회원 ${recipients.length}명에게 발송`, `Sending to all ${recipients.length} members`) : t(`${selectedRecipientIds.length}명 선택됨`, `${selectedRecipientIds.length} selected`) }}
           </div>
           <button
             class="rounded-md bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="sending || !canSend || !canManageMessages"
             @click="sendMessage"
           >
-            {{ sending ? '전송 중...' : '쪽지 보내기' }}
+            {{ sending ? t('전송 중...', 'Sending...') : t('쪽지 보내기', 'Send Message') }}
           </button>
         </div>
-        <p v-if="!canManageMessages" class="mt-3 text-sm text-amber-300">쪽지 답장 권한이 없어 쪽지를 보낼 수 없습니다.</p>
+        <p v-if="!canManageMessages" class="mt-3 text-sm text-amber-300">{{ t('쪽지 답장 권한이 없어 쪽지를 보낼 수 없습니다.', 'You do not have permission to reply, so you cannot send messages.') }}</p>
         <p v-if="sendError" class="mt-3 text-sm text-rose-300">{{ sendError }}</p>
         <p v-if="sendMessageText" class="mt-3 text-sm text-emerald-300">{{ sendMessageText }}</p>
       </section>
 
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="text-base font-semibold">대화 목록</h2>
+          <h2 class="text-base font-semibold">{{ t('대화 목록', 'Conversation List') }}</h2>
           <input
             v-model.trim="threadKeyword"
             class="w-52 rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-            placeholder="대화 검색"
+            :placeholder="t('대화 검색', 'Search conversations')"
+            :key="`msg-thread-search-${locale}`"
           />
         </div>
 
@@ -145,14 +149,14 @@
                   {{ thread.unreadCount }}
                 </span>
               </div>
-              <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || thread.subject || '대화 없음' }}</div>
+              <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || thread.subject || t('대화 없음', 'No conversation') }}</div>
               <div class="mt-2 text-[12px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
             </button>
-            <div v-if="filteredThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">대화가 없습니다.</div>
+            <div v-if="filteredThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">{{ t('대화가 없습니다.', 'No conversations.') }}</div>
           </div>
 
           <div class="rounded-xl border border-white/10 bg-[#06101b] p-4">
-            <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">왼쪽에서 대화를 선택하세요.</div>
+            <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">{{ t('왼쪽에서 대화를 선택하세요.', 'Select a conversation on the left.') }}</div>
             <div v-else class="space-y-4">
               <div class="border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
@@ -161,19 +165,19 @@
                     class="rounded-full px-2 py-0.5 text-[12px] font-bold"
                     :class="isOperator ? 'bg-amber-400 text-slate-900' : 'bg-cyan-500/20 text-cyan-100'"
                   >
-                    {{ isOperator ? '내 아이디로 온 쪽지' : '관리자에게 온 쪽지' }}
+                    {{ isOperator ? t('내 아이디로 온 쪽지', 'Message sent to my account') : t('관리자에게 온 쪽지', 'Message sent to admin') }}
                   </span>
                 </div>
-                <div class="mt-1 text-xs text-slate-500">회원번호 #{{ activeThread.userId }}</div>
+                <div class="mt-1 text-xs text-slate-500">{{ t('회원번호', 'Member ID') }} #{{ activeThread.userId }}</div>
               </div>
 
               <div v-if="pendingResetRequest" class="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm">
-                <div class="font-semibold text-amber-200">비밀번호 초기화 요청 대기중</div>
+                <div class="font-semibold text-amber-200">{{ t('비밀번호 초기화 요청 대기중', 'Password Reset Request Pending') }}</div>
                 <div class="mt-2 space-y-1 text-xs text-amber-100/90">
-                  <div>아이디: {{ pendingResetRequest.username_snapshot }}</div>
-                  <div>이름: {{ pendingResetRequest.requested_name }}</div>
-                  <div>생년월일: {{ pendingResetRequest.requested_birth_date }}</div>
-                  <div>요청시각: {{ formatDateTime(pendingResetRequest.requested_at) }}</div>
+                  <div>{{ t('아이디', 'Username') }}: {{ pendingResetRequest.username_snapshot }}</div>
+                  <div>{{ t('이름', 'Name') }}: {{ pendingResetRequest.requested_name }}</div>
+                  <div>{{ t('생년월일', 'Date of Birth') }}: {{ pendingResetRequest.requested_birth_date }}</div>
+                  <div>{{ t('요청시각', 'Requested At') }}: {{ formatDateTime(pendingResetRequest.requested_at) }}</div>
                 </div>
                 <div class="mt-3">
                   <button
@@ -181,7 +185,7 @@
                     :disabled="approvingReset"
                     @click="approveReset"
                   >
-                    {{ approvingReset ? '승인 처리 중...' : '초기화 승인' }}
+                    {{ approvingReset ? t('승인 처리 중...', 'Approving...') : t('초기화 승인', 'Approve Reset') }}
                   </button>
                 </div>
               </div>
@@ -197,7 +201,7 @@
                   <div class="whitespace-pre-wrap leading-6">{{ message.body }}</div>
                   <div class="mt-2 text-[12px] text-slate-500">{{ formatDateTime(message.created_at) }}</div>
                 </div>
-                <div v-if="activeMessages.length === 0" class="py-8 text-center text-sm text-slate-500">아직 쪽지가 없습니다.</div>
+                <div v-if="activeMessages.length === 0" class="py-8 text-center text-sm text-slate-500">{{ t('아직 쪽지가 없습니다.', 'No messages yet.') }}</div>
               </div>
 
               <div class="border-t border-white/10 pt-4">
@@ -205,7 +209,8 @@
                   v-model.trim="replyBody"
                   rows="4"
                   class="w-full rounded-md border border-white/10 bg-[#020b16] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-                  placeholder="답장을 입력하세요"
+                  :placeholder="t('답장을 입력하세요', 'Enter your reply')"
+                  :key="`msg-reply-${locale}`"
                 />
                 <div class="mt-3 flex items-center justify-end gap-2">
                   <button
@@ -213,37 +218,37 @@
                     :disabled="replySending || !replyBody || !canManageMessages"
                     @click="sendReply"
                   >
-                    {{ replySending ? '전송 중...' : '답장 보내기' }}
+                    {{ replySending ? t('전송 중...', 'Sending...') : t('답장 보내기', 'Send Reply') }}
                   </button>
                 </div>
-                <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.</p>
+                <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">{{ t('쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.', 'You do not have permission to reply, so you cannot send a reply.') }}</p>
                 <p v-if="replyError" class="mt-2 text-sm text-rose-300">{{ replyError }}</p>
               </div>
             </div>
           </div>
 
           <div class="flex flex-col justify-start rounded-xl border border-white/10 bg-[#06101b] p-4">
-            <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">회원을 선택하면 회원정보가 표시됩니다.</div>
+            <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">{{ t('회원을 선택하면 회원정보가 표시됩니다.', 'Select a member to view their info.') }}</div>
             <template v-else>
-              <div v-if="memberDetailLoading" class="text-sm text-slate-400">불러오는 중…</div>
+              <div v-if="memberDetailLoading" class="text-sm text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</div>
               <template v-else-if="memberDetail">
-                <div class="text-base font-semibold text-slate-100">회원정보</div>
+                <div class="text-base font-semibold text-slate-100">{{ t('회원정보', 'Member Info') }}</div>
                 <div class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-slate-300">
-                  <div class="text-slate-500">이름</div><div>{{ memberDetail.name || '—' }}</div>
-                  <div class="text-slate-500">생년월일</div><div>{{ memberDetail.birthDate || '—' }}</div>
-                  <div class="text-slate-500">은행</div><div>{{ memberDetail.bankName || '—' }}</div>
-                  <div class="text-slate-500">계좌</div><div>{{ memberDetail.bankAccount || '—' }}</div>
-                  <div class="text-slate-500">예금주</div><div>{{ memberDetail.accountHolder || '—' }}</div>
-                  <div class="text-slate-500">추천코드</div><div>{{ memberDetail.referralCode || '—' }}</div>
+                  <div class="text-slate-500">{{ t('이름', 'Name') }}</div><div>{{ memberDetail.name || '—' }}</div>
+                  <div class="text-slate-500">{{ t('생년월일', 'Date of Birth') }}</div><div>{{ memberDetail.birthDate || '—' }}</div>
+                  <div class="text-slate-500">{{ t('은행', 'Bank') }}</div><div>{{ memberDetail.bankName || '—' }}</div>
+                  <div class="text-slate-500">{{ t('계좌', 'Account') }}</div><div>{{ memberDetail.bankAccount || '—' }}</div>
+                  <div class="text-slate-500">{{ t('예금주', 'Account Holder') }}</div><div>{{ memberDetail.accountHolder || '—' }}</div>
+                  <div class="text-slate-500">{{ t('추천코드', 'Referral Code') }}</div><div>{{ memberDetail.referralCode || '—' }}</div>
                 </div>
                 <div class="mt-4 grid grid-cols-2 gap-2">
                   <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
-                    <div class="text-[12px] text-slate-400">보유잔고</div>
+                    <div class="text-[12px] text-slate-400">{{ t('보유잔고', 'Balance') }}</div>
                     <div class="mt-1 text-sm font-semibold text-cyan-100">{{ fmt2(memberDetail.balanceUsdt) }} USDT</div>
                   </div>
                   <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
-                    <div class="text-[12px] text-slate-400">보유 포지션</div>
-                    <div class="mt-1 text-sm font-semibold text-cyan-100">{{ memberDetail.positions.length }}건</div>
+                    <div class="text-[12px] text-slate-400">{{ t('보유 포지션', 'Positions') }}</div>
+                    <div class="mt-1 text-sm font-semibold text-cyan-100">{{ t(`${memberDetail.positions.length}건`, `${memberDetail.positions.length}`) }}</div>
                   </div>
                 </div>
               </template>
@@ -267,19 +272,19 @@
             <div class="font-data text-sm text-slate-100">{{ thread.guestId.slice(0, 12) }}…</div>
             <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[12px] font-bold text-slate-900">{{ thread.unreadCount }}</span>
           </div>
-          <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || '대화 없음' }}</div>
-          <div class="mt-1 text-[12px] text-slate-500">{{ thread.ip || 'IP 미확인' }}</div>
+          <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || t('대화 없음', 'No conversation') }}</div>
+          <div class="mt-1 text-[12px] text-slate-500">{{ thread.ip || t('IP 미확인', 'IP unknown') }}</div>
           <div class="mt-1 text-[12px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
         </button>
-        <div v-if="guestThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">비회원 상담이 없습니다.</div>
+        <div v-if="guestThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">{{ t('비회원 상담이 없습니다.', 'No guest inquiries.') }}</div>
       </div>
 
       <div class="rounded-xl border border-white/10 bg-white/5 p-4">
-        <div v-if="!activeGuestThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">왼쪽에서 대화를 선택하세요.</div>
+        <div v-if="!activeGuestThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">{{ t('왼쪽에서 대화를 선택하세요.', 'Select a conversation on the left.') }}</div>
         <div v-else class="space-y-4">
           <div class="border-b border-white/10 pb-3">
             <div class="font-data text-sm text-slate-100">{{ activeGuestThread.guestId }}</div>
-            <div class="mt-1 text-xs text-slate-500">접속 IP: {{ activeGuestThread.ip || '미확인' }}</div>
+            <div class="mt-1 text-xs text-slate-500">{{ t('접속 IP', 'Access IP') }}: {{ activeGuestThread.ip || t('미확인', 'Unknown') }}</div>
           </div>
 
           <div class="max-h-[440px] space-y-3 overflow-auto pr-1">
@@ -289,11 +294,11 @@
               class="max-w-[85%] rounded-2xl px-4 py-3 text-sm"
               :class="message.sender === 'admin' ? 'ml-auto bg-cyan-500/15 text-slate-100' : 'bg-white/5 text-slate-200'"
             >
-              <div class="mb-1 text-[12px] text-slate-400">{{ message.sender === 'admin' ? '운영자' : '방문자' }}</div>
+              <div class="mb-1 text-[12px] text-slate-400">{{ message.sender === 'admin' ? t('운영자', 'Admin') : t('방문자', 'Visitor') }}</div>
               <div class="whitespace-pre-wrap leading-6">{{ message.body }}</div>
               <div class="mt-2 text-[12px] text-slate-500">{{ formatDateTime(message.createdAt) }}</div>
             </div>
-            <div v-if="guestMessages.length === 0" class="py-8 text-center text-sm text-slate-500">아직 대화가 없습니다.</div>
+            <div v-if="guestMessages.length === 0" class="py-8 text-center text-sm text-slate-500">{{ t('아직 대화가 없습니다.', 'No conversation yet.') }}</div>
           </div>
 
           <div class="border-t border-white/10 pt-4">
@@ -301,7 +306,8 @@
               v-model.trim="guestReplyBody"
               rows="4"
               class="w-full rounded-md border border-white/10 bg-[#020b16] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-              placeholder="답장을 입력하세요"
+              :placeholder="t('답장을 입력하세요', 'Enter your reply')"
+              :key="`guest-reply-${locale}`"
             />
             <div class="mt-3 flex items-center justify-end gap-2">
               <button
@@ -309,10 +315,10 @@
                 :disabled="guestReplySending || !guestReplyBody || !canManageMessages"
                 @click="sendGuestReply"
               >
-                {{ guestReplySending ? '전송 중...' : '답장 보내기' }}
+                {{ guestReplySending ? t('전송 중...', 'Sending...') : t('답장 보내기', 'Send Reply') }}
               </button>
             </div>
-            <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.</p>
+            <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">{{ t('쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.', 'You do not have permission to reply, so you cannot send a reply.') }}</p>
             <p v-if="guestReplyError" class="mt-2 text-sm text-rose-300">{{ guestReplyError }}</p>
           </div>
         </div>
@@ -323,6 +329,7 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: ['admin'] })
+const { t, locale } = useLocale()
 
 type Recipient = {
   id: number
@@ -439,7 +446,7 @@ async function sendGuestReply() {
     guestReplyBody.value = ''
     await loadGuestThreads()
   } catch (e: any) {
-    guestReplyError.value = e?.data?.statusMessage || '답장 전송에 실패했습니다.'
+    guestReplyError.value = e?.data?.statusMessage || t('답장 전송에 실패했습니다.', 'Failed to send reply.')
   } finally {
     guestReplySending.value = false
   }
@@ -474,7 +481,7 @@ async function loadMemberDetail(username: string) {
       credentials: 'include'
     })
   } catch (e: any) {
-    memberDetailError.value = e?.data?.statusMessage || '회원정보를 불러오지 못했습니다.'
+    memberDetailError.value = e?.data?.statusMessage || t('회원정보를 불러오지 못했습니다.', 'Failed to load member info.')
   } finally {
     memberDetailLoading.value = false
   }
@@ -607,7 +614,7 @@ async function approveReset() {
     })
     if (activeThread.value) await openThread(activeThread.value)
   } catch (e: any) {
-    replyError.value = e?.data?.statusMessage || '비밀번호 초기화 승인에 실패했습니다.'
+    replyError.value = e?.data?.statusMessage || t('비밀번호 초기화 승인에 실패했습니다.', 'Failed to approve password reset.')
   } finally {
     approvingReset.value = false
   }
@@ -630,14 +637,14 @@ async function sendMessage() {
         body: body.value.trim()
       }
     })
-    sendMessageText.value = `${res.count}명에게 쪽지를 보냈습니다.`
+    sendMessageText.value = t(`${res.count}명에게 쪽지를 보냈습니다.`, `Message sent to ${res.count} member(s).`)
     subject.value = ''
     body.value = ''
     selectedRecipientIds.value = []
     sendToAll.value = false
     await loadThreads()
   } catch (e: any) {
-    sendError.value = e?.data?.statusMessage || '쪽지 전송에 실패했습니다.'
+    sendError.value = e?.data?.statusMessage || t('쪽지 전송에 실패했습니다.', 'Failed to send message.')
   } finally {
     sending.value = false
   }
@@ -654,14 +661,14 @@ async function sendReply() {
       credentials: 'include',
       body: {
         userIds: [activeThread.value.userId],
-        subject: activeThread.value.subject || '운영자 답장',
+        subject: activeThread.value.subject || t('운영자 답장', 'Admin Reply'),
         body: replyBody.value.trim()
       }
     })
     replyBody.value = ''
     await openThread(activeThread.value)
   } catch (e: any) {
-    replyError.value = e?.data?.statusMessage || '답장 전송에 실패했습니다.'
+    replyError.value = e?.data?.statusMessage || t('답장 전송에 실패했습니다.', 'Failed to send reply.')
   } finally {
     replySending.value = false
   }
