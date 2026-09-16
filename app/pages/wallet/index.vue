@@ -3,44 +3,45 @@
     <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-6 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <h1 class="text-xl font-semibold">내 지갑</h1>
-          <p class="mt-2 text-sm text-slate-400">보유 USDT 잔고와 자산 정보를 확인할 수 있습니다.</p>
+          <h1 class="text-xl font-semibold">{{ t('내 지갑', 'My Wallet') }}</h1>
+          <p class="mt-2 text-sm text-slate-400">{{ t('보유 USDT 잔고와 자산 정보를 확인할 수 있습니다.', 'Check your USDT balance and asset information.') }}</p>
         </div>
         <button
           v-if="telegramUrl"
           type="button"
           class="flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-500/20"
-          title="고객센터 텔레그램"
+          :title="t('고객센터 텔레그램', 'Support Telegram')"
           @click="openTelegram"
         >
           <TelegramIcon class="h-5 w-5" />
-          <span class="hidden sm:inline">고객센터</span>
+          <span class="hidden sm:inline">{{ t('고객센터', 'Support') }}</span>
         </button>
       </div>
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-        <div class="text-sm text-slate-400">USDT 잔고</div>
+        <div class="text-sm text-slate-400">{{ t('USDT 잔고', 'USDT Balance') }}</div>
         <div class="mt-1 font-mono text-2xl">{{ fmtKrw(balance) }}</div>
         <div class="mt-0.5 font-mono text-sm text-slate-400">{{ balance.toFixed(2) }} USDT</div>
       </div>
 
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-        <div class="text-sm text-slate-400">입금요청 (원화)</div>
+        <div class="text-sm text-slate-400">{{ t('입금요청 (원화)', 'Deposit Request (KRW)') }}</div>
         <div class="mt-2 flex items-center gap-2">
           <input
+            :key="`deposit-input-${locale}`"
             :value="krwInput"
             type="text"
             inputmode="numeric"
-            placeholder="입금할 금액(원)"
+            :placeholder="t('입금할 금액(원)', 'Amount to deposit (KRW)')"
             class="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/40"
             @input="onKrwInput('deposit', ($event.target as HTMLInputElement).value)"
           />
-          <span class="whitespace-nowrap text-sm text-slate-400">원</span>
+          <span class="whitespace-nowrap text-sm text-slate-400">{{ t('원', 'KRW') }}</span>
         </div>
         <div class="mt-1 text-xs text-slate-500">≈ {{ usdtPreview(krwInput) }} USDT</div>
-        <div v-if="krwToKoreanText(krwInput)" class="mt-0.5 text-xs text-cyan-300">{{ krwToKoreanText(krwInput) }}</div>
+        <div v-if="locale === 'ko' && krwToKoreanText(krwInput)" class="mt-0.5 text-xs text-cyan-300">{{ krwToKoreanText(krwInput) }}</div>
         <div class="mt-2 grid grid-cols-3 gap-2">
           <button
             v-for="q in QUICK_KRW_AMOUNTS"
@@ -49,7 +50,7 @@
             class="rounded-md bg-white/5 px-2 py-1.5 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-white/10"
             @click="addDepositAmount(q.value)"
           >
-            {{ q.label }}
+            {{ t(q.label, q.labelEn) }}
           </button>
         </div>
         <button
@@ -58,25 +59,26 @@
           :disabled="!canSubmitDeposit || submittingDeposit"
           @click="submitDepositRequest"
         >
-          입금요청
+          {{ t('입금요청', 'Request Deposit') }}
         </button>
       </div>
 
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-        <div class="text-sm text-slate-400">출금요청 (원화)</div>
+        <div class="text-sm text-slate-400">{{ t('출금요청 (원화)', 'Withdrawal Request (KRW)') }}</div>
         <div class="mt-2 flex items-center gap-2">
           <input
+            :key="`withdraw-input-${locale}`"
             :value="krwWithdrawInput"
             type="text"
             inputmode="numeric"
-            placeholder="출금할 금액(원)"
+            :placeholder="t('출금할 금액(원)', 'Amount to withdraw (KRW)')"
             class="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400/40"
             @input="onKrwInput('withdraw', ($event.target as HTMLInputElement).value)"
           />
-          <span class="whitespace-nowrap text-sm text-slate-400">원</span>
+          <span class="whitespace-nowrap text-sm text-slate-400">{{ t('원', 'KRW') }}</span>
         </div>
         <div class="mt-1 text-xs text-slate-500">≈ {{ usdtPreview(krwWithdrawInput) }} USDT</div>
-        <div v-if="krwToKoreanText(krwWithdrawInput)" class="mt-0.5 text-xs text-cyan-300">{{ krwToKoreanText(krwWithdrawInput) }}</div>
+        <div v-if="locale === 'ko' && krwToKoreanText(krwWithdrawInput)" class="mt-0.5 text-xs text-cyan-300">{{ krwToKoreanText(krwWithdrawInput) }}</div>
         <div class="mt-2 grid grid-cols-3 gap-2">
           <button
             v-for="q in QUICK_KRW_AMOUNTS"
@@ -85,7 +87,7 @@
             class="rounded-md bg-white/5 px-2 py-1.5 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-white/10"
             @click="addWithdrawAmount(q.value)"
           >
-            {{ q.label }}
+            {{ t(q.label, q.labelEn) }}
           </button>
         </div>
         <button
@@ -94,7 +96,7 @@
           :disabled="!canSubmitWithdraw || submittingWithdraw"
           @click="submitWithdrawRequest"
         >
-          출금요청
+          {{ t('출금요청', 'Request Withdrawal') }}
         </button>
       </div>
     </div>
@@ -109,20 +111,22 @@
           <button
             type="button"
             class="absolute right-4 top-4 text-slate-400 hover:text-white"
-            aria-label="닫기"
+            :aria-label="t('닫기', 'Close')"
             @click="showModal = false"
           >
             ✕
           </button>
-          <h2 class="pr-6 text-lg font-semibold text-slate-100">{{ modalKind === 'withdraw' ? '출금요청되었습니다.' : '입금요청되었습니다.' }}</h2>
-          <p class="mt-2 text-sm leading-6 text-slate-300">고객센터로 텔레그램 남겨주세요.</p>
+          <h2 class="pr-6 text-lg font-semibold text-slate-100">
+            {{ modalKind === 'withdraw' ? t('출금요청되었습니다.', 'Your withdrawal request has been submitted.') : t('입금요청되었습니다.', 'Your deposit request has been submitted.') }}
+          </h2>
+          <p class="mt-2 text-sm leading-6 text-slate-300">{{ t('고객센터로 텔레그램 남겨주세요.', 'Please message us on Telegram support.') }}</p>
           <button
             type="button"
             class="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-[#229ed9] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#1c8ec4]"
             @click="contactSupport"
           >
             <TelegramIcon class="h-5 w-5" />
-            고객센터 문의하기
+            {{ t('고객센터 문의하기', 'Contact Support') }}
           </button>
         </div>
       </div>
@@ -132,6 +136,7 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth'] })
+const { t, locale } = useLocale()
 
 const TelegramIcon = {
   props: { class: { type: String, default: '' } },
@@ -177,7 +182,8 @@ try {
 }
 
 function fmtKrw(usdtValue: number) {
-  return `${Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()}원`
+  const amount = Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()
+  return t(`${amount}원`, `${amount} KRW`)
 }
 
 // 입력칸 표시값(콤마 포함)에서 순수 숫자만 뽑아낸다.
@@ -228,9 +234,9 @@ function krwToKoreanText(krwValue: string) {
 }
 
 const QUICK_KRW_AMOUNTS = [
-  { label: '100만원', value: 1_000_000 },
-  { label: '1000만원', value: 10_000_000 },
-  { label: '5000만원', value: 50_000_000 }
+  { label: '100만원', labelEn: '1M KRW', value: 1_000_000 },
+  { label: '1000만원', labelEn: '10M KRW', value: 10_000_000 },
+  { label: '5000만원', labelEn: '50M KRW', value: 50_000_000 }
 ]
 
 function addDepositAmount(amount: number) {
@@ -270,7 +276,7 @@ async function submitDepositRequest() {
     modalKind.value = 'deposit'
     showModal.value = true
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '입금요청 중 오류가 발생했습니다.')
+    alert(e?.data?.statusMessage || t('입금요청 중 오류가 발생했습니다.', 'An error occurred while requesting a deposit.'))
   } finally {
     submittingDeposit.value = false
   }
@@ -289,7 +295,7 @@ async function submitWithdrawRequest() {
     modalKind.value = 'withdraw'
     showModal.value = true
   } catch (e: any) {
-    alert(e?.data?.statusMessage || '출금요청 중 오류가 발생했습니다.')
+    alert(e?.data?.statusMessage || t('출금요청 중 오류가 발생했습니다.', 'An error occurred while requesting a withdrawal.'))
   } finally {
     submittingWithdraw.value = false
   }
