@@ -7,15 +7,15 @@
       >
         <div class="flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3">
           <div>
-            <div class="text-sm font-semibold text-white">실시간 상담</div>
-            <div class="text-[11px] text-slate-500">가입 없이도 바로 문의할 수 있어요</div>
+            <div class="text-sm font-semibold text-white">{{ t('실시간 상담', 'Live Chat') }}</div>
+            <div class="text-[11px] text-slate-500">{{ t('가입 없이도 바로 문의할 수 있어요', 'Ask us anything, no sign-up needed') }}</div>
           </div>
           <button type="button" class="rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white" @click="open = false">✕</button>
         </div>
 
         <div ref="listEl" class="min-h-0 flex-1 space-y-2.5 overflow-auto px-3 py-3">
           <div v-if="messages.length === 0" class="py-8 text-center text-xs text-slate-500">
-            아직 대화가 없습니다.<br />궁금한 점을 남겨주시면 운영자가 답변드립니다.
+            {{ t('아직 대화가 없습니다.', 'No messages yet.') }}<br />{{ t('궁금한 점을 남겨주시면 운영자가 답변드립니다.', 'Leave your question and our team will reply.') }}
           </div>
           <div
             v-for="m in messages"
@@ -33,7 +33,7 @@
               v-model.trim="draft"
               rows="1"
               class="max-h-24 min-h-[38px] flex-1 resize-none rounded-xl border border-white/10 bg-[#050810] px-3 py-2 text-[13px] text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-              placeholder="메시지를 입력하세요"
+              :placeholder="t('메시지를 입력하세요', 'Type a message')"
               @keydown.enter.exact.prevent="send"
             />
             <button
@@ -56,7 +56,7 @@
       @click="toggle"
     >
       <span class="text-base">💬</span>
-      실시간 상담
+      {{ t('실시간 상담', 'Live Chat') }}
     </button>
   </div>
 </template>
@@ -64,6 +64,7 @@
 <script setup lang="ts">
 type GuestMessage = { id: number; sender: 'guest' | 'admin'; body: string; createdAt: string }
 
+const { t } = useLocale()
 const STORAGE_KEY = 'usdetrade_guest_chat_id'
 
 const open = ref(false)
@@ -125,7 +126,7 @@ async function send() {
     draft.value = ''
     scrollToBottom()
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '전송에 실패했습니다.'
+    error.value = e?.data?.statusMessage || t('전송에 실패했습니다.', 'Failed to send.')
   } finally {
     sending.value = false
   }

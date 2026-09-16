@@ -54,7 +54,7 @@
         <button
           type="button"
           class="flex h-6 w-6 items-center justify-center rounded-full border border-white/15 text-[10px] text-slate-300 hover:bg-white/10"
-          :title="paused ? '움직임 재생' : '움직임 정지'"
+          :title="paused ? t('움직임 재생', 'Resume animation') : t('움직임 정지', 'Pause animation')"
           @click="paused = !paused"
         >
           {{ paused ? '▶' : '❚❚' }}
@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useLocale()
 withDefaults(
   defineProps<{
     mark?: string

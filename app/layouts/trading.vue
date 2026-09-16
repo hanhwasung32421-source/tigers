@@ -5,7 +5,7 @@
         <div class="rounded-2xl border border-cyan-400/15 bg-[#07111b]/90 px-5 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <div class="flex items-center gap-3">
             <span class="h-3 w-3 animate-pulse rounded-full bg-cyan-400" />
-            <span class="text-sm font-medium text-slate-100">불러오는 중...</span>
+            <span class="text-sm font-medium text-slate-100">{{ t('불러오는 중...', 'Loading...') }}</span>
           </div>
         </div>
       </div>
@@ -32,14 +32,14 @@
                 class="flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white"
                 @click="startNavLoading(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
               >
-                {{ MAIN_NAV_LABELS[key] }}
+                {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
                 <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[11px] font-bold leading-none text-yellow-300">
                   {{ MAIN_NAV_BADGES[key] }}
                 </span>
               </NuxtLink>
             </template>
             <div v-if="isAdmin" class="group relative">
-              <NuxtLink :to="adminHomeTarget" class="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">관리자</NuxtLink>
+              <NuxtLink :to="adminHomeTarget" class="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">{{ t('관리자', 'Admin') }}</NuxtLink>
               <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
                 <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
                   <button
@@ -47,7 +47,7 @@
                     class="block w-full rounded-lg px-3 py-2 text-left text-[15px] text-slate-200 hover:bg-cyan-400/10 hover:text-white"
                     @click="copyReferralLink"
                   >
-                    {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
+                    {{ referralLinkCopied ? t('복사됨!', 'Copied!') : t('추천가입링크 복사', 'Copy Referral Link') }}
                   </button>
                   <template v-for="key in orderedAdminMenuKeys" :key="key">
                     <NuxtLink
@@ -56,7 +56,7 @@
                       class="block rounded-lg px-3 py-2 text-[15px] text-slate-200 hover:bg-cyan-400/10 hover:text-white"
                       @click="startNavLoading(ADMIN_MENU_ROUTES[key])"
                     >
-                      {{ ADMIN_MENU_LABELS[key] }}
+                      {{ t(ADMIN_MENU_LABELS[key], ADMIN_MENU_LABELS_EN[key]) }}
                     </NuxtLink>
                   </template>
                 </div>
@@ -89,13 +89,14 @@
                 </span>
               </NuxtLink>
               <button class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10" @click="logout">
-                로그아웃
+                {{ t('로그아웃', 'Log Out') }}
               </button>
             </template>
             <template v-else>
-              <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">로그인</NuxtLink>
-              <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">회원가입</NuxtLink>
+              <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">{{ t('로그인', 'Log In') }}</NuxtLink>
+              <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">{{ t('회원가입', 'Sign Up') }}</NuxtLink>
             </template>
+            <LocaleSwitch />
           </div>
 
           <NuxtLink
@@ -116,7 +117,7 @@
           <button
             type="button"
             class="rounded-md border border-white/10 bg-white/5 px-2.5 py-2 text-slate-200 hover:bg-white/10 md:hidden"
-            aria-label="메뉴 열기"
+            :aria-label="t('메뉴 열기', 'Open menu')"
             @click="mobileMenuOpen = !mobileMenuOpen"
           >
             <span class="block text-base leading-none">{{ mobileMenuOpen ? '✕' : '☰' }}</span>
@@ -126,6 +127,9 @@
 
       <div v-if="mobileMenuOpen" class="border-t border-cyan-500/10 bg-[#020b16] px-4 py-3 md:hidden">
         <nav class="flex flex-col gap-0.5 text-[15px] text-slate-200">
+          <div class="flex justify-end px-3 pb-2">
+            <LocaleSwitch />
+          </div>
           <NuxtLink
             v-for="key in orderedMainNavKeys"
             :key="key"
@@ -133,7 +137,7 @@
             class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white"
             @click="onMobileNavClick(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
           >
-            {{ MAIN_NAV_LABELS[key] }}
+            {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
             <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[11px] font-bold leading-none text-yellow-300">
               {{ MAIN_NAV_BADGES[key] }}
             </span>
@@ -141,12 +145,12 @@
 
           <template v-if="isAdmin">
             <div class="my-2 h-px bg-white/10" />
-            <div class="px-3 py-1 text-[13px] font-semibold uppercase tracking-wide text-slate-500">관리자</div>
+            <div class="px-3 py-1 text-[13px] font-semibold uppercase tracking-wide text-slate-500">{{ t('관리자', 'Admin') }}</div>
             <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick(adminHomeTarget)">
-              대시보드
+              {{ t('대시보드', 'Dashboard') }}
             </NuxtLink>
             <button type="button" class="rounded-md px-3 py-2.5 text-left hover:bg-cyan-400/10 hover:text-white" @click="copyReferralLink">
-              {{ referralLinkCopied ? '복사됨!' : '추천가입링크 복사' }}
+              {{ referralLinkCopied ? t('복사됨!', 'Copied!') : t('추천가입링크 복사', 'Copy Referral Link') }}
             </button>
             <template v-for="key in orderedAdminMenuKeys" :key="key">
               <NuxtLink
@@ -155,7 +159,7 @@
                 class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white"
                 @click="onMobileNavClick(ADMIN_MENU_ROUTES[key])"
               >
-                {{ ADMIN_MENU_LABELS[key] }}
+                {{ t(ADMIN_MENU_LABELS[key], ADMIN_MENU_LABELS_EN[key]) }}
               </NuxtLink>
             </template>
           </template>
@@ -166,12 +170,12 @@
               {{ me.name || me.username }}
             </NuxtLink>
             <button type="button" class="rounded-md px-3 py-2.5 text-left hover:bg-cyan-400/10 hover:text-white" @click="mobileMenuOpen = false; logout()">
-              로그아웃
+              {{ t('로그아웃', 'Log Out') }}
             </button>
           </template>
           <template v-else>
-            <NuxtLink to="/auth/login" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/login')">로그인</NuxtLink>
-            <NuxtLink to="/auth/register" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/register')">회원가입</NuxtLink>
+            <NuxtLink to="/auth/login" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/login')">{{ t('로그인', 'Log In') }}</NuxtLink>
+            <NuxtLink to="/auth/register" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/register')">{{ t('회원가입', 'Sign Up') }}</NuxtLink>
           </template>
           <div class="px-3 pt-2 text-[13px] text-slate-500">{{ appVersion }}</div>
         </nav>
@@ -185,11 +189,15 @@
     <Teleport to="body">
       <div v-if="showResetNotice" class="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 px-4">
         <div class="w-full max-w-md rounded-2xl border border-amber-400/20 bg-[#0b1220] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-          <h2 class="text-lg font-semibold text-slate-100">비밀번호 안내</h2>
-          <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-300">비밀번호가 초기화 되었습니다.
-우측상단 아이디를 클릭하여 비밀번호를 변경해주세요</p>
+          <h2 class="text-lg font-semibold text-slate-100">{{ t('비밀번호 안내', 'Password Notice') }}</h2>
+          <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-300">{{
+            t(
+              '비밀번호가 초기화 되었습니다.\n우측상단 아이디를 클릭하여 비밀번호를 변경해주세요',
+              'Your password has been reset.\nClick your username in the top right to change your password.'
+            )
+          }}</p>
           <div class="mt-5 flex justify-end">
-            <button class="rounded-md bg-white/10 px-4 py-2 text-sm hover:bg-white/15" @click="dismissResetNotice">다시보지않기</button>
+            <button class="rounded-md bg-white/10 px-4 py-2 text-sm hover:bg-white/15" @click="dismissResetNotice">{{ t('다시보지않기', "Don't show again") }}</button>
           </div>
         </div>
       </div>
@@ -207,6 +215,7 @@ const appName = config.public.appName
 const { data: versionData } = await useFetch<{ date: string; build: number }>('/api/version', { key: 'app-version' })
 const route = useRoute()
 const navLoading = useState<boolean>('global_nav_loading', () => false)
+const { t } = useLocale()
 
 const { me, refresh } = useMe()
 await refresh()
@@ -259,6 +268,15 @@ const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
   invest: '투자내역',
   support: '고객센터'
 }
+const MAIN_NAV_LABELS_EN: Record<MainNavKey, string> = {
+  coin: 'Coin Futures',
+  stock: 'Global Stocks',
+  kr: 'KR Stocks',
+  markets: 'Markets',
+  wallet: 'My Wallet',
+  invest: 'Investment History',
+  support: 'Support'
+}
 const MAIN_NAV_BADGES: Partial<Record<MainNavKey, string>> = { coin: '100x', stock: '100x', kr: '100x' }
 const DEFAULT_MAIN_NAV_ORDER = Object.keys(MAIN_NAV_ROUTES) as MainNavKey[]
 const orderedMainNavKeys = ref<MainNavKey[]>(DEFAULT_MAIN_NAV_ORDER.filter((k) => k !== 'invest'))
@@ -293,6 +311,15 @@ const ADMIN_MENU_LABELS: Record<string, string> = {
   messages: '쪽지관리',
   settlement: '정산내역',
   deposits: '입출금 내역'
+}
+const ADMIN_MENU_LABELS_EN: Record<string, string> = {
+  members: 'Members',
+  online: 'Online Now',
+  trades: 'Trade History',
+  positions: 'Positions',
+  messages: 'Messages',
+  settlement: 'Settlement',
+  deposits: 'Deposits/Withdrawals'
 }
 const DEFAULT_ADMIN_MENU_ORDER = Object.keys(ADMIN_MENU_ROUTES)
 const orderedAdminMenuKeys = ref<string[]>([...DEFAULT_ADMIN_MENU_ORDER])
