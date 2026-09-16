@@ -37,12 +37,14 @@ export default defineNuxtConfig({
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     // 서버 전용: 앱 DB를 Supabase로 동기화(복원/미러)할지 여부
     supabaseAppDbEnabled: process.env.SUPABASE_APP_DB_ENABLED || '',
+    // 서버 전용: 클라이언트 번들에 넣을 이유가 전혀 없음(클라이언트 코드가 Supabase를 직접
+    // 호출하지 않고, 항상 이 서버의 API 라우트를 거침) — 예전엔 public 밑에 있어서 방문자
+    // 브라우저로 그대로 전송됐었다. anon key는 이미 노출된 적이 있으니 Supabase 대시보드에서
+    // 재발급(rotate)하는 것을 권장.
+    supabaseUrl: process.env.SUPABASE_URL || 'https://dyfycrmltqosezmsufup.supabase.co',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
     public: {
-      appName: 'BITDUCK',
-      supabaseUrl: process.env.SUPABASE_URL || 'https://dyfycrmltqosezmsufup.supabase.co',
-      supabaseAnonKey:
-        process.env.SUPABASE_ANON_KEY ||
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR5Znljcm1sdHFvc2V6bXN1ZnVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMzg4MDIsImV4cCI6MjA5NTYxNDgwMn0.VpJCBdD1g8YZiaa6Zah9ZKIu3ydu_RkSgWCdEXe2QGw'
+      appName: 'BITDUCK'
     }
   }
 })

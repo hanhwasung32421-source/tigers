@@ -16,9 +16,9 @@ export function isMissingTableError(error: any) {
 
 export function getSupabaseAdminClient() {
   const config = useRuntimeConfig()
-  const url = config.public.supabaseUrl as string
+  const url = config.supabaseUrl as string
   const serviceRole = (config.supabaseServiceRoleKey as string) || ''
-  const anon = config.public.supabaseAnonKey as string
+  const anon = config.supabaseAnonKey as string
   // service role 우선(서버 전용). 없으면 anon으로 fallback (데모용)
   const key = serviceRole || anon
   return createClient(url, key, {

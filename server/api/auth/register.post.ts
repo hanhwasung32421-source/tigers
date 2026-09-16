@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   // 배포/서버리스: Supabase를 단일 진실 소스로 사용 (가입 즉시 Supabase에 반영)
   if (useSupa) {
     const cfg = useRuntimeConfig()
-    if (!String(cfg.public.supabaseUrl || '')) {
+    if (!String(cfg.supabaseUrl || '')) {
       throw createError({ statusCode: 500, statusMessage: 'SUPABASE_URL이 설정되지 않았습니다.' })
     }
     if (!String(cfg.supabaseServiceRoleKey || '')) {
