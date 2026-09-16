@@ -2,29 +2,30 @@
   <div class="mx-auto max-w-4xl space-y-4 rounded-2xl border border-rose-500/30 bg-rose-500/5 p-6">
     <h1 class="text-xl font-semibold">Server Error</h1>
     <p class="text-sm text-slate-200">
-      아래 내용을 그대로 복사해서 보내주면 바로 수정할 수 있어요.
+      {{ t('아래 내용을 그대로 복사해서 보내주면 바로 수정할 수 있어요.', 'Copy the content below and send it over so it can be fixed right away.') }}
     </p>
 
     <div class="rounded-xl bg-black/30 p-4 text-sm">
-      <div class="text-slate-400">요약</div>
+      <div class="text-slate-400">{{ t('요약', 'Summary') }}</div>
       <pre class="mt-2 whitespace-pre-wrap break-words font-mono text-slate-200">{{ summary }}</pre>
     </div>
 
     <div class="rounded-xl bg-black/30 p-4 text-sm">
       <div class="flex items-center justify-between gap-2">
-        <div class="text-slate-400">최근 서버 오류(JSON)</div>
+        <div class="text-slate-400">{{ t('최근 서버 오류(JSON)', 'Recent Server Error (JSON)') }}</div>
         <a class="text-indigo-300 hover:underline" href="/api/debug/last-error" target="_blank">/api/debug/last-error</a>
       </div>
       <pre class="mt-2 whitespace-pre-wrap break-words font-mono text-slate-200">{{ json }}</pre>
     </div>
 
     <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="clearError({ redirect: '/' })">
-      홈으로
+      {{ t('홈으로', 'Go Home') }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
+const { t } = useLocale()
 const error = useError()
 const { me, refresh } = useMe()
 await refresh()

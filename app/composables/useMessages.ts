@@ -67,7 +67,8 @@ export function useMessages() {
       const next = Number(data.unread || 0)
       // 새 쪽지가 실시간으로 도착한 경우에만 팝업+알림음(최초 로드 시에는 띄우지 않음)
       if (process.client && initialized && next > unread.value) {
-        showToast('새 쪽지가 도착했습니다.')
+        const { t } = useLocale()
+        showToast(t('새 쪽지가 도착했습니다.', 'A new message has arrived.'))
         if (canHearRealtimeChime()) playChimeSound()
       }
       // 화면에 처음 들어왔을 때 이미 확인 안 한 쪽지가 있으면, 세션당 한 번 진입 알림음을 울린다.
