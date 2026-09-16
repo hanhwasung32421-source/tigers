@@ -46,14 +46,18 @@
                 <button
                   type="button"
                   class="flex items-center gap-1 rounded px-2 py-1 text-[12px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
-                  @click="indicatorMenuOpen = !indicatorMenuOpen; timeframeMenuOpen = false"
+                  @click="toggleIndicatorMenu($event, 'below')"
                 >
                   <span>{{ t('보조지표', 'Indicators') }}</span>
                   <span class="text-[9px]">▾</span>
                 </button>
+              </div>
+              <Teleport to="body">
                 <div
                   v-if="indicatorMenuOpen"
-                  class="absolute left-0 top-[calc(100%+6px)] z-50 w-64 rounded-md border border-white/10 bg-[#1e222d] p-2 shadow-lg"
+                  ref="indicatorMenuPanelRoot"
+                  class="fixed z-[100] w-64 rounded-md border border-white/10 bg-[#1e222d] p-2 shadow-lg"
+                  :style="{ top: indicatorMenuPos.top + 'px', left: indicatorMenuPos.left + 'px' }"
                 >
                   <input
                     v-model="indicatorSearch"
@@ -98,7 +102,7 @@
                     </div>
                   </div>
                 </div>
-              </div>
+              </Teleport>
               <button class="hidden rounded px-2 py-1 text-[12px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllIndicators">
                 {{ t('지표모두삭제', 'Clear all indicators') }}
               </button>
@@ -237,7 +241,7 @@
               :class="indicatorMenuOpen ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('보조지표', 'Indicators')"
               :key="`tool-indicator-${locale}`"
-              @click="indicatorMenuOpen = !indicatorMenuOpen; timeframeMenuOpen = false"
+              @click="toggleIndicatorMenu($event, 'right')"
             >
               {{ t('지표', 'IND') }}
             </button>
@@ -1942,13 +1946,53 @@ const indicatorMenuRoot = ref<HTMLElement | null>(null)
 // 이 버튼은 indicatorMenuRoot 바깥에 있으므로, 바깥클릭 감지에서 함께 제외해줘야
 // 버튼을 눌러 열자마자 캡처 단계에서 즉시 닫혀버리는 것을 막을 수 있다.
 const toolIndicatorBtnRoot = ref<HTMLElement | null>(null)
+// 메뉴 패널 자체는 차트 패널의 overflow-hidden에 잘리지 않도록 Teleport로 body에 렌더링한다.
+// 그래서 indicatorMenuRoot/toolIndicatorBtnRoot 두 트리거 어느 쪽 DOM에도 속하지 않으므로,
+// 패널 내부 클릭도 바깥클릭 감지에서 따로 제외해줘야 한다.
+const indicatorMenuPanelRoot = ref<HTMLElement | null>(null)
+const indicatorMenuPos = ref({ top: 0, left: 0 })
+
+// 지표 메뉴를 누른 버튼 바로 옆(placement)에 뜨도록 위치를 계산해서 연다/닫는다.
+// 'below': 버튼 바로 아래(왼쪽 정렬) — 우측상단 "보조지표" 버튼용.
+// 'right': 버튼 바로 오른쪽(위쪽 정렬) — 좌측 도구모음 "지표" 버튼용.
+function toggleIndicatorMenu(e: MouseEvent, placement: 'below' | 'right') {
+  timeframeMenuOpen.value = false
+  if (indicatorMenuOpen.value) {
+    indicatorMenuOpen.value = false
+    return
+  }
+  const el = e.currentTarget as HTMLElement | null
+  if (el) {
+    const rect = el.getBoundingClientRect()
+    const PANEL_WIDTH = 256
+    const PANEL_HEIGHT_ESTIMATE = 360
+    const MARGIN = 8
+    if (placement === 'right') {
+      indicatorMenuPos.value = {
+        top: Math.max(MARGIN, Math.min(rect.top, window.innerHeight - PANEL_HEIGHT_ESTIMATE - MARGIN)),
+        left: Math.min(rect.right + 6, window.innerWidth - PANEL_WIDTH - MARGIN)
+      }
+    } else {
+      indicatorMenuPos.value = {
+        top: Math.min(rect.bottom + 6, window.innerHeight - PANEL_HEIGHT_ESTIMATE - MARGIN),
+        left: Math.min(rect.left, window.innerWidth - PANEL_WIDTH - MARGIN)
+      }
+    }
+  }
+  indicatorMenuOpen.value = true
+}
 
 function onDropdownMenuDocClick(e: MouseEvent) {
   const t = e.target as Node | null
   if (timeframeMenuOpen.value && timeframeMenuRoot.value && !(t && timeframeMenuRoot.value.contains(t))) {
     timeframeMenuOpen.value = false
   }
-  const insideIndicatorMenu = Boolean(t && (indicatorMenuRoot.value?.contains(t) || toolIndicatorBtnRoot.value?.contains(t)))
+  const insideIndicatorMenu = Boolean(
+    t &&
+      (indicatorMenuRoot.value?.contains(t) ||
+        toolIndicatorBtnRoot.value?.contains(t) ||
+        indicatorMenuPanelRoot.value?.contains(t))
+  )
   if (indicatorMenuOpen.value && !insideIndicatorMenu) {
     indicatorMenuOpen.value = false
   }
