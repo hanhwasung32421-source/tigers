@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
 
   if (admin.role !== 'super_admin') {
     const targetUsername = useSupa
-      ? String((await supaSelectOne<any>('trae_users', { id: req.userId }))?.username || '')
+      ? String((await supaSelectOne<any>('bitduck_users', { id: req.userId }))?.username || '')
       : String((getDb().prepare('SELECT username FROM users WHERE id = ?').get(req.userId) as any)?.username || '')
     const downline = await fetchDownlineUsernames(admin.username)
     if (!downline.has(targetUsername)) {
@@ -52,12 +52,12 @@ export default defineEventHandler(async (event) => {
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()
-    const prev = Number((await supaSelectOne<any>('trae_balances', { user_id: req.userId }))?.usdt ?? 0)
+    const prev = Number((await supaSelectOne<any>('bitduck_balances', { user_id: req.userId }))?.usdt ?? 0)
     if (req.type === 'withdrawal' && prev < usdtAmount) {
       throw createError({ statusCode: 400, statusMessage: '해당 회원의 잔고가 부족하여 출금을 완료할 수 없습니다.' })
     }
     const next = prev + delta
-    const { error } = await supa.from('trae_balances').upsert({ user_id: req.userId, usdt: next }, { onConflict: 'user_id' })
+    const { error } = await supa.from('bitduck_balances').upsert({ user_id: req.userId, usdt: next }, { onConflict: 'user_id' })
     if (error) throw error
   } else {
     const db = getDb()

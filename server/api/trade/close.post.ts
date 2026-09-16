@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (useSupa) {
-    const pos = await supaSelectOne<any>('trae_positions', { id: body.positionId, user_id: user.id })
+    const pos = await supaSelectOne<any>('bitduck_positions', { id: body.positionId, user_id: user.id })
     if (!pos) throw createError({ statusCode: 404, statusMessage: '포지션을 찾을 수 없습니다.' })
 
     const exit = body.exitPrice ?? (await getOkxLastPrice(pos.symbol)).last
@@ -69,14 +69,14 @@ export default defineEventHandler(async (event) => {
     // 관리자 설정 ROE 도달 시 전액 강제청산(증거금 전액 손실)
     const pnl = clampPnlToLiquidation(pnlUnclamped, net)
 
-    const balRow = await supaSelectOne<{ usdt: number }>('trae_balances', { user_id: user.id })
+    const balRow = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })
     const usdt = Number(balRow?.usdt ?? 0)
     const { settlementAfterFee } = calcSettlementAfterFee(gross, pnl)
     const newUsdt = usdt + settlementAfterFee
 
     // 포지션 제거
     const supa = getSupabaseAdminClient()
-    await supa.from('trae_positions').delete().eq('id', pos.id).eq('user_id', user.id)
+    await supa.from('bitduck_positions').delete().eq('id', pos.id).eq('user_id', user.id)
 
     // 거래 내역 저장(bigint PK 직접 생성)
     const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
@@ -95,17 +95,17 @@ export default defineEventHandler(async (event) => {
     }
     // Supabase 테이블에 liquidation 컬럼이 아직 없을 수 있어(스키마 미적용).
     // 있으면 저장하고, 없으면 기존 컬럼만으로 저장한다.
-    const { error: tradeErr } = await supa.from('trae_trades').upsert(tradePayload, { onConflict: 'id' })
+    const { error: tradeErr } = await supa.from('bitduck_trades').upsert(tradePayload, { onConflict: 'id' })
     if (tradeErr && isMissingColumnError(tradeErr, 'liquidation')) {
       delete tradePayload.liquidation
-      const { error: tradeErr2 } = await supa.from('trae_trades').upsert(tradePayload, { onConflict: 'id' })
+      const { error: tradeErr2 } = await supa.from('bitduck_trades').upsert(tradePayload, { onConflict: 'id' })
       if (tradeErr2) throw tradeErr2
     } else if (tradeErr) {
       throw tradeErr
     }
 
-    await supaUpsert('trae_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'])
-    await safeRun(() => supaUpdate('trae_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() }))
+    await supaUpsert('bitduck_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'])
+    await safeRun(() => supaUpdate('bitduck_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() }))
 
     return { ok: true, exitPrice: exit, pnl }
   }

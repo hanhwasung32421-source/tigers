@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { error } = await supa
-      .from('trae_positions')
+      .from('bitduck_positions')
       .update(patch)
       .eq('id', body.positionId)
     if (error) throw error

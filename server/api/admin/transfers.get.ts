@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
   }
 
-  // 현재 시스템에서 입출금 내역은 "관리자 가상 입금(app_admin_credits)"만 기록됩니다.
+  // 현재 시스템에서 입출금 내역은 "관리자 가상 입금(bitduck_log_credits)"만 기록됩니다.
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const q = getQuery(event)
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     const offset = Math.max(0, Number(q.offset ?? 0))
 
     const { data: rows, error: e1 } = await supa
-      .from('app_admin_credits')
+      .from('bitduck_log_credits')
       .select('admin_local_user_id, target_local_user_id, amount, created_at')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
           .filter(Boolean)
       )
     )
-    const { data: users, error: e2 } = await supa.from('trae_users').select('id, username, role').in('id', ids)
+    const { data: users, error: e2 } = await supa.from('bitduck_users').select('id, username, role').in('id', ids)
     if (e2) throw e2
     const userMap = new Map((users || []).map((u: any) => [Number(u.id), u]))
 

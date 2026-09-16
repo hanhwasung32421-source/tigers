@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const body = BodySchema.parse(await readBody(event))
 
   const username = supabaseAppDbEnabled()
-    ? String((await supaSelectOne<any>('trae_users', { id: body.userId }))?.username || '')
+    ? String((await supaSelectOne<any>('bitduck_users', { id: body.userId }))?.username || '')
     : String((getDb().prepare('SELECT username FROM users WHERE id = ?').get(body.userId) as any)?.username || '')
 
   if (!username) {

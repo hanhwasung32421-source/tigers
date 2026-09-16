@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { data, error, count } = await supa
-      .from('trae_trades')
+      .from('bitduck_trades')
       .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .order('id', { ascending: false })

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 500,
       statusMessage:
-        'Supabase에 trae_system_settings 테이블이 없어 저장하지 못했습니다. SUPABASE_TRAE_DB_patch_system_settings.sql을 Supabase SQL Editor에서 먼저 실행해주세요.'
+        'Supabase에 bitduck_system_settings 테이블이 없어 저장하지 못했습니다. SUPABASE_TRAE_DB_patch_system_settings.sql을 Supabase SQL Editor에서 먼저 실행해주세요.'
     })
   }
 })

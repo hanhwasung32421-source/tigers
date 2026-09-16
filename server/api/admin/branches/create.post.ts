@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (useSupa) {
-    const exists = await supaSelectOne<any>('trae_users', { username: body.username })
+    const exists = await supaSelectOne<any>('bitduck_users', { username: body.username })
     if (exists?.id) {
       throw createError({ statusCode: 409, statusMessage: '이미 사용 중인 아이디입니다.' })
     }
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     const userId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
     const now = new Date().toISOString()
     await supaUpsertStrict(
-      'trae_users',
+      'bitduck_users',
       {
         id: userId,
         username: body.username,
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
       'id'
     )
 
-    await supaUpsertStrict('trae_balances', { user_id: userId, usdt: 0 }, 'user_id')
+    await supaUpsertStrict('bitduck_balances', { user_id: userId, usdt: 0 }, 'user_id')
     await supaUpsertUserSettings({
       user_id: userId,
       trade_percent: 50,

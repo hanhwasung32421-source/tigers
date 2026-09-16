@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     const now = new Date().toISOString()
 
     const { data: users, error: e1 } = await supa
-      .from('trae_users')
+      .from('bitduck_users')
       .select('id, username, name, referral_code, bank_name, bank_account, account_holder, role, permissions, created_at')
       .order('id', { ascending: false })
     if (e1) throw e1
@@ -20,12 +20,12 @@ export default defineEventHandler(async (event) => {
     const ids = (users || []).map((u: any) => Number(u.id)).filter(Boolean)
     if (!ids.length) return { users: [] }
 
-    const { data: balances, error: e2 } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
+    const { data: balances, error: e2 } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', ids)
     if (e2) throw e2
     const balMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
 
     const { data: sessions, error: e3 } = await supa
-      .from('trae_sessions')
+      .from('bitduck_sessions')
       .select('user_id, expires_at')
       .in('user_id', ids)
       .gt('expires_at', now)
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
     // 유저별 최근 접속 IP: 최근 이벤트 일부를 가져와서(최대 200개) 유저별 최신 1개만 매핑
     const { data: events, error: e4 } = await supa
-      .from('app_login_events')
+      .from('bitduck_log_logins')
       .select('local_user_id, ip, created_at')
       .in('local_user_id', ids)
       .order('created_at', { ascending: false })

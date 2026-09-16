@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
     const supa = getSupabaseAdminClient()
 
     // 하부 조직(팀장/팀원 아래까지) 범위를 구하려면 역할과 무관하게 전체 유저의 추천 관계가 필요하다.
-    const { data: allUsers, error: e0 } = await supa.from('trae_users').select('id, username, name, referral_code, role')
+    const { data: allUsers, error: e0 } = await supa.from('bitduck_users').select('id, username, name, referral_code, role')
     if (e0) throw e0
 
     const downline = scopeToReferral
@@ -73,12 +73,12 @@ export default defineEventHandler(async (event) => {
     const ids = users.map((u: any) => Number(u.id)).filter(Boolean)
     if (!ids.length) return { items: [], total: 0, percent, from, to, krwPerUsdt }
 
-    const { data: balances, error: e2 } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
+    const { data: balances, error: e2 } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', ids)
     if (e2) throw e2
     const balanceMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
 
     const { data: trades, error: e3 } = await supa
-      .from('trae_trades')
+      .from('bitduck_trades')
       .select('user_id, pnl, entry_price, qty, leverage, created_at')
       .in('user_id', ids)
       .gte('created_at', fromIso)

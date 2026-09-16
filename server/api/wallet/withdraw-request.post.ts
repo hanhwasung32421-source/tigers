@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     const body = BodySchema.parse(await readBody(event))
 
     const balance = supabaseAppDbEnabled()
-      ? Number((await supaSelectOne<any>('trae_balances', { user_id: user.id }))?.usdt ?? 0)
+      ? Number((await supaSelectOne<any>('bitduck_balances', { user_id: user.id }))?.usdt ?? 0)
       : Number((getDb().prepare('SELECT usdt FROM balances WHERE user_id = ?').get(user.id) as any)?.usdt ?? 0)
 
     const rate = await resolveKrwPerUsdtRate()

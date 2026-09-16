@@ -1,14 +1,14 @@
 import { DatabaseSync } from 'node:sqlite'
 import { isMissingColumnError, supaCount, supaSelectAll, supaUpsert, supaUpsertStrict, supaInsert, supaUpsertUserSettings } from './supabase'
 
-// Supabase 테이블명 (요구사항: trae_ prefix)
-const T_USERS = 'trae_users'
-const T_BALANCES = 'trae_balances'
-const T_POSITIONS = 'trae_positions'
-const T_TRADES = 'trae_trades'
-const T_PROFIT_CARDS = 'trae_profit_cards'
-const T_USER_SETTINGS = 'trae_user_settings'
-const T_MESSAGES = 'trae_messages'
+// Supabase 테이블명 (요구사항: bitduck_ prefix)
+const T_USERS = 'bitduck_users'
+const T_BALANCES = 'bitduck_balances'
+const T_POSITIONS = 'bitduck_positions'
+const T_TRADES = 'bitduck_trades'
+const T_PROFIT_CARDS = 'bitduck_profit_cards'
+const T_USER_SETTINGS = 'bitduck_user_settings'
+const T_MESSAGES = 'bitduck_messages'
 
 export function supabaseAppDbEnabled() {
   const cfg = useRuntimeConfig()

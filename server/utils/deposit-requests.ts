@@ -2,7 +2,7 @@ import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, supaInsertStrict, supaSelectWhere } from './supabase'
 
-const T_DEPOSIT_REQUESTS = 'trae_deposit_requests'
+const T_DEPOSIT_REQUESTS = 'bitduck_deposit_requests'
 
 export type TransferRequestType = 'deposit' | 'withdrawal'
 

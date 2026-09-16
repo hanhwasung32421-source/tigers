@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import { supaInsert } from './supabase'
 
 export async function logAppUser(user: { id: number; username: string; role: string }) {
-  await supaInsert('app_users', {
+  await supaInsert('bitduck_log_users', {
     local_user_id: user.id,
     username: user.username,
     role: user.role,
@@ -17,7 +17,7 @@ export async function logLogin(
 ) {
   const ua = getRequestHeader(event, 'user-agent')
   const ip = getRequestIP(event)
-  await supaInsert('app_login_events', {
+  await supaInsert('bitduck_log_logins', {
     local_user_id: payload.userId ?? null,
     username: payload.username ?? null,
     area: payload.area,
@@ -37,7 +37,7 @@ export async function logBuy(payload: {
   margin: number
   leverage: number
 }) {
-  await supaInsert('app_buys', {
+  await supaInsert('bitduck_log_buys', {
     local_user_id: payload.userId,
     symbol: payload.symbol,
     side: payload.side,
@@ -51,7 +51,7 @@ export async function logBuy(payload: {
 }
 
 export async function logAdminCredit(payload: { adminUserId: number; userId: number; amount: number }) {
-  await supaInsert('app_admin_credits', {
+  await supaInsert('bitduck_log_credits', {
     admin_local_user_id: payload.adminUserId,
     target_local_user_id: payload.userId,
     amount: payload.amount,

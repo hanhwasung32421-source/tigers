@@ -2,7 +2,7 @@ import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, supaInsertStrict, supaSelectWhere } from './supabase'
 
-const T_GUEST_CHATS = 'trae_guest_chats'
+const T_GUEST_CHATS = 'bitduck_guest_chats'
 
 export type GuestChatMessage = {
   id: number

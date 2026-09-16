@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: 'SUPABASE_SERVICE_ROLE_KEY가 설정되지 않았습니다.' })
     }
 
-    const exists = await supaSelectOne<{ id: number }>('trae_users', { username: body.username })
+    const exists = await supaSelectOne<{ id: number }>('bitduck_users', { username: body.username })
     if (exists?.id) {
       throw createError({ statusCode: 409, statusMessage: '이미 사용 중인 아이디입니다.' })
     }
@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
 
     try {
       await supaUpsertStrict(
-        'trae_users',
+        'bitduck_users',
         {
           id: userId,
           username: body.username,
@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
         },
         'id'
       )
-      await supaUpsertStrict('trae_balances', { user_id: userId, usdt: 0 }, 'user_id')
+      await supaUpsertStrict('bitduck_balances', { user_id: userId, usdt: 0 }, 'user_id')
       await supaUpsertUserSettings({ user_id: userId, trade_percent: 50, trade_leverage: 100, chart_prefs: {}, updated_at: now })
     } catch (e: any) {
       const msg = String(e?.message || e || '')
@@ -94,7 +94,7 @@ export default defineEventHandler(async (event) => {
         throw createError({
           statusCode: 500,
           statusMessage:
-            'Supabase 회원 테이블 컬럼이 아직 업데이트되지 않았습니다. 방금 드린 SQL(trae_users 컬럼 추가)을 다시 실행한 뒤 재시도해 주세요.'
+            'Supabase 회원 테이블 컬럼이 아직 업데이트되지 않았습니다. 방금 드린 SQL(bitduck_users 컬럼 추가)을 다시 실행한 뒤 재시도해 주세요.'
         })
       }
       throw createError({ statusCode: 500, statusMessage: msg || '회원가입 처리 중 오류가 발생했습니다.' })

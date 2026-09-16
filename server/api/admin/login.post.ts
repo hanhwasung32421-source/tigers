@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   if (useSupa) {
-    const user = await supaSelectOne<any>('trae_users', { username: body.username })
+    const user = await supaSelectOne<any>('bitduck_users', { username: body.username })
     if (!user) {
       await logLogin(event, { userId: null, username: body.username, area: 'admin', success: false })
       throw createError({ statusCode: 404, statusMessage: '아이디가 존재하지 않습니다.' })

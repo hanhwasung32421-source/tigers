@@ -2,7 +2,7 @@ import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, isMissingColumnError, supaDelete, supaSelectWhere } from './supabase'
 
-const T_KILL_EVENTS = 'trae_kill_events'
+const T_KILL_EVENTS = 'bitduck_kill_events'
 const DEFAULT_DURATION_MS = 1000
 const DEFAULT_TICK_COUNT = 3
 

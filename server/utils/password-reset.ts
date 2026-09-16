@@ -22,7 +22,7 @@ export async function createPasswordResetRequest(user: SessionUser, name: string
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { data: existing } = await supa
-      .from('trae_password_reset_requests')
+      .from('bitduck_password_reset_requests')
       .select('id')
       .eq('user_id', Number(user.id))
       .eq('status', 'pending')
@@ -41,7 +41,7 @@ export async function createPasswordResetRequest(user: SessionUser, name: string
         read_at: null
       }
     ])
-    await supa.from('trae_password_reset_requests').insert({
+    await supa.from('bitduck_password_reset_requests').insert({
       id,
       user_id: Number(user.id),
       username_snapshot: user.username,
@@ -84,7 +84,7 @@ export async function getPendingResetRequestForUser(userId: number) {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { data } = await supa
-      .from('trae_password_reset_requests')
+      .from('bitduck_password_reset_requests')
       .select('*')
       .eq('user_id', Number(userId))
       .eq('status', 'pending')
@@ -116,14 +116,14 @@ export async function approvePasswordReset(requestId: number, adminUser: Session
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const { data } = await supa.from('trae_password_reset_requests').select('*').eq('id', Number(requestId)).limit(1)
+    const { data } = await supa.from('bitduck_password_reset_requests').select('*').eq('id', Number(requestId)).limit(1)
     const req = (data || [])[0] as any
     if (!req) throw createError({ statusCode: 404, statusMessage: '초기화 요청을 찾을 수 없습니다.' })
     if (String(req.status) !== 'pending') throw createError({ statusCode: 409, statusMessage: '이미 처리된 요청입니다.' })
 
     const newHash = hashPassword('1234')
     await supa
-      .from('trae_users')
+      .from('bitduck_users')
       .update({
         password_hash: newHash,
         password_reset_required: true,
@@ -132,7 +132,7 @@ export async function approvePasswordReset(requestId: number, adminUser: Session
       })
       .eq('id', Number(req.user_id))
     await supa
-      .from('trae_password_reset_requests')
+      .from('bitduck_password_reset_requests')
       .update({ status: 'approved', approved_by: Number(adminUser.id), approved_at: approvedAt })
       .eq('id', Number(requestId))
     await insertMessages([

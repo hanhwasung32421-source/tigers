@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
   let liquidatedCount = 0
 
   if (useSupa) {
-    const positions = await supaSelectWhere<any>({ table: 'trae_positions', where: { symbol } })
+    const positions = await supaSelectWhere<any>({ table: 'bitduck_positions', where: { symbol } })
     const supa = getSupabaseAdminClient()
     for (const pos of positions) {
       const entry = Number(pos.entry_price)
@@ -60,9 +60,9 @@ export default defineEventHandler(async (event) => {
       const pnl = -net
       const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000) + liquidatedCount
 
-      await supa.from('trae_positions').delete().eq('id', pos.id)
+      await supa.from('bitduck_positions').delete().eq('id', pos.id)
       await supaUpsert(
-        'trae_trades',
+        'bitduck_trades',
         {
           id: tradeId,
           user_id: Number(pos.user_id),
@@ -117,7 +117,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 500,
       statusMessage:
-        'Supabase에 trae_kill_events 테이블이 없어 킬 기록 저장에 실패했습니다. SUPABASE_TRAE_DB_patch_kill_events.sql을 Supabase SQL Editor에서 먼저 실행해주세요. (해당 구간의 강제청산 처리 자체는 이미 반영되었습니다.)'
+        'Supabase에 bitduck_kill_events 테이블이 없어 킬 기록 저장에 실패했습니다. SUPABASE_TRAE_DB_patch_kill_events.sql을 Supabase SQL Editor에서 먼저 실행해주세요. (해당 구간의 강제청산 처리 자체는 이미 반영되었습니다.)'
     })
   }
 })

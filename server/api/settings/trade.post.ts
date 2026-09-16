@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   if (useSupa) {
-    const prev = await supaSelectOne<any>('trae_user_settings', { user_id: user.id })
+    const prev = await supaSelectOne<any>('bitduck_user_settings', { user_id: user.id })
     const now = new Date().toISOString()
     await supaUpsertUserSettings({
       user_id: user.id,

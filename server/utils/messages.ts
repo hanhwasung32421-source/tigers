@@ -31,7 +31,7 @@ export async function getOperatorAdminUser() {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { data: adminByName } = await supa
-      .from('trae_users')
+      .from('bitduck_users')
       .select('id, username, role')
       .eq('username', 'admin')
       .limit(1)
@@ -39,7 +39,7 @@ export async function getOperatorAdminUser() {
     if (found) return { id: Number((found as any).id), username: String((found as any).username || 'admin') }
 
     const { data: superAdmins } = await supa
-      .from('trae_users')
+      .from('bitduck_users')
       .select('id, username, role')
       .eq('role', 'super_admin')
       .order('id', { ascending: true })
@@ -61,7 +61,7 @@ export async function listMessageRecipientsForAdmin() {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { data, error } = await supa
-      .from('trae_users')
+      .from('bitduck_users')
       .select('id, username, name, role, created_at')
       .eq('role', 'user')
       .order('id', { ascending: false })
@@ -70,14 +70,14 @@ export async function listMessageRecipientsForAdmin() {
     if (!ids.length) return []
 
     const nowIsoStr = nowIso()
-    const { data: balances } = await supa.from('trae_balances').select('user_id, usdt').in('user_id', ids)
+    const { data: balances } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', ids)
     const balMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
 
-    const { data: sessions } = await supa.from('trae_sessions').select('user_id, expires_at').in('user_id', ids).gt('expires_at', nowIsoStr)
+    const { data: sessions } = await supa.from('bitduck_sessions').select('user_id, expires_at').in('user_id', ids).gt('expires_at', nowIsoStr)
     const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
 
     const { data: events } = await supa
-      .from('app_login_events')
+      .from('bitduck_log_logins')
       .select('local_user_id, created_at')
       .in('local_user_id', ids)
       .order('created_at', { ascending: false })
@@ -133,7 +133,7 @@ export async function listUsersByIds(ids: number[]) {
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const { data, error } = await supa.from('trae_users').select('id, username, role').in('id', uniq)
+    const { data, error } = await supa.from('bitduck_users').select('id, username, role').in('id', uniq)
     if (error) throw error
     return new Map(
       (data || []).map((u: any) => [Number(u.id), { id: Number(u.id), username: String(u.username || ''), role: String(u.role || 'user') }])
@@ -161,7 +161,7 @@ export async function insertMessages(rows: Array<Omit<MessageRow, 'id' | 'create
   if (supabaseAppDbEnabled()) {
     try {
       const supa = getSupabaseAdminClient()
-      const { error } = await supa.from('trae_messages').insert(payload as any)
+      const { error } = await supa.from('bitduck_messages').insert(payload as any)
       if (!error) return payload
     } catch {
       // fall through
@@ -183,7 +183,7 @@ export async function getThreadMessages(threadKey: string) {
   if (supabaseAppDbEnabled()) {
     try {
       const supa = getSupabaseAdminClient()
-      const { data, error } = await supa.from('trae_messages').select('*').eq('thread_key', threadKey).order('created_at', { ascending: true })
+      const { data, error } = await supa.from('bitduck_messages').select('*').eq('thread_key', threadKey).order('created_at', { ascending: true })
       if (!error) {
         return ((data || []) as any[]).map((m) => ({
           id: Number(m.id),
@@ -221,7 +221,7 @@ export async function getThreadsForUser(user: SessionUser) {
   if (supabaseAppDbEnabled()) {
     try {
       const supa = getSupabaseAdminClient()
-      let q: any = supa.from('trae_messages').select('*').order('created_at', { ascending: false }).limit(3000)
+      let q: any = supa.from('bitduck_messages').select('*').order('created_at', { ascending: false }).limit(3000)
       if (!isAdmin) q = q.eq('thread_key', threadKeyForUser(user.id))
       const { data, error } = await q
       if (!error) return normalizeThreadSummaries((data || []) as any[], user.id)
@@ -277,7 +277,7 @@ export async function markThreadAsRead(threadKey: string, userId: number) {
   if (supabaseAppDbEnabled()) {
     try {
       const supa = getSupabaseAdminClient()
-      await supa.from('trae_messages').update({ read_at: readAt }).eq('thread_key', threadKey).eq('recipient_id', Number(userId)).is('read_at', null)
+      await supa.from('bitduck_messages').update({ read_at: readAt }).eq('thread_key', threadKey).eq('recipient_id', Number(userId)).is('read_at', null)
       return
     } catch {
       // fall through
@@ -293,7 +293,7 @@ export async function countUnreadMessages(userId: number) {
     try {
       const supa = getSupabaseAdminClient()
       const { count, error } = await supa
-        .from('trae_messages')
+        .from('bitduck_messages')
         .select('*', { count: 'exact', head: true })
         .eq('recipient_id', Number(userId))
         .is('read_at', null)
