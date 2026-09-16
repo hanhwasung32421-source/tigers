@@ -2,19 +2,19 @@
   <div class="space-y-5">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">입출금 내역</h1>
-        <p class="mt-1 text-sm text-slate-400">현재는 관리자 가상 입금 기록만 표시됩니다.</p>
+        <h1 class="text-xl font-semibold">{{ t('입출금 내역', 'Deposit/Withdrawal History') }}</h1>
+        <p class="mt-1 text-sm text-slate-400">{{ t('현재는 관리자 가상 입금 기록만 표시됩니다.', 'Currently only shows admin virtual deposit records.') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
-        <button class="rounded-md bg-cyan-500/15 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-500/20" @click="load(true)">새로고침</button>
+        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
+        <button class="rounded-md bg-cyan-500/15 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-500/20" @click="load(true)">{{ t('새로고침', 'Refresh') }}</button>
       </div>
     </div>
 
     <div class="rounded-2xl border border-[#12314a] bg-[#03101d] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.25)]">
       <div class="flex flex-wrap items-center gap-2 text-sm text-slate-200">
-        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">총입금: <span class="font-data">{{ fmt2(summary.totalInUsdt) }}</span> USDT</span>
-        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">총출금: <span class="font-data">{{ fmt2(summary.totalOutUsdt) }}</span> USDT</span>
+        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">{{ t('총입금', 'Total Deposits') }}: <span class="font-data">{{ fmt2(summary.totalInUsdt) }}</span> USDT</span>
+        <span class="rounded-md border border-white/10 bg-white/5 px-3 py-2">{{ t('총출금', 'Total Withdrawals') }}: <span class="font-data">{{ fmt2(summary.totalOutUsdt) }}</span> USDT</span>
       </div>
 
       <div class="mt-3 grid gap-2 md:grid-cols-[360px_180px_minmax(240px,1fr)_120px]">
@@ -24,41 +24,42 @@
           <input v-model="toDate" type="date" class="date-input w-full bg-transparent outline-none" />
         </div>
         <select v-model="typeFilter" class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none">
-          <option value="">유형</option>
-          <option value="입금">입금</option>
-          <option value="출금">출금</option>
+          <option value="">{{ t('유형', 'Type') }}</option>
+          <option value="입금">{{ t('입금', 'Deposit') }}</option>
+          <option value="출금">{{ t('출금', 'Withdrawal') }}</option>
         </select>
         <input
           v-model.trim="keyword"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500"
-          placeholder="검색어를 입력하세요"
+          :placeholder="t('검색어를 입력하세요', 'Enter a search term')"
+          :key="`transfers-search-${locale}`"
         />
-        <button class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="load(true)">검색</button>
+        <button class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="load(true)">{{ t('검색', 'Search') }}</button>
       </div>
 
       <div class="mt-4 overflow-x-auto">
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">회원 이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('affiliateName')">총판 이름<span class="sort-icon">{{ sortArrow('affiliateName') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('type')">입금 유형<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('amount_usdt')">USDT 금액<span class="sort-icon">{{ sortArrow('amount_usdt') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('status')">입금 상태<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">입금 일시<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('admin')">처리자<span class="sort-icon">{{ sortArrow('admin') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">{{ t('회원 아이디', 'Username') }}<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">{{ t('회원 이름', 'Name') }}<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('affiliateName')">{{ t('총판 이름', 'Affiliate') }}<span class="sort-icon">{{ sortArrow('affiliateName') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('type')">{{ t('입금 유형', 'Type') }}<span class="sort-icon">{{ sortArrow('type') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('amount_usdt')">{{ t('USDT 금액', 'USDT Amount') }}<span class="sort-icon">{{ sortArrow('amount_usdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('status')">{{ t('입금 상태', 'Status') }}<span class="sort-icon">{{ sortArrow('status') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">{{ t('입금 일시', 'Date/Time') }}<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('admin')">{{ t('처리자', 'Processed By') }}<span class="sort-icon">{{ sortArrow('admin') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="8" class="px-3 py-8 text-center text-slate-500">입출금 내역이 없습니다.</td>
+              <td colspan="8" class="px-3 py-8 text-center text-slate-500">{{ t('입출금 내역이 없습니다.', 'No deposit/withdrawal history.') }}</td>
             </tr>
             <tr v-for="r in paged" :key="`${r.created_at}-${r.user_id}-${r.amount_usdt}`" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="whitespace-nowrap px-3 py-3 font-data text-slate-100">{{ r.username }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-200">{{ r.name }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-slate-300">{{ r.affiliateName }}</td>
-              <td class="whitespace-nowrap px-3 py-3">{{ r.type }}</td>
+              <td class="whitespace-nowrap px-3 py-3">{{ r.type === '입금' ? t('입금', 'Deposit') : r.type === '출금' ? t('출금', 'Withdrawal') : r.type }}</td>
               <td class="whitespace-nowrap px-3 py-3 text-right font-data text-slate-200">{{ fmt2(r.amount_usdt) }}</td>
               <td class="whitespace-nowrap px-3 py-3">
                 <span class="rounded bg-white/10 px-2 py-1 text-[12px] font-semibold text-slate-100 ring-1 ring-white/10">{{ r.status }}</span>
@@ -114,6 +115,7 @@ type TransferRow = {
   admin: string
 }
 
+const { t, locale } = useLocale()
 const { refresh } = useMe()
 await refresh()
 
@@ -220,7 +222,7 @@ async function load(reset = false) {
     summary.value = res.summary || { totalInUsdt: 0, totalOutUsdt: 0 }
     error.value = null
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '입출금 내역을 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('입출금 내역을 불러오지 못했습니다.', 'Failed to load deposit/withdrawal history.')
   } finally {
     loading.value = false
   }

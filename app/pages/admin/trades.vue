@@ -2,13 +2,13 @@
   <div class="space-y-5">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">거래 내역</h1>
-        <p class="mt-1 text-sm text-slate-400">포지션 매매(청산) 거래내역입니다.</p>
+        <h1 class="text-xl font-semibold">{{ t('거래 내역', 'Trade History') }}</h1>
+        <p class="mt-1 text-sm text-slate-400">{{ t('포지션 매매(청산) 거래내역입니다.', 'History of position trades (closed).') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
+        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
         <button class="rounded-md bg-cyan-500/15 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-500/20" @click="load(true)">
-          새로고침
+          {{ t('새로고침', 'Refresh') }}
         </button>
       </div>
     </div>
@@ -23,16 +23,18 @@
         <input
           v-model.trim="memberKeyword"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500"
-          placeholder="회원 아이디/이름"
+          :placeholder="t('회원 아이디/이름', 'Username/Name')"
+          :key="`trades-member-search-${locale}`"
         />
         <input
           v-model.trim="keyword"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500"
-          placeholder="검색어를 입력하세요"
+          :placeholder="t('검색어를 입력하세요', 'Enter a search term')"
+          :key="`trades-search-${locale}`"
         />
-        <button class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="load(true)">검색</button>
+        <button class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="load(true)">{{ t('검색', 'Search') }}</button>
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
-          <span class="whitespace-nowrap text-slate-400">표시수</span>
+          <span class="whitespace-nowrap text-slate-400">{{ t('표시수', 'Rows') }}</span>
           <input
             v-model.number="pageSizeInput"
             type="number"
@@ -47,22 +49,22 @@
         <table class="w-full text-[14px] text-slate-200">
           <thead class="border-b border-[#12314a] text-[13px] text-slate-400">
             <tr>
-              <th class="px-3 py-3 text-left">날짜</th>
-              <th class="px-3 py-3 text-left">회원 아이디</th>
-              <th class="px-3 py-3 text-left">회원 이름</th>
-              <th class="px-3 py-3 text-left">총판 이름</th>
-              <th class="px-3 py-3 text-left">심볼</th>
-              <th class="px-3 py-3 text-left">구분</th>
-              <th class="px-3 py-3 text-right">레버리지</th>
-              <th class="px-3 py-3 text-right">체결가격</th>
-              <th class="px-3 py-3 text-right">체결량</th>
-              <th class="px-3 py-3 text-right">실현손익</th>
-              <th class="px-3 py-3 text-right">수수료</th>
+              <th class="px-3 py-3 text-left">{{ t('날짜', 'Date') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('회원 아이디', 'Username') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('회원 이름', 'Name') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('총판 이름', 'Affiliate') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('심볼', 'Symbol') }}</th>
+              <th class="px-3 py-3 text-left">{{ t('구분', 'Result') }}</th>
+              <th class="px-3 py-3 text-right">{{ t('레버리지', 'Leverage') }}</th>
+              <th class="px-3 py-3 text-right">{{ t('체결가격', 'Fill Price') }}</th>
+              <th class="px-3 py-3 text-right">{{ t('체결량', 'Fill Qty') }}</th>
+              <th class="px-3 py-3 text-right">{{ t('실현손익', 'Realized PnL') }}</th>
+              <th class="px-3 py-3 text-right">{{ t('수수료', 'Fee') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && filtered.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="11" class="px-3 py-8 text-center text-slate-500">거래 내역이 없습니다.</td>
+              <td colspan="11" class="px-3 py-8 text-center text-slate-500">{{ t('거래 내역이 없습니다.', 'No trade history available.') }}</td>
             </tr>
             <tr v-for="t in paged" :key="t.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-data text-slate-300">{{ formatDateTime(t.created_at) }}</td>
@@ -95,7 +97,7 @@
       </div>
 
       <div class="flex items-center justify-between gap-3">
-        <div class="text-sm text-slate-400">페이지 {{ page }} / {{ totalPages }} · 총 {{ filtered.length }}건</div>
+        <div class="text-sm text-slate-400">{{ t(`페이지 ${page} / ${totalPages} · 총 ${filtered.length}건`, `Page ${page} / ${totalPages} · ${filtered.length} total`) }}</div>
         <div class="flex items-center justify-center gap-2" v-if="totalPages > 1">
           <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
           <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page--">‹</button>
@@ -149,6 +151,7 @@ type TradeRow = {
   fee: number
 }
 
+const { t, locale } = useLocale()
 const { refresh } = useMe()
 await refresh()
 
@@ -189,14 +192,14 @@ function formatDateTime(v: string) {
   }).format(d)
 }
 
-function tradeResultLabel(t: Pick<TradeRow, 'liquidation' | 'pnl'>) {
-  if (Boolean(t?.liquidation)) return '강제청산'
-  return Number(t?.pnl || 0) >= 0 ? '수익' : '손실'
+function tradeResultLabel(tr: Pick<TradeRow, 'liquidation' | 'pnl'>) {
+  if (Boolean(tr?.liquidation)) return t('강제청산', 'Liquidated')
+  return Number(tr?.pnl || 0) >= 0 ? t('수익', 'Profit') : t('손실', 'Loss')
 }
 
-function tradeResultBadgeClass(t: Pick<TradeRow, 'liquidation' | 'pnl'>) {
-  if (Boolean(t?.liquidation)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
-  return Number(t?.pnl || 0) >= 0 ? 'bg-blue-500/15 text-blue-300 ring-blue-400/20' : 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+function tradeResultBadgeClass(tr: Pick<TradeRow, 'liquidation' | 'pnl'>) {
+  if (Boolean(tr?.liquidation)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+  return Number(tr?.pnl || 0) >= 0 ? 'bg-blue-500/15 text-blue-300 ring-blue-400/20' : 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
 }
 
 function dateOnly(v: string) {
@@ -253,7 +256,7 @@ async function load(reset = false) {
     items.value = res.items || []
     error.value = null
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '거래 내역을 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('거래 내역을 불러오지 못했습니다.', 'Failed to load trade history.')
   } finally {
     loading.value = false
   }
