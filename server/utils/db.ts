@@ -270,6 +270,8 @@ export function getDb() {
     if (!sysCols.includes('main_nav_order')) db.exec("ALTER TABLE system_settings ADD COLUMN main_nav_order TEXT NOT NULL DEFAULT '';")
     if (!sysCols.includes('main_nav_hidden')) db.exec("ALTER TABLE system_settings ADD COLUMN main_nav_hidden TEXT NOT NULL DEFAULT '';")
     if (!sysCols.includes('profit_card_style')) db.exec('ALTER TABLE system_settings ADD COLUMN profit_card_style TEXT NULL;')
+    if (!sysCols.includes('health_marker')) db.exec('ALTER TABLE system_settings ADD COLUMN health_marker TEXT NULL;')
+    if (!sysCols.includes('health_checked_at')) db.exec('ALTER TABLE system_settings ADD COLUMN health_checked_at TEXT NULL;')
   } catch {
     // ignore
   }

@@ -913,6 +913,68 @@
       </div>
     </div>
 
+    <!-- DB 연결 상태 -->
+    <div v-show="activeTab === 'dbHealth'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold">DB 연결 상태</h2>
+          <p class="mt-1 text-sm text-slate-400">
+            지금 배포된 버전 표시(<span class="font-data">{{ dbHealth?.marker || '…' }}</span>)를 SQLite/Supabase 양쪽에 직접 써보고
+            바로 다시 읽어서, 실제로 그 DB에 반영되는지 확인합니다. 실제 서비스 데이터와는 무관한 테스트입니다.
+          </p>
+        </div>
+        <button
+          class="rounded-md bg-indigo-500 px-3 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="dbHealthLoading"
+          @click="runDbHealthCheck"
+        >
+          {{ dbHealthLoading ? '확인 중…' : '다시 확인' }}
+        </button>
+      </div>
+
+      <div v-if="dbHealth" class="mt-4 grid gap-4 sm:grid-cols-2">
+        <div
+          class="rounded-xl border p-4"
+          :class="dbHealth.sqlite.ok ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'"
+        >
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-slate-100">
+              SQLite
+              <span v-if="dbHealth.activeMode === 'sqlite'" class="ml-1 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-200">현재 사용중</span>
+            </h3>
+            <span :class="dbHealth.sqlite.ok ? 'text-emerald-300' : 'text-rose-300'">{{ dbHealth.sqlite.ok ? '✓ 정상 연결됨' : '✗ 실패' }}</span>
+          </div>
+          <div class="mt-2 space-y-1 text-xs text-slate-400">
+            <div>저장된 값: <span class="font-data text-slate-200">{{ dbHealth.sqlite.marker ?? '—' }}</span></div>
+            <div>확인 시각: <span class="font-data text-slate-200">{{ dbHealth.sqlite.checkedAt ? formatKillTime(dbHealth.sqlite.checkedAt) : '—' }}</span></div>
+            <div class="truncate">경로: <span class="font-data text-slate-300">{{ dbHealth.sqlite.detail || '—' }}</span></div>
+            <div v-if="dbHealth.sqlite.error" class="text-rose-300">에러: {{ dbHealth.sqlite.error }}</div>
+          </div>
+        </div>
+
+        <div
+          class="rounded-xl border p-4"
+          :class="dbHealth.supabase.ok ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'"
+        >
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-slate-100">
+              Supabase
+              <span v-if="dbHealth.activeMode === 'supabase'" class="ml-1 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-200">현재 사용중</span>
+            </h3>
+            <span :class="dbHealth.supabase.ok ? 'text-emerald-300' : 'text-rose-300'">{{ dbHealth.supabase.ok ? '✓ 정상 연결됨' : '✗ 실패' }}</span>
+          </div>
+          <div class="mt-2 space-y-1 text-xs text-slate-400">
+            <div>저장된 값: <span class="font-data text-slate-200">{{ dbHealth.supabase.marker ?? '—' }}</span></div>
+            <div>확인 시각: <span class="font-data text-slate-200">{{ dbHealth.supabase.checkedAt ? formatKillTime(dbHealth.supabase.checkedAt) : '—' }}</span></div>
+            <div class="truncate">프로젝트 URL: <span class="font-data text-slate-300">{{ dbHealth.supabase.detail || '—' }}</span></div>
+            <div v-if="dbHealth.supabase.error" class="text-rose-300">에러: {{ dbHealth.supabase.error }}</div>
+          </div>
+        </div>
+      </div>
+      <p v-else-if="dbHealthLoading" class="mt-4 text-sm text-slate-400">확인 중…</p>
+      <p v-if="dbHealthError" class="mt-3 text-sm text-red-300">{{ dbHealthError }}</p>
+    </div>
+
     <!-- 역할 메뉴 권한 설정 팝업 -->
     <div
       v-if="roleModalOpen"
@@ -969,7 +1031,7 @@ definePageMeta({ middleware: ['admin', 'super-admin'] })
 const { me, refresh } = useMe()
 await refresh()
 
-type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'profitCard' | 'roles' | 'killEvents' | 'profitEvents'
+type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'profitCard' | 'roles' | 'killEvents' | 'profitEvents' | 'dbHealth'
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'users', label: '유저 관리' },
   { key: 'liquidation', label: '강제청산 기준 설정' },
@@ -978,7 +1040,8 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'profitCard', label: '카드 디자인' },
   { key: 'roles', label: '역할 관리' },
   { key: 'killEvents', label: '킬UP/킬DOWN 이력' },
-  { key: 'profitEvents', label: '상승STOP/하락STOP 이력' }
+  { key: 'profitEvents', label: '상승STOP/하락STOP 이력' },
+  { key: 'dbHealth', label: 'DB 연결 상태' }
 ]
 const activeTab = ref<TabKey>('users')
 
@@ -1910,6 +1973,32 @@ async function saveMiscSettings() {
     miscSaving.value = false
   }
 }
+
+// DB 연결 상태: 실제 데이터와 무관하게, 지금 배포된 버전 표시를 SQLite/Supabase 양쪽에
+// 직접 써보고 다시 읽어서 확인하는 진단 기능.
+type DbHealthCheckResult = { ok: boolean; marker?: string | null; checkedAt?: string | null; detail?: string; error?: string }
+type DbHealthResponse = { marker: string; activeMode: 'sqlite' | 'supabase'; sqlite: DbHealthCheckResult; supabase: DbHealthCheckResult }
+const dbHealth = ref<DbHealthResponse | null>(null)
+const dbHealthLoading = ref(false)
+const dbHealthError = ref<string | null>(null)
+
+async function runDbHealthCheck() {
+  dbHealthLoading.value = true
+  dbHealthError.value = null
+  try {
+    dbHealth.value = await $fetch<DbHealthResponse>('/api/admin/db-health-check', { method: 'POST' })
+  } catch (e: any) {
+    dbHealthError.value = e?.data?.statusMessage || '확인 중 오류가 발생했습니다.'
+  } finally {
+    dbHealthLoading.value = false
+  }
+}
+
+watch(activeTab, (t) => {
+  if (t === 'dbHealth' && !dbHealth.value && !dbHealthLoading.value) {
+    runDbHealthCheck()
+  }
+})
 
 await load()
 await loadLiquidationSetting()
