@@ -115,6 +115,7 @@
             </span>
           </NuxtLink>
           <button
+            :key="`mobile-menu-btn-${locale}`"
             type="button"
             class="rounded-md border border-white/10 bg-white/5 px-2.5 py-2 text-slate-200 hover:bg-white/10 md:hidden"
             :aria-label="t('메뉴 열기', 'Open menu')"
@@ -215,7 +216,7 @@ const appName = config.public.appName
 const { data: versionData } = await useFetch<{ date: string; build: number }>('/api/version', { key: 'app-version' })
 const route = useRoute()
 const navLoading = useState<boolean>('global_nav_loading', () => false)
-const { t } = useLocale()
+const { t, locale } = useLocale()
 
 const { me, refresh } = useMe()
 await refresh()

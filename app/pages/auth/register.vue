@@ -1,30 +1,30 @@
 <template>
   <div class="mx-auto max-w-xl">
-    <h1 class="text-xl font-semibold">회원가입</h1>
-    <p class="mt-1 text-sm text-slate-400">필수 정보를 입력해서 계정을 만드세요.</p>
+    <h1 class="text-xl font-semibold">{{ t('회원가입', 'Sign Up') }}</h1>
+    <p class="mt-1 text-sm text-slate-400">{{ t('필수 정보를 입력해서 계정을 만드세요.', 'Fill in the required information to create your account.') }}</p>
 
     <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
       <div>
-        <label class="text-sm text-slate-300">아이디<span class="text-rose-400">*</span></label>
+        <label class="text-sm text-slate-300">{{ t('아이디', 'Username') }}<span class="text-rose-400">*</span></label>
         <input
           v-model.trim="username"
           inputmode="latin"
           autocomplete="off"
           class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
         />
-        <p v-if="username && !usernameValid" class="mt-1 text-xs text-rose-400">한글은 사용할 수 없습니다</p>
+        <p v-if="username && !usernameValid" class="mt-1 text-xs text-rose-400">{{ t('한글은 사용할 수 없습니다', 'Korean characters are not allowed') }}</p>
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">이름<span class="text-rose-400">*</span></label>
+        <label class="text-sm text-slate-300">{{ t('이름', 'Name') }}<span class="text-rose-400">*</span></label>
         <input v-model.trim="name" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
-        <p v-if="name && !nameValid" class="mt-1 text-xs text-rose-400">한국어만 사용 가능합니다</p>
+        <p v-if="name && !nameValid" class="mt-1 text-xs text-rose-400">{{ t('한국어만 사용 가능합니다', 'Only Korean characters are allowed') }}</p>
       </div>
 
       <div>
         <div class="flex items-center justify-between gap-2">
-          <label class="text-sm text-slate-300">생년월일 yyyy-mm-dd<span class="text-rose-400">*</span></label>
-          <span v-if="birthDate && !birthDateValid" class="text-xs text-rose-400">날짜가 정확하지 않습니다.</span>
+          <label class="text-sm text-slate-300">{{ t('생년월일 yyyy-mm-dd', 'Date of Birth YYYY-MM-DD') }}<span class="text-rose-400">*</span></label>
+          <span v-if="birthDate && !birthDateValid" class="text-xs text-rose-400">{{ t('날짜가 정확하지 않습니다.', 'The date is not valid.') }}</span>
         </div>
         <input
           v-model="birthDate"
@@ -37,17 +37,17 @@
 
       <div class="grid gap-4 md:grid-cols-2">
         <div>
-          <label class="text-sm text-slate-300">비밀번호<span class="text-rose-400">*</span></label>
+          <label class="text-sm text-slate-300">{{ t('비밀번호', 'Password') }}<span class="text-rose-400">*</span></label>
           <input
             :value="password"
             type="password"
             class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
             @input="onPasswordInput"
           />
-          <p v-if="password && password.length < 4" class="mt-1 text-xs text-rose-400">비밀번호는 4글자 이상만 가능합니다</p>
+          <p v-if="password && password.length < 4" class="mt-1 text-xs text-rose-400">{{ t('비밀번호는 4글자 이상만 가능합니다', 'Password must be at least 4 characters') }}</p>
         </div>
         <div>
-          <label class="text-sm text-slate-300">비밀번호확인<span class="text-rose-400">*</span></label>
+          <label class="text-sm text-slate-300">{{ t('비밀번호확인', 'Confirm Password') }}<span class="text-rose-400">*</span></label>
           <input
             :value="passwordConfirm"
             type="password"
@@ -58,12 +58,13 @@
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">은행계좌<span class="text-rose-400">*</span></label>
+        <label class="text-sm text-slate-300">{{ t('은행계좌', 'Bank Account') }}<span class="text-rose-400">*</span></label>
         <div class="mt-1 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
           <input
+            :key="`bank-account-${locale}`"
             v-model="bankAccount"
             inputmode="numeric"
-            placeholder="은행계좌"
+            :placeholder="t('은행계좌', 'Bank Account')"
             class="w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
             @input="onBankAccountInput"
           />
@@ -71,32 +72,33 @@
             v-model="bankName"
             class="w-full rounded-lg bg-black/70 px-3 py-2 text-white outline-none ring-1 ring-white/20 focus:ring-indigo-500"
           >
-            <option disabled value="" class="bg-black text-white">선택(아래화살표)</option>
+            <option disabled value="" class="bg-black text-white">{{ t('선택(아래화살표)', 'Select (dropdown below)') }}</option>
             <option v-for="bank in banks" :key="bank" :value="bank" class="bg-black text-white">{{ bank }}</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">예금주<span class="text-rose-400">*</span></label>
+        <label class="text-sm text-slate-300">{{ t('예금주', 'Account Holder') }}<span class="text-rose-400">*</span></label>
         <input
+          :key="`account-holder-${locale}`"
           v-model.trim="accountHolder"
-          placeholder="예금주를 입력해 주세요"
+          :placeholder="t('예금주를 입력해 주세요', 'Enter the account holder name')"
           class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
         />
-        <p v-if="accountHolder && !accountHolderValid" class="mt-1 text-xs text-rose-400">한국어만 사용 가능합니다</p>
+        <p v-if="accountHolder && !accountHolderValid" class="mt-1 text-xs text-rose-400">{{ t('한국어만 사용 가능합니다', 'Only Korean characters are allowed') }}</p>
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">추천코드</label>
+        <label class="text-sm text-slate-300">{{ t('추천코드', 'Referral Code') }}</label>
         <input v-model.trim="referralCode" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
 
       <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
         <label class="flex items-center gap-3 text-sm text-slate-200">
           <input v-model="agreedToTerms" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
-          <span>약관에 동의합니다. <span class="text-rose-400">*</span></span>
-          <button type="button" class="text-indigo-300 underline underline-offset-2 hover:text-indigo-200" @click="termsOpen = true">이용약관</button>
+          <span>{{ t('약관에 동의합니다.', 'I agree to the Terms of Service.') }} <span class="text-rose-400">*</span></span>
+          <button type="button" class="text-indigo-300 underline underline-offset-2 hover:text-indigo-200" @click="termsOpen = true">{{ t('이용약관', 'Terms of Service') }}</button>
         </label>
       </div>
 
@@ -105,13 +107,13 @@
         :disabled="loading || !canSubmit"
       >
         <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-        <span>{{ loading ? '가입 처리 중...' : '회원가입' }}</span>
+        <span>{{ loading ? t('가입 처리 중...', 'Signing up...') : t('회원가입', 'Sign Up') }}</span>
       </button>
       <p v-if="error" class="text-sm text-red-300">{{ error }}</p>
     </form>
 
     <div class="mt-5 text-center text-sm text-slate-400">
-      <NuxtLink to="/auth/find-password" class="underline underline-offset-4 hover:text-indigo-300">이미 계정이 있으신가요?</NuxtLink>
+      <NuxtLink to="/auth/find-password" class="underline underline-offset-4 hover:text-indigo-300">{{ t('이미 계정이 있으신가요?', 'Already have an account?') }}</NuxtLink>
     </div>
   </div>
 
@@ -127,8 +129,8 @@
           <div class="flex items-center gap-3">
             <div class="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400/25 border-t-cyan-300" />
             <div>
-              <div class="text-sm font-semibold text-slate-100">{{ loadingTitle }}</div>
-              <div class="mt-1 text-xs text-slate-400">{{ loadingDesc }}</div>
+              <div class="text-sm font-semibold text-slate-100">{{ t(loadingTitle, loadingTitleEn) }}</div>
+              <div class="mt-1 text-xs text-slate-400">{{ t(loadingDesc, loadingDescEn) }}</div>
             </div>
           </div>
           <div class="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/10">
@@ -140,11 +142,11 @@
       <div v-if="termsOpen" class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/65 px-4" @click.self="termsOpen = false">
         <div class="max-h-[78vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
           <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
-            <h2 class="text-base font-semibold text-slate-100">이용약관</h2>
-            <button type="button" class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" @click="termsOpen = false">닫기</button>
+            <h2 class="text-base font-semibold text-slate-100">{{ t('이용약관', 'Terms of Service') }}</h2>
+            <button type="button" class="rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" @click="termsOpen = false">{{ t('닫기', 'Close') }}</button>
           </div>
           <div class="max-h-[60vh] overflow-auto px-5 py-4 text-[11px] leading-6 text-slate-400">
-            <p v-for="(line, idx) in termsLines" :key="`terms-${idx}`" class="mb-3">{{ line }}</p>
+            <p v-for="(line, idx) in termsLines" :key="`terms-${idx}`" class="mb-3">{{ t(line, termsLinesEn[idx]) }}</p>
           </div>
         </div>
       </div>
@@ -155,6 +157,7 @@
 <script setup lang="ts">
 const { refresh } = useMe()
 const route = useRoute()
+const { t, locale } = useLocale()
 
 const username = ref('')
 const name = ref('')
@@ -172,6 +175,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const loadingTitle = ref('가입 처리 중입니다...')
 const loadingDesc = ref('계정을 만들고 있습니다.')
+const loadingTitleEn = ref('Signing up...')
+const loadingDescEn = ref('Creating your account.')
 
 const banks = [
   '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
@@ -185,6 +190,14 @@ const termsLines = [
   '비밀번호 분실 등 보안 이슈가 발생한 경우 회사는 본인 확인을 위해 추가 자료를 요구할 수 있고, 운영자 승인 후 비밀번호를 초기화할 수 있으며, 초기화된 비밀번호는 회사가 정한 임시 기준으로 재설정된 뒤 회원이 즉시 변경해야 합니다.',
   '서비스 이용 과정에서 접속기록, IP, 브라우저 정보, 기기 정보, 거래 요청 기록 등 보안 관련 정보가 자동으로 수집될 수 있으며, 비정상 접근 또는 부정 이용 탐지 목적 범위 안에서 활용될 수 있습니다.',
   '회원은 타인의 정보를 도용하거나 허위 정보를 입력해서는 안 되며, 허위 정보 기재로 인해 서비스 제한, 거래 취소, 계정 정지, 민형사상 책임이 발생할 수 있습니다. 회사는 서비스 안정성과 회원 보호를 위해 필요한 범위 안에서 본 약관을 개정할 수 있습니다.'
+]
+const termsLinesEn = [
+  'These terms cover the collection, storage, and use of information provided at sign-up — username, name, date of birth, bank account, account holder, and referral code — for service operation, compliance with legal obligations, customer support, abnormal-transaction detection, dispute handling, internal audits, and complaint processing.',
+  'Member information is, in principle, destroyed without delay after service termination or a withdrawal request under applicable law and internal retention standards, except that records requiring preservation (such as trade history, settlement records, and complaint records) may be kept separately for at least one year, or longer where required by law.',
+  'Members may request to view, correct, or withdraw their information at any time; however, some requests may not be processed immediately in cases such as unsettled transactions, security review, incomplete identity verification, ongoing disputes or investigations, or legal retention requirements, in which case the Company may explain the reason for the delay within a reasonable scope.',
+  'If a security issue such as a lost password occurs, the Company may request additional information for identity verification, and may reset the password after operator approval; the reset password is set to a temporary value determined by the Company and must be changed by the member immediately.',
+  'Security-related information such as access logs, IP address, browser information, device information, and transaction request records may be automatically collected while using the service, and may be used within the scope of detecting abnormal access or fraudulent use.',
+  'Members must not impersonate others or enter false information; doing so may result in service restriction, transaction cancellation, account suspension, and civil or criminal liability. The Company may revise these terms within the scope necessary for service stability and member protection.'
 ]
 
 const birthDateValid = computed(() => {
@@ -337,13 +350,15 @@ async function onSubmit() {
   error.value = null
   try {
     if (!canSubmit.value) {
-      throw new Error('필수 항목을 모두 올바르게 입력해 주세요.')
+      throw new Error(t('필수 항목을 모두 올바르게 입력해 주세요.', 'Please fill in all required fields correctly.'))
     }
     if (password.value !== passwordConfirm.value) {
-      throw new Error('비밀번호 확인이 일치하지 않습니다.')
+      throw new Error(t('비밀번호 확인이 일치하지 않습니다.', 'Password confirmation does not match.'))
     }
     loadingTitle.value = '가입 처리 중입니다...'
     loadingDesc.value = '계정을 생성하고 있습니다.'
+    loadingTitleEn.value = 'Signing up...'
+    loadingDescEn.value = 'Creating your account.'
     await $fetch('/api/auth/register', {
       method: 'POST',
       body: {
@@ -361,13 +376,17 @@ async function onSubmit() {
 
     loadingTitle.value = '인증 확인 중입니다...'
     loadingDesc.value = '세션을 적용하고 있습니다.'
+    loadingTitleEn.value = 'Verifying...'
+    loadingDescEn.value = 'Applying your session.'
     await refresh()
 
     loadingTitle.value = '거래소로 이동 중입니다...'
     loadingDesc.value = '잠시만 기다려주세요.'
+    loadingTitleEn.value = 'Redirecting to the exchange...'
+    loadingDescEn.value = 'Please wait a moment.'
     await navigateTo('/exchange/SAMSUNGUSDT')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || e?.message || '회원가입에 실패했습니다.'
+    error.value = e?.data?.statusMessage || e?.message || t('회원가입에 실패했습니다.', 'Sign up failed.')
   } finally {
     loading.value = false
   }

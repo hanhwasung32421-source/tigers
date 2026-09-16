@@ -30,6 +30,7 @@
         <div class="border-t border-white/10 p-2.5">
           <div class="flex items-end gap-2">
             <textarea
+              :key="`draft-${locale}`"
               v-model.trim="draft"
               rows="1"
               class="max-h-24 min-h-[38px] flex-1 resize-none rounded-xl border border-white/10 bg-[#050810] px-3 py-2 text-[13px] text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
@@ -64,7 +65,7 @@
 <script setup lang="ts">
 type GuestMessage = { id: number; sender: 'guest' | 'admin'; body: string; createdAt: string }
 
-const { t } = useLocale()
+const { t, locale } = useLocale()
 const STORAGE_KEY = 'usdetrade_guest_chat_id'
 
 const open = ref(false)

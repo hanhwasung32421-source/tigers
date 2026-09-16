@@ -5,11 +5,16 @@
       <div class="hex-pattern relative hidden overflow-hidden bg-[#0a0d13] px-16 py-16 md:flex md:flex-col md:items-center md:justify-center">
         <div class="relative z-10 mx-auto max-w-md">
           <h1 class="text-5xl font-black leading-tight text-white">
-            더 넓은 시장을<br />
-            하나의 계정으로.
+            {{ t('더 넓은 시장을', 'A wider market,') }}<br />
+            {{ t('하나의 계정으로.', 'one account.') }}
           </h1>
           <p class="mt-5 text-sm leading-6 text-slate-400">
-            KYC 인증으로 전세계 300개 이상의 실시간 선물과 자산 관리를 연결하는 {{ appName }} 거래 환경을 지금 만나보세요.
+            {{
+              t(
+                `KYC 인증으로 전세계 300개 이상의 실시간 선물과 자산 관리를 연결하는 ${appName} 거래 환경을 지금 만나보세요.`,
+                `Meet ${appName}'s trading environment, connecting real-time futures and asset management across 300+ instruments worldwide with KYC verification.`
+              )
+            }}
           </p>
 
           <div class="mt-10 border-t border-white/10 pt-8">
@@ -28,24 +33,26 @@
       <!-- 오른쪽: 로그인 폼 -->
       <div class="flex flex-col justify-center bg-[#050709] px-6 py-16 sm:px-12 md:px-20">
         <div class="mx-auto w-full max-w-sm">
-          <h2 class="text-2xl font-bold text-white">로그인</h2>
-          <p class="mt-2 text-sm text-slate-400">계정에 로그인하세요</p>
+          <h2 class="text-2xl font-bold text-white">{{ t('로그인', 'Log In') }}</h2>
+          <p class="mt-2 text-sm text-slate-400">{{ t('계정에 로그인하세요', 'Log in to your account') }}</p>
 
           <form class="mt-8 space-y-5" @submit.prevent="onSubmit">
             <div>
-              <label class="text-xs font-semibold tracking-wide text-slate-300">아이디</label>
+              <label class="text-xs font-semibold tracking-wide text-slate-300">{{ t('아이디', 'Username') }}</label>
               <input
+                :key="`username-${locale}`"
                 v-model.trim="username"
-                placeholder="아이디"
+                :placeholder="t('아이디', 'Username')"
                 class="mt-2 w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/60"
               />
             </div>
             <div>
               <label class="text-xs font-semibold tracking-wide text-slate-300">PASSWORD</label>
               <input
+                :key="`password-${locale}`"
                 v-model="password"
                 type="password"
-                placeholder="비밀번호"
+                :placeholder="t('비밀번호', 'Password')"
                 class="mt-2 w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/60"
               />
             </div>
@@ -53,10 +60,10 @@
             <div class="flex items-center justify-between text-sm">
               <label class="flex items-center gap-2 text-slate-300">
                 <input v-model="rememberId" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5 accent-emerald-500" />
-                아이디 저장
+                {{ t('아이디 저장', 'Remember username') }}
               </label>
               <NuxtLink to="/auth/find-password" class="font-semibold text-white underline underline-offset-4 hover:text-emerald-300">
-                비밀번호를 잊으셨나요?
+                {{ t('비밀번호를 잊으셨나요?', 'Forgot your password?') }}
               </NuxtLink>
             </div>
 
@@ -65,23 +72,23 @@
               :disabled="loading"
             >
               <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/40 border-t-slate-950" />
-              <span>{{ loading ? '로그인 중...' : '로그인' }}</span>
+              <span>{{ loading ? t('로그인 중...', 'Logging in...') : t('로그인', 'Log In') }}</span>
             </button>
             <p v-if="error" class="text-sm text-rose-300">{{ error }}</p>
           </form>
 
           <div class="mt-6 text-center text-sm text-slate-400">
-            계정이 없으신가요?
-            <NuxtLink to="/auth/register" class="font-semibold text-white underline underline-offset-4 hover:text-emerald-300">회원가입</NuxtLink>
+            {{ t('계정이 없으신가요?', "Don't have an account?") }}
+            <NuxtLink to="/auth/register" class="font-semibold text-white underline underline-offset-4 hover:text-emerald-300">{{ t('회원가입', 'Sign Up') }}</NuxtLink>
           </div>
 
           <div class="mt-10 flex items-center justify-center gap-3 text-xs text-slate-600">
-            <NuxtLink to="/legal/terms" class="hover:text-slate-400">이용약관</NuxtLink>
+            <NuxtLink to="/legal/terms" class="hover:text-slate-400">{{ t('이용약관', 'Terms of Service') }}</NuxtLink>
             <span>·</span>
-            <NuxtLink to="/legal/privacy" class="hover:text-slate-400">개인정보처리방침</NuxtLink>
+            <NuxtLink to="/legal/privacy" class="hover:text-slate-400">{{ t('개인정보처리방침', 'Privacy Policy') }}</NuxtLink>
             <span>·</span>
-            <a v-if="telegramUrl" :href="telegramUrl" target="_blank" rel="noopener" class="hover:text-slate-400">고객지원</a>
-            <NuxtLink v-else to="/support" class="hover:text-slate-400">고객지원</NuxtLink>
+            <a v-if="telegramUrl" :href="telegramUrl" target="_blank" rel="noopener" class="hover:text-slate-400">{{ t('고객지원', 'Support') }}</a>
+            <NuxtLink v-else to="/support" class="hover:text-slate-400">{{ t('고객지원', 'Support') }}</NuxtLink>
           </div>
         </div>
       </div>
@@ -101,8 +108,8 @@
           <div class="flex items-center gap-3">
             <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-400/25 border-t-emerald-300" />
             <div>
-              <div class="text-sm font-semibold text-slate-100">{{ loadingTitle }}</div>
-              <div class="mt-1 text-xs text-slate-400">{{ loadingDesc }}</div>
+              <div class="text-sm font-semibold text-slate-100">{{ t(loadingTitle, loadingTitleEn) }}</div>
+              <div class="mt-1 text-xs text-slate-400">{{ t(loadingDesc, loadingDescEn) }}</div>
             </div>
           </div>
           <div class="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/10">
@@ -118,6 +125,7 @@
 const { refresh } = useMe()
 const config = useRuntimeConfig()
 const appName = config.public.appName
+const { t, locale } = useLocale()
 
 const SAVED_ID_KEY = 'bitduck_saved_login_id'
 
@@ -128,6 +136,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const loadingTitle = ref('접속 중입니다...')
 const loadingDesc = ref('인증 정보를 확인하고 있습니다.')
+const loadingTitleEn = ref('Connecting...')
+const loadingDescEn = ref('Checking your credentials.')
 
 const features = [
   { icon: 'F', label: 'FUTURES' },
@@ -156,6 +166,8 @@ async function onSubmit() {
   error.value = null
   loadingTitle.value = '접속 중입니다...'
   loadingDesc.value = '서버에 연결하고 있습니다.'
+  loadingTitleEn.value = 'Connecting...'
+  loadingDescEn.value = 'Connecting to the server.'
   try {
     // 1) 로그인
     await $fetch('/api/auth/login', {
@@ -173,14 +185,18 @@ async function onSubmit() {
     // 2) 세션/유저 갱신
     loadingTitle.value = '인증 확인 중입니다...'
     loadingDesc.value = '세션을 적용하고 있습니다.'
+    loadingTitleEn.value = 'Verifying...'
+    loadingDescEn.value = 'Applying your session.'
     await refresh()
 
     // 3) 이동
     loadingTitle.value = '거래소로 이동 중입니다...'
     loadingDesc.value = '잠시만 기다려주세요.'
+    loadingTitleEn.value = 'Redirecting to the exchange...'
+    loadingDescEn.value = 'Please wait a moment.'
     await navigateTo('/exchange/SAMSUNGUSDT')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '로그인에 실패했습니다.'
+    error.value = e?.data?.statusMessage || t('로그인에 실패했습니다.', 'Login failed.')
   } finally {
     loading.value = false
   }
