@@ -3,7 +3,7 @@
     <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-xl font-semibold">관리자 대시보드</h1>
+          <h1 class="text-xl font-semibold">{{ t('관리자 대시보드', 'Admin Dashboard') }}</h1>
           <p class="mt-1 text-sm text-slate-400">{{ me?.username }} ({{ me?.role }})</p>
         </div>
         <NuxtLink
@@ -11,7 +11,7 @@
           to="/admin/create-branch"
           class="rounded-md bg-white/10 px-4 py-2 text-sm hover:bg-white/15"
         >
-          계정생성
+          {{ t('계정생성', 'Create Account') }}
         </NuxtLink>
       </div>
     </div>
@@ -19,14 +19,14 @@
     <!-- 탭 -->
     <div class="flex flex-wrap gap-1 border-b border-white/10">
       <button
-        v-for="t in tabs"
-        :key="t.key"
+        v-for="tab in tabs"
+        :key="tab.key"
         type="button"
         class="border-b-2 px-4 py-2 text-sm font-medium transition"
-        :class="activeTab === t.key ? 'border-indigo-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
-        @click="activeTab = t.key"
+        :class="activeTab === tab.key ? 'border-indigo-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
+        @click="activeTab = tab.key"
       >
-        {{ t.label }}
+        {{ tab.label }}
       </button>
     </div>
 
@@ -34,15 +34,15 @@
     <div v-show="activeTab === 'users'" class="space-y-3">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold">유저 관리</h2>
-          <p class="mt-1 text-sm text-slate-400">아이디/이름/USDT잔액/추천코드/역할/정산유형/정산비율을 수정하면 바로 반영됩니다.</p>
+          <h2 class="text-lg font-semibold">{{ t('유저 관리', 'User Management') }}</h2>
+          <p class="mt-1 text-sm text-slate-400">{{ t('아이디/이름/USDT잔액/추천코드/역할/정산유형/정산비율을 수정하면 바로 반영됩니다.', 'Changes to username/name/USDT balance/referral code/role/settlement type/settlement rate apply immediately.') }}</p>
         </div>
         <div class="flex items-center gap-2">
           <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
-            총 유저수 <span class="font-data text-base font-semibold">{{ sortedUsers.length }}</span>명
+            {{ t('총 유저수', 'Total users') }} <span class="font-data text-base font-semibold">{{ sortedUsers.length }}</span>{{ t('명', '') }}
           </div>
           <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="load">
-            새로고침
+            {{ t('새로고침', 'Refresh') }}
           </button>
         </div>
       </div>
@@ -55,11 +55,12 @@
         </div>
         <input
           v-model.trim="userSearch"
-          placeholder="아이디/이름 검색"
+          :placeholder="t('아이디/이름 검색', 'Search by username/name')"
+          :key="`user-search-${locale}`"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-indigo-400/60"
         />
         <div class="flex items-center gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200">
-          <span class="whitespace-nowrap text-slate-400">표시수</span>
+          <span class="whitespace-nowrap text-slate-400">{{ t('표시수', 'Rows shown') }}</span>
           <input
             v-model.number="pageSizeInput"
             type="number"
@@ -72,31 +73,31 @@
 
       <div v-if="referralFilter" class="flex items-center gap-2 text-sm text-slate-300">
         <span class="rounded-md bg-indigo-500/15 px-3 py-1.5 text-indigo-200 ring-1 ring-indigo-400/30">
-          하부보기: "{{ referralFilter }}"의 전체 하부 조직
+          {{ t(`하부보기: "${referralFilter}"의 전체 하부 조직`, `Downline view: entire downline organization of "${referralFilter}"`) }}
         </span>
         <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="referralFilter = null">
-          필터 해제
+          {{ t('필터 해제', 'Clear Filter') }}
         </button>
       </div>
 
       <div>
-        <div v-if="loading" class="text-sm text-slate-400">불러오는 중…</div>
+        <div v-if="loading" class="text-sm text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</div>
         <div v-else>
           <table class="w-full text-sm">
             <thead class="border-b border-[#12314a] text-[12px] text-slate-500">
               <tr>
-                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
-                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
-                <th class="whitespace-nowrap px-3 py-3 text-left">계좌정보</th>
-                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('usdt')">USDT잔액<span class="sort-icon">{{ sortArrow('usdt') || ' ⇅' }}</span></th>
-                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">추천코드<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
-                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">역할<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
-                <th class="whitespace-nowrap px-3 py-3 text-left">정산유형</th>
-                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">가입일<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
-                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('last_login')">최근 접속일<span class="sort-icon">{{ sortArrow('last_login') || ' ⇅' }}</span></th>
-                <th class="whitespace-nowrap px-3 py-3 text-center">하부보기</th>
-                <th class="whitespace-nowrap px-3 py-3 text-center">비밀번호</th>
-                <th class="whitespace-nowrap px-3 py-3 text-center">로그인</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">{{ t('아이디', 'Username') }}<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">{{ t('이름', 'Name') }}<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+                <th class="whitespace-nowrap px-3 py-3 text-left">{{ t('계좌정보', 'Bank Account') }}</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('usdt')">{{ t('USDT잔액', 'USDT Balance') }}<span class="sort-icon">{{ sortArrow('usdt') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('referralCode')">{{ t('추천코드', 'Referral Code') }}<span class="sort-icon">{{ sortArrow('referralCode') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('role')">{{ t('역할', 'Role') }}<span class="sort-icon">{{ sortArrow('role') || ' ⇅' }}</span></th>
+                <th class="whitespace-nowrap px-3 py-3 text-left">{{ t('정산유형', 'Settlement Type') }}</th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('created_at')">{{ t('가입일', 'Joined') }}<span class="sort-icon">{{ sortArrow('created_at') || ' ⇅' }}</span></th>
+                <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('last_login')">{{ t('최근 접속일', 'Last Login') }}<span class="sort-icon">{{ sortArrow('last_login') || ' ⇅' }}</span></th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">{{ t('하부보기', 'Downline') }}</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">{{ t('비밀번호', 'Password') }}</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">{{ t('로그인', 'Login') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -126,7 +127,7 @@
                       :disabled="isLockedUser(u)"
                       @click="openAccountModal(u)"
                     >
-                      계좌정보
+                      {{ t('계좌정보', 'Bank Account') }}
                     </button>
                   </td>
                   <td class="px-3 py-2.5">
@@ -156,9 +157,9 @@
                       class="w-40 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                       @change="saveUserRow(u.id)"
                     >
-                      <option value="user">회원 (user)</option>
+                      <option value="user">{{ t('회원', 'Member') }} (user)</option>
                       <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.label }} ({{ r.id }})</option>
-                      <option value="super_admin">최고관리자 (super_admin)</option>
+                      <option value="super_admin">{{ t('최고관리자', 'Super Admin') }} (super_admin)</option>
                     </select>
                   </td>
                   <td class="px-3 py-2.5">
@@ -168,8 +169,8 @@
                         class="w-28 rounded-md border border-[#173753] bg-[#041425] px-2.5 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                         @change="saveUserRow(u.id)"
                       >
-                        <option value="loss">손실정산</option>
-                        <option value="referral">레퍼럴정산</option>
+                        <option value="loss">{{ t('손실정산', 'Loss Settlement') }}</option>
+                        <option value="referral">{{ t('레퍼럴정산', 'Referral Settlement') }}</option>
                       </select>
                       <input
                         v-model="userDraft[u.id].settlementPercent"
@@ -177,8 +178,9 @@
                         min="0"
                         max="100"
                         step="0.1"
-                        placeholder="기본값"
-                        title="이 부관리자 전용 정산비율(%). 비워두면 정산/기타 설정의 기본값을 사용합니다."
+                        :placeholder="t('기본값', 'Default')"
+                        :title="t('이 부관리자 전용 정산비율(%). 비워두면 정산/기타 설정의 기본값을 사용합니다.', 'Settlement rate (%) specific to this sub-admin. Leave blank to use the default from Settlement/Other Settings.')"
+                        :key="`settlement-percent-${u.id}-${locale}`"
                         class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-sm text-slate-200 outline-none transition focus:border-indigo-400/60"
                         @blur="saveUserRow(u.id)"
                         @keyup.enter="saveUserRow(u.id)"
@@ -194,7 +196,7 @@
                       class="whitespace-nowrap rounded-md bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
                       @click="referralFilter = u.username"
                     >
-                      하부보기
+                      {{ t('하부보기', 'Downline') }}
                     </button>
                   </td>
                   <td class="px-3 py-2.5 text-center">
@@ -203,7 +205,7 @@
                       :disabled="userResetting === u.id || isLockedUser(u)"
                       @click="resetUserPassword(u.id)"
                     >
-                      초기화
+                      {{ t('초기화', 'Reset') }}
                     </button>
                   </td>
                   <td class="px-3 py-2.5 text-center">
@@ -212,7 +214,7 @@
                       :disabled="loggingInAs === u.id"
                       @click="loginAsUser(u.id)"
                     >
-                      로그인
+                      {{ t('로그인', 'Login') }}
                     </button>
                   </td>
                 </template>
@@ -222,7 +224,7 @@
         </div>
 
         <div class="mt-4 flex items-center justify-between gap-3">
-          <div class="text-sm text-slate-400">페이지 {{ page }} / {{ totalPages }} · 총 {{ sortedUsers.length }}명</div>
+          <div class="text-sm text-slate-400">{{ t(`페이지 ${page} / ${totalPages} · 총 ${sortedUsers.length}명`, `Page ${page} / ${totalPages} · ${sortedUsers.length} total`) }}</div>
           <div class="flex items-center justify-center gap-2" v-if="totalPages > 1">
             <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
             <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page--">‹</button>
@@ -261,36 +263,36 @@
     >
       <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#10171d] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-slate-100">{{ accountModalTarget?.username }} 계좌정보</h3>
+          <h3 class="text-lg font-semibold text-slate-100">{{ t(`${accountModalTarget?.username} 계좌정보`, `${accountModalTarget?.username} Bank Account`) }}</h3>
           <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeAccountModal">✕</button>
         </div>
         <div class="mt-4 space-y-3">
           <div>
-            <label class="text-sm text-slate-300">은행명</label>
+            <label class="text-sm text-slate-300">{{ t('은행명', 'Bank Name') }}</label>
             <select v-model="accountDraft.bankName" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-indigo-500">
-              <option v-for="bank in banks" :key="bank" :value="bank">{{ bank }}</option>
+              <option v-for="bank in bankOptions" :key="bank.ko" :value="bank.ko">{{ t(bank.ko, bank.en) }}</option>
             </select>
           </div>
           <div>
-            <label class="text-sm text-slate-300">계좌번호</label>
+            <label class="text-sm text-slate-300">{{ t('계좌번호', 'Account Number') }}</label>
             <input v-model.trim="accountDraft.bankAccount" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
           </div>
           <div>
-            <label class="text-sm text-slate-300">예금주</label>
+            <label class="text-sm text-slate-300">{{ t('예금주', 'Account Holder') }}</label>
             <input v-model.trim="accountDraft.accountHolder" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
           </div>
         </div>
         <p v-if="accountModalError" class="mt-3 text-sm text-red-300">{{ accountModalError }}</p>
         <div class="mt-5 grid grid-cols-2 gap-3">
           <button class="rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10" @click="closeAccountModal">
-            취소
+            {{ t('취소', 'Cancel') }}
           </button>
           <button
             class="rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
             :disabled="accountModalSaving"
             @click="saveAccountModal"
           >
-            저장
+            {{ t('저장', 'Save') }}
           </button>
         </div>
       </div>
@@ -298,9 +300,9 @@
 
     <!-- 강제청산 기준(%) 설정 -->
     <div v-show="activeTab === 'liquidation'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
-      <h2 class="text-lg font-semibold">강제청산 기준 설정</h2>
+      <h2 class="text-lg font-semibold">{{ t('강제청산 기준 설정', 'Liquidation Threshold Settings') }}</h2>
       <p class="mt-1 text-sm text-slate-400">
-        손실률(ROE)이 이 값 이하로 떨어지면 모든 유저의 포지션이 실시간으로 자동 강제청산됩니다.
+        {{ t('손실률(ROE)이 이 값 이하로 떨어지면 모든 유저의 포지션이 실시간으로 자동 강제청산됩니다.', 'When ROE drops to or below this value, all users\' positions are automatically force-liquidated in real time.') }}
       </p>
       <div class="mt-4 flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-2">
@@ -312,16 +314,16 @@
             step="1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">% 손실 시 강제청산</span>
+          <span class="text-sm text-slate-400">{{ t('% 손실 시 강제청산', '% loss triggers liquidation') }}</span>
         </div>
         <button
           class="rounded-md bg-indigo-500 px-4 py-2 text-sm hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="liquidationSettingSaving"
           @click="saveLiquidationSetting"
         >
-          저장
+          {{ t('저장', 'Save') }}
         </button>
-        <span class="text-sm text-slate-400">현재 적용값: -{{ liquidationPercent }}%</span>
+        <span class="text-sm text-slate-400">{{ t(`현재 적용값: -${liquidationPercent}%`, `Current value: -${liquidationPercent}%`) }}</span>
       </div>
       <p v-if="liquidationSettingError" class="mt-3 text-sm text-red-300">{{ liquidationSettingError }}</p>
       <p v-if="liquidationSettingMsg" class="mt-3 text-sm text-emerald-300">{{ liquidationSettingMsg }}</p>
@@ -329,11 +331,11 @@
 
     <!-- 정산/기타 설정 -->
     <div v-show="activeTab === 'misc'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
-      <h2 class="text-lg font-semibold">정산/기타 설정</h2>
-      <p class="mt-1 text-sm text-slate-400">고객센터 텔레그램 링크, 원/USDT 환율, 정산 비율을 설정합니다.</p>
+      <h2 class="text-lg font-semibold">{{ t('정산/기타 설정', 'Settlement/Other Settings') }}</h2>
+      <p class="mt-1 text-sm text-slate-400">{{ t('고객센터 텔레그램 링크, 원/USDT 환율, 정산 비율을 설정합니다.', 'Set the support Telegram link, KRW/USDT exchange rate, and settlement rates.') }}</p>
       <div class="mt-4 grid gap-4 md:grid-cols-2">
         <div>
-          <label class="text-sm text-slate-300">고객센터 텔레그램 링크</label>
+          <label class="text-sm text-slate-300">{{ t('고객센터 텔레그램 링크', 'Support Telegram Link') }}</label>
           <input
             v-model.trim="miscDraft.telegramUrl"
             placeholder="https://t.me/..."
@@ -341,7 +343,7 @@
           />
         </div>
         <div>
-          <label class="text-sm text-slate-300">원/USDT 환율 (0 = 매일 09시 자동 환율 사용)</label>
+          <label class="text-sm text-slate-300">{{ t('원/USDT 환율 (0 = 매일 09시 자동 환율 사용)', 'KRW/USDT Rate (0 = use automatic 9 AM daily rate)') }}</label>
           <input
             v-model.number="miscDraft.krwPerUsdt"
             type="number"
@@ -350,12 +352,12 @@
             class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
           <p class="mt-1 text-xs text-slate-500">
-            현재 자동 환율(매일 오전 9시 빗썸 기준 고정): <span class="font-data text-slate-300">{{ dailyKrwRate ? `${fmt0(dailyKrwRate)}원` : '아직 없음' }}</span>
-            <span v-if="dailyKrwRateDay"> ({{ dailyKrwRateDay }} 갱신)</span>
+            {{ t('현재 자동 환율(매일 오전 9시 빗썸 기준 고정):', 'Current automatic rate (fixed daily at 9 AM based on Bithumb):') }} <span class="font-data text-slate-300">{{ dailyKrwRate ? t(`${fmt0(dailyKrwRate)}원`, `₩${fmt0(dailyKrwRate)}`) : t('아직 없음', 'Not available yet') }}</span>
+            <span v-if="dailyKrwRateDay"> {{ t(`(${dailyKrwRateDay} 갱신)`, `(updated ${dailyKrwRateDay})`) }}</span>
           </p>
         </div>
         <div>
-          <label class="text-sm text-slate-300">손실정산 기본 비율 (%)</label>
+          <label class="text-sm text-slate-300">{{ t('손실정산 기본 비율 (%)', 'Default Loss Settlement Rate (%)') }}</label>
           <input
             v-model.number="miscDraft.lossSettlementPercent"
             type="number"
@@ -364,10 +366,10 @@
             step="0.1"
             class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <p class="mt-1 text-xs text-slate-500">부관리자별 개별 비율을 지정하지 않았을 때 사용되는 기본값입니다.</p>
+          <p class="mt-1 text-xs text-slate-500">{{ t('부관리자별 개별 비율을 지정하지 않았을 때 사용되는 기본값입니다.', 'Default used when no individual rate is set for a sub-admin.') }}</p>
         </div>
         <div>
-          <label class="text-sm text-slate-300">레퍼럴정산 기본 비율 (%)</label>
+          <label class="text-sm text-slate-300">{{ t('레퍼럴정산 기본 비율 (%)', 'Default Referral Settlement Rate (%)') }}</label>
           <input
             v-model.number="miscDraft.referralSettlementPercent"
             type="number"
@@ -376,20 +378,20 @@
             step="0.1"
             class="mt-1 w-full rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <p class="mt-1 text-xs text-slate-500">부관리자별 개별 비율을 지정하지 않았을 때 사용되는 기본값입니다.</p>
+          <p class="mt-1 text-xs text-slate-500">{{ t('부관리자별 개별 비율을 지정하지 않았을 때 사용되는 기본값입니다.', 'Default used when no individual rate is set for a sub-admin.') }}</p>
         </div>
       </div>
 
       <div class="mt-6 border-t border-white/10 pt-5">
-        <h3 class="text-sm font-semibold text-slate-200">관리자 메뉴 순서</h3>
-        <p class="mt-1 text-xs text-slate-400">상단 관리자 메뉴가 보이는 순서를 바꿉니다. 화살표로 위/아래로 옮기세요.</p>
+        <h3 class="text-sm font-semibold text-slate-200">{{ t('관리자 메뉴 순서', 'Admin Menu Order') }}</h3>
+        <p class="mt-1 text-xs text-slate-400">{{ t('상단 관리자 메뉴가 보이는 순서를 바꿉니다. 화살표로 위/아래로 옮기세요.', 'Change the order the top admin menu items appear in. Use the arrows to move items up/down.') }}</p>
         <div class="mt-3 space-y-1.5">
           <div
             v-for="(key, idx) in miscDraft.menuOrder"
             :key="key"
             class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2"
           >
-            <span class="text-sm text-slate-200">{{ menuMeta[key]?.label || key }}</span>
+            <span class="text-sm text-slate-200">{{ menuMeta[key] ? t(menuMeta[key].labelKo, menuMeta[key].labelEn) : key }}</span>
             <div class="flex items-center gap-1">
               <button
                 type="button"
@@ -418,7 +420,7 @@
           :disabled="miscSaving"
           @click="saveMiscSettings"
         >
-          저장
+          {{ t('저장', 'Save') }}
         </button>
         <p v-if="miscError" class="text-sm text-red-300">{{ miscError }}</p>
         <p v-if="miscMsg" class="text-sm text-emerald-300">{{ miscMsg }}</p>
@@ -427,9 +429,9 @@
 
     <!-- 메뉴구성 -->
     <div v-show="activeTab === 'nav'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
-      <h2 class="text-lg font-semibold">메뉴구성</h2>
+      <h2 class="text-lg font-semibold">{{ t('메뉴구성', 'Menu Layout') }}</h2>
       <p class="mt-1 text-sm text-slate-400">
-        비회원을 포함해 누구나 보는 최상단 메인 메뉴의 순서를 바꾸거나, 특정 메뉴를 화면에서 숨길 수 있습니다.
+        {{ t('비회원을 포함해 누구나 보는 최상단 메인 메뉴의 순서를 바꾸거나, 특정 메뉴를 화면에서 숨길 수 있습니다.', 'Change the order of the top main menu that everyone sees, including non-members, or hide specific menu items from view.') }}
       </p>
 
       <div class="mt-4 space-y-2">
@@ -458,12 +460,12 @@
               </button>
             </div>
             <span class="text-sm font-semibold text-slate-100" :class="{ 'text-slate-500 line-through': mainNavDraft.hidden.includes(key) }">
-              {{ MAIN_NAV_LABELS[key] }}
+              {{ t(MAIN_NAV_LABELS[key].ko, MAIN_NAV_LABELS[key].en) }}
             </span>
           </div>
           <label class="flex items-center gap-2 text-xs text-slate-300">
             <input type="checkbox" :checked="!mainNavDraft.hidden.includes(key)" @change="toggleMainNavHidden(key)" />
-            화면에 표시
+            {{ t('화면에 표시', 'Show on screen') }}
           </label>
         </div>
       </div>
@@ -474,7 +476,7 @@
           :disabled="mainNavSaving"
           @click="saveMainNavSettings"
         >
-          저장
+          {{ t('저장', 'Save') }}
         </button>
         <p v-if="mainNavError" class="text-sm text-red-300">{{ mainNavError }}</p>
         <p v-if="mainNavMsg" class="text-sm text-emerald-300">{{ mainNavMsg }}</p>
@@ -483,17 +485,17 @@
 
     <!-- 카드 디자인(수익카드) -->
     <div v-show="activeTab === 'profitCard'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
-      <h2 class="text-lg font-semibold">카드 디자인</h2>
+      <h2 class="text-lg font-semibold">{{ t('카드 디자인', 'Card Design') }}</h2>
       <p class="mt-1 text-sm text-slate-400">
-        거래내역 "카드" 버튼을 누르면 뜨는 수익카드(청산카드) 디자인을 조정합니다. 아래 미리보기에서
-        <span class="text-slate-200">바꾸고 싶은 글자나 영역을 직접 클릭</span>하면 오른쪽에 그 부분의 설정이 나타납니다.
+        {{ t('거래내역 "카드" 버튼을 누르면 뜨는 수익카드(청산카드) 디자인을 조정합니다. 아래 미리보기에서', 'Adjust the design of the profit card (liquidation card) that appears when clicking the "Card" button in trade history. In the preview below,') }}
+        <span class="text-slate-200">{{ t('바꾸고 싶은 글자나 영역을 직접 클릭', 'click directly on the text or area you want to change') }}</span>{{ t('하면 오른쪽에 그 부분의 설정이 나타납니다.', ' and its settings will appear on the right.') }}
       </p>
 
       <div class="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
         <!-- 미리보기(클릭해서 편집) -->
         <div class="flex flex-wrap items-start justify-center gap-8 rounded-xl border border-white/10 bg-black/20 p-6">
           <div v-for="v in PROFIT_CARD_PREVIEW_VARIANTS" :key="v.key" class="flex flex-col items-center gap-3">
-            <p class="text-sm text-slate-400">{{ v.title }}</p>
+            <p class="text-sm text-slate-400">{{ t(v.titleKo, v.titleEn) }}</p>
             <div
               class="relative cursor-pointer shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
               :style="{
@@ -556,7 +558,7 @@
                   }"
                   @click.stop="selectTarget('won')"
                 >
-                  {{ v.wonText }}
+                  {{ t(v.wonTextKo, v.wonTextEn) }}
                 </div>
 
                 <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
@@ -571,7 +573,7 @@
                     }"
                     @click.stop="selectTarget('badge')"
                   >
-                    {{ v.side === 'short' ? '숏' : '롱' }}
+                    {{ v.side === 'short' ? t('숏', 'Short') : t('롱', 'Long') }}
                   </span>
                   <span
                     class="cursor-pointer rounded font-semibold"
@@ -599,10 +601,10 @@
               >
                 <div
                   v-for="box in [
-                    { label: '레버리지', value: '격리 x' + v.leverage, positive: null },
-                    { label: '손익', value: v.pnlText, positive: v.positive },
-                    { label: '진입가격', value: v.entry, positive: null },
-                    { label: '종료가격', value: v.exit, positive: null }
+                    { label: t('레버리지', 'Leverage'), value: t('격리 x', 'Isolated x') + v.leverage, positive: null },
+                    { label: t('손익', 'P&L'), value: v.pnlText, positive: v.positive },
+                    { label: t('진입가격', 'Entry Price'), value: v.entry, positive: null },
+                    { label: t('종료가격', 'Exit Price'), value: v.exit, positive: null }
                   ]"
                   :key="box.label"
                   :style="{
@@ -642,29 +644,29 @@
 
         <!-- 선택한 요소의 설정 패널 -->
         <div class="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 lg:sticky lg:top-4 lg:self-start">
-          <div class="text-sm font-semibold text-indigo-300">{{ PROFIT_CARD_TARGET_LABELS[selectedTarget] }}</div>
-          <p v-if="PROFIT_CARD_TARGET_HINTS[selectedTarget]" class="text-xs text-slate-500">{{ PROFIT_CARD_TARGET_HINTS[selectedTarget] }}</p>
+          <div class="text-sm font-semibold text-indigo-300">{{ t(PROFIT_CARD_TARGET_LABELS[selectedTarget].ko, PROFIT_CARD_TARGET_LABELS[selectedTarget].en) }}</div>
+          <p v-if="PROFIT_CARD_TARGET_HINTS[selectedTarget]" class="text-xs text-slate-500">{{ t(PROFIT_CARD_TARGET_HINTS[selectedTarget].ko, PROFIT_CARD_TARGET_HINTS[selectedTarget].en) }}</p>
 
           <div v-if="selectedTarget === 'card'" class="flex flex-col gap-1">
-            <label class="text-xs text-slate-400">폰트</label>
+            <label class="text-xs text-slate-400">{{ t('폰트', 'Font') }}</label>
             <select
               v-model="profitCardDraft.fontFamily"
               class="w-full rounded border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-cyan-400/40"
             >
-              <option v-for="f in PROFIT_CARD_FONT_OPTIONS" :key="f.value" :value="f.value" :style="{ fontFamily: f.value }">{{ f.label }}</option>
+              <option v-for="f in PROFIT_CARD_FONT_OPTIONS" :key="f.value" :value="f.value" :style="{ fontFamily: f.value }">{{ t(f.labelKo, f.labelEn) }}</option>
             </select>
           </div>
 
           <div v-for="f in currentNumberFields" :key="f.key" class="flex flex-col gap-1">
             <div class="flex items-center justify-between text-xs text-slate-400">
-              <span>{{ f.label }}</span>
+              <span>{{ t(f.labelKo, f.labelEn) }}</span>
               <span class="font-mono text-slate-300">{{ profitCardDraft[f.key] }}px</span>
             </div>
             <input v-model.number="profitCardDraft[f.key]" type="range" :min="f.min" :max="f.max" class="w-full accent-indigo-400" />
           </div>
 
           <label v-for="f in currentColorFields" :key="f.key" class="flex flex-col gap-1">
-            <span class="text-xs text-slate-400">{{ f.label }}</span>
+            <span class="text-xs text-slate-400">{{ t(f.labelKo, f.labelEn) }}</span>
             <span class="flex items-center gap-2">
               <input v-model="profitCardDraft[f.key]" type="color" class="h-8 w-10 cursor-pointer rounded border border-white/10 bg-transparent p-0" />
               <input
@@ -683,14 +685,14 @@
           :disabled="profitCardSaving"
           @click="saveProfitCardStyle"
         >
-          저장
+          {{ t('저장', 'Save') }}
         </button>
         <button
           type="button"
           class="rounded-md bg-white/10 px-4 py-2 text-sm hover:bg-white/15"
           @click="resetProfitCardStyle"
         >
-          기본값으로 초기화
+          {{ t('기본값으로 초기화', 'Reset to Default') }}
         </button>
         <p v-if="profitCardError" class="text-sm text-red-300">{{ profitCardError }}</p>
         <p v-if="profitCardMsg" class="text-sm text-emerald-300">{{ profitCardMsg }}</p>
@@ -701,22 +703,19 @@
     <div v-show="activeTab === 'roles'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-end justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold">역할 관리</h2>
+          <h2 class="text-lg font-semibold">{{ t('역할 관리', 'Role Management') }}</h2>
           <p class="mt-1 text-sm text-slate-400">
-            관리자 역할을 추가/삭제하고, 역할마다 관리자 메뉴 권한을 설정합니다. 화살표는 화면에 보이는 순서만 바꾸고,
-            실제 권한 서열은 "등급" 숫자로 정해집니다(숫자가 작을수록 상위). 등급이 같은 역할끼리는 서로 역할을 부여할 수 없고,
-            자기보다 등급 숫자가 더 큰(아래) 역할만 코드부여할 수 있습니다. 여러 역할에 같은 등급을 입력하면 서로 동급으로 묶입니다.
-            총관리자는 항상 최상위입니다.
+            {{ t('관리자 역할을 추가/삭제하고, 역할마다 관리자 메뉴 권한을 설정합니다. 화살표는 화면에 보이는 순서만 바꾸고, 실제 권한 서열은 "등급" 숫자로 정해집니다(숫자가 작을수록 상위). 등급이 같은 역할끼리는 서로 역할을 부여할 수 없고, 자기보다 등급 숫자가 더 큰(아래) 역할만 코드부여할 수 있습니다. 여러 역할에 같은 등급을 입력하면 서로 동급으로 묶입니다. 총관리자는 항상 최상위입니다.', 'Add/remove admin roles and set admin menu permissions for each role. The arrows only change the on-screen display order — actual authority ranking is determined by the "tier" number (lower numbers rank higher). Roles with the same tier cannot grant roles to each other; you can only assign codes to roles with a higher (lower-ranked) tier number than your own. Entering the same tier for multiple roles groups them as equals. The super admin is always the highest rank.') }}
           </p>
         </div>
         <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadRoles">
-          새로고침
+          {{ t('새로고침', 'Refresh') }}
         </button>
       </div>
 
       <div class="mt-4 flex flex-wrap items-end gap-2 rounded-xl border border-white/10 bg-white/5 p-4">
         <div>
-          <label class="text-xs text-slate-400">역할 ID (영문 소문자, 예: team_lead)</label>
+          <label class="text-xs text-slate-400">{{ t('역할 ID (영문 소문자, 예: team_lead)', 'Role ID (lowercase English, e.g. team_lead)') }}</label>
           <input
             v-model.trim="newRoleId"
             placeholder="team_lead"
@@ -724,10 +723,11 @@
           />
         </div>
         <div>
-          <label class="text-xs text-slate-400">역할 이름</label>
+          <label class="text-xs text-slate-400">{{ t('역할 이름', 'Role Name') }}</label>
           <input
             v-model.trim="newRoleLabel"
-            placeholder="팀장"
+            :placeholder="t('팀장', 'Team Lead')"
+            :key="`new-role-label-${locale}`"
             class="mt-1 w-32 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
         </div>
@@ -736,14 +736,14 @@
           :disabled="creatingRole"
           @click="createRoleClick"
         >
-          역할 추가
+          {{ t('역할 추가', 'Add Role') }}
         </button>
         <p v-if="newRoleError" class="w-full text-sm text-red-300">{{ newRoleError }}</p>
       </div>
 
       <div class="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-        <div v-if="rolesLoading" class="text-sm text-slate-400">불러오는 중…</div>
-        <div v-else-if="roles.length === 0" class="text-sm text-slate-400">등록된 역할이 없습니다.</div>
+        <div v-if="rolesLoading" class="text-sm text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</div>
+        <div v-else-if="roles.length === 0" class="text-sm text-slate-400">{{ t('등록된 역할이 없습니다.', 'No roles registered.') }}</div>
         <div v-else class="space-y-2">
           <div v-for="(r, idx) in roles" :key="r.id" class="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
             <div class="flex items-center gap-3">
@@ -773,7 +773,7 @@
             </div>
             <div class="flex items-center gap-2">
               <div class="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2 py-1.5">
-                <span class="text-xs text-slate-400">등급</span>
+                <span class="text-xs text-slate-400">{{ t('등급', 'Tier') }}</span>
                 <input
                   v-model="tierDraft[r.id]"
                   type="number"
@@ -785,14 +785,14 @@
                 />
               </div>
               <button class="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" @click="openRoleModal(r)">
-                메뉴 권한 설정
+                {{ t('메뉴 권한 설정', 'Menu Permissions') }}
               </button>
               <button
                 class="rounded-md bg-rose-500/15 px-3 py-1.5 text-xs text-rose-200 ring-1 ring-rose-400/20 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-40"
                 :disabled="deletingRoleId === r.id"
                 @click="deleteRoleClick(r)"
               >
-                삭제
+                {{ t('삭제', 'Delete') }}
               </button>
             </div>
           </div>
@@ -805,28 +805,28 @@
     <div v-show="activeTab === 'killEvents'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold">킬UP/킬DOWN 이력</h2>
+          <h2 class="text-lg font-semibold">{{ t('킬UP/킬DOWN 이력', 'Kill UP/DOWN History') }}</h2>
           <p class="mt-1 text-sm text-slate-400">
-            삭제하면 모든 유저의 차트에서도 해당 봉의 고가/저가(꼬리)가 사라집니다(잠시 후 자동 반영).
+            {{ t('삭제하면 모든 유저의 차트에서도 해당 봉의 고가/저가(꼬리)가 사라집니다(잠시 후 자동 반영).', 'Deleting also removes that candle\'s high/low wick from every user\'s chart (applies automatically shortly after).') }}
           </p>
         </div>
         <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadKillEvents">
-          새로고침
+          {{ t('새로고침', 'Refresh') }}
         </button>
       </div>
 
       <div class="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-        <div v-if="killEventsLoading" class="text-sm text-slate-400">불러오는 중…</div>
-        <div v-else-if="killEvents.length === 0" class="text-sm text-slate-400">킬 이력이 없습니다.</div>
+        <div v-if="killEventsLoading" class="text-sm text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</div>
+        <div v-else-if="killEvents.length === 0" class="text-sm text-slate-400">{{ t('킬 이력이 없습니다.', 'No kill history.') }}</div>
         <div v-else class="overflow-auto">
           <table class="w-full text-sm">
             <thead class="text-left text-slate-400">
               <tr>
-                <th class="py-2">시각</th>
-                <th class="py-2">심볼</th>
-                <th class="py-2">방향</th>
-                <th class="py-2">퍼센트</th>
-                <th class="py-2">기준가 → 도달가</th>
+                <th class="py-2">{{ t('시각', 'Time') }}</th>
+                <th class="py-2">{{ t('심볼', 'Symbol') }}</th>
+                <th class="py-2">{{ t('방향', 'Direction') }}</th>
+                <th class="py-2">{{ t('퍼센트', 'Percent') }}</th>
+                <th class="py-2">{{ t('기준가 → 도달가', 'Base Price → Reached Price') }}</th>
                 <th class="py-2"></th>
               </tr>
             </thead>
@@ -835,7 +835,7 @@
                 <td class="py-2 font-data text-xs">{{ formatKillTime(k.createdAt) }}</td>
                 <td class="py-2 font-data">{{ k.symbol }}</td>
                 <td class="py-2" :class="k.direction === 'up' ? 'text-emerald-300' : 'text-rose-300'">
-                  {{ k.direction === 'up' ? '킬UP' : '킬DOWN' }}
+                  {{ k.direction === 'up' ? t('킬UP', 'Kill UP') : t('킬DOWN', 'Kill DOWN') }}
                 </td>
                 <td class="py-2 font-data">{{ k.percent }}%</td>
                 <td class="py-2 font-data">{{ k.basePrice }} → {{ k.shockedPrice }}</td>
@@ -845,7 +845,7 @@
                     :disabled="killEventDeleting === k.id"
                     @click="deleteKillEvent(k.id)"
                   >
-                    삭제
+                    {{ t('삭제', 'Delete') }}
                   </button>
                 </td>
               </tr>
@@ -860,29 +860,29 @@
     <div v-show="activeTab === 'profitEvents'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold">상승STOP/하락STOP 이력</h2>
+          <h2 class="text-lg font-semibold">{{ t('상승STOP/하락STOP 이력', 'Rise STOP/Fall STOP History') }}</h2>
           <p class="mt-1 text-sm text-slate-400">
-            삭제하면 모든 유저의 차트에서도 해당 봉의 고가/저가(꼬리)가 사라집니다(잠시 후 자동 반영).
+            {{ t('삭제하면 모든 유저의 차트에서도 해당 봉의 고가/저가(꼬리)가 사라집니다(잠시 후 자동 반영).', 'Deleting also removes that candle\'s high/low wick from every user\'s chart (applies automatically shortly after).') }}
           </p>
         </div>
         <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadProfitEvents">
-          새로고침
+          {{ t('새로고침', 'Refresh') }}
         </button>
       </div>
 
       <div class="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-        <div v-if="profitEventsLoading" class="text-sm text-slate-400">불러오는 중…</div>
-        <div v-else-if="profitEvents.length === 0" class="text-sm text-slate-400">상승STOP/하락STOP 이력이 없습니다.</div>
+        <div v-if="profitEventsLoading" class="text-sm text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</div>
+        <div v-else-if="profitEvents.length === 0" class="text-sm text-slate-400">{{ t('상승STOP/하락STOP 이력이 없습니다.', 'No Rise STOP/Fall STOP history.') }}</div>
         <div v-else class="overflow-auto">
           <table class="w-full text-sm">
             <thead class="text-left text-slate-400">
               <tr>
-                <th class="py-2">시각</th>
-                <th class="py-2">심볼</th>
-                <th class="py-2">방향</th>
-                <th class="py-2">퍼센트(레버리지100x 기준)</th>
-                <th class="py-2">기준가 → 도달가</th>
-                <th class="py-2">유지시간</th>
+                <th class="py-2">{{ t('시각', 'Time') }}</th>
+                <th class="py-2">{{ t('심볼', 'Symbol') }}</th>
+                <th class="py-2">{{ t('방향', 'Direction') }}</th>
+                <th class="py-2">{{ t('퍼센트(레버리지100x 기준)', 'Percent (based on 100x leverage)') }}</th>
+                <th class="py-2">{{ t('기준가 → 도달가', 'Base Price → Reached Price') }}</th>
+                <th class="py-2">{{ t('유지시간', 'Hold Time') }}</th>
                 <th class="py-2"></th>
               </tr>
             </thead>
@@ -891,18 +891,18 @@
                 <td class="py-2 font-data text-xs">{{ formatKillTime(p.createdAt) }}</td>
                 <td class="py-2 font-data">{{ p.symbol }}</td>
                 <td class="py-2" :class="p.direction === 'up' ? 'text-emerald-300' : 'text-rose-300'">
-                  {{ p.direction === 'up' ? '수익' : '손실' }}
+                  {{ p.direction === 'up' ? t('수익', 'Profit') : t('손실', 'Loss') }}
                 </td>
                 <td class="py-2 font-data">{{ p.percent }}%</td>
                 <td class="py-2 font-data">{{ p.basePrice }} → {{ p.shockedPrice }}</td>
-                <td class="py-2 font-data">{{ (p.holdMs / 1000).toFixed(1) }}초</td>
+                <td class="py-2 font-data">{{ t(`${(p.holdMs / 1000).toFixed(1)}초`, `${(p.holdMs / 1000).toFixed(1)}s`) }}</td>
                 <td class="py-2">
                   <button
                     class="rounded-md bg-rose-500/15 px-3 py-1 text-xs text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="profitEventDeleting === p.id"
                     @click="deleteProfitEvent(p.id)"
                   >
-                    삭제
+                    {{ t('삭제', 'Delete') }}
                   </button>
                 </td>
               </tr>
@@ -917,10 +917,9 @@
     <div v-show="activeTab === 'dbHealth'" class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold">DB 연결 상태</h2>
+          <h2 class="text-lg font-semibold">{{ t('DB 연결 상태', 'DB Connection Status') }}</h2>
           <p class="mt-1 text-sm text-slate-400">
-            지금 배포된 버전 표시(<span class="font-data">{{ dbHealth?.marker || '…' }}</span>)를 SQLite/Supabase 양쪽에 직접 써보고
-            바로 다시 읽어서, 실제로 그 DB에 반영되는지 확인합니다. 실제 서비스 데이터와는 무관한 테스트입니다.
+            {{ t('지금 배포된 버전 표시', 'The currently deployed version marker') }}(<span class="font-data">{{ dbHealth?.marker || '…' }}</span>){{ t('를 SQLite/Supabase 양쪽에 직접 써보고 바로 다시 읽어서, 실제로 그 DB에 반영되는지 확인합니다. 실제 서비스 데이터와는 무관한 테스트입니다.', ' is written directly to both SQLite and Supabase, then read back immediately to verify it actually persists to that DB. This test is unrelated to real service data.') }}
           </p>
         </div>
         <button
@@ -928,7 +927,7 @@
           :disabled="dbHealthLoading"
           @click="runDbHealthCheck"
         >
-          {{ dbHealthLoading ? '확인 중…' : '다시 확인' }}
+          {{ dbHealthLoading ? t('확인 중…', 'Checking…') : t('다시 확인', 'Recheck') }}
         </button>
       </div>
 
@@ -940,15 +939,15 @@
           <div class="flex items-center justify-between">
             <h3 class="font-semibold text-slate-100">
               SQLite
-              <span v-if="dbHealth.activeMode === 'sqlite'" class="ml-1 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-200">현재 사용중</span>
+              <span v-if="dbHealth.activeMode === 'sqlite'" class="ml-1 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-200">{{ t('현재 사용중', 'Currently in use') }}</span>
             </h3>
-            <span :class="dbHealth.sqlite.ok ? 'text-emerald-300' : 'text-rose-300'">{{ dbHealth.sqlite.ok ? '✓ 정상 연결됨' : '✗ 실패' }}</span>
+            <span :class="dbHealth.sqlite.ok ? 'text-emerald-300' : 'text-rose-300'">{{ dbHealth.sqlite.ok ? t('✓ 정상 연결됨', '✓ Connected') : t('✗ 실패', '✗ Failed') }}</span>
           </div>
           <div class="mt-2 space-y-1 text-xs text-slate-400">
-            <div>저장된 값: <span class="font-data text-slate-200">{{ dbHealth.sqlite.marker ?? '—' }}</span></div>
-            <div>확인 시각: <span class="font-data text-slate-200">{{ dbHealth.sqlite.checkedAt ? formatKillTime(dbHealth.sqlite.checkedAt) : '—' }}</span></div>
-            <div class="truncate">경로: <span class="font-data text-slate-300">{{ dbHealth.sqlite.detail || '—' }}</span></div>
-            <div v-if="dbHealth.sqlite.error" class="text-rose-300">에러: {{ dbHealth.sqlite.error }}</div>
+            <div>{{ t('저장된 값:', 'Stored value:') }} <span class="font-data text-slate-200">{{ dbHealth.sqlite.marker ?? '—' }}</span></div>
+            <div>{{ t('확인 시각:', 'Checked at:') }} <span class="font-data text-slate-200">{{ dbHealth.sqlite.checkedAt ? formatKillTime(dbHealth.sqlite.checkedAt) : '—' }}</span></div>
+            <div class="truncate">{{ t('경로:', 'Path:') }} <span class="font-data text-slate-300">{{ dbHealth.sqlite.detail || '—' }}</span></div>
+            <div v-if="dbHealth.sqlite.error" class="text-rose-300">{{ t('에러:', 'Error:') }} {{ dbHealth.sqlite.error }}</div>
           </div>
         </div>
 
@@ -959,19 +958,19 @@
           <div class="flex items-center justify-between">
             <h3 class="font-semibold text-slate-100">
               Supabase
-              <span v-if="dbHealth.activeMode === 'supabase'" class="ml-1 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-200">현재 사용중</span>
+              <span v-if="dbHealth.activeMode === 'supabase'" class="ml-1 rounded-full bg-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-200">{{ t('현재 사용중', 'Currently in use') }}</span>
             </h3>
-            <span :class="dbHealth.supabase.ok ? 'text-emerald-300' : 'text-rose-300'">{{ dbHealth.supabase.ok ? '✓ 정상 연결됨' : '✗ 실패' }}</span>
+            <span :class="dbHealth.supabase.ok ? 'text-emerald-300' : 'text-rose-300'">{{ dbHealth.supabase.ok ? t('✓ 정상 연결됨', '✓ Connected') : t('✗ 실패', '✗ Failed') }}</span>
           </div>
           <div class="mt-2 space-y-1 text-xs text-slate-400">
-            <div>저장된 값: <span class="font-data text-slate-200">{{ dbHealth.supabase.marker ?? '—' }}</span></div>
-            <div>확인 시각: <span class="font-data text-slate-200">{{ dbHealth.supabase.checkedAt ? formatKillTime(dbHealth.supabase.checkedAt) : '—' }}</span></div>
-            <div class="truncate">프로젝트 URL: <span class="font-data text-slate-300">{{ dbHealth.supabase.detail || '—' }}</span></div>
-            <div v-if="dbHealth.supabase.error" class="text-rose-300">에러: {{ dbHealth.supabase.error }}</div>
+            <div>{{ t('저장된 값:', 'Stored value:') }} <span class="font-data text-slate-200">{{ dbHealth.supabase.marker ?? '—' }}</span></div>
+            <div>{{ t('확인 시각:', 'Checked at:') }} <span class="font-data text-slate-200">{{ dbHealth.supabase.checkedAt ? formatKillTime(dbHealth.supabase.checkedAt) : '—' }}</span></div>
+            <div class="truncate">{{ t('프로젝트 URL:', 'Project URL:') }} <span class="font-data text-slate-300">{{ dbHealth.supabase.detail || '—' }}</span></div>
+            <div v-if="dbHealth.supabase.error" class="text-rose-300">{{ t('에러:', 'Error:') }} {{ dbHealth.supabase.error }}</div>
           </div>
         </div>
       </div>
-      <p v-else-if="dbHealthLoading" class="mt-4 text-sm text-slate-400">확인 중…</p>
+      <p v-else-if="dbHealthLoading" class="mt-4 text-sm text-slate-400">{{ t('확인 중…', 'Checking…') }}</p>
       <p v-if="dbHealthError" class="mt-3 text-sm text-red-300">{{ dbHealthError }}</p>
     </div>
 
@@ -983,11 +982,11 @@
     >
       <div class="w-full max-w-md rounded-2xl border border-white/10 bg-[#10171d] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-slate-100">{{ roleModalTarget?.label }} 메뉴 권한</h3>
+          <h3 class="text-lg font-semibold text-slate-100">{{ t(`${roleModalTarget?.label} 메뉴 권한`, `${roleModalTarget?.label} Menu Permissions`) }}</h3>
           <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeRoleModal">✕</button>
         </div>
         <div class="mt-3">
-          <label class="text-xs text-slate-400">역할 이름</label>
+          <label class="text-xs text-slate-400">{{ t('역할 이름', 'Role Name') }}</label>
           <input
             v-model.trim="roleLabelDraft"
             class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
@@ -996,29 +995,29 @@
         <div class="mt-4 space-y-3">
           <div v-for="key in menuKeys" :key="key" class="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
             <div class="flex items-center justify-between">
-              <span class="text-sm text-slate-200">{{ menuMeta[key].label }}</span>
+              <span class="text-sm text-slate-200">{{ t(menuMeta[key].labelKo, menuMeta[key].labelEn) }}</span>
               <label class="flex items-center gap-1.5 text-xs text-slate-300">
                 <input v-model="roleMenuDraft[key].view" type="checkbox" class="h-4 w-4 accent-indigo-500" />
-                보임
+                {{ t('보임', 'Visible') }}
               </label>
             </div>
             <label v-if="menuMeta[key].editable" class="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
               <input v-model="roleMenuDraft[key].edit" type="checkbox" class="h-4 w-4 accent-indigo-500" :disabled="!roleMenuDraft[key].view" />
-              {{ menuMeta[key].editLabel }} 허용
+              {{ t(`${menuMeta[key].editLabelKo} 허용`, `Allow ${menuMeta[key].editLabelEn}`) }}
             </label>
           </div>
         </div>
         <p v-if="roleModalError" class="mt-3 text-sm text-red-300">{{ roleModalError }}</p>
         <div class="mt-5 grid grid-cols-2 gap-3">
           <button class="rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10" @click="closeRoleModal">
-            취소
+            {{ t('취소', 'Cancel') }}
           </button>
           <button
             class="rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
             :disabled="roleModalSaving"
             @click="saveRoleModal"
           >
-            저장
+            {{ t('저장', 'Save') }}
           </button>
         </div>
       </div>
@@ -1028,21 +1027,22 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: ['admin', 'super-admin'] })
+const { t, locale } = useLocale()
 const { me, refresh } = useMe()
 await refresh()
 
 type TabKey = 'users' | 'liquidation' | 'misc' | 'nav' | 'profitCard' | 'roles' | 'killEvents' | 'profitEvents' | 'dbHealth'
-const tabs: Array<{ key: TabKey; label: string }> = [
-  { key: 'users', label: '유저 관리' },
-  { key: 'liquidation', label: '강제청산 기준 설정' },
-  { key: 'misc', label: '정산/기타 설정' },
-  { key: 'nav', label: '메뉴구성' },
-  { key: 'profitCard', label: '카드 디자인' },
-  { key: 'roles', label: '역할 관리' },
-  { key: 'killEvents', label: '킬UP/킬DOWN 이력' },
-  { key: 'profitEvents', label: '상승STOP/하락STOP 이력' },
-  { key: 'dbHealth', label: 'DB 연결 상태' }
-]
+const tabs = computed<Array<{ key: TabKey; label: string }>>(() => [
+  { key: 'users', label: t('유저 관리', 'User Management') },
+  { key: 'liquidation', label: t('강제청산 기준 설정', 'Liquidation Threshold') },
+  { key: 'misc', label: t('정산/기타 설정', 'Settlement/Other Settings') },
+  { key: 'nav', label: t('메뉴구성', 'Menu Layout') },
+  { key: 'profitCard', label: t('카드 디자인', 'Card Design') },
+  { key: 'roles', label: t('역할 관리', 'Role Management') },
+  { key: 'killEvents', label: t('킬UP/킬DOWN 이력', 'Kill UP/DOWN History') },
+  { key: 'profitEvents', label: t('상승STOP/하락STOP 이력', 'Rise STOP/Fall STOP History') },
+  { key: 'dbHealth', label: t('DB 연결 상태', 'DB Connection Status') }
+])
 const activeTab = ref<TabKey>('users')
 
 type AdminUserRow = {
@@ -1096,10 +1096,14 @@ const pageSize = computed(() => {
   return Math.max(1, Math.min(500, Number.isFinite(n) ? Math.floor(n) : 20))
 })
 
-const banks = [
-  '국민은행', '신한은행', '우리은행', '하나은행', '농협은행', '기업은행', '카카오뱅크', '토스뱅크', '케이뱅크', '새마을금고',
-  '수협은행', 'SC제일은행', '씨티은행', '부산은행', '대구은행', '경남은행', '광주은행', '전북은행', '제주은행', '우체국'
+const bankOptions = [
+  { ko: '국민은행', en: 'KB Kookmin Bank' }, { ko: '신한은행', en: 'Shinhan Bank' }, { ko: '우리은행', en: 'Woori Bank' }, { ko: '하나은행', en: 'Hana Bank' },
+  { ko: '농협은행', en: 'NH Nonghyup Bank' }, { ko: '기업은행', en: 'IBK Industrial Bank' }, { ko: '카카오뱅크', en: 'Kakao Bank' }, { ko: '토스뱅크', en: 'Toss Bank' },
+  { ko: '케이뱅크', en: 'K Bank' }, { ko: '새마을금고', en: 'MG Community Credit Coop' }, { ko: '수협은행', en: 'Suhyup Bank' }, { ko: 'SC제일은행', en: 'SC First Bank' },
+  { ko: '씨티은행', en: 'Citibank Korea' }, { ko: '부산은행', en: 'Busan Bank' }, { ko: '대구은행', en: 'Daegu Bank' }, { ko: '경남은행', en: 'Kyongnam Bank' },
+  { ko: '광주은행', en: 'Gwangju Bank' }, { ko: '전북은행', en: 'Jeonbuk Bank' }, { ko: '제주은행', en: 'Jeju Bank' }, { ko: '우체국', en: 'Korea Post Office' }
 ]
+const banks = bankOptions.map((b) => b.ko)
 
 // 최고관리자(super_admin) 계정은 실수 방지를 위해 이 화면에서 수정할 수 없다(승격은 계속 허용).
 function isLockedUser(u: AdminUserRow) {
@@ -1224,31 +1228,31 @@ async function saveUserRow(userId: number) {
           }
     })
     await load()
-    msg.value = '저장되었습니다.'
+    msg.value = t('저장되었습니다.', 'Saved.')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '저장 실패'
+    error.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
   } finally {
     userSaving.value = null
   }
 }
 
 async function resetUserPassword(userId: number) {
-  if (process.client && !window.confirm('이 유저의 비밀번호를 아이디와 동일하게 초기화할까요?')) return
+  if (process.client && !window.confirm(t('이 유저의 비밀번호를 아이디와 동일하게 초기화할까요?', 'Reset this user\'s password to match their username?'))) return
   userResetting.value = userId
   error.value = null
   msg.value = null
   try {
     await $fetch('/api/admin/users/reset-password', { method: 'POST', body: { userId } })
-    msg.value = '비밀번호가 아이디와 동일하게 초기화되었습니다.'
+    msg.value = t('비밀번호가 아이디와 동일하게 초기화되었습니다.', 'Password reset to match username.')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '초기화 실패'
+    error.value = e?.data?.statusMessage || t('초기화 실패', 'Reset failed')
   } finally {
     userResetting.value = null
   }
 }
 
 async function loginAsUser(userId: number) {
-  if (process.client && !window.confirm('이 유저 계정으로 새 창에서 로그인할까요? (관리자 세션은 이 창에 그대로 유지됩니다)')) return
+  if (process.client && !window.confirm(t('이 유저 계정으로 새 창에서 로그인할까요? (관리자 세션은 이 창에 그대로 유지됩니다)', 'Log in as this user in a new window? (Your admin session stays active in this window.)'))) return
   // 팝업 차단을 피하려면 window.open은 클릭 핸들러 안에서 await 전에(동기적으로) 호출해야 한다.
   const win = process.client ? window.open('about:blank', '_blank') : null
   loggingInAs.value = userId
@@ -1266,7 +1270,7 @@ async function loginAsUser(userId: number) {
       }
     }
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '로그인 실패'
+    error.value = e?.data?.statusMessage || t('로그인 실패', 'Login failed')
     win?.close()
   } finally {
     loggingInAs.value = null
@@ -1311,7 +1315,7 @@ async function saveAccountModal() {
     await load()
     closeAccountModal()
   } catch (e: any) {
-    accountModalError.value = e?.data?.statusMessage || '저장 실패'
+    accountModalError.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
   } finally {
     accountModalSaving.value = false
   }
@@ -1320,15 +1324,15 @@ async function saveAccountModal() {
 // 역할 관리(역할별 관리자 메뉴 권한)
 type MenuKey = 'members' | 'online' | 'trades' | 'transfers' | 'positions' | 'messages' | 'settlement' | 'deposits'
 const menuKeys: MenuKey[] = ['members', 'online', 'trades', 'transfers', 'positions', 'messages', 'settlement', 'deposits']
-const menuMeta: Record<MenuKey, { label: string; editable: boolean; editLabel?: string }> = {
-  members: { label: '회원 목록', editable: true, editLabel: '보유금액 수정' },
-  online: { label: '실시간 접속', editable: false },
-  trades: { label: '거래 내역', editable: false },
-  transfers: { label: '입출금 내역', editable: false },
-  positions: { label: '포지션 목록', editable: true, editLabel: '포지션 수정' },
-  messages: { label: '쪽지관리', editable: true, editLabel: '쪽지 답장 권한' },
-  settlement: { label: '정산내역', editable: false },
-  deposits: { label: '입출금 내역', editable: true, editLabel: '입금/출금 승인/거절' }
+const menuMeta: Record<MenuKey, { labelKo: string; labelEn: string; editable: boolean; editLabelKo?: string; editLabelEn?: string }> = {
+  members: { labelKo: '회원 목록', labelEn: 'Member List', editable: true, editLabelKo: '보유금액 수정', editLabelEn: 'Edit Balance' },
+  online: { labelKo: '실시간 접속', labelEn: 'Live Sessions', editable: false },
+  trades: { labelKo: '거래 내역', labelEn: 'Trade History', editable: false },
+  transfers: { labelKo: '입출금 내역', labelEn: 'Deposit/Withdrawal History', editable: false },
+  positions: { labelKo: '포지션 목록', labelEn: 'Position List', editable: true, editLabelKo: '포지션 수정', editLabelEn: 'Edit Positions' },
+  messages: { labelKo: '쪽지관리', labelEn: 'Message Management', editable: true, editLabelKo: '쪽지 답장 권한', editLabelEn: 'Message Reply Permission' },
+  settlement: { labelKo: '정산내역', labelEn: 'Settlement History', editable: false },
+  deposits: { labelKo: '입출금 내역', labelEn: 'Deposit/Withdrawal History', editable: true, editLabelKo: '입금/출금 승인/거절', editLabelEn: 'Approve/Reject Deposits/Withdrawals' }
 }
 type RoleRow = { id: string; label: string; menus: Record<MenuKey, { view: boolean; edit: boolean }>; tier: number; createdAt: string }
 const roles = ref<RoleRow[]>([])
@@ -1368,7 +1372,7 @@ async function loadRoles() {
       if (savingTierId.value !== r.id) tierDraft[r.id] = String(r.tier)
     }
   } catch (e: any) {
-    rolesError.value = e?.data?.statusMessage || '역할 목록 불러오기 실패'
+    rolesError.value = e?.data?.statusMessage || t('역할 목록 불러오기 실패', 'Failed to load role list')
   } finally {
     rolesLoading.value = false
   }
@@ -1388,7 +1392,7 @@ async function saveRoleTier(r: RoleRow) {
     await $fetch('/api/admin/roles/update', { method: 'POST', body: { id: r.id, tier } })
     await loadRoles()
   } catch (e: any) {
-    rolesError.value = e?.data?.statusMessage || '등급 변경 실패'
+    rolesError.value = e?.data?.statusMessage || t('등급 변경 실패', 'Failed to change tier')
     tierDraft[r.id] = String(r.tier)
   } finally {
     savingTierId.value = null
@@ -1409,7 +1413,7 @@ async function moveRoleRank(idx: number, dir: -1 | 1) {
       body: { order: arr.map((r) => r.id) }
     })
   } catch (e: any) {
-    rolesError.value = e?.data?.statusMessage || '순서 변경 실패'
+    rolesError.value = e?.data?.statusMessage || t('순서 변경 실패', 'Failed to change order')
     await loadRoles()
   } finally {
     reorderingRoles.value = false
@@ -1419,7 +1423,7 @@ async function moveRoleRank(idx: number, dir: -1 | 1) {
 async function createRoleClick() {
   newRoleError.value = null
   if (!newRoleId.value || !newRoleLabel.value) {
-    newRoleError.value = '역할 ID와 이름을 모두 입력해주세요.'
+    newRoleError.value = t('역할 ID와 이름을 모두 입력해주세요.', 'Please enter both a role ID and a name.')
     return
   }
   creatingRole.value = true
@@ -1432,21 +1436,21 @@ async function createRoleClick() {
     newRoleLabel.value = ''
     await loadRoles()
   } catch (e: any) {
-    newRoleError.value = e?.data?.statusMessage || '역할 추가 실패'
+    newRoleError.value = e?.data?.statusMessage || t('역할 추가 실패', 'Failed to add role')
   } finally {
     creatingRole.value = false
   }
 }
 
 async function deleteRoleClick(r: RoleRow) {
-  if (process.client && !window.confirm(`"${r.label}" 역할을 삭제할까요?`)) return
+  if (process.client && !window.confirm(t(`"${r.label}" 역할을 삭제할까요?`, `Delete the "${r.label}" role?`))) return
   deletingRoleId.value = r.id
   rolesError.value = null
   try {
     await $fetch('/api/admin/roles/delete', { method: 'POST', body: { id: r.id } })
     await loadRoles()
   } catch (e: any) {
-    rolesError.value = e?.data?.statusMessage || '역할 삭제 실패'
+    rolesError.value = e?.data?.statusMessage || t('역할 삭제 실패', 'Failed to delete role')
   } finally {
     deletingRoleId.value = null
   }
@@ -1482,7 +1486,7 @@ async function saveRoleModal() {
     await loadRoles()
     closeRoleModal()
   } catch (e: any) {
-    roleModalError.value = e?.data?.statusMessage || '저장 실패'
+    roleModalError.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
   } finally {
     roleModalSaving.value = false
   }
@@ -1515,7 +1519,7 @@ async function loadKillEvents() {
     const data = await $fetch<{ items: KillEventRow[] }>('/api/admin/kill/list')
     killEvents.value = data.items || []
   } catch (e: any) {
-    killEventsError.value = e?.data?.statusMessage || '킬 이력 불러오기 실패'
+    killEventsError.value = e?.data?.statusMessage || t('킬 이력 불러오기 실패', 'Failed to load kill history')
   } finally {
     killEventsLoading.value = false
   }
@@ -1528,7 +1532,7 @@ async function deleteKillEvent(id: number) {
     await $fetch('/api/admin/kill/delete', { method: 'POST', body: { id } })
     killEvents.value = killEvents.value.filter((k) => k.id !== id)
   } catch (e: any) {
-    killEventsError.value = e?.data?.statusMessage || '삭제 실패'
+    killEventsError.value = e?.data?.statusMessage || t('삭제 실패', 'Delete failed')
   } finally {
     killEventDeleting.value = null
   }
@@ -1556,7 +1560,7 @@ async function loadProfitEvents() {
     const data = await $fetch<{ items: ProfitEventRow[] }>('/api/admin/profit/list')
     profitEvents.value = data.items || []
   } catch (e: any) {
-    profitEventsError.value = e?.data?.statusMessage || '상승STOP/하락STOP 이력 불러오기 실패'
+    profitEventsError.value = e?.data?.statusMessage || t('상승STOP/하락STOP 이력 불러오기 실패', 'Failed to load Rise STOP/Fall STOP history')
   } finally {
     profitEventsLoading.value = false
   }
@@ -1569,7 +1573,7 @@ async function deleteProfitEvent(id: number) {
     await $fetch('/api/admin/profit/delete', { method: 'POST', body: { id } })
     profitEvents.value = profitEvents.value.filter((p) => p.id !== id)
   } catch (e: any) {
-    profitEventsError.value = e?.data?.statusMessage || '삭제 실패'
+    profitEventsError.value = e?.data?.statusMessage || t('삭제 실패', 'Delete failed')
   } finally {
     profitEventDeleting.value = null
   }
@@ -1595,7 +1599,7 @@ async function loadLiquidationSetting() {
 async function saveLiquidationSetting() {
   const percent = Math.round(Number(liquidationPercentDraft.value))
   if (!Number.isFinite(percent) || percent < 1 || percent > 99) {
-    liquidationSettingError.value = '1~99 사이의 숫자를 입력해주세요.'
+    liquidationSettingError.value = t('1~99 사이의 숫자를 입력해주세요.', 'Please enter a number between 1 and 99.')
     return
   }
   liquidationSettingSaving.value = true
@@ -1608,9 +1612,9 @@ async function saveLiquidationSetting() {
     })
     liquidationPercent.value = Math.abs(res.liquidationRoe)
     liquidationPercentDraft.value = liquidationPercent.value
-    liquidationSettingMsg.value = '저장되었습니다. 모든 유저에게 실시간으로 반영됩니다.'
+    liquidationSettingMsg.value = t('저장되었습니다. 모든 유저에게 실시간으로 반영됩니다.', 'Saved. This applies to all users in real time.')
   } catch (e: any) {
-    liquidationSettingError.value = e?.data?.statusMessage || '저장 실패'
+    liquidationSettingError.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
   } finally {
     liquidationSettingSaving.value = false
   }
@@ -1635,7 +1639,7 @@ async function load() {
       }
     }
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '불러오기 실패'
+    error.value = e?.data?.statusMessage || t('불러오기 실패', 'Failed to load')
   } finally {
     loading.value = false
   }
@@ -1665,14 +1669,14 @@ const dailyKrwRateDay = ref('')
 // 메뉴구성: 비회원도 보는 최상단 메인 메뉴(관리자 전용 서브메뉴와는 별개)
 type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'wallet' | 'invest' | 'support'
 const MAIN_NAV_KEYS: MainNavKey[] = ['coin', 'stock', 'kr', 'markets', 'wallet', 'invest', 'support']
-const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
-  coin: '코인선물',
-  stock: '해외주식',
-  kr: '국내주식',
-  markets: '마켓',
-  wallet: '내 지갑',
-  invest: '투자내역',
-  support: '고객센터'
+const MAIN_NAV_LABELS: Record<MainNavKey, { ko: string; en: string }> = {
+  coin: { ko: '코인선물', en: 'Crypto Futures' },
+  stock: { ko: '해외주식', en: 'Overseas Stocks' },
+  kr: { ko: '국내주식', en: 'Domestic Stocks' },
+  markets: { ko: '마켓', en: 'Markets' },
+  wallet: { ko: '내 지갑', en: 'My Wallet' },
+  invest: { ko: '투자내역', en: 'Investment History' },
+  support: { ko: '고객센터', en: 'Support' }
 }
 const mainNavDraft = reactive<{ order: MainNavKey[]; hidden: MainNavKey[] }>({
   order: [...MAIN_NAV_KEYS],
@@ -1755,12 +1759,12 @@ const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
 }
 
 const PROFIT_CARD_FONT_OPTIONS = [
-  { value: 'ui-sans-serif, system-ui, sans-serif', label: '기본(시스템 폰트)' },
-  { value: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif", label: '맑은 고딕' },
-  { value: "Georgia, 'Times New Roman', serif", label: '세리프(Georgia)' },
-  { value: "'Courier New', ui-monospace, monospace", label: '고정폭(Courier New)' },
-  { value: "'Trebuchet MS', 'Segoe UI', sans-serif", label: 'Trebuchet MS' },
-  { value: 'Arial, Helvetica, sans-serif', label: 'Arial' }
+  { value: 'ui-sans-serif, system-ui, sans-serif', labelKo: '기본(시스템 폰트)', labelEn: 'Default (System Font)' },
+  { value: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif", labelKo: '맑은 고딕', labelEn: 'Malgun Gothic' },
+  { value: "Georgia, 'Times New Roman', serif", labelKo: '세리프(Georgia)', labelEn: 'Serif (Georgia)' },
+  { value: "'Courier New', ui-monospace, monospace", labelKo: '고정폭(Courier New)', labelEn: 'Monospace (Courier New)' },
+  { value: "'Trebuchet MS', 'Segoe UI', sans-serif", labelKo: 'Trebuchet MS', labelEn: 'Trebuchet MS' },
+  { value: 'Arial, Helvetica, sans-serif', labelKo: 'Arial', labelEn: 'Arial' }
 ]
 
 type ProfitCardTarget = 'card' | 'logo' | 'roe' | 'won' | 'badge' | 'symbol' | 'statBox' | 'statLabel' | 'statValue'
@@ -1769,69 +1773,69 @@ function selectTarget(t: ProfitCardTarget) {
   selectedTarget.value = t
 }
 
-const PROFIT_CARD_TARGET_LABELS: Record<ProfitCardTarget, string> = {
-  card: '카드 전체',
-  logo: '로고(BITDUCK)',
-  roe: '수익률(%) 큰 글씨',
-  won: '원화 보조텍스트',
-  badge: '롱/숏 배지',
-  symbol: '종목명',
-  statBox: '하단 정보박스(공통)',
-  statLabel: '정보박스 라벨',
-  statValue: '정보박스 값'
+const PROFIT_CARD_TARGET_LABELS: Record<ProfitCardTarget, { ko: string; en: string }> = {
+  card: { ko: '카드 전체', en: 'Whole Card' },
+  logo: { ko: '로고(BITDUCK)', en: 'Logo (BITDUCK)' },
+  roe: { ko: '수익률(%) 큰 글씨', en: 'ROE (%) Large Text' },
+  won: { ko: '원화 보조텍스트', en: 'KRW Subtext' },
+  badge: { ko: '롱/숏 배지', en: 'Long/Short Badge' },
+  symbol: { ko: '종목명', en: 'Symbol Name' },
+  statBox: { ko: '하단 정보박스(공통)', en: 'Bottom Info Box (Shared)' },
+  statLabel: { ko: '정보박스 라벨', en: 'Info Box Label' },
+  statValue: { ko: '정보박스 값', en: 'Info Box Value' }
 }
-const PROFIT_CARD_TARGET_HINTS: Partial<Record<ProfitCardTarget, string>> = {
-  statValue: '"손익" 값의 색은 위 "수익률" 항목의 수익(+)/손실(-) 색을 그대로 따릅니다.',
-  badge: '롱/숏 각각 배경색·글자색을 따로 지정할 수 있습니다.'
+const PROFIT_CARD_TARGET_HINTS: Partial<Record<ProfitCardTarget, { ko: string; en: string }>> = {
+  statValue: { ko: '"손익" 값의 색은 위 "수익률" 항목의 수익(+)/손실(-) 색을 그대로 따릅니다.', en: 'The color of the "P&L" value follows the profit(+)/loss(-) color from the "ROE" item above.' },
+  badge: { ko: '롱/숏 각각 배경색·글자색을 따로 지정할 수 있습니다.', en: 'You can set separate background and text colors for Long and Short.' }
 }
 
-type ProfitCardNumField = { key: keyof ProfitCardStyle; label: string; min: number; max: number }
-type ProfitCardColorField = { key: keyof ProfitCardStyle; label: string }
+type ProfitCardNumField = { key: keyof ProfitCardStyle; labelKo: string; labelEn: string; min: number; max: number }
+type ProfitCardColorField = { key: keyof ProfitCardStyle; labelKo: string; labelEn: string }
 
 const PROFIT_CARD_TARGET_NUMBER_FIELDS: Record<ProfitCardTarget, ProfitCardNumField[]> = {
   card: [
-    { key: 'cardWidth', label: '카드 너비', min: 260, max: 420 },
-    { key: 'cardPaddingX', label: '가로 여백', min: 8, max: 48 },
-    { key: 'cardPaddingY', label: '세로 여백', min: 8, max: 56 },
-    { key: 'cardRadius', label: '모서리 둥글기', min: 0, max: 32 },
-    { key: 'borderWidth', label: '테두리 두께', min: 0, max: 4 },
-    { key: 'gridSize', label: '격자 크기', min: 8, max: 48 }
+    { key: 'cardWidth', labelKo: '카드 너비', labelEn: 'Card Width', min: 260, max: 420 },
+    { key: 'cardPaddingX', labelKo: '가로 여백', labelEn: 'Horizontal Padding', min: 8, max: 48 },
+    { key: 'cardPaddingY', labelKo: '세로 여백', labelEn: 'Vertical Padding', min: 8, max: 56 },
+    { key: 'cardRadius', labelKo: '모서리 둥글기', labelEn: 'Corner Radius', min: 0, max: 32 },
+    { key: 'borderWidth', labelKo: '테두리 두께', labelEn: 'Border Width', min: 0, max: 4 },
+    { key: 'gridSize', labelKo: '격자 크기', labelEn: 'Grid Size', min: 8, max: 48 }
   ],
-  logo: [{ key: 'logoFontSize', label: '글자 크기', min: 10, max: 28 }],
-  roe: [{ key: 'roeFontSize', label: '글자 크기', min: 24, max: 60 }],
-  won: [{ key: 'wonFontSize', label: '글자 크기', min: 10, max: 28 }],
-  badge: [{ key: 'badgeFontSize', label: '글자 크기', min: 10, max: 22 }],
-  symbol: [{ key: 'symbolFontSize', label: '글자 크기', min: 10, max: 26 }],
+  logo: [{ key: 'logoFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 28 }],
+  roe: [{ key: 'roeFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 24, max: 60 }],
+  won: [{ key: 'wonFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 28 }],
+  badge: [{ key: 'badgeFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 22 }],
+  symbol: [{ key: 'symbolFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 26 }],
   statBox: [
-    { key: 'statBoxRadius', label: '모서리 둥글기', min: 0, max: 24 },
-    { key: 'statBoxPaddingX', label: '가로 여백', min: 4, max: 32 },
-    { key: 'statBoxPaddingY', label: '세로 여백', min: 4, max: 32 }
+    { key: 'statBoxRadius', labelKo: '모서리 둥글기', labelEn: 'Corner Radius', min: 0, max: 24 },
+    { key: 'statBoxPaddingX', labelKo: '가로 여백', labelEn: 'Horizontal Padding', min: 4, max: 32 },
+    { key: 'statBoxPaddingY', labelKo: '세로 여백', labelEn: 'Vertical Padding', min: 4, max: 32 }
   ],
-  statLabel: [{ key: 'statLabelFontSize', label: '글자 크기', min: 8, max: 18 }],
-  statValue: [{ key: 'statValueFontSize', label: '글자 크기', min: 10, max: 24 }]
+  statLabel: [{ key: 'statLabelFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 8, max: 18 }],
+  statValue: [{ key: 'statValueFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 24 }]
 }
 const PROFIT_CARD_TARGET_COLOR_FIELDS: Record<ProfitCardTarget, ProfitCardColorField[]> = {
   card: [
-    { key: 'borderColor', label: '테두리 색' },
-    { key: 'bgColor', label: '배경색' },
-    { key: 'gridColor', label: '격자무늬 색' }
+    { key: 'borderColor', labelKo: '테두리 색', labelEn: 'Border Color' },
+    { key: 'bgColor', labelKo: '배경색', labelEn: 'Background Color' },
+    { key: 'gridColor', labelKo: '격자무늬 색', labelEn: 'Grid Pattern Color' }
   ],
-  logo: [{ key: 'logoColor', label: '글자색' }],
+  logo: [{ key: 'logoColor', labelKo: '글자색', labelEn: 'Text Color' }],
   roe: [
-    { key: 'positiveColor', label: '수익(+) 색' },
-    { key: 'negativeColor', label: '손실(-) 색' }
+    { key: 'positiveColor', labelKo: '수익(+) 색', labelEn: 'Profit (+) Color' },
+    { key: 'negativeColor', labelKo: '손실(-) 색', labelEn: 'Loss (-) Color' }
   ],
-  won: [{ key: 'wonTextColor', label: '글자색' }],
+  won: [{ key: 'wonTextColor', labelKo: '글자색', labelEn: 'Text Color' }],
   badge: [
-    { key: 'longBadgeBg', label: '롱 배경색' },
-    { key: 'longBadgeText', label: '롱 글자색' },
-    { key: 'shortBadgeBg', label: '숏 배경색' },
-    { key: 'shortBadgeText', label: '숏 글자색' }
+    { key: 'longBadgeBg', labelKo: '롱 배경색', labelEn: 'Long Background Color' },
+    { key: 'longBadgeText', labelKo: '롱 글자색', labelEn: 'Long Text Color' },
+    { key: 'shortBadgeBg', labelKo: '숏 배경색', labelEn: 'Short Background Color' },
+    { key: 'shortBadgeText', labelKo: '숏 글자색', labelEn: 'Short Text Color' }
   ],
-  symbol: [{ key: 'symbolTextColor', label: '글자색' }],
-  statBox: [{ key: 'statBoxBg', label: '배경색' }],
-  statLabel: [{ key: 'statLabelColor', label: '글자색' }],
-  statValue: [{ key: 'statValueColor', label: '글자색' }]
+  symbol: [{ key: 'symbolTextColor', labelKo: '글자색', labelEn: 'Text Color' }],
+  statBox: [{ key: 'statBoxBg', labelKo: '배경색', labelEn: 'Background Color' }],
+  statLabel: [{ key: 'statLabelColor', labelKo: '글자색', labelEn: 'Text Color' }],
+  statValue: [{ key: 'statValueColor', labelKo: '글자색', labelEn: 'Text Color' }]
 }
 const currentNumberFields = computed(() => PROFIT_CARD_TARGET_NUMBER_FIELDS[selectedTarget.value])
 const currentColorFields = computed(() => PROFIT_CARD_TARGET_COLOR_FIELDS[selectedTarget.value])
@@ -1839,10 +1843,12 @@ const currentColorFields = computed(() => PROFIT_CARD_TARGET_COLOR_FIELDS[select
 const PROFIT_CARD_PREVIEW_VARIANTS = [
   {
     key: 'profit',
-    title: '수익일 때',
+    titleKo: '수익일 때',
+    titleEn: 'When profitable',
     positive: true,
     roeText: '+12.34%',
-    wonText: '+173,407 원',
+    wonTextKo: '+173,407 원',
+    wonTextEn: '+₩173,407',
     side: 'long' as const,
     symbol: 'SAMSUNGUSDT',
     leverage: 10,
@@ -1852,10 +1858,12 @@ const PROFIT_CARD_PREVIEW_VARIANTS = [
   },
   {
     key: 'loss',
-    title: '손실일 때',
+    titleKo: '손실일 때',
+    titleEn: 'When at a loss',
     positive: false,
     roeText: '-8.21%',
-    wonText: '-54,320 원',
+    wonTextKo: '-54,320 원',
+    wonTextEn: '-₩54,320',
     side: 'short' as const,
     symbol: 'SKHYNIXUSDT',
     leverage: 10,
@@ -1879,9 +1887,9 @@ async function saveProfitCardStyle() {
   profitCardMsg.value = null
   try {
     await $fetch('/api/admin/settings/misc', { method: 'POST', body: { profitCardStyle: { ...profitCardDraft } } })
-    profitCardMsg.value = '저장되었습니다.'
+    profitCardMsg.value = t('저장되었습니다.', 'Saved.')
   } catch (e: any) {
-    profitCardError.value = e?.data?.statusMessage || '저장 실패'
+    profitCardError.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
   } finally {
     profitCardSaving.value = false
   }
@@ -1905,9 +1913,9 @@ async function saveMainNavSettings() {
       method: 'POST',
       body: { mainNavOrder: mainNavDraft.order, mainNavHidden: mainNavDraft.hidden }
     })
-    mainNavMsg.value = '저장되었습니다.'
+    mainNavMsg.value = t('저장되었습니다.', 'Saved.')
   } catch (e: any) {
-    mainNavError.value = e?.data?.statusMessage || '저장 실패'
+    mainNavError.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
   } finally {
     mainNavSaving.value = false
   }
@@ -1966,9 +1974,9 @@ async function saveMiscSettings() {
         menuOrder: miscDraft.menuOrder
       }
     })
-    miscMsg.value = '저장되었습니다.'
+    miscMsg.value = t('저장되었습니다.', 'Saved.')
   } catch (e: any) {
-    miscError.value = e?.data?.statusMessage || '저장 실패'
+    miscError.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
   } finally {
     miscSaving.value = false
   }
@@ -1988,7 +1996,7 @@ async function runDbHealthCheck() {
   try {
     dbHealth.value = await $fetch<DbHealthResponse>('/api/admin/db-health-check', { method: 'POST' })
   } catch (e: any) {
-    dbHealthError.value = e?.data?.statusMessage || '확인 중 오류가 발생했습니다.'
+    dbHealthError.value = e?.data?.statusMessage || t('확인 중 오류가 발생했습니다.', 'An error occurred during the check.')
   } finally {
     dbHealthLoading.value = false
   }

@@ -48,7 +48,7 @@
                   class="flex items-center gap-1 rounded px-2 py-1 text-[12px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
                   @click="indicatorMenuOpen = !indicatorMenuOpen; timeframeMenuOpen = false"
                 >
-                  <span>보조지표</span>
+                  <span>{{ t('보조지표', 'Indicators') }}</span>
                   <span class="text-[9px]">▾</span>
                 </button>
                 <div
@@ -58,11 +58,12 @@
                   <input
                     v-model="indicatorSearch"
                     type="text"
-                    placeholder="지표 검색 (한글/영문)"
+                    :placeholder="t('지표 검색 (한글/영문)', 'Search indicators (Korean/English)')"
+                    :key="`indicator-search-${locale}`"
                     class="mb-2 w-full rounded bg-[#131722] px-2 py-1.5 text-[11px] text-white placeholder:text-[#5d6472] focus:outline-none"
                   />
                   <div class="max-h-72 overflow-y-auto overscroll-contain pr-1">
-                    <div v-if="filteredOverlayIndicators.length" class="mb-1 px-1 pt-1 text-[10px] font-semibold text-[#868993]">상단 지표</div>
+                    <div v-if="filteredOverlayIndicators.length" class="mb-1 px-1 pt-1 text-[10px] font-semibold text-[#868993]">{{ t('상단 지표', 'Overlay indicators') }}</div>
                     <button
                       v-for="ind in filteredOverlayIndicators"
                       :key="ind.id"
@@ -77,7 +78,7 @@
                       <span class="truncate">{{ ind.labelKo }}</span>
                       <span class="ml-auto truncate text-[9px] text-[#5d6472]">{{ ind.labelEn }}</span>
                     </button>
-                    <div v-if="filteredOscillatorIndicators.length" class="mb-1 mt-2 px-1 pt-1 text-[10px] font-semibold text-[#868993]">하단 지표</div>
+                    <div v-if="filteredOscillatorIndicators.length" class="mb-1 mt-2 px-1 pt-1 text-[10px] font-semibold text-[#868993]">{{ t('하단 지표', 'Oscillator indicators') }}</div>
                     <button
                       v-for="ind in filteredOscillatorIndicators"
                       :key="ind.id"
@@ -93,13 +94,13 @@
                       <span class="ml-auto truncate text-[9px] text-[#5d6472]">{{ ind.labelEn }}</span>
                     </button>
                     <div v-if="!filteredOverlayIndicators.length && !filteredOscillatorIndicators.length" class="px-2 py-3 text-center text-[11px] text-[#5d6472]">
-                      검색 결과가 없습니다
+                      {{ t('검색 결과가 없습니다', 'No results found') }}
                     </div>
                   </div>
                 </div>
               </div>
               <button class="hidden rounded px-2 py-1 text-[12px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllIndicators">
-                지표모두삭제
+                {{ t('지표모두삭제', 'Clear all indicators') }}
               </button>
               </div>
           </div>
@@ -116,10 +117,10 @@
                 {{ currentCandleMeta.changeText }}
               </span>
             </div>
-            <div class="text-[#868993]">시가 <span class="ml-1 font-mono text-[#d1d4dc]">{{ currentCandleMeta.open }}</span></div>
-            <div class="text-[#868993]">고가 <span class="ml-1 font-mono text-[#22ab94]">{{ currentCandleMeta.high }}</span></div>
-            <div class="text-[#868993]">저가 <span class="ml-1 font-mono text-[#f23645]">{{ currentCandleMeta.low }}</span></div>
-            <div class="text-[#868993]">거래량 <span class="ml-1 font-mono text-[#d1d4dc]">{{ vol24 ? fmtNum(vol24) : '—' }}</span></div>
+            <div class="text-[#868993]">{{ t('시가', 'Open') }} <span class="ml-1 font-mono text-[#d1d4dc]">{{ currentCandleMeta.open }}</span></div>
+            <div class="text-[#868993]">{{ t('고가', 'High') }} <span class="ml-1 font-mono text-[#22ab94]">{{ currentCandleMeta.high }}</span></div>
+            <div class="text-[#868993]">{{ t('저가', 'Low') }} <span class="ml-1 font-mono text-[#f23645]">{{ currentCandleMeta.low }}</span></div>
+            <div class="text-[#868993]">{{ t('거래량', 'Volume') }} <span class="ml-1 font-mono text-[#d1d4dc]">{{ vol24 ? fmtNum(vol24) : '—' }}</span></div>
             <div class="ml-auto flex items-center gap-2 text-[11px]">
               <div v-if="isSuperAdminUser" class="mr-2 flex items-center gap-1">
                 <button
@@ -128,7 +129,7 @@
                   :disabled="adminProfitBusy || adminKillBusy"
                   @click="openProfitModal('up')"
                 >
-                  상승STOP
+                  {{ t('상승STOP', 'UP STOP') }}
                 </button>
                 <button
                   type="button"
@@ -136,7 +137,7 @@
                   :disabled="adminProfitBusy || adminKillBusy"
                   @click="openProfitModal('down')"
                 >
-                  하락STOP
+                  {{ t('하락STOP', 'DOWN STOP') }}
                 </button>
                 <div class="mx-1 h-4 w-px bg-white/10" />
                 <button
@@ -145,7 +146,7 @@
                   :disabled="adminKillBusy || adminProfitBusy"
                   @click="openKillModal('up')"
                 >
-                  킬UP
+                  {{ t('킬UP', 'KILL UP') }}
                 </button>
                 <button
                   type="button"
@@ -153,12 +154,12 @@
                   :disabled="adminKillBusy || adminProfitBusy"
                   @click="openKillModal('down')"
                 >
-                  킬DOWN
+                  {{ t('킬DOWN', 'KILL DOWN') }}
                 </button>
               </div>
               <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
                 <span class="h-1.5 w-1.5 rounded-full" :class="wsStatus === 'open' ? 'bg-[#22ab94]' : 'bg-[#f23645]'" />
-                {{ wsStatus === 'open' ? '실시간' : '끊김' }}
+                {{ wsStatus === 'open' ? t('실시간', 'Live') : t('끊김', 'Disconnected') }}
               </span>
               <span class="text-[#868993]">{{ chartClockDisplay }}</span>
             </div>
@@ -172,7 +173,8 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'cursor' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="커서"
+              :title="t('커서', 'Cursor')"
+              :key="`tool-cursor-${locale}`"
               @click="selectTool('cursor')"
             >
               ✛
@@ -181,7 +183,8 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'trend' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="추세선 (Alt+T)"
+              :title="t('추세선 (Alt+T)', 'Trend Line (Alt+T)')"
+              :key="`tool-trend-${locale}`"
               @click="selectTool('trend')"
             >
               ／
@@ -190,7 +193,8 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'hline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="수평선 (Alt+H / Alt+G / Alt+J)"
+              :title="t('수평선 (Alt+H / Alt+G / Alt+J)', 'Horizontal Line (Alt+H / Alt+G / Alt+J)')"
+              :key="`tool-hline-${locale}`"
               @click="selectTool('hline')"
             >
               ㅡ
@@ -199,7 +203,8 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'vline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="수직선 (Alt+I)"
+              :title="t('수직선 (Alt+I)', 'Vertical Line (Alt+I)')"
+              :key="`tool-vline-${locale}`"
               @click="selectTool('vline')"
             >
               │
@@ -208,7 +213,8 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'circle' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="원 (Alt+O)"
+              :title="t('원 (Alt+O)', 'Circle (Alt+O)')"
+              :key="`tool-circle-${locale}`"
               @click="selectTool('circle')"
             >
               ○
@@ -217,7 +223,8 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
               :class="activeTool === 'rect' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="사각형 (Alt+P)"
+              :title="t('사각형 (Alt+P)', 'Rectangle (Alt+P)')"
+              :key="`tool-rect-${locale}`"
               @click="selectTool('rect')"
             >
               ▭
@@ -227,16 +234,17 @@
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded text-[10px] transition"
               :class="chartPrefs.indicators.bol.enabled ? 'bg-[#f59e0b] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              title="볼린저밴드(20, 2)"
+              :title="t('볼린저밴드(20, 2)', 'Bollinger Bands (20, 2)')"
+              :key="`tool-bol-${locale}`"
               @click="toggleIndicator('bol')"
             >
               BOL
             </button>
             <div class="mt-auto flex flex-col gap-1">
-              <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" title="전체보기" @click="fitChartContent">
+              <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" :title="t('전체보기', 'Fit Content')" :key="`tool-fit-${locale}`" @click="fitChartContent">
                 ⤢
               </button>
-              <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" title="도구삭제" @click="clearAllDrawings">
+              <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" :title="t('도구삭제', 'Clear Drawings')" :key="`tool-clear-${locale}`" @click="clearAllDrawings">
                 ⌫
               </button>
             </div>
@@ -249,20 +257,20 @@
                 <span>{{ timeframe }}</span>
               </div>
               <div class="flex items-center gap-3">
-                <span>고가 {{ visibleHigh ? fmtPrice(visibleHigh) : '—' }}</span>
-                <span>저가 {{ visibleLow ? fmtPrice(visibleLow) : '—' }}</span>
+                <span>{{ t('고가', 'High') }} {{ visibleHigh ? fmtPrice(visibleHigh) : '—' }}</span>
+                <span>{{ t('저가', 'Low') }} {{ visibleLow ? fmtPrice(visibleLow) : '—' }}</span>
               </div>
             </div>
             <div v-if="drawingHintVisible" class="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
               <div class="pointer-events-auto flex items-center gap-2 rounded-md bg-[#1e222d]/95 px-3 py-2 text-[12px] text-[#d1d4dc] shadow-[0_10px_30px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
                 <span class="text-[#2962ff]">+</span>
-                <span>차트에서 원하는 위치를 선택하세요</span>
+                <span>{{ t('차트에서 원하는 위치를 선택하세요', 'Select a position on the chart') }}</span>
                 <button
                   type="button"
                   class="ml-1 rounded bg-white/10 px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-white/15 hover:text-white"
                   @click="selectTool('cursor')"
                 >
-                  취소 [Esc]
+                  {{ t('취소 [Esc]', 'Cancel [Esc]') }}
                 </button>
               </div>
             </div>
@@ -358,13 +366,13 @@
         :style="{ height: MATCHED_PANEL_HEIGHT + 'px' }"
       >
         <div class="flex items-center justify-between">
-          <div class="text-[15px] font-semibold text-slate-100">호가</div>
+          <div class="text-[15px] font-semibold text-slate-100">{{ t('호가', 'Order Book') }}</div>
         </div>
 
         <div class="mt-3 grid grid-cols-3 gap-2 text-[13px] text-slate-500">
-          <div>가격</div>
-          <div class="text-center">수량</div>
-          <div class="text-right">총금액</div>
+          <div>{{ t('가격', 'Price') }}</div>
+          <div class="text-center">{{ t('수량', 'Quantity') }}</div>
+          <div class="text-right">{{ t('총금액', 'Total') }}</div>
         </div>
 
         <div class="mt-2 rounded-lg bg-[#031019] p-2 ring-1 ring-cyan-500/10">
@@ -424,10 +432,10 @@
 
       <!-- 보유자산/주문 -->
       <section class="order-2 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
-        <div class="text-[15px] font-semibold text-slate-100">주문</div>
+        <div class="text-[15px] font-semibold text-slate-100">{{ t('주문', 'Order') }}</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
-          주문하려면 <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">로그인</NuxtLink>이 필요합니다.
+          {{ t('주문하려면', 'You need to') }} <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">{{ t('로그인', 'log in') }}</NuxtLink>{{ t('이 필요합니다.', ' to place an order.') }}
         </div>
 
         <div v-else class="mt-3 flex flex-col rounded-lg bg-[#031019] px-4 pt-4 pb-[40px] ring-1 ring-cyan-500/10">
@@ -435,15 +443,15 @@
             <!-- 레버리지 (첨부2 스타일) -->
             <div class="overflow-hidden rounded-lg border border-white/10 bg-[#071722] p-2.5">
               <div class="flex items-center justify-between">
-                <div class="text-[15px] font-semibold text-slate-100">레버리지</div>
+                <div class="text-[15px] font-semibold text-slate-100">{{ t('레버리지', 'Leverage') }}</div>
                 <button type="button" class="font-mono text-[15px] text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
               </div>
               <div class="mt-2 flex items-center justify-between text-[13px] text-slate-300">
-                <span class="whitespace-nowrap text-slate-400">레버리지 배율</span>
+                <span class="whitespace-nowrap text-slate-400">{{ t('레버리지 배율', 'Leverage Multiplier') }}</span>
                 <span class="font-mono text-slate-200">x{{ leverage }}</span>
               </div>
               <div class="mt-1.5 flex items-center justify-between text-[13px] text-slate-400">
-                <span>최대 레버리지</span>
+                <span>{{ t('최대 레버리지', 'Max Leverage') }}</span>
                 <span class="font-mono text-slate-200">x100</span>
               </div>
             </div>
@@ -452,7 +460,7 @@
               <!-- 구매가격 -->
               <div>
                 <div class="flex items-center justify-between text-[13px] text-slate-300">
-                  <span class="font-medium whitespace-nowrap">구매가격</span>
+                  <span class="font-medium whitespace-nowrap">{{ t('구매가격', 'Purchase Price') }}</span>
                   <span class="font-mono text-slate-400">USDT</span>
                 </div>
                 <div class="mt-2 flex items-center justify-between rounded-md border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-slate-100">
@@ -463,7 +471,7 @@
 
             <!-- 수량/비중 -->
             <div class="flex items-center justify-between text-[13px] text-slate-300">
-              <span class="font-medium whitespace-nowrap">비중/수량</span>
+              <span class="font-medium whitespace-nowrap">{{ t('비중/수량', 'Ratio/Quantity') }}</span>
               <span class="font-mono text-slate-400">{{ coinUnit }}</span>
             </div>
 
@@ -510,7 +518,7 @@
                   :disabled="isTradeSyncing || openClickCooldown"
                   @click="onOpen('long')"
                 >
-                  구매 / 롱
+                  {{ t('구매 / 롱', 'Buy / Long') }}
                 </button>
               </div>
               <div>
@@ -520,7 +528,7 @@
                   :disabled="isTradeSyncing || openClickCooldown"
                   @click="onOpen('short')"
                 >
-                  판매 / 숏
+                  {{ t('판매 / 숏', 'Sell / Short') }}
                 </button>
               </div>
             </div>
@@ -532,24 +540,24 @@
 
           <!-- 하단: 보유자산/사용가능 -->
           <div class="mt-9">
-            <div class="text-[15px] font-semibold text-slate-100">보유자산</div>
+            <div class="text-[15px] font-semibold text-slate-100">{{ t('보유자산', 'Holdings') }}</div>
 
             <div class="mt-3">
-              <div class="text-[13px] text-slate-400">보유자산(증거금포함)</div>
+              <div class="text-[13px] text-slate-400">{{ t('보유자산(증거금포함)', 'Holdings (incl. margin)') }}</div>
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ totalAssetsDisplay }} USDT</div>
-              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ totalAssetsWonText }} 원</div>
+              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ totalAssetsWonText }} {{ t('원', 'KRW') }}</div>
             </div>
 
             <div class="mt-3">
-              <div class="text-[13px] text-slate-400">매매포지션(증거금)</div>
+              <div class="text-[13px] text-slate-400">{{ t('매매포지션(증거금)', 'Position Margin') }}</div>
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ positionsMarginDisplay }} USDT</div>
-              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ positionsMarginWonText }} 원</div>
+              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ positionsMarginWonText }} {{ t('원', 'KRW') }}</div>
             </div>
 
             <div class="mt-4">
-              <div class="text-[13px] text-slate-400">사용가능 금액</div>
+              <div class="text-[13px] text-slate-400">{{ t('사용가능 금액', 'Available Balance') }}</div>
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ balanceDisplay }} USDT</div>
-              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ availableWonText }} 원</div>
+              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ availableWonText }} {{ t('원', 'KRW') }}</div>
             </div>
           </div>
         </div>
@@ -568,7 +576,7 @@
                 : 'bg-[#031019] text-slate-300 ring-white/10 hover:bg-white/5'"
               @click="bottomTab = 'positions'"
             >
-              포지션
+              {{ t('포지션', 'Positions') }}
             </button>
             <button
               type="button"
@@ -578,7 +586,7 @@
                 : 'bg-[#031019] text-slate-300 ring-white/10 hover:bg-white/5'"
               @click="selectFillsTab"
             >
-              거래내역
+              {{ t('거래내역', 'Trade History') }}
             </button>
           </div>
         </aside>
@@ -599,20 +607,20 @@
           </colgroup>
           <thead class="text-[13px] text-slate-500">
             <tr class="text-left">
-              <th class="py-1">종목</th>
-              <th class="py-1 text-center">포지션</th>
-              <th class="py-1">진입가격</th>
-              <th class="py-1">수량</th>
-              <th class="py-1">시장가</th>
-              <th class="py-1">강제청산가격</th>
-              <th class="py-1">증거금</th>
-              <th class="py-1">미실현손익(ROE)</th>
-              <th class="py-1">청산</th>
+              <th class="py-1">{{ t('종목', 'Symbol') }}</th>
+              <th class="py-1 text-center">{{ t('포지션', 'Position') }}</th>
+              <th class="py-1">{{ t('진입가격', 'Entry Price') }}</th>
+              <th class="py-1">{{ t('수량', 'Quantity') }}</th>
+              <th class="py-1">{{ t('시장가', 'Market Price') }}</th>
+              <th class="py-1">{{ t('강제청산가격', 'Liquidation Price') }}</th>
+              <th class="py-1">{{ t('증거금', 'Margin') }}</th>
+              <th class="py-1">{{ t('미실현손익(ROE)', 'Unrealized P&L (ROE)') }}</th>
+              <th class="py-1">{{ t('청산', 'Close') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="visiblePositions.length === 0" class="border-t border-cyan-500/10">
-              <td colspan="9" class="py-1.5 text-slate-400">데이터가 없습니다.</td>
+              <td colspan="9" class="py-1.5 text-slate-400">{{ t('데이터가 없습니다.', 'No data available.') }}</td>
             </tr>
             <!-- 포지션 테이블은 통합: 어떤 차트로 이동해도 전체 포지션이 유지되어야 함 -->
             <tr v-for="p in visiblePositions" :key="p.id" class="border-t border-cyan-500/10">
@@ -642,7 +650,7 @@
                       : 'bg-[#34181d] text-[#f23645] ring-[#f23645]/30'
                   "
                 >
-                  {{ p.side === 'long' ? '롱' : '숏' }}
+                  {{ p.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}
                 </span>
               </td>
               <td class="py-1 font-mono">
@@ -703,13 +711,14 @@
                     :disabled="isTradeSyncing || closeClickCooldown.has(p.id)"
                     @click="onClosePositionClick(p.id, p)"
                   >
-                    시장가청산
+                    {{ t('시장가청산', 'Market Close') }}
                   </button>
                   <div v-if="isSuperAdminUser" class="flex items-center gap-1">
                     <input
                       type="checkbox"
                       class="h-3.5 w-3.5 cursor-pointer accent-amber-400"
-                      title="알람"
+                      :title="t('알람', 'Alarm')"
+                      :key="`pos-alarm-cb-${locale}`"
                       :checked="getPositionAlarm(p.id).enabled"
                       @change="onToggleAlarm(p.id, ($event.target as HTMLInputElement).checked)"
                     />
@@ -717,12 +726,13 @@
                       type="text"
                       inputmode="decimal"
                       placeholder="+-20"
-                      title="예: 20 / +20,-20 / +-20(양쪽 다) — 콤마로 여러 개 지정 시 하나라도 도달하면 알람"
+                      :title="t('예: 20 / +20,-20 / +-20(양쪽 다) — 콤마로 여러 개 지정 시 하나라도 도달하면 알람', 'e.g. 20 / +20,-20 / +-20(both) — comma-separate multiple values; alarm fires when any is reached')"
+                      :key="`pos-alarm-input-${locale}`"
                       class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
                       :value="getPositionAlarm(p.id).percent"
                       @input="onAlarmPercentInput(p.id, ($event.target as HTMLInputElement).value)"
                     />
-                    <span v-if="getPositionAlarm(p.id).triggered" class="text-[11px] font-semibold text-amber-300">울림</span>
+                    <span v-if="getPositionAlarm(p.id).triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
                   </div>
                 </div>
               </td>
@@ -734,60 +744,60 @@
         <table class="w-full text-[14px]">
           <thead class="sticky top-0 bg-slate-950/95 text-slate-400">
             <tr class="text-left">
-              <th class="px-3 py-2">시간</th>
-              <th class="px-3 py-2">종목</th>
-              <th class="px-3 py-2">포지션</th>
-              <th class="px-3 py-2">구분</th>
-              <th class="px-3 py-2">체결가</th>
-              <th class="px-3 py-2">수량</th>
-              <th class="px-3 py-2">수수료</th>
-              <th class="px-3 py-2">실현손익</th>
+              <th class="px-3 py-2">{{ t('시간', 'Time') }}</th>
+              <th class="px-3 py-2">{{ t('종목', 'Symbol') }}</th>
+              <th class="px-3 py-2">{{ t('포지션', 'Position') }}</th>
+              <th class="px-3 py-2">{{ t('구분', 'Type') }}</th>
+              <th class="px-3 py-2">{{ t('체결가', 'Fill Price') }}</th>
+              <th class="px-3 py-2">{{ t('수량', 'Quantity') }}</th>
+              <th class="px-3 py-2">{{ t('수수료', 'Fee') }}</th>
+              <th class="px-3 py-2">{{ t('실현손익', 'Realized P&L') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="fills.length === 0 && !fillsLoading" class="border-t border-white/10">
-              <td colspan="8" class="px-3 py-4 text-slate-400">거래내역이 없습니다.</td>
+              <td colspan="8" class="px-3 py-4 text-slate-400">{{ t('거래내역이 없습니다.', 'No trade history.') }}</td>
             </tr>
-            <tr v-for="t in fills" :key="`fill-${t.id}`" class="border-t border-white/10">
-              <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(t.created_at) }}</td>
-              <td class="px-3 py-3 text-slate-100">{{ shortSymbol(t.symbol) }}</td>
-              <td class="px-3 py-3" :class="t.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
-                {{ t.side === 'long' ? '롱' : '숏' }}
+            <tr v-for="tr in fills" :key="`fill-${tr.id}`" class="border-t border-white/10">
+              <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(tr.created_at) }}</td>
+              <td class="px-3 py-3 text-slate-100">{{ shortSymbol(tr.symbol) }}</td>
+              <td class="px-3 py-3" :class="tr.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
+                {{ tr.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}
               </td>
               <td class="px-3 py-3">
                 <span
                   class="rounded px-2 py-1 text-[14px] font-semibold ring-1"
-                  :class="tradeResultBadgeClass(t)"
+                  :class="tradeResultBadgeClass(tr)"
                 >
-                  {{ tradeResultLabel(t) }}
+                  {{ tradeResultLabel(tr) }}
                 </span>
               </td>
-              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(t.exit_price)) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty2(t.symbol, Number(t.qty)) }} {{ baseCoin(t.symbol) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-300">{{ calcTradeFeeText(t) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.exit_price)) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty2(tr.symbol, Number(tr.qty)) }} {{ baseCoin(tr.symbol) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-300">{{ calcTradeFeeText(tr) }}</td>
               <td class="px-3 py-3">
                 <div class="flex items-center justify-between gap-2">
-                  <div class="font-mono" :class="Number(t.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
-                    {{ Number(t.pnl) >= 0 ? '+' : '' }}{{ Number(t.pnl).toFixed(2) }} USDT
+                  <div class="font-mono" :class="Number(tr.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
+                    {{ Number(tr.pnl) >= 0 ? '+' : '' }}{{ Number(tr.pnl).toFixed(2) }} USDT
                   </div>
                   <button
                     type="button"
                     class="rounded-md bg-white/10 px-2 py-1 text-[14px] text-slate-100 ring-1 ring-white/10 hover:bg-white/15"
-                    @click="openProfitCardFromTrade(t)"
+                    @click="openProfitCardFromTrade(tr)"
                   >
-                    카드
+                    {{ t('카드', 'Card') }}
                   </button>
                 </div>
               </td>
             </tr>
             <tr v-if="fillsLoading" class="border-t border-white/10">
-              <td colspan="8" class="px-3 py-3 text-slate-400">불러오는 중…</td>
+              <td colspan="8" class="px-3 py-3 text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</td>
             </tr>
           </tbody>
         </table>
       </div>
       <div v-else class="rounded-lg bg-black/20 p-4 text-sm text-slate-400">
-        준비중입니다.
+        {{ t('준비중입니다.', 'Coming soon.') }}
       </div>
         </div>
       </div>
@@ -802,7 +812,7 @@
     >
       <div class="w-full max-w-xl rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
-          <h3 class="text-4xl font-semibold tracking-tight text-slate-100">레버리지 조정</h3>
+          <h3 class="text-4xl font-semibold tracking-tight text-slate-100">{{ t('레버리지 조정', 'Adjust Leverage') }}</h3>
           <button
             type="button"
             class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white"
@@ -814,7 +824,7 @@
 
         <div class="mt-8 rounded-xl border border-white/15 bg-[#0f151b] px-4 py-3">
           <div class="flex items-center gap-2 text-lg">
-            <span class="break-keep text-slate-200">레버리지 배율</span>
+            <span class="break-keep text-slate-200">{{ t('레버리지 배율', 'Leverage Multiplier') }}</span>
             <span class="font-mono font-semibold text-white">{{ leverageDraft }}</span>
           </div>
         </div>
@@ -835,7 +845,7 @@
         </div>
 
         <div class="mt-8 text-xl font-semibold text-slate-100">
-          현재 오픈 가능한 최대 레버리지 수량:
+          {{ t('현재 오픈 가능한 최대 레버리지 수량:', 'Max leverage amount you can currently open:') }}
           <span class="font-mono text-[#13c6b3]">{{ leverageCapacityText }} USDT</span>
           <span class="text-[#f23645]">*</span>
         </div>
@@ -846,14 +856,14 @@
             class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-3 text-lg font-semibold text-slate-200 hover:bg-[#252f39]"
             @click="closeLeverageModal"
           >
-            취소
+            {{ t('취소', 'Cancel') }}
           </button>
           <button
             type="button"
             class="rounded-lg bg-[#0aa37f] px-4 py-3 text-lg font-semibold text-white hover:bg-[#0cb88f]"
             @click="applyLeverageDraft"
           >
-            확인
+            {{ t('확인', 'Confirm') }}
           </button>
         </div>
       </div>
@@ -867,15 +877,17 @@
       <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
           <h3 class="text-xl font-semibold tracking-tight text-slate-100">
-            킬{{ killModalDirection === 'up' ? 'UP' : 'DOWN' }} 실행
+            {{ t(`킬${killModalDirection === 'up' ? 'UP' : 'DOWN'} 실행`, `Run KILL ${killModalDirection === 'up' ? 'UP' : 'DOWN'}`) }}
           </h3>
           <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeKillModal">
             ✕
           </button>
         </div>
         <p class="mt-2 text-sm text-slate-400">
-          현재가에서 몇 % {{ killModalDirection === 'up' ? '올렸다가' : '내렸다가' }} 바로 복귀시킬지 입력하세요.
-          이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다.
+          {{ t(
+            `현재가에서 몇 % ${killModalDirection === 'up' ? '올렸다가' : '내렸다가'} 바로 복귀시킬지 입력하세요. 이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다.`,
+            `Enter what % to ${killModalDirection === 'up' ? 'raise' : 'lower'} the current price by before immediately reverting it. Positions that reach their liquidation price within this range will actually be liquidated.`
+          ) }}
         </p>
         <div class="mt-5 flex items-center gap-2">
           <input
@@ -897,7 +909,7 @@
             step="0.1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">초 동안</span>
+          <span class="text-sm text-slate-400">{{ t('초 동안', 'seconds') }}</span>
           <input
             v-model.number="killTickCountDraft"
             type="number"
@@ -906,7 +918,7 @@
             step="1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">틱에 걸쳐 움직임</span>
+          <span class="text-sm text-slate-400">{{ t('틱에 걸쳐 움직임', 'ticks to move over') }}</span>
         </div>
         <p v-if="killError" class="mt-3 text-sm text-red-300">{{ killError }}</p>
         <div class="mt-6 grid grid-cols-2 gap-3">
@@ -915,7 +927,7 @@
             class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-[#252f39]"
             @click="closeKillModal"
           >
-            취소
+            {{ t('취소', 'Cancel') }}
           </button>
           <button
             type="button"
@@ -923,7 +935,7 @@
             :disabled="adminKillBusy"
             @click="confirmKillModal"
           >
-            실행
+            {{ t('실행', 'Run') }}
           </button>
         </div>
       </div>
@@ -937,17 +949,20 @@
       <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
           <h3 class="text-xl font-semibold tracking-tight text-slate-100">
-            {{ profitModalDirection === 'up' ? '상승STOP' : '하락STOP' }} 실행
+            {{ t(
+              `${profitModalDirection === 'up' ? '상승STOP' : '하락STOP'} 실행`,
+              `Run ${profitModalDirection === 'up' ? 'UP STOP' : 'DOWN STOP'}`
+            ) }}
           </h3>
           <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeProfitModal">
             ✕
           </button>
         </div>
         <p class="mt-2 text-sm text-slate-400">
-          레버리지 100배 포지션 기준으로 몇 % {{ profitModalDirection === 'up' ? '수익' : '손실' }}이 날 정도의 가격 움직임인지 입력하세요(실제 가격 변동폭 = 입력% ÷ 100).
-          그 상태를 몇 초 동안 유지할지도 함께 입력하세요.
-          이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다. 이동/복귀는 위아래로 자연스럽게 흔들리며 진행되고,
-          유지 중에는 목표가 근처에서 ±1~2%씩 움직이며, 복귀는 그 시점의 실시간 현재가로 향합니다.
+          {{ t(
+            `레버리지 100배 포지션 기준으로 몇 % ${profitModalDirection === 'up' ? '수익' : '손실'}이 날 정도의 가격 움직임인지 입력하세요(실제 가격 변동폭 = 입력% ÷ 100). 그 상태를 몇 초 동안 유지할지도 함께 입력하세요. 이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다. 이동/복귀는 위아래로 자연스럽게 흔들리며 진행되고, 유지 중에는 목표가 근처에서 ±1~2%씩 움직이며, 복귀는 그 시점의 실시간 현재가로 향합니다.`,
+            `Enter the price movement as a % ${profitModalDirection === 'up' ? 'profit' : 'loss'} on a 100x leveraged position (actual price move = input% ÷ 100). Also enter how many seconds to hold that state. Positions that reach their liquidation price within this range will actually be liquidated. The move/revert happens with a natural up-and-down wobble; while holding, the price moves ±1-2% around the target, and the revert heads to the live current price at that moment.`
+          ) }}
         </p>
         <div class="mt-5 flex items-center gap-2">
           <input
@@ -958,7 +973,7 @@
             step="0.1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">% (레버리지 100배 기준 수익률)</span>
+          <span class="text-sm text-slate-400">{{ t('% (레버리지 100배 기준 수익률)', '% (return rate at 100x leverage)') }}</span>
         </div>
         <div class="mt-3 flex items-center gap-2">
           <input
@@ -969,7 +984,7 @@
             step="0.1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">초 동안</span>
+          <span class="text-sm text-slate-400">{{ t('초 동안', 'seconds') }}</span>
           <input
             v-model.number="profitTickCountDraft"
             type="number"
@@ -978,7 +993,7 @@
             step="1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">틱에 걸쳐 움직임 (0=자동)</span>
+          <span class="text-sm text-slate-400">{{ t('틱에 걸쳐 움직임 (0=자동)', 'ticks to move over (0=auto)') }}</span>
         </div>
         <div class="mt-3 flex items-center gap-2">
           <input
@@ -989,7 +1004,7 @@
             step="0.1"
             class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">초 동안 유지 후 복귀</span>
+          <span class="text-sm text-slate-400">{{ t('초 동안 유지 후 복귀', 'seconds, then revert') }}</span>
         </div>
         <p v-if="profitError" class="mt-3 text-sm text-red-300">{{ profitError }}</p>
         <div class="mt-6 grid grid-cols-2 gap-3">
@@ -998,7 +1013,7 @@
             class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-[#252f39]"
             @click="closeProfitModal"
           >
-            취소
+            {{ t('취소', 'Cancel') }}
           </button>
           <button
             type="button"
@@ -1006,7 +1021,7 @@
             :disabled="adminProfitBusy"
             @click="confirmProfitModal"
           >
-            실행
+            {{ t('실행', 'Run') }}
           </button>
         </div>
       </div>
@@ -1032,7 +1047,7 @@
             :class="bolModalTab === 'input' ? 'border-[#2962ff] text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
             @click="bolModalTab = 'input'"
           >
-            인풋
+            {{ t('인풋', 'Input') }}
           </button>
           <button
             type="button"
@@ -1040,13 +1055,13 @@
             :class="bolModalTab === 'style' ? 'border-[#2962ff] text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
             @click="bolModalTab = 'style'"
           >
-            모습
+            {{ t('모습', 'Style') }}
           </button>
         </div>
 
         <div v-if="bolModalTab === 'input'" class="mt-5 space-y-4">
           <div class="flex items-center justify-between gap-3">
-            <label class="text-sm text-slate-300">길이</label>
+            <label class="text-sm text-slate-300">{{ t('길이', 'Length') }}</label>
             <input
               v-model.number="bolDraft.length"
               type="number"
@@ -1055,7 +1070,7 @@
             />
           </div>
           <div class="flex items-center justify-between gap-3">
-            <label class="text-sm text-slate-300">곱</label>
+            <label class="text-sm text-slate-300">{{ t('곱', 'Multiplier') }}</label>
             <input
               v-model.number="bolDraft.stdDev"
               type="number"
@@ -1069,17 +1084,17 @@
         <div v-else class="mt-5 space-y-3">
           <div class="flex items-center gap-3">
             <input v-model="bolDraft.showBasis" type="checkbox" class="h-4 w-4 accent-[#2962ff]" />
-            <span class="w-16 text-sm text-slate-300">중앙값</span>
+            <span class="w-16 text-sm text-slate-300">{{ t('중앙값', 'Basis') }}</span>
             <input v-model="bolDraft.basisColor" type="color" class="h-6 w-10 cursor-pointer rounded bg-transparent" />
           </div>
           <div class="flex items-center gap-3">
             <input v-model="bolDraft.showUpper" type="checkbox" class="h-4 w-4 accent-[#2962ff]" />
-            <span class="w-16 text-sm text-slate-300">어퍼</span>
+            <span class="w-16 text-sm text-slate-300">{{ t('어퍼', 'Upper') }}</span>
             <input v-model="bolDraft.upperColor" type="color" class="h-6 w-10 cursor-pointer rounded bg-transparent" />
           </div>
           <div class="flex items-center gap-3">
             <input v-model="bolDraft.showLower" type="checkbox" class="h-4 w-4 accent-[#2962ff]" />
-            <span class="w-16 text-sm text-slate-300">로우어</span>
+            <span class="w-16 text-sm text-slate-300">{{ t('로우어', 'Lower') }}</span>
             <input v-model="bolDraft.lowerColor" type="color" class="h-6 w-10 cursor-pointer rounded bg-transparent" />
           </div>
         </div>
@@ -1090,14 +1105,14 @@
             class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-[#252f39]"
             @click="closeBolSettings"
           >
-            취소
+            {{ t('취소', 'Cancel') }}
           </button>
           <button
             type="button"
             class="rounded-lg bg-[#2962ff] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1e4fd6]"
             @click="applyBolSettings"
           >
-            확인
+            {{ t('확인', 'Confirm') }}
           </button>
         </div>
       </div>
@@ -1167,7 +1182,7 @@
               class="mt-1.5 font-medium"
               :style="{ fontSize: profitCardStyle.wonFontSize + 'px', color: profitCardStyle.wonTextColor }"
             >
-              {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} 원
+              {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} {{ t('원', 'KRW') }}
             </div>
 
             <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
@@ -1179,7 +1194,7 @@
                   color: closeSummary.side === 'short' ? profitCardStyle.shortBadgeText : profitCardStyle.longBadgeText
                 }"
               >
-                {{ closeSummary.side === 'long' ? '롱' : '숏' }}
+                {{ closeSummary.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}
               </span>
               <span
                 class="font-semibold"
@@ -1200,9 +1215,9 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">레버리지</div>
+              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('레버리지', 'Leverage') }}</div>
               <div class="mt-1 font-bold" :style="{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }">
-                격리 x{{ closeSummary.leverage }}
+                {{ t('격리', 'Isolated') }} x{{ closeSummary.leverage }}
               </div>
             </div>
             <div
@@ -1211,7 +1226,7 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">손익</div>
+              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('손익', 'P&L') }}</div>
               <div
                 class="mt-1 font-bold"
                 :style="{
@@ -1228,7 +1243,7 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">진입가격</div>
+              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('진입가격', 'Entry Price') }}</div>
               <div class="mt-1 font-bold" :style="{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }">
                 {{ closeSummary.entryPrice.toFixed(2) }}
               </div>
@@ -1239,7 +1254,7 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">종료가격</div>
+              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('종료가격', 'Exit Price') }}</div>
               <div class="mt-1 font-bold" :style="{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }">
                 {{ closeSummary.exitPrice.toFixed(2) }}
               </div>
@@ -1257,7 +1272,7 @@
       <div class="w-full max-w-xs rounded-2xl border border-white/10 bg-[#111923] p-4 shadow-2xl">
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-semibold text-slate-100">포지션 수정</div>
+            <div class="text-sm font-semibold text-slate-100">{{ t('포지션 수정', 'Edit Position') }}</div>
             <div class="mt-1 text-xs text-slate-400">{{ positionEditModal.label }}</div>
           </div>
           <button type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" @click="closePositionEditModal">✕</button>
@@ -1276,7 +1291,7 @@
 
         <div class="mt-4 flex justify-end gap-2">
           <button type="button" class="rounded-lg bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="closePositionEditModal">
-            취소
+            {{ t('취소', 'Cancel') }}
           </button>
           <button
             type="button"
@@ -1284,7 +1299,7 @@
             :disabled="positionEditModal.saving"
             @click="submitPositionEdit"
           >
-            {{ positionEditModal.saving ? '저장중…' : '저장' }}
+            {{ positionEditModal.saving ? t('저장중…', 'Saving…') : t('저장', 'Save') }}
           </button>
         </div>
       </div>
@@ -1346,6 +1361,8 @@ import {
 
 definePageMeta({ middleware: ['auth'], layout: 'trading' })
 
+const { t, locale } = useLocale()
+
 const route = useRoute()
 const router = useRouter()
 const symbol = computed(() => String(route.params.symbol || 'SAMSUNGUSDT').toUpperCase())
@@ -1387,16 +1404,16 @@ function onChangeSymbol() {
 type TimeframeValue = '1m' | '5m' | '15m' | '30m' | '1H' | '1D' | '1W' | '1M'
 
 const timeframe = ref<TimeframeValue>('1m')
-const timeframeOptions = [
-  { value: '1m', label: '1분' },
-  { value: '5m', label: '5분' },
-  { value: '15m', label: '15분' },
-  { value: '30m', label: '30분' },
-  { value: '1H', label: '1시간' },
-  { value: '1D', label: '1일' },
-  { value: '1W', label: '1주' },
-  { value: '1M', label: '월' }
-] as const
+const timeframeOptions = computed(() => [
+  { value: '1m' as const, label: t('1분', '1m') },
+  { value: '5m' as const, label: t('5분', '5m') },
+  { value: '15m' as const, label: t('15분', '15m') },
+  { value: '30m' as const, label: t('30분', '30m') },
+  { value: '1H' as const, label: t('1시간', '1H') },
+  { value: '1D' as const, label: t('1일', '1D') },
+  { value: '1W' as const, label: t('1주', '1W') },
+  { value: '1M' as const, label: t('월', '1M') }
+])
 const chartMode = ref<'built'>('built')
 // 요구사항: 주문 UI는 시장가만 사용(지정가/예약 삭제)
 const orderType = ref<'market'>('market')
@@ -1957,11 +1974,11 @@ function toggleExtraIndicator(id: string) {
 }
 
 const timeframeGroups = computed(() => [
-  timeframeOptions.filter((o) => ['1m', '5m', '15m', '30m'].includes(o.value)),
-  timeframeOptions.filter((o) => o.value === '1H'),
-  timeframeOptions.filter((o) => ['1D', '1W', '1M'].includes(o.value))
+  timeframeOptions.value.filter((o) => ['1m', '5m', '15m', '30m'].includes(o.value)),
+  timeframeOptions.value.filter((o) => o.value === '1H'),
+  timeframeOptions.value.filter((o) => ['1D', '1W', '1M'].includes(o.value))
 ])
-const currentTimeframeLabel = computed(() => timeframeOptions.find((o) => o.value === timeframe.value)?.label || timeframe.value)
+const currentTimeframeLabel = computed(() => timeframeOptions.value.find((o) => o.value === timeframe.value)?.label || timeframe.value)
 function selectTimeframe(v: TimeframeValue) {
   timeframe.value = v
   timeframeMenuOpen.value = false
@@ -3026,17 +3043,17 @@ function closeKillModal() {
 async function confirmKillModal() {
   const percent = Number(killPercentDraft.value)
   if (!Number.isFinite(percent) || percent < 0.1 || percent > 90) {
-    killError.value = '0.1~90 사이의 숫자를 입력해주세요.'
+    killError.value = t('0.1~90 사이의 숫자를 입력해주세요.', 'Please enter a number between 0.1 and 90.')
     return
   }
   const durationSeconds = Number(killDurationDraft.value)
   if (!Number.isFinite(durationSeconds) || durationSeconds < 0.1 || durationSeconds > 10) {
-    killError.value = '몇 초는 0.1~10 사이로 입력해주세요.'
+    killError.value = t('몇 초는 0.1~10 사이로 입력해주세요.', 'Please enter seconds between 0.1 and 10.')
     return
   }
   const tickCount = Math.round(Number(killTickCountDraft.value))
   if (!Number.isFinite(tickCount) || tickCount < 1 || tickCount > 20) {
-    killError.value = '몇 틱은 1~20 사이로 입력해주세요.'
+    killError.value = t('몇 틱은 1~20 사이로 입력해주세요.', 'Please enter a tick count between 1 and 20.')
     return
   }
   adminKillBusy.value = true
@@ -3053,7 +3070,7 @@ async function confirmKillModal() {
       await runKillAnimation(res.event)
     }
   } catch (e: any) {
-    killError.value = e?.data?.statusMessage || '킬 실행 실패'
+    killError.value = e?.data?.statusMessage || t('킬 실행 실패', 'Kill execution failed')
     adminKillBusy.value = false
   }
 }
@@ -3253,22 +3270,22 @@ function closeProfitModal() {
 async function confirmProfitModal() {
   const percent = Number(profitPercentDraft.value)
   if (!Number.isFinite(percent) || percent < 0.1 || percent > 90) {
-    profitError.value = '0.1~90 사이의 숫자를 입력해주세요.'
+    profitError.value = t('0.1~90 사이의 숫자를 입력해주세요.', 'Please enter a number between 0.1 and 90.')
     return
   }
   const durationSeconds = Number(profitDurationDraft.value)
   if (!Number.isFinite(durationSeconds) || durationSeconds < 0.1 || durationSeconds > 10) {
-    profitError.value = '몇 초는 0.1~10 사이로 입력해주세요.'
+    profitError.value = t('몇 초는 0.1~10 사이로 입력해주세요.', 'Please enter seconds between 0.1 and 10.')
     return
   }
   const tickCount = Math.round(Number(profitTickCountDraft.value))
   if (!Number.isFinite(tickCount) || tickCount < 0 || tickCount > 20) {
-    profitError.value = '몇 틱은 0~20 사이로 입력해주세요. (0 = 자동)'
+    profitError.value = t('몇 틱은 0~20 사이로 입력해주세요. (0 = 자동)', 'Please enter a tick count between 0 and 20. (0 = auto)')
     return
   }
   const holdSeconds = Number(profitHoldDraft.value)
   if (!Number.isFinite(holdSeconds) || holdSeconds < 0.1 || holdSeconds > 120) {
-    profitError.value = '유지 시간은 0.1~120 사이로 입력해주세요.'
+    profitError.value = t('유지 시간은 0.1~120 사이로 입력해주세요.', 'Please enter a hold time between 0.1 and 120.')
     return
   }
   adminProfitBusy.value = true
@@ -3285,7 +3302,7 @@ async function confirmProfitModal() {
       await runProfitAnimation(res.event)
     }
   } catch (e: any) {
-    profitError.value = e?.data?.statusMessage || '실행 실패'
+    profitError.value = e?.data?.statusMessage || t('실행 실패', 'Execution failed')
     adminProfitBusy.value = false
   }
 }
@@ -3634,9 +3651,9 @@ function isFullMarginLoss(t: any) {
   return margin > 0 && Number(t?.pnl || 0) <= -margin * 0.999
 }
 
-function tradeResultLabel(t: any) {
-  if (Boolean(t?.liquidation) || isFullMarginLoss(t)) return '강제청산'
-  return Number(t?.pnl || 0) >= 0 ? '수익' : '손실'
+function tradeResultLabel(tr: any) {
+  if (Boolean(tr?.liquidation) || isFullMarginLoss(tr)) return t('강제청산', 'Liquidated')
+  return Number(tr?.pnl || 0) >= 0 ? t('수익', 'Profit') : t('손실', 'Loss')
 }
 
 function tradeResultBadgeClass(t: any) {
@@ -3751,11 +3768,11 @@ function closeLeverageModal() {
 function openPositionEditModal(pos: any, key: 'qty' | 'entry_price' | 'margin' | 'leverage' | 'roe') {
   if (!isAdminUser.value) return
   const labels: Record<string, string> = {
-    qty: '수량',
-    entry_price: '진입가격',
-    margin: '증거금',
-    leverage: '레버리지',
-    roe: '미실현손익(ROE %)'
+    qty: t('수량', 'Quantity'),
+    entry_price: t('진입가격', 'Entry Price'),
+    margin: t('증거금', 'Margin'),
+    leverage: t('레버리지', 'Leverage'),
+    roe: t('미실현손익(ROE %)', 'Unrealized P&L (ROE %)')
   }
   positionEditModal.open = true
   positionEditModal.positionId = Number(pos.id)
@@ -3778,11 +3795,11 @@ async function submitPositionEdit() {
   if (!isAdminUser.value || !positionEditModal.open || !positionEditModal.key) return
   const numericValue = Number(positionEditModal.value)
   if (!Number.isFinite(numericValue)) {
-    error.value = '숫자를 입력해주세요.'
+    error.value = t('숫자를 입력해주세요.', 'Please enter a number.')
     return
   }
   if (positionEditModal.key !== 'roe' && numericValue <= 0) {
-    error.value = '수정값은 0보다 커야 합니다.'
+    error.value = t('수정값은 0보다 커야 합니다.', 'The value must be greater than 0.')
     return
   }
 
@@ -3793,20 +3810,20 @@ async function submitPositionEdit() {
   if (positionEditModal.key === 'roe') {
     const pos = positions.value.find((p: any) => Number(p.id) === positionEditModal.positionId)
     if (!pos) {
-      error.value = '포지션을 찾을 수 없습니다.'
+      error.value = t('포지션을 찾을 수 없습니다.', 'Position not found.')
       return
     }
     const mark = Number(markOf(pos.symbol) || 0)
     const qty = Number(pos.qty || 0)
     const margin = netMarginFromGross(Number(pos.margin || 0))
     if (!(mark > 0) || !(qty > 0) || !(margin > 0)) {
-      error.value = '현재가/수량/증거금 정보를 확인할 수 없습니다.'
+      error.value = t('현재가/수량/증거금 정보를 확인할 수 없습니다.', 'Unable to verify the current price/quantity/margin information.')
       return
     }
     const desiredPnl = (numericValue / 100) * margin
     const computedEntry = pos.side === 'short' ? mark + desiredPnl / qty : mark - desiredPnl / qty
     if (!Number.isFinite(computedEntry) || computedEntry <= 0) {
-      error.value = '해당 퍼센트로는 진입가격을 계산할 수 없습니다.'
+      error.value = t('해당 퍼센트로는 진입가격을 계산할 수 없습니다.', 'The entry price cannot be calculated for that percentage.')
       return
     }
     field = 'entry_price'
@@ -3827,7 +3844,7 @@ async function submitPositionEdit() {
     await loadAccount()
     closePositionEditModal()
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '포지션 수정에 실패했습니다.'
+    error.value = e?.data?.statusMessage || t('포지션 수정에 실패했습니다.', 'Failed to edit the position.')
   } finally {
     positionEditModal.saving = false
   }
@@ -4877,6 +4894,9 @@ function renderEntryLines() {
     })
     priceLines.push(pl)
   }
+  const activePos = currentPositions.value[currentPositions.value.length - 1]
+  const posLineColor = activePos ? (activePos.side === 'long' ? '#fb7185' : '#60a5fa') : ''
+  candleSeries.applyOptions({ priceLineColor: posLineColor })
   updateEntryBadges()
 }
 
@@ -4897,7 +4917,7 @@ function updateEntryBadges() {
       id: Number(p.id),
       y,
       isLong,
-      label: `${isLong ? '롱' : '숏'} ${fmtPrice(price)}`,
+      label: `${isLong ? t('롱', 'Long') : t('숏', 'Short')} ${fmtPrice2(price)}`,
       pctText: `${roe >= 0 ? '▲' : '▼'} ${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%`,
       positive: roe >= 0
     })
@@ -5680,13 +5700,13 @@ async function openPosition() {
   // 잔고가 반토막난 상태(청산 전 가용잔고) 기준으로 계산돼서 절반(25%)만 잡히는 문제가 없다.
   const wantPercent = Math.max(0, Math.min(100, Number(percent.value || 0)))
   if (!Number.isFinite(wantPercent) || wantPercent <= 0) {
-    error.value = '비중을 1~100%로 설정해주세요.'
+    error.value = t('비중을 1~100%로 설정해주세요.', 'Please set the ratio between 1 and 100%.')
     return
   }
 
   const price = Number(entryCalcPrice.value)
   if (!Number.isFinite(price) || price <= 0) {
-    error.value = '가격 정보를 가져올 수 없습니다.'
+    error.value = t('가격 정보를 가져올 수 없습니다.', 'Unable to retrieve price information.')
     return
   }
 
@@ -5749,7 +5769,7 @@ async function openPosition() {
     // 롤백
     positions.value = prevPositions
     balance.value = prevBalance
-    error.value = '잔고가 부족합니다.'
+    error.value = t('잔고가 부족합니다.', 'Insufficient balance.')
     return
   }
 
@@ -5834,7 +5854,7 @@ async function openPosition() {
     positions.value = prevPositions
     balance.value = prevBalance
     if (chartMode.value === 'built') renderEntryLines()
-    error.value = e?.data?.statusMessage || '오픈 실패'
+    error.value = e?.data?.statusMessage || t('오픈 실패', 'Failed to open position')
   } finally {
     loading.value = false
   }
