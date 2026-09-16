@@ -1,15 +1,15 @@
 <template>
   <div class="space-y-6">
     <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-      <h1 class="text-xl font-semibold">고객센터</h1>
-      <p class="mt-2 text-sm text-slate-400">운영자(admin)와 쪽지를 주고받을 수 있습니다.</p>
+      <h1 class="text-xl font-semibold">{{ t('고객센터', 'Support') }}</h1>
+      <p class="mt-2 text-sm text-slate-400">{{ t('운영자(admin)와 쪽지를 주고받을 수 있습니다.', 'Exchange messages with an admin.') }}</p>
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="text-base font-semibold">쪽지함</h2>
-          <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadThreads">새로고침</button>
+          <h2 class="text-base font-semibold">{{ t('쪽지함', 'Inbox') }}</h2>
+          <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="loadThreads">{{ t('새로고침', 'Refresh') }}</button>
         </div>
 
         <div class="mt-4 max-h-[680px] space-y-2 overflow-auto">
@@ -21,24 +21,24 @@
             @click="openThread(thread)"
           >
             <div class="flex items-center justify-between gap-3">
-              <div class="font-medium text-slate-100">운영자</div>
+              <div class="font-medium text-slate-100">{{ t('운영자', 'Admin') }}</div>
               <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">
                 {{ thread.unreadCount }}
               </span>
             </div>
-            <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || '대화 없음' }}</div>
+            <div class="mt-1 line-clamp-1 text-xs text-slate-400">{{ thread.lastMessage || t('대화 없음', 'No conversation') }}</div>
             <div class="mt-2 text-[11px] text-slate-500">{{ formatDateTime(thread.lastAt) }}</div>
           </button>
           <div v-if="threads.length === 0" class="rounded-xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-slate-500">
-            받은 쪽지가 없습니다.
+            {{ t('받은 쪽지가 없습니다.', 'No messages received.') }}
           </div>
         </div>
       </section>
 
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="border-b border-white/10 pb-4">
-          <div class="text-base font-semibold text-slate-100">운영자(admin)</div>
-          <div class="mt-1 text-sm text-slate-400">문의 내용과 답장을 이곳에서 확인할 수 있습니다.</div>
+          <div class="text-base font-semibold text-slate-100">{{ t('운영자(admin)', 'Admin') }}</div>
+          <div class="mt-1 text-sm text-slate-400">{{ t('문의 내용과 답장을 이곳에서 확인할 수 있습니다.', 'View your inquiries and replies here.') }}</div>
         </div>
 
         <div class="mt-4 max-h-[440px] space-y-3 overflow-auto pr-1">
@@ -54,20 +54,22 @@
             <div class="whitespace-pre-wrap leading-6">{{ message.body }}</div>
             <div class="mt-2 text-[11px] text-slate-500">{{ formatDateTime(message.created_at) }}</div>
           </div>
-          <div v-if="activeMessages.length === 0" class="py-10 text-center text-sm text-slate-500">아직 쪽지가 없습니다. 아래에서 새 문의를 보낼 수 있습니다.</div>
+          <div v-if="activeMessages.length === 0" class="py-10 text-center text-sm text-slate-500">{{ t('아직 쪽지가 없습니다. 아래에서 새 문의를 보낼 수 있습니다.', 'No messages yet. You can send a new inquiry below.') }}</div>
         </div>
 
         <div class="mt-5 border-t border-white/10 pt-4">
           <input
             v-model.trim="subject"
             class="mb-3 w-full rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-            placeholder="제목"
+            :placeholder="t('제목', 'Subject')"
+            :key="`support-subject-${locale}`"
           />
           <textarea
             v-model.trim="body"
             rows="5"
             class="w-full rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-            placeholder="운영자에게 보낼 내용을 입력하세요"
+            :placeholder="t('운영자에게 보낼 내용을 입력하세요', 'Enter the message you want to send to the admin')"
+            :key="`support-body-${locale}`"
           />
           <div class="mt-3 flex items-center justify-end">
             <button
@@ -75,7 +77,7 @@
               :disabled="sending || !body"
               @click="sendMessage"
             >
-              {{ sending ? '전송 중...' : '보내기' }}
+              {{ sending ? t('전송 중...', 'Sending...') : t('보내기', 'Send') }}
             </button>
           </div>
           <p v-if="error" class="mt-3 text-sm text-rose-300">{{ error }}</p>
@@ -88,6 +90,8 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth'] })
+
+const { t, locale } = useLocale()
 
 type ThreadSummary = {
   threadKey: string
@@ -171,11 +175,11 @@ async function sendMessage() {
     })
     subject.value = ''
     body.value = ''
-    okText.value = '쪽지를 보냈습니다.'
+    okText.value = t('쪽지를 보냈습니다.', 'Message sent.')
     await loadThreads()
     if (threads.value[0]) await openThread(threads.value[0], false)
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '쪽지를 보내지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('쪽지를 보내지 못했습니다.', 'Failed to send message.')
   } finally {
     sending.value = false
   }

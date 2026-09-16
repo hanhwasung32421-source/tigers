@@ -1,12 +1,13 @@
 <template>
   <div class="flex min-h-[50vh] items-center justify-center">
-    <p class="text-sm text-slate-400">로그인 처리 중...</p>
+    <p class="text-sm text-slate-400">{{ t('로그인 처리 중...', 'Signing in...') }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { IMPERSONATE_STORAGE_KEY } from '../plugins/impersonation.client'
 
+const { t } = useLocale()
 const route = useRoute()
 const { refresh } = useMe()
 

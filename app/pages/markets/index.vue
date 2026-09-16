@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-3xl font-black text-white">마켓</h1>
+      <h1 class="text-3xl font-black text-white">{{ t('마켓', 'Markets') }}</h1>
       <span class="flex items-center gap-1.5 text-xs text-emerald-400">
         <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-        실시간 시세
+        {{ t('실시간 시세', 'Live Prices') }}
       </span>
     </div>
 
-    <div v-if="loading" class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-10 text-center text-sm text-slate-500">불러오는 중…</div>
+    <div v-if="loading" class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-10 text-center text-sm text-slate-500">{{ t('불러오는 중…', 'Loading…') }}</div>
     <div v-else-if="error" class="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-10 text-center text-sm text-rose-300">{{ error }}</div>
 
     <template v-else-if="overview">
@@ -16,23 +16,23 @@
         <!-- 마켓 개요 -->
         <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold text-white">마켓 개요</h2>
-            <span class="text-xs text-slate-500">24시간 기준</span>
+            <h2 class="text-base font-semibold text-white">{{ t('마켓 개요', 'Market Overview') }}</h2>
+            <span class="text-xs text-slate-500">{{ t('24시간 기준', 'Based on 24h') }}</span>
           </div>
           <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <div class="text-xs text-slate-500">총 거래대금</div>
+              <div class="text-xs text-slate-500">{{ t('총 거래대금', 'Total Volume') }}</div>
               <div class="mt-1 text-xl font-bold text-white">
                 {{ fmtUsdShort(overview.totalVolUsd) }}
                 <span class="ml-1 text-xs font-semibold text-emerald-400">+0.00%</span>
               </div>
             </div>
             <div>
-              <div class="text-xs text-slate-500">거래 종목</div>
+              <div class="text-xs text-slate-500">{{ t('거래 종목', 'Symbols') }}</div>
               <div class="mt-1 text-xl font-bold text-white">{{ overview.totalCount }}</div>
             </div>
             <div>
-              <div class="text-xs text-slate-500">BTC 거래 비중</div>
+              <div class="text-xs text-slate-500">{{ t('BTC 거래 비중', 'BTC Volume Share') }}</div>
               <div class="mt-1 text-xl font-bold text-white">{{ overview.btcSharePct.toFixed(1) }}%</div>
             </div>
           </div>
@@ -41,18 +41,18 @@
             <div class="bg-rose-500" :style="{ width: 100 - upsharePct + '%' }" />
           </div>
           <div class="mt-2 flex items-center gap-4 text-xs text-slate-400">
-            <span>상승 <span class="text-emerald-400">{{ overview.upCount }}</span></span>
-            <span>보합 {{ overview.flatCount }}</span>
-            <span>하락 <span class="text-rose-400">{{ overview.downCount }}</span></span>
+            <span>{{ t('상승', 'Up') }} <span class="text-emerald-400">{{ overview.upCount }}</span></span>
+            <span>{{ t('보합', 'Flat') }} {{ overview.flatCount }}</span>
+            <span>{{ t('하락', 'Down') }} <span class="text-rose-400">{{ overview.downCount }}</span></span>
           </div>
         </div>
 
         <!-- 변동 상위 -->
         <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-          <h2 class="text-base font-semibold text-white">변동 상위</h2>
+          <h2 class="text-base font-semibold text-white">{{ t('변동 상위', 'Top Movers') }}</h2>
           <div class="mt-4 grid grid-cols-2 gap-4">
             <div>
-              <div class="mb-2 text-xs text-slate-500">상승</div>
+              <div class="mb-2 text-xs text-slate-500">{{ t('상승', 'Gainers') }}</div>
               <div class="space-y-3">
                 <NuxtLink v-for="i in overview.topGainers" :key="i.symbol" :to="`/exchange/${i.symbol}`" class="flex items-center justify-between text-sm hover:opacity-80">
                   <span class="font-semibold text-white">{{ i.base }}</span>
@@ -61,7 +61,7 @@
               </div>
             </div>
             <div>
-              <div class="mb-2 text-xs text-slate-500">하락</div>
+              <div class="mb-2 text-xs text-slate-500">{{ t('하락', 'Losers') }}</div>
               <div class="space-y-3">
                 <NuxtLink v-for="i in overview.topLosers" :key="i.symbol" :to="`/exchange/${i.symbol}`" class="flex items-center justify-between text-sm hover:opacity-80">
                   <span class="font-semibold text-white">{{ i.base }}</span>
@@ -106,7 +106,8 @@
           <input
             v-model.trim="keyword"
             class="w-full rounded-md border border-white/10 bg-[#06101b] py-2 pl-8 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40 sm:w-56"
-            placeholder="종목 검색"
+            :placeholder="t('종목 검색', 'Search symbols')"
+            :key="`markets-search-${locale}`"
           />
         </div>
       </div>
@@ -117,16 +118,16 @@
           <thead class="border-b border-white/10 text-xs text-slate-500">
             <tr>
               <th class="w-10 px-4 py-3"></th>
-              <th class="cursor-pointer select-none px-2 py-3 text-left" @click="toggleSort('name')">이름{{ sortArrow('name') }}</th>
-              <th class="cursor-pointer select-none px-2 py-3 text-right" @click="toggleSort('price')">가격{{ sortArrow('price') }}</th>
-              <th class="cursor-pointer select-none px-2 py-3 text-right" @click="toggleSort('change')">24시간 변동{{ sortArrow('change') }}</th>
-              <th class="cursor-pointer select-none px-2 py-3 text-right" @click="toggleSort('volume')">24시간 거래대금{{ sortArrow('volume') }}</th>
-              <th class="px-4 py-3 text-right">거래</th>
+              <th class="cursor-pointer select-none px-2 py-3 text-left" @click="toggleSort('name')">{{ t('이름', 'Name') }}{{ sortArrow('name') }}</th>
+              <th class="cursor-pointer select-none px-2 py-3 text-right" @click="toggleSort('price')">{{ t('가격', 'Price') }}{{ sortArrow('price') }}</th>
+              <th class="cursor-pointer select-none px-2 py-3 text-right" @click="toggleSort('change')">{{ t('24시간 변동', '24h Change') }}{{ sortArrow('change') }}</th>
+              <th class="cursor-pointer select-none px-2 py-3 text-right" @click="toggleSort('volume')">{{ t('24시간 거래대금', '24h Volume') }}{{ sortArrow('volume') }}</th>
+              <th class="px-4 py-3 text-right">{{ t('거래', 'Trade') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-white/5">
             <tr v-if="pagedItems.length === 0">
-              <td colspan="6" class="px-4 py-10 text-center text-slate-500">종목이 없습니다.</td>
+              <td colspan="6" class="px-4 py-10 text-center text-slate-500">{{ t('종목이 없습니다.', 'No symbols available.') }}</td>
             </tr>
             <tr v-for="item in pagedItems" :key="item.symbol" class="hover:bg-white/[0.03]">
               <td class="px-4 py-3">
@@ -151,7 +152,7 @@
               </td>
               <td class="px-2 py-3 text-right font-mono text-slate-300">{{ fmtUsdShort(item.volUsd) }}</td>
               <td class="px-4 py-3 text-right">
-                <NuxtLink :to="`/exchange/${item.symbol}`" class="rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20">거래</NuxtLink>
+                <NuxtLink :to="`/exchange/${item.symbol}`" class="rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20">{{ t('거래', 'Trade') }}</NuxtLink>
               </td>
             </tr>
           </tbody>
@@ -203,6 +204,7 @@ type MarketOverview = {
   categoryCounts: Record<MarketInstrument['category'], number>
 }
 
+const { t, locale } = useLocale()
 const loading = ref(true)
 const error = ref<string | null>(null)
 const overview = ref<MarketOverview | null>(null)
@@ -213,7 +215,7 @@ async function load() {
   try {
     overview.value = await $fetch<MarketOverview>('/api/markets/overview')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '마켓 정보를 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('마켓 정보를 불러오지 못했습니다.', 'Failed to load market information.')
   } finally {
     loading.value = false
   }
@@ -230,13 +232,13 @@ const activeCategory = ref<CategoryKey>('all')
 const categoryTabs = computed(() => {
   const c = overview.value?.categoryCounts
   return [
-    { key: 'favorite' as CategoryKey, label: '즐겨찾기', count: favorites.value.length },
-    { key: 'all' as CategoryKey, label: '전체', count: overview.value?.totalCount ?? 0 },
-    { key: 'coin' as CategoryKey, label: '암호화폐', count: c?.coin ?? 0 },
-    { key: 'stock' as CategoryKey, label: '해외주식', count: c?.stock ?? 0 },
+    { key: 'favorite' as CategoryKey, label: t('즐겨찾기', 'Favorites'), count: favorites.value.length },
+    { key: 'all' as CategoryKey, label: t('전체', 'All'), count: overview.value?.totalCount ?? 0 },
+    { key: 'coin' as CategoryKey, label: t('암호화폐', 'Crypto'), count: c?.coin ?? 0 },
+    { key: 'stock' as CategoryKey, label: t('해외주식', 'Global Stocks'), count: c?.stock ?? 0 },
     { key: 'etf' as CategoryKey, label: 'ETF', count: c?.etf ?? 0 },
-    { key: 'commodity' as CategoryKey, label: '원자재', count: c?.commodity ?? 0 },
-    { key: 'krStock' as CategoryKey, label: '국내주식', count: c?.krStock ?? 0 }
+    { key: 'commodity' as CategoryKey, label: t('원자재', 'Commodities'), count: c?.commodity ?? 0 },
+    { key: 'krStock' as CategoryKey, label: t('국내주식', 'KR Stocks'), count: c?.krStock ?? 0 }
   ]
 })
 
@@ -282,14 +284,15 @@ function sortArrow(key: SortKey) {
   return sortDir.value === 'asc' ? ' ▲' : ' ▼'
 }
 
-const sortPresets = [
-  { key: 'all', label: '전체' },
-  { key: 'gainers', label: '상승률 상위' },
-  { key: 'losers', label: '하락률 상위' },
-  { key: 'volume', label: '거래대금 상위' }
-] as const
-const activePreset = ref<(typeof sortPresets)[number]['key'] | null>('all')
-function applyPreset(key: (typeof sortPresets)[number]['key']) {
+type PresetKey = 'all' | 'gainers' | 'losers' | 'volume'
+const sortPresets = computed(() => [
+  { key: 'all' as PresetKey, label: t('전체', 'All') },
+  { key: 'gainers' as PresetKey, label: t('상승률 상위', 'Top Gainers') },
+  { key: 'losers' as PresetKey, label: t('하락률 상위', 'Top Losers') },
+  { key: 'volume' as PresetKey, label: t('거래대금 상위', 'Top Volume') }
+])
+const activePreset = ref<PresetKey | null>('all')
+function applyPreset(key: PresetKey) {
   activePreset.value = key
   if (key === 'all' || key === 'volume') {
     sortKey.value = 'volume'

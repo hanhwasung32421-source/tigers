@@ -19,14 +19,15 @@
       <input
         v-model.trim="keyword"
         class="w-56 rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-        placeholder="종목 검색"
+        :placeholder="t('종목 검색', 'Search symbols')"
+        :key="`market-search-${locale}`"
       />
     </div>
 
     <div class="rounded-2xl border border-white/10 bg-white/[0.02]">
-      <div v-if="loading" class="px-4 py-10 text-center text-sm text-slate-500">불러오는 중…</div>
+      <div v-if="loading" class="px-4 py-10 text-center text-sm text-slate-500">{{ t('불러오는 중…', 'Loading…') }}</div>
       <div v-else-if="error" class="px-4 py-10 text-center text-sm text-rose-300">{{ error }}</div>
-      <div v-else-if="filtered.length === 0" class="px-4 py-10 text-center text-sm text-slate-500">종목이 없습니다.</div>
+      <div v-else-if="filtered.length === 0" class="px-4 py-10 text-center text-sm text-slate-500">{{ t('종목이 없습니다.', 'No symbols available.') }}</div>
       <div v-else class="divide-y divide-white/5">
         <NuxtLink
           v-for="item in filtered"
@@ -44,7 +45,7 @@
             <div class="min-w-0">
               <div class="truncate text-sm font-semibold text-white">
                 {{ item.symbol }}
-                <span class="ml-1 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">무기한</span>
+                <span class="ml-1 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">{{ t('무기한', 'Perp') }}</span>
               </div>
               <div class="truncate text-xs text-slate-500">{{ item.name }} · {{ item.base }}/USDT</div>
             </div>
@@ -67,15 +68,16 @@ definePageMeta({ middleware: ['auth'] })
 type MarketInstrument = { symbol: string; instId: string; base: string; name: string; price: number; changePct: number }
 type MarketsResponse = { coin: MarketInstrument[]; globalStock: MarketInstrument[]; krStock: MarketInstrument[] }
 
+const { t, locale } = useLocale()
 const route = useRoute()
 const type = computed(() => String(route.params.type || 'coin'))
 
-const tabs = [
-  { type: 'coin', label: '코인선물', desc: '암호화폐 무기한 선물 전 종목' },
-  { type: 'global', label: '해외주식', desc: '해외 주식·ETF·원자재 토큰' },
-  { type: 'kr', label: '국내주식', desc: '국내 주식·ETF 토큰' }
-]
-const currentTab = computed(() => tabs.find((t) => t.type === type.value))
+const tabs = computed(() => [
+  { type: 'coin', label: t('코인선물', 'Coin Futures'), desc: t('암호화폐 무기한 선물 전 종목', 'All perpetual crypto futures symbols') },
+  { type: 'global', label: t('해외주식', 'Global Stocks'), desc: t('해외 주식·ETF·원자재 토큰', 'Global stock, ETF, and commodity tokens') },
+  { type: 'kr', label: t('국내주식', 'KR Stocks'), desc: t('국내 주식·ETF 토큰', 'Korean stock and ETF tokens') }
+])
+const currentTab = computed(() => tabs.value.find((tb) => tb.type === type.value))
 
 const keyword = ref('')
 const loading = ref(true)
@@ -114,7 +116,7 @@ async function load() {
   try {
     data.value = await $fetch<MarketsResponse>('/api/markets/list')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '마켓 목록을 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('마켓 목록을 불러오지 못했습니다.', 'Failed to load market list.')
   } finally {
     loading.value = false
   }

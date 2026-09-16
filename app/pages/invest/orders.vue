@@ -3,23 +3,23 @@
     <HeaderTabs active="orders" />
 
     <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-6 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
-      <h2 class="font-semibold">선물 주문 내역</h2>
-      <p class="mt-2 text-sm text-slate-400">최근 주문/포지션 내역을 확인할 수 있습니다.</p>
+      <h2 class="font-semibold">{{ t('선물 주문 내역', 'Futures Orders') }}</h2>
+      <p class="mt-2 text-sm text-slate-400">{{ t('최근 주문/포지션 내역을 확인할 수 있습니다.', 'View your recent order and position history.') }}</p>
 
       <div class="mt-4 overflow-auto">
         <table class="w-full text-xs">
           <thead class="text-slate-500">
             <tr class="text-left">
-              <th class="py-2">코인</th>
-              <th class="py-2">포지션</th>
-              <th class="py-2">수량</th>
-              <th class="py-2">진입가격</th>
-              <th class="py-2">증거금</th>
+              <th class="py-2">{{ t('코인', 'Coin') }}</th>
+              <th class="py-2">{{ t('포지션', 'Position') }}</th>
+              <th class="py-2">{{ t('수량', 'Quantity') }}</th>
+              <th class="py-2">{{ t('진입가격', 'Entry Price') }}</th>
+              <th class="py-2">{{ t('증거금', 'Margin') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="positions.length === 0" class="border-t border-cyan-500/10">
-              <td colspan="5" class="py-3 text-slate-400">데이터가 없습니다.</td>
+              <td colspan="5" class="py-3 text-slate-400">{{ t('데이터가 없습니다.', 'No data available.') }}</td>
             </tr>
             <tr v-for="p in positions" :key="p.id" class="border-t border-cyan-500/10">
               <td class="py-2 font-mono">{{ p.symbol }}</td>
@@ -40,6 +40,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth'] })
 
+const { t } = useLocale()
 const positions = ref<any[]>([])
 // SSR(주소창 직접 접속/새로고침)에서는 브라우저 쿠키가 자동으로 전달되지 않으므로 명시적으로 넘겨야
 // 로그인 상태인데도 /api/account가 401로 실패하는 문제를 막을 수 있다.
