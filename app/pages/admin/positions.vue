@@ -2,11 +2,11 @@
   <div class="space-y-5">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">포지션 목록</h1>
-        <p class="mt-1 text-sm text-slate-400">실시간 오픈 포지션을 1초마다 갱신합니다.</p>
+        <h1 class="text-xl font-semibold">{{ t('포지션 목록', 'Positions') }}</h1>
+        <p class="mt-1 text-sm text-slate-400">{{ t('실시간 오픈 포지션을 1초마다 갱신합니다.', 'Live open positions refresh every second.') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
+        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
         <span class="rounded-md border border-cyan-500/10 bg-cyan-500/5 px-3 py-2 text-xs font-data text-slate-300">
           {{ lastUpdatedText }}
         </span>
@@ -19,21 +19,22 @@
           v-model="memberFilter"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
         >
-          <option value="">회원 이름</option>
+          <option value="">{{ t('회원 이름', 'Member Name') }}</option>
           <option v-for="name in memberOptions" :key="name" :value="name">{{ name }}</option>
         </select>
 
         <input
           v-model.trim="keyword"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-cyan-500/50"
-          placeholder="검색어를 입력하세요"
+          :placeholder="t('검색어를 입력하세요', 'Enter a search term')"
+          :key="`positions-search-${locale}`"
         />
 
         <select
           v-model="symbolFilter"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
         >
-          <option value="">심볼</option>
+          <option value="">{{ t('심볼', 'Symbol') }}</option>
           <option v-for="sym in symbolOptions" :key="sym" :value="sym">{{ sym }}</option>
         </select>
 
@@ -41,7 +42,7 @@
           v-model="positionFilter"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
         >
-          <option value="">포지션</option>
+          <option value="">{{ t('포지션', 'Position') }}</option>
           <option value="LONG">LONG</option>
           <option value="SHORT">SHORT</option>
         </select>
@@ -50,9 +51,9 @@
           v-model="settledFilter"
           class="rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
         >
-          <option value="">접속여부</option>
-          <option value="접속">접속</option>
-          <option value="미접속">미접속</option>
+          <option value="">{{ t('접속여부', 'Status') }}</option>
+          <option value="접속">{{ t('접속', 'Online') }}</option>
+          <option value="미접속">{{ t('미접속', 'Offline') }}</option>
         </select>
       </div>
 
@@ -60,26 +61,26 @@
         <table class="w-full text-[12px] leading-tight text-slate-200">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
-              <th class="whitespace-nowrap px-2 py-3 text-left">회원아이디</th>
-              <th class="whitespace-nowrap px-2 py-3 text-left">회원 이름</th>
-              <th class="whitespace-nowrap px-2 py-3 text-left">소속총판</th>
-              <th class="whitespace-nowrap px-2 py-3 text-left">심볼</th>
-              <th class="whitespace-nowrap px-2 py-3 text-left">주문타입</th>
-              <th class="whitespace-nowrap px-2 py-3 text-left">포지션</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">증거금</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">레버리지</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">진입가격</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">계약수량</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">청산가격</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">수익</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">수익률</th>
-              <th class="whitespace-nowrap px-2 py-3 text-right">수수료</th>
-              <th class="whitespace-nowrap px-2 py-3 text-center">접속확인</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">{{ t('회원아이디', 'Username') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">{{ t('회원 이름', 'Name') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">{{ t('소속총판', 'Affiliate') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">{{ t('심볼', 'Symbol') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">{{ t('주문타입', 'Order Type') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-left">{{ t('포지션', 'Position') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('증거금', 'Margin') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('레버리지', 'Leverage') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('진입가격', 'Entry Price') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('계약수량', 'Contract Qty') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('청산가격', 'Liq. Price') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('수익', 'PnL') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('수익률', 'ROE') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-right">{{ t('수수료', 'Fee') }}</th>
+              <th class="whitespace-nowrap px-2 py-3 text-center">{{ t('접속확인', 'Status') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && filteredItems.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="15" class="px-2 py-10 text-center text-slate-500">표시할 포지션이 없습니다.</td>
+              <td colspan="15" class="px-2 py-10 text-center text-slate-500">{{ t('표시할 포지션이 없습니다.', 'No positions to display.') }}</td>
             </tr>
             <tr v-for="row in pagedItems" :key="row.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="whitespace-nowrap px-2 py-2.5">
@@ -117,7 +118,7 @@
                   class="rounded px-2 py-1 text-[12px] font-semibold"
                   :class="row.online ? 'bg-emerald-500/15 text-emerald-300' : 'bg-[#2b3445] text-slate-200'"
                 >
-                  {{ row.online ? '접속' : '미접속' }}
+                  {{ row.online ? t('접속', 'Online') : t('미접속', 'Offline') }}
                 </span>
               </td>
             </tr>
@@ -180,6 +181,7 @@ type AdminPositionRow = {
   created_at: string
 }
 
+const { t, locale } = useLocale()
 const { refresh } = useMe()
 await refresh()
 
@@ -229,7 +231,7 @@ const showPageTail = computed(() => {
   const nums = pageNumbers.value
   return nums.length > 0 && nums[nums.length - 1] < totalPages.value
 })
-const lastUpdatedText = computed(() => (lastUpdated.value ? `실시간 갱신 ${lastUpdated.value}` : '실시간 갱신 대기'))
+const lastUpdatedText = computed(() => (lastUpdated.value ? t(`실시간 갱신 ${lastUpdated.value}`, `Live update ${lastUpdated.value}`) : t('실시간 갱신 대기', 'Waiting for live update')))
 
 watch(filteredItems, () => {
   if (page.value > totalPages.value) page.value = totalPages.value
@@ -264,7 +266,7 @@ async function load(silent = false) {
     lastUpdated.value = new Date().toLocaleTimeString('ko-KR', { hour12: false })
     error.value = null
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '포지션 목록을 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('포지션 목록을 불러오지 못했습니다.', 'Failed to load position list.')
   } finally {
     loading.value = false
     loadingNow = false

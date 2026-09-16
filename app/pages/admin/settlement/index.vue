@@ -2,13 +2,13 @@
   <div class="space-y-5">
     <div class="flex items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold">정산내역</h1>
-        <p class="mt-1 text-sm text-slate-400">선택한 기간의 회원별 정산금을 확인합니다.</p>
+        <h1 class="text-xl font-semibold">{{ t('정산내역', 'Settlement History') }}</h1>
+        <p class="mt-1 text-sm text-slate-400">{{ t('선택한 기간의 회원별 정산금을 확인합니다.', 'View per-member settlement amounts for the selected period.') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">대시보드</NuxtLink>
+        <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
         <button class="rounded-md bg-cyan-500/15 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-500/20" @click="load()">
-          새로고침
+          {{ t('새로고침', 'Refresh') }}
         </button>
       </div>
     </div>
@@ -22,7 +22,7 @@
             :class="type === 'loss' ? 'bg-cyan-500/20 text-cyan-100' : 'text-slate-300 hover:bg-white/5'"
             @click="type = 'loss'"
           >
-            손실정산
+            {{ t('손실정산', 'Loss Settlement') }}
           </button>
           <button
             type="button"
@@ -30,7 +30,7 @@
             :class="type === 'referral' ? 'bg-cyan-500/20 text-cyan-100' : 'text-slate-300 hover:bg-white/5'"
             @click="type = 'referral'"
           >
-            레퍼럴정산
+            {{ t('레퍼럴정산', 'Referral Settlement') }}
           </button>
         </div>
 
@@ -39,12 +39,12 @@
           <span class="text-slate-500">~</span>
           <input v-model="toDate" type="date" class="date-input bg-transparent outline-none" />
         </div>
-        <button class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="load()">조회</button>
-        <button class="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10" @click="resetToThisWeek">이번주</button>
+        <button class="rounded-md bg-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/15" @click="load()">{{ t('조회', 'Search') }}</button>
+        <button class="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10" @click="resetToThisWeek">{{ t('이번주', 'This Week') }}</button>
 
         <div class="ml-auto rounded-md border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-100">
-          <div>기간 총 정산금 <span class="font-data text-base font-semibold">{{ fmtKrw(total) }}</span></div>
-          <div class="text-xs text-cyan-300/70">(정산비율 {{ percent }}%, 환율 {{ fmt0(krwPerUsdt) }}원/USDT)</div>
+          <div>{{ t('기간 총 정산금', 'Total Settlement (Period)') }} <span class="font-data text-base font-semibold">{{ fmtKrw(total) }}</span></div>
+          <div class="text-xs text-cyan-300/70">({{ t(`정산비율 ${percent}%, 환율 ${fmt0(krwPerUsdt)}원/USDT`, `Rate ${percent}%, FX ${fmt0(krwPerUsdt)} KRW/USDT`) }})</div>
           <div class="font-data text-xs text-cyan-300/70">({{ fmt2(total) }})</div>
         </div>
       </div>
@@ -52,11 +52,12 @@
       <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-300">
         <input
           v-model.trim="keyword"
-          placeholder="아이디/이름 검색"
+          :placeholder="t('아이디/이름 검색', 'Search by username/name')"
           class="w-64 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600"
+          :key="`settlement-search-${locale}`"
         />
         <div class="flex items-center gap-2">
-          <span class="text-slate-400">표시수</span>
+          <span class="text-slate-400">{{ t('표시수', 'Rows') }}</span>
           <input
             v-model.number="pageSizeInput"
             type="number"
@@ -64,7 +65,7 @@
             max="500"
             class="w-16 rounded-md border border-[#173753] bg-[#041425] px-2 py-1.5 text-right outline-none"
           />
-          <span class="text-slate-500">명씩 · 총 {{ filteredItems.length }}명</span>
+          <span class="text-slate-500">{{ t(`명씩 · 총 ${filteredItems.length}명`, `each · ${filteredItems.length} total`) }}</span>
         </div>
       </div>
 
@@ -72,16 +73,16 @@
         <table class="min-w-full text-xs text-slate-200">
           <thead class="border-b border-[#12314a] text-[12px] text-slate-400">
             <tr>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">회원 아이디<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">이름<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">잔액<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('username')">{{ t('회원 아이디', 'Username') }}<span class="sort-icon">{{ sortArrow('username') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left" @click="toggleSort('name')">{{ t('이름', 'Name') }}<span class="sort-icon">{{ sortArrow('name') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('balanceUsdt')">{{ t('잔액', 'Balance') }}<span class="sort-icon">{{ sortArrow('balanceUsdt') || ' ⇅' }}</span></th>
               <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('baseAmount')">{{ baseAmountLabel }}<span class="sort-icon">{{ sortArrow('baseAmount') || ' ⇅' }}</span></th>
-              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('settlementAmount')">정산금<span class="sort-icon">{{ sortArrow('settlementAmount') || ' ⇅' }}</span></th>
+              <th class="sortable-th cursor-pointer select-none whitespace-nowrap px-3 py-3 text-right" @click="toggleSort('settlementAmount')">{{ t('정산금', 'Settlement') }}<span class="sort-icon">{{ sortArrow('settlementAmount') || ' ⇅' }}</span></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && pagedItems.length === 0" class="border-b border-[#0d2438]">
-              <td colspan="5" class="px-3 py-8 text-center text-slate-500">데이터가 없습니다.</td>
+              <td colspan="5" class="px-3 py-8 text-center text-slate-500">{{ t('데이터가 없습니다.', 'No data available.') }}</td>
             </tr>
             <tr v-for="it in pagedItems" :key="it.id" class="border-b border-[#0d2438] hover:bg-white/[0.02]">
               <td class="px-3 py-3 font-data text-slate-100">
@@ -108,7 +109,7 @@
       </div>
 
       <div class="mt-4 flex items-center justify-between gap-3">
-        <div class="text-sm text-slate-400">페이지 {{ page }} / {{ totalPages }}</div>
+        <div class="text-sm text-slate-400">{{ t(`페이지 ${page} / ${totalPages}`, `Page ${page} / ${totalPages}`) }}</div>
         <div class="flex items-center justify-center gap-2" v-if="totalPages > 1">
           <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page = 1">«</button>
           <button class="rounded bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30" :disabled="page <= 1" @click="page--">‹</button>
@@ -153,6 +154,7 @@ type SettlementItem = {
   settlementAmount: number
 }
 
+const { t, locale } = useLocale()
 const { me, refresh } = useMe()
 await refresh()
 
@@ -164,7 +166,7 @@ function settlementTypesOf() {
 
 const allowedTypes = ref(settlementTypesOf())
 const type = ref<'loss' | 'referral'>(allowedTypes.value[0] || 'loss')
-const baseAmountLabel = computed(() => (type.value === 'loss' ? '총 손실 금액' : '총 수수료'))
+const baseAmountLabel = computed(() => t(type.value === 'loss' ? '총 손실 금액' : '총 수수료', type.value === 'loss' ? 'Total Loss Amount' : 'Total Fees'))
 
 function thisWeekRange() {
   const now = new Date()
@@ -267,7 +269,8 @@ function fmt0(v: number) {
 }
 // 모든 수치는 원화로 먼저 보여주고, 기존(USDT) 수치는 괄호 안에 표기한다.
 function fmtKrw(usdtValue: number) {
-  return `${Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()}원`
+  const n = Math.round(Number(usdtValue || 0) * krwPerUsdt.value).toLocaleString()
+  return t(`${n}원`, `${n} KRW`)
 }
 
 function resetToThisWeek() {
@@ -289,7 +292,7 @@ async function load() {
     krwPerUsdt.value = Number(res.krwPerUsdt || 0)
     error.value = null
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || '정산내역을 불러오지 못했습니다.'
+    error.value = e?.data?.statusMessage || t('정산내역을 불러오지 못했습니다.', 'Failed to load settlement history.')
   } finally {
     loading.value = false
   }
