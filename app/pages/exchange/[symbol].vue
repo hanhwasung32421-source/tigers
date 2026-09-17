@@ -5608,11 +5608,12 @@ const closeClickCooldown = reactive(new Set<number>())
 // percent는 "20" 처럼 하나만 쓸 수도 있고, "+20,-20" 처럼 콤마로 여러 값을 넣거나,
 // "+-20"(양쪽 다) 처럼 쓸 수도 있다. 기본값은 체크 안 된 상태 + "+-20"이 미리 채워져 있어서
 // 체크만 하면 바로 +20%/-20% 알람이 적용된다.
-type PositionAlarm = { enabled: boolean; percent: string; triggered: boolean }
+type AlarmKind = 'profit' | 'loss'
+type PositionAlarm = { enabled: boolean; percent: string; triggered: boolean; triggeredKind?: AlarmKind | null }
 const positionAlarms = reactive<Record<number, PositionAlarm>>({})
-const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '+-20', triggered: false }
-let alarmAudioCtx: AudioContext | null = null
-let alarmLoopTimer: any = null
+const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '+-20', triggered: false, triggeredKind: null }
+let alarmSpeechTimer: any = null
+let currentAlarmKind: AlarmKind | null = null
 
 function getPositionAlarm(id: number) {
   return positionAlarms[Number(id)] || ALARM_DEFAULT
@@ -5645,7 +5646,11 @@ function parseAlarmThresholds(raw: string): number[] {
 }
 
 function onToggleAlarm(id: number, checked: boolean) {
-  setPositionAlarm(id, { enabled: checked, triggered: checked ? getPositionAlarm(id).triggered : false })
+  setPositionAlarm(id, {
+    enabled: checked,
+    triggered: checked ? getPositionAlarm(id).triggered : false,
+    triggeredKind: checked ? getPositionAlarm(id).triggeredKind : null
+  })
   checkPositionAlarms()
 }
 
@@ -5654,70 +5659,78 @@ function onAlarmPercentInput(id: number, raw: string) {
   checkPositionAlarms()
 }
 
-function ensureAlarmAudioCtx() {
-  if (!process.client) return null
-  if (!alarmAudioCtx) {
-    try {
-      alarmAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    } catch {
-      alarmAudioCtx = null
-    }
-  }
-  return alarmAudioCtx
+// 여성 목소리의 한국어 음성을 우선으로 고른다. 브라우저/OS마다 제공되는 음성 목록과 이름이
+// 달라서(성별을 명시하는 표준 속성이 없음) 흔한 여성 음성 이름 힌트로 추정하고, 못 찾으면
+// 한국어 음성 아무거나, 그것도 없으면 첫 번째 사용 가능한 음성으로 대체한다.
+function pickAlarmVoice(): SpeechSynthesisVoice | null {
+  if (!process.client || typeof window === 'undefined' || !window.speechSynthesis) return null
+  const voices = window.speechSynthesis.getVoices()
+  if (!voices.length) return null
+  const ko = voices.filter((v) => v.lang?.toLowerCase().startsWith('ko'))
+  const femaleHints = ['female', 'yuna', 'heami', 'sora', 'jimin', '여성', 'google 한국의']
+  const femaleKo = ko.find((v) => femaleHints.some((h) => v.name.toLowerCase().includes(h)))
+  return femaleKo || ko[0] || voices[0]
 }
 
-function playAlarmBeep() {
-  const ctx = ensureAlarmAudioCtx()
-  if (!ctx) return
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {})
-  const osc = ctx.createOscillator()
-  const gain = ctx.createGain()
-  osc.type = 'square'
-  osc.frequency.value = 880
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime)
-  gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02)
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35)
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-  osc.start()
-  osc.stop(ctx.currentTime + 0.4)
+function speakAlarmPhrase(kind: AlarmKind) {
+  if (!process.client || typeof window === 'undefined' || !window.speechSynthesis) return
+  const text = kind === 'profit' ? t('수익 수익 수익', 'Profit Profit Profit') : t('손실 손실 손실', 'Loss Loss Loss')
+  const utter = new SpeechSynthesisUtterance(text)
+  utter.lang = locale.value === 'en' ? 'en-US' : 'ko-KR'
+  utter.pitch = 1.15
+  utter.rate = 1
+  const voice = pickAlarmVoice()
+  if (voice) utter.voice = voice
+  window.speechSynthesis.speak(utter)
 }
 
-function startAlarmLoop() {
-  if (alarmLoopTimer) return
-  playAlarmBeep()
-  alarmLoopTimer = setInterval(() => playAlarmBeep(), 800)
+function startAlarmLoop(kind: AlarmKind) {
+  if (alarmSpeechTimer && currentAlarmKind === kind) return
+  stopAlarmLoop()
+  currentAlarmKind = kind
+  speakAlarmPhrase(kind)
+  alarmSpeechTimer = setInterval(() => speakAlarmPhrase(kind), 1800)
 }
 
 function stopAlarmLoop() {
-  if (alarmLoopTimer) {
-    clearInterval(alarmLoopTimer)
-    alarmLoopTimer = null
+  if (alarmSpeechTimer) {
+    clearInterval(alarmSpeechTimer)
+    alarmSpeechTimer = null
+  }
+  currentAlarmKind = null
+  if (process.client && typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel()
   }
 }
 
 function checkPositionAlarms() {
   if (!process.client || !isSuperAdminUser.value) return
-  let anyTriggered = false
+  let anyProfitTriggered = false
+  let anyLossTriggered = false
   for (const p of visiblePositions.value) {
     const id = Number(p.id)
     if (!id) continue
     const a = positionAlarms[id]
     if (!a || !a.enabled) continue
     if (a.triggered) {
-      anyTriggered = true
+      if (a.triggeredKind === 'loss') anyLossTriggered = true
+      else anyProfitTriggered = true
       continue
     }
     const thresholds = parseAlarmThresholds(a.percent)
     if (!thresholds.length) continue
     const roe = unrealized(p).roe
-    const hit = thresholds.some((t) => (t > 0 ? roe >= t : roe <= t))
-    if (hit) {
+    const hitThreshold = thresholds.find((t) => (t > 0 ? roe >= t : roe <= t))
+    if (hitThreshold !== undefined) {
       a.triggered = true
-      anyTriggered = true
+      a.triggeredKind = hitThreshold > 0 ? 'profit' : 'loss'
+      if (a.triggeredKind === 'loss') anyLossTriggered = true
+      else anyProfitTriggered = true
     }
   }
-  if (anyTriggered) startAlarmLoop()
+  // 손실/수익 알람이 동시에 울리는 경우, 손실 쪽을 우선 안내한다(리스크 관리가 더 급함).
+  if (anyLossTriggered) startAlarmLoop('loss')
+  else if (anyProfitTriggered) startAlarmLoop('profit')
   else stopAlarmLoop()
 }
 
@@ -6081,8 +6094,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   window.removeEventListener('resize', onWindowResizeForChartHeight)
   stopAlarmLoop()
-  alarmAudioCtx?.close().catch(() => {})
-  alarmAudioCtx = null
   chartResizeObserver?.disconnect()
   chartResizeObserver = null
   if (chartResizeRaf) cancelAnimationFrame(chartResizeRaf)
