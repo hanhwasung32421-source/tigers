@@ -9,7 +9,7 @@ import versionInfo from '../../../version.json'
 // 실제 서비스 데이터와 무관하게, 지금 배포된 버전을 나타내는 문자열(예: "260916-6")을
 // SQLite/Supabase 양쪽에 각각 직접 써보고 곧바로 다시 읽어서 "정말 그 DB에 반영됐는지"를 확인한다.
 // (supabaseAppDbEnabled 여부와 무관하게 둘 다 시도 — 어느 한쪽만 확인하면 의미가 없어서)
-type CheckResult = { ok: boolean; marker?: string | null; checkedAt?: string | null; detail?: string; error?: string }
+type CheckResult = { ok: boolean; marker?: string | null; checkedAt?: string | null; detail?: string; projectName?: string; error?: string }
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
@@ -52,7 +52,8 @@ export default defineEventHandler(async (event) => {
         ok: data?.health_marker === marker,
         marker: data?.health_marker ?? null,
         checkedAt: data?.health_checked_at ?? null,
-        detail: String(cfg.supabaseUrl || '')
+        detail: String(cfg.supabaseUrl || ''),
+        projectName: String(cfg.supabaseProjectName || '')
       }
     } catch (e: any) {
       return { ok: false, error: String(e?.message || e) }

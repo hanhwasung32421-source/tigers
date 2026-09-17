@@ -43,6 +43,9 @@ export default defineNuxtConfig({
     // 재발급(rotate)하는 것을 권장.
     supabaseUrl: process.env.SUPABASE_URL || 'https://dyfycrmltqosezmsufup.supabase.co',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+    // 서버 전용: Supabase 대시보드상의 프로젝트 이름(예: "BITDUCK"). API/URL만으로는 알 수 없어서
+    // 별도 환경변수로 관리 — 관리자 "DB 연결 상태" 화면에 표시하기 위한 용도.
+    supabaseProjectName: process.env.SUPABASE_PROJECT_NAME || '',
     public: {
       appName: 'BITDUCK'
     }

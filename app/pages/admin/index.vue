@@ -965,6 +965,7 @@
           <div class="mt-2 space-y-1 text-xs text-slate-400">
             <div>{{ t('저장된 값:', 'Stored value:') }} <span class="font-data text-slate-200">{{ dbHealth.supabase.marker ?? '—' }}</span></div>
             <div>{{ t('확인 시각:', 'Checked at:') }} <span class="font-data text-slate-200">{{ dbHealth.supabase.checkedAt ? formatKillTime(dbHealth.supabase.checkedAt) : '—' }}</span></div>
+            <div class="truncate">{{ t('프로젝트 이름:', 'Project Name:') }} <span class="font-data text-slate-300">{{ dbHealth.supabase.projectName || '—' }}</span></div>
             <div class="truncate">{{ t('프로젝트 URL:', 'Project URL:') }} <span class="font-data text-slate-300">{{ dbHealth.supabase.detail || '—' }}</span></div>
             <div v-if="dbHealth.supabase.error" class="text-rose-300">{{ t('에러:', 'Error:') }} {{ dbHealth.supabase.error }}</div>
           </div>
@@ -1984,7 +1985,7 @@ async function saveMiscSettings() {
 
 // DB 연결 상태: 실제 데이터와 무관하게, 지금 배포된 버전 표시를 SQLite/Supabase 양쪽에
 // 직접 써보고 다시 읽어서 확인하는 진단 기능.
-type DbHealthCheckResult = { ok: boolean; marker?: string | null; checkedAt?: string | null; detail?: string; error?: string }
+type DbHealthCheckResult = { ok: boolean; marker?: string | null; checkedAt?: string | null; detail?: string; projectName?: string; error?: string }
 type DbHealthResponse = { marker: string; activeMode: 'sqlite' | 'supabase'; sqlite: DbHealthCheckResult; supabase: DbHealthCheckResult }
 const dbHealth = ref<DbHealthResponse | null>(null)
 const dbHealthLoading = ref(false)
