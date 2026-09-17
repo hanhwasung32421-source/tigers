@@ -5672,27 +5672,46 @@ function pickAlarmVoice(): SpeechSynthesisVoice | null {
   return femaleKo || ko[0] || voices[0]
 }
 
+// setInterval로 일정 간격마다 speak()를 새로 예약하면 크롬의 알려진 버그(음성 큐가 쌓이면
+// 저절로 멈춰버리는 문제, https://crbug.com/679437)에 걸려 "N번 말하고 멈췄다가 다시 N번"
+// 처럼 끊기는 증상이 생긴다. 대신 한 발화가 끝나는 순간(onend) 바로 다음 발화를 이어 붙이는
+// 방식으로 바꾸고, 그래도 멈추는 경우에 대비해 주기적으로 resume()을 호출하는 안전장치를 둔다.
+let alarmActive = false
+
 function speakAlarmPhrase(kind: AlarmKind) {
   if (!process.client || typeof window === 'undefined' || !window.speechSynthesis) return
+  if (!alarmActive || currentAlarmKind !== kind) return
   const text = kind === 'profit' ? t('수익 수익 수익', 'Profit Profit Profit') : t('손실 손실 손실', 'Loss Loss Loss')
   const utter = new SpeechSynthesisUtterance(text)
   utter.lang = locale.value === 'en' ? 'en-US' : 'ko-KR'
   utter.pitch = 1.15
   utter.rate = 1
+  utter.volume = 1
   const voice = pickAlarmVoice()
   if (voice) utter.voice = voice
+  utter.onend = () => {
+    if (alarmActive && currentAlarmKind === kind) speakAlarmPhrase(kind)
+  }
+  utter.onerror = () => {
+    if (alarmActive && currentAlarmKind === kind) setTimeout(() => speakAlarmPhrase(kind), 300)
+  }
   window.speechSynthesis.speak(utter)
 }
 
 function startAlarmLoop(kind: AlarmKind) {
-  if (alarmSpeechTimer && currentAlarmKind === kind) return
+  if (alarmActive && currentAlarmKind === kind) return
   stopAlarmLoop()
+  alarmActive = true
   currentAlarmKind = kind
   speakAlarmPhrase(kind)
-  alarmSpeechTimer = setInterval(() => speakAlarmPhrase(kind), 1800)
+  // 크롬이 speechSynthesis를 저절로 일시정지시키는 경우를 대비한 감시 타이머.
+  alarmSpeechTimer = setInterval(() => {
+    if (process.client && window.speechSynthesis?.paused) window.speechSynthesis.resume()
+  }, 3000)
 }
 
 function stopAlarmLoop() {
+  alarmActive = false
   if (alarmSpeechTimer) {
     clearInterval(alarmSpeechTimer)
     alarmSpeechTimer = null
