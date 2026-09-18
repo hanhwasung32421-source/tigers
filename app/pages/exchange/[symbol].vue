@@ -4930,7 +4930,7 @@ function renderEntryLines() {
     const isLong = p.side === 'long'
     // 점선 자체는 연하게, 가격축 라벨은 원래 색으로 또렷하게 유지
     const lineColor = isLong ? 'rgba(251, 113, 133, 0.45)' : 'rgba(96, 165, 250, 0.45)'
-    const labelColor = isLong ? '#fb7185' : '#60a5fa'
+    const labelColor = isLong ? '#fc4f5d' : '#60a5fa'
     const pl = candleSeries.createPriceLine({
       price,
       color: lineColor,
