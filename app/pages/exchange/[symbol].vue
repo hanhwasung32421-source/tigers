@@ -4823,7 +4823,9 @@ function initChart() {
     borderUpColor: '#10b981',
     borderDownColor: '#ef4444',
     wickUpColor: '#10b981',
-    wickDownColor: '#ef4444'
+    wickDownColor: '#ef4444',
+    // 현재가 태그(우측 가격축)는 직전 봉이 상승/하락했는지와 무관하게 항상 짙은회색+흰 글씨로 고정.
+    priceLineColor: '#4b5563'
   })
   applyPriceFormatForSymbol(symbol.value)
 
