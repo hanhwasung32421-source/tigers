@@ -4521,7 +4521,6 @@ function renderDrawingPreview() {
     const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
     if (previewTrendPrimitive) {
       previewTrendPrimitive.setPoints(p1, p2)
-      candleSeries.applyOptions({})
     } else {
       previewTrendPrimitive = new TrendLinePrimitive(chart, candleSeries, p1, p2, {
         lineColor: '#facc15',
@@ -4545,7 +4544,6 @@ function renderDrawingPreview() {
     const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
     if (previewRectPrimitive) {
       previewRectPrimitive.setPoints(p1, p2)
-      candleSeries.applyOptions({})
     } else {
       previewRectPrimitive = new RectanglePrimitive(chart, candleSeries, p1, p2, {
         resolveX: resolveXForTime,
@@ -4568,7 +4566,6 @@ function renderDrawingPreview() {
     const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
     if (previewCirclePrimitive) {
       previewCirclePrimitive.setPoints(p1, p2)
-      candleSeries.applyOptions({})
     } else {
       previewCirclePrimitive = new CirclePrimitive(chart, candleSeries, p1, p2, {
         resolveX: resolveXForTime,
