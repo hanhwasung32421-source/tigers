@@ -309,6 +309,58 @@
                 class="absolute top-0 bottom-0 w-px border-l-2 border-dashed border-[#38bdf8]"
                 :style="{ left: vlinePreviewX + 'px' }"
               />
+              <div
+                v-if="hlinePreviewY !== null"
+                class="absolute left-0 right-0 h-px border-t-2 border-dashed border-[#60a5fa]"
+                :style="{ top: hlinePreviewY + 'px' }"
+              />
+              <div
+                v-if="rectPreview"
+                class="absolute"
+                :style="{
+                  left: rectPreview.x1 + 'px',
+                  top: rectPreview.y1 + 'px',
+                  width: rectPreview.width + 'px',
+                  height: rectPreview.height + 'px',
+                  border: '1px solid #22c55e',
+                  backgroundColor: 'rgba(34,197,94,0.12)'
+                }"
+              />
+              <div
+                v-if="circlePreview"
+                class="absolute rounded-full"
+                :style="{
+                  left: circlePreview.x1 + 'px',
+                  top: circlePreview.y1 + 'px',
+                  width: circlePreview.width + 'px',
+                  height: circlePreview.height + 'px',
+                  border: '1px solid #a855f7',
+                  backgroundColor: 'rgba(168,85,247,0.12)'
+                }"
+              />
+              <div
+                v-if="rectPreview || circlePreview"
+                class="absolute whitespace-nowrap text-center text-[11px] font-bold leading-tight"
+                :style="{
+                  left: ((rectPreview || circlePreview)!.x1 + (rectPreview || circlePreview)!.width / 2) + 'px',
+                  top: ((rectPreview || circlePreview)!.y1 - 32) + 'px',
+                  transform: 'translateX(-50%)',
+                  color: (rectPreview || circlePreview)!.positive ? '#22ab94' : '#f23645'
+                }"
+              >
+                <div>{{ (rectPreview || circlePreview)!.positive ? '+' : '' }}{{ fmtPrice((rectPreview || circlePreview)!.diff) }} ({{ (rectPreview || circlePreview)!.positive ? '+' : '' }}{{ (rectPreview || circlePreview)!.pct.toFixed(2) }}%)</div>
+                <div>{{ fmtPrice((rectPreview || circlePreview)!.startPrice) }} , {{ fmtPrice((rectPreview || circlePreview)!.endPrice) }}</div>
+              </div>
+              <svg v-if="trendPreview" class="absolute inset-0 h-full w-full">
+                <line
+                  :x1="trendPreview.x1"
+                  :y1="trendPreview.y1"
+                  :x2="trendPreview.x2"
+                  :y2="trendPreview.y2"
+                  stroke="#facc15"
+                  stroke-width="1"
+                />
+              </svg>
             </div>
             <template v-if="measureBoxView">
               <div
@@ -1730,10 +1782,6 @@ const trendLinePrimitives: TrendLinePrimitive[] = []
 const verticalLinePrimitives: VerticalLinePrimitive[] = []
 const rectanglePrimitives: RectanglePrimitive[] = []
 const circlePrimitives: CirclePrimitive[] = []
-let previewPriceLine: any = null
-let previewTrendPrimitive: TrendLinePrimitive | null = null
-let previewRectPrimitive: RectanglePrimitive | null = null
-let previewCirclePrimitive: CirclePrimitive | null = null
 const candleData = ref<CandlestickData[]>([])
 const volumeData = ref<HistogramData[]>([])
 const liveLastCandle = shallowRef<CandlestickData | null>(null)
@@ -1757,6 +1805,51 @@ const vlinePreviewX = computed(() => {
   if (activeTool.value !== 'vline' || !liveDrawingPoint.value) return null
   return mouseCrosshair.x
 })
+
+// 수평선/추세선/사각형/원 미리보기도 vline과 같은 이유로 canvas primitive 대신 DOM(+SVG) 오버레이로
+// 그린다. primitive를 매 프레임 갱신하려면 series 재도색을 강제로 유도해야 하는데, 그 방법(series.
+// applyOptions({}))이 크로스헤어 이동 이벤트와 재귀적으로 얽혀 무한루프(스택 오버플로)를 일으켰고,
+// 그렇다고 재도색을 강제하지 않으면 차트 자체가 재도색되는 시점(실시간 시세 틱 등)에만 갱신되어
+// 마우스를 뚝뚝 끊기며 따라왔다. mouseCrosshair.x/y는 raw mousemove마다(캔버스 repaint와 무관하게)
+// 즉시 갱신되므로, 여기 바인딩하면 마우스와 완전히 매끄럽게 같이 움직인다.
+const hlinePreviewY = computed(() => {
+  if (activeTool.value !== 'hline' || !liveDrawingPoint.value) return null
+  return mouseCrosshair.y
+})
+
+// pendingShapeStart(시작점, {time,price})를 지금 이 순간의 화면 픽셀 좌표로 변환한다.
+// 차트를 스크롤/확대해도 항상 최신 좌표를 반영하도록 매번 다시 계산.
+const shapePreviewStartPx = computed(() => {
+  if (!pendingShapeStart.value || !chart || !candleSeries) return null
+  const x = resolveXForTime(pendingShapeStart.value.time)
+  const y = candleSeries.priceToCoordinate(pendingShapeStart.value.price)
+  if (x === null || y === null) return null
+  return { x: Number(x), y: Number(y) }
+})
+
+const trendPreview = computed(() => {
+  if (activeTool.value !== 'trend' || !pendingShapeStart.value || !liveDrawingPoint.value) return null
+  const start = shapePreviewStartPx.value
+  if (!start) return null
+  return { x1: start.x, y1: start.y, x2: mouseCrosshair.x, y2: mouseCrosshair.y }
+})
+
+function shapeBoxPreview(kind: 'rect' | 'circle') {
+  if (activeTool.value !== kind || !pendingShapeStart.value || !liveDrawingPoint.value) return null
+  const start = shapePreviewStartPx.value
+  if (!start) return null
+  const x1 = Math.min(start.x, mouseCrosshair.x)
+  const y1 = Math.min(start.y, mouseCrosshair.y)
+  const width = Math.abs(mouseCrosshair.x - start.x)
+  const height = Math.abs(mouseCrosshair.y - start.y)
+  const startPrice = pendingShapeStart.value.price
+  const endPrice = liveDrawingPoint.value.price
+  const diff = endPrice - startPrice
+  const pct = startPrice > 0 ? (diff / startPrice) * 100 : 0
+  return { x1, y1, width, height, startPrice, endPrice, diff, pct, positive: diff >= 0 }
+}
+const rectPreview = computed(() => shapeBoxPreview('rect'))
+const circlePreview = computed(() => shapeBoxPreview('circle'))
 // 도구를 고른 뒤부터(수평선/수직선은 클릭 한 번, 추세선/사각형/원은 두 번째 점을 찍기 전까지)
 // 계속 안내 배너를 보여준다 — 두 번째 클릭 전에 안내가 사라지면 도구가 취소된 것처럼 보이는 문제 수정.
 const TWO_CLICK_TOOLS = ['trend', 'rect', 'circle'] as const
@@ -4438,143 +4531,13 @@ function clearDrawingVisuals() {
   }
 }
 
-function clearDrawingPreviewVisuals() {
-  if (previewPriceLine) {
-    try { candleSeries?.removePriceLine(previewPriceLine) } catch {}
-    previewPriceLine = null
-  }
-  if (previewTrendPrimitive) {
-    try { if (candleSeries) candleSeries.detachPrimitive(previewTrendPrimitive) } catch {}
-    previewTrendPrimitive = null
-  }
-  if (previewRectPrimitive) {
-    try { if (candleSeries) candleSeries.detachPrimitive(previewRectPrimitive) } catch {}
-    previewRectPrimitive = null
-  }
-  if (previewCirclePrimitive) {
-    try { if (candleSeries) candleSeries.detachPrimitive(previewCirclePrimitive) } catch {}
-    previewCirclePrimitive = null
-  }
-}
-
-// 미리보기는 활성 도구에 맞는 하나만 있어야 하므로, 지금 그릴 종류가 아닌 나머지 미리보기는 정리한다.
-// (도구 전환 시의 전체 정리는 selectTool/완료/Escape 쪽에서 이미 처리하므로, 여기서는 "같은 도구를
-// 계속 움직이는 중"에 다른 타입의 낡은 미리보기가 남아있는 극히 드문 경우만 방어적으로 치운다.)
-function clearOtherPreviewVisuals(keep: 'hline' | 'trend' | 'rect' | 'circle') {
-  if (keep !== 'hline' && previewPriceLine) {
-    try { candleSeries?.removePriceLine(previewPriceLine) } catch {}
-    previewPriceLine = null
-  }
-  if (keep !== 'trend' && previewTrendPrimitive) {
-    try { if (candleSeries) candleSeries.detachPrimitive(previewTrendPrimitive) } catch {}
-    previewTrendPrimitive = null
-  }
-  if (keep !== 'rect' && previewRectPrimitive) {
-    try { if (candleSeries) candleSeries.detachPrimitive(previewRectPrimitive) } catch {}
-    previewRectPrimitive = null
-  }
-  if (keep !== 'circle' && previewCirclePrimitive) {
-    try { if (candleSeries) candleSeries.detachPrimitive(previewCirclePrimitive) } catch {}
-    previewCirclePrimitive = null
-  }
-}
-
-// 미리보기 중 매 mousemove마다 오브젝트를 새로 만들어 attach/detach를 반복하면, lightweight-charts의
-// 재도색(repaint) 스케줄과 경합해서 화면에 아예 안 그려지는 경우가 있었다(추세선/사각형/원 미리보기가
-// 첫 클릭 이후 마우스를 따라오지 않던 버그의 원인). 그래서 기존 인스턴스를 계속 재사용하면서 끝점만
-// 갱신하고, series.applyOptions({})로 재도색만 유도하는 방식으로 바꿨다.
-function renderDrawingPreview() {
-  if (!chart || !candleSeries) return
-
-  if (activeTool.value === 'hline' && liveDrawingPoint.value && Number.isFinite(Number(liveDrawingPoint.value.price))) {
-    clearOtherPreviewVisuals('hline')
-    const price = Number(liveDrawingPoint.value.price)
-    if (previewPriceLine) {
-      previewPriceLine.applyOptions({ price })
-    } else {
-      previewPriceLine = candleSeries.createPriceLine({
-        price,
-        color: '#60a5fa',
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        axisLabelColor: '#60a5fa',
-        axisLabelTextColor: '#ffffff',
-        title: ''
-      })
-    }
-    return
-  }
-
-  // 수직선 미리보기는 renderDrawingPreview가 아니라 template의 vlinePreviewX(DOM 오버레이,
-  // 크로스헤어와 동일한 raw 마우스 좌표 기반)로 그린다 — 아래 참고.
-
-  if (
-    activeTool.value === 'trend' &&
-    pendingShapeStart.value &&
-    liveDrawingPoint.value &&
-    Number.isFinite(Number(pendingShapeStart.value.price)) &&
-    Number.isFinite(Number(liveDrawingPoint.value.price))
-  ) {
-    clearOtherPreviewVisuals('trend')
-    const p1 = { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) }
-    const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
-    if (previewTrendPrimitive) {
-      previewTrendPrimitive.setPoints(p1, p2)
-    } else {
-      previewTrendPrimitive = new TrendLinePrimitive(chart, candleSeries, p1, p2, {
-        lineColor: '#facc15',
-        width: 1,
-        resolveX: resolveXForTime
-      })
-      candleSeries.attachPrimitive(previewTrendPrimitive)
-    }
-    return
-  }
-
-  if (
-    activeTool.value === 'rect' &&
-    pendingShapeStart.value &&
-    liveDrawingPoint.value &&
-    Number.isFinite(Number(pendingShapeStart.value.price)) &&
-    Number.isFinite(Number(liveDrawingPoint.value.price))
-  ) {
-    clearOtherPreviewVisuals('rect')
-    const p1 = { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) }
-    const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
-    if (previewRectPrimitive) {
-      previewRectPrimitive.setPoints(p1, p2)
-    } else {
-      previewRectPrimitive = new RectanglePrimitive(chart, candleSeries, p1, p2, {
-        resolveX: resolveXForTime,
-        formatPrice: fmtPrice
-      })
-      candleSeries.attachPrimitive(previewRectPrimitive)
-    }
-    return
-  }
-
-  if (
-    activeTool.value === 'circle' &&
-    pendingShapeStart.value &&
-    liveDrawingPoint.value &&
-    Number.isFinite(Number(pendingShapeStart.value.price)) &&
-    Number.isFinite(Number(liveDrawingPoint.value.price))
-  ) {
-    clearOtherPreviewVisuals('circle')
-    const p1 = { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) }
-    const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
-    if (previewCirclePrimitive) {
-      previewCirclePrimitive.setPoints(p1, p2)
-    } else {
-      previewCirclePrimitive = new CirclePrimitive(chart, candleSeries, p1, p2, {
-        resolveX: resolveXForTime,
-        formatPrice: fmtPrice
-      })
-      candleSeries.attachPrimitive(previewCirclePrimitive)
-    }
-  }
-}
+// 미리보기(수평선/추세선/사각형/원)는 이제 canvas primitive가 아니라 위 템플릿의 hlinePreviewY/
+// trendPreview/rectPreview/circlePreview computed + DOM/SVG 오버레이로 그린다(vline과 동일한 방식,
+// mouseCrosshair.x/y가 raw mousemove마다 즉시 갱신되므로 차트 재도색 주기와 무관하게 매끄럽게
+// 따라온다). 그래서 이 함수들은 더 이상 실제로 그리는 일을 하지 않지만, 기존 호출부 여러 곳을
+// 일일이 정리하는 대신 안전하게 빈 함수로 남겨둔다.
+function clearDrawingPreviewVisuals() {}
+function renderDrawingPreview() {}
 
 function renderSavedDrawings() {
   if (!chart || !candleSeries) return
