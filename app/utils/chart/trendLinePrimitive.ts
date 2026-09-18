@@ -95,13 +95,13 @@ class TrendLinePaneView implements IPrimitivePaneView {
 export class TrendLinePrimitive implements ISeriesPrimitive<Time> {
   readonly chart: IChartApi
   readonly series: ISeriesApi<SeriesType>
-  readonly point1: TrendPoint
-  readonly point2: TrendPoint
+  point1: TrendPoint
+  point2: TrendPoint
   readonly options: Required<Pick<TrendLinePrimitiveOptions, 'lineColor' | 'width'>> &
     Pick<TrendLinePrimitiveOptions, 'resolveX' | 'showHandles' | 'handleColor'>
   private readonly _paneViews: TrendLinePaneView[]
-  private readonly minPrice: number
-  private readonly maxPrice: number
+  private minPrice: number
+  private maxPrice: number
 
   constructor(
     chart: IChartApi,
@@ -122,6 +122,16 @@ export class TrendLinePrimitive implements ISeriesPrimitive<Time> {
       handleColor: options?.handleColor
     }
     this._paneViews = [new TrendLinePaneView(this)]
+    this.minPrice = Math.min(point1.price, point2.price)
+    this.maxPrice = Math.max(point1.price, point2.price)
+  }
+
+  // 미리보기 중 매 mousemove마다 primitive를 새로 만들어 attach/detach를 반복하면, 재도색(repaint)이
+  // 붙었다 떨어지는 타이밍과 경합해서 화면에 아예 안 그려지는 경우가 있다. 대신 기존 인스턴스를
+  // 재사용하면서 끝점만 갱신하도록 한다(호출 측에서 series.applyOptions({})로 재도색을 유도).
+  setPoints(point1: TrendPoint, point2: TrendPoint) {
+    this.point1 = point1
+    this.point2 = point2
     this.minPrice = Math.min(point1.price, point2.price)
     this.maxPrice = Math.max(point1.price, point2.price)
   }

@@ -4457,21 +4457,52 @@ function clearDrawingPreviewVisuals() {
   }
 }
 
+// 미리보기는 활성 도구에 맞는 하나만 있어야 하므로, 지금 그릴 종류가 아닌 나머지 미리보기는 정리한다.
+// (도구 전환 시의 전체 정리는 selectTool/완료/Escape 쪽에서 이미 처리하므로, 여기서는 "같은 도구를
+// 계속 움직이는 중"에 다른 타입의 낡은 미리보기가 남아있는 극히 드문 경우만 방어적으로 치운다.)
+function clearOtherPreviewVisuals(keep: 'hline' | 'trend' | 'rect' | 'circle') {
+  if (keep !== 'hline' && previewPriceLine) {
+    try { candleSeries?.removePriceLine(previewPriceLine) } catch {}
+    previewPriceLine = null
+  }
+  if (keep !== 'trend' && previewTrendPrimitive) {
+    try { if (candleSeries) candleSeries.detachPrimitive(previewTrendPrimitive) } catch {}
+    previewTrendPrimitive = null
+  }
+  if (keep !== 'rect' && previewRectPrimitive) {
+    try { if (candleSeries) candleSeries.detachPrimitive(previewRectPrimitive) } catch {}
+    previewRectPrimitive = null
+  }
+  if (keep !== 'circle' && previewCirclePrimitive) {
+    try { if (candleSeries) candleSeries.detachPrimitive(previewCirclePrimitive) } catch {}
+    previewCirclePrimitive = null
+  }
+}
+
+// 미리보기 중 매 mousemove마다 오브젝트를 새로 만들어 attach/detach를 반복하면, lightweight-charts의
+// 재도색(repaint) 스케줄과 경합해서 화면에 아예 안 그려지는 경우가 있었다(추세선/사각형/원 미리보기가
+// 첫 클릭 이후 마우스를 따라오지 않던 버그의 원인). 그래서 기존 인스턴스를 계속 재사용하면서 끝점만
+// 갱신하고, series.applyOptions({})로 재도색만 유도하는 방식으로 바꿨다.
 function renderDrawingPreview() {
   if (!chart || !candleSeries) return
-  clearDrawingPreviewVisuals()
 
   if (activeTool.value === 'hline' && liveDrawingPoint.value && Number.isFinite(Number(liveDrawingPoint.value.price))) {
-    previewPriceLine = candleSeries.createPriceLine({
-      price: Number(liveDrawingPoint.value.price),
-      color: '#60a5fa',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      axisLabelColor: '#60a5fa',
-      axisLabelTextColor: '#ffffff',
-      title: ''
-    })
+    clearOtherPreviewVisuals('hline')
+    const price = Number(liveDrawingPoint.value.price)
+    if (previewPriceLine) {
+      previewPriceLine.applyOptions({ price })
+    } else {
+      previewPriceLine = candleSeries.createPriceLine({
+        price,
+        color: '#60a5fa',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        axisLabelColor: '#60a5fa',
+        axisLabelTextColor: '#ffffff',
+        title: ''
+      })
+    }
     return
   }
 
@@ -4485,14 +4516,20 @@ function renderDrawingPreview() {
     Number.isFinite(Number(pendingShapeStart.value.price)) &&
     Number.isFinite(Number(liveDrawingPoint.value.price))
   ) {
-    previewTrendPrimitive = new TrendLinePrimitive(
-      chart,
-      candleSeries,
-      { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) },
-      { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
-      { lineColor: '#facc15', width: 1, resolveX: resolveXForTime }
-    )
-    candleSeries.attachPrimitive(previewTrendPrimitive)
+    clearOtherPreviewVisuals('trend')
+    const p1 = { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) }
+    const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
+    if (previewTrendPrimitive) {
+      previewTrendPrimitive.setPoints(p1, p2)
+      candleSeries.applyOptions({})
+    } else {
+      previewTrendPrimitive = new TrendLinePrimitive(chart, candleSeries, p1, p2, {
+        lineColor: '#facc15',
+        width: 1,
+        resolveX: resolveXForTime
+      })
+      candleSeries.attachPrimitive(previewTrendPrimitive)
+    }
     return
   }
 
@@ -4503,14 +4540,19 @@ function renderDrawingPreview() {
     Number.isFinite(Number(pendingShapeStart.value.price)) &&
     Number.isFinite(Number(liveDrawingPoint.value.price))
   ) {
-    previewRectPrimitive = new RectanglePrimitive(
-      chart,
-      candleSeries,
-      { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) },
-      { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
-      { resolveX: resolveXForTime, formatPrice: fmtPrice }
-    )
-    candleSeries.attachPrimitive(previewRectPrimitive)
+    clearOtherPreviewVisuals('rect')
+    const p1 = { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) }
+    const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
+    if (previewRectPrimitive) {
+      previewRectPrimitive.setPoints(p1, p2)
+      candleSeries.applyOptions({})
+    } else {
+      previewRectPrimitive = new RectanglePrimitive(chart, candleSeries, p1, p2, {
+        resolveX: resolveXForTime,
+        formatPrice: fmtPrice
+      })
+      candleSeries.attachPrimitive(previewRectPrimitive)
+    }
     return
   }
 
@@ -4521,14 +4563,19 @@ function renderDrawingPreview() {
     Number.isFinite(Number(pendingShapeStart.value.price)) &&
     Number.isFinite(Number(liveDrawingPoint.value.price))
   ) {
-    previewCirclePrimitive = new CirclePrimitive(
-      chart,
-      candleSeries,
-      { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) },
-      { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) },
-      { resolveX: resolveXForTime, formatPrice: fmtPrice }
-    )
-    candleSeries.attachPrimitive(previewCirclePrimitive)
+    clearOtherPreviewVisuals('circle')
+    const p1 = { time: pendingShapeStart.value.time, price: Number(pendingShapeStart.value.price) }
+    const p2 = { time: liveDrawingPoint.value.time, price: Number(liveDrawingPoint.value.price) }
+    if (previewCirclePrimitive) {
+      previewCirclePrimitive.setPoints(p1, p2)
+      candleSeries.applyOptions({})
+    } else {
+      previewCirclePrimitive = new CirclePrimitive(chart, candleSeries, p1, p2, {
+        resolveX: resolveXForTime,
+        formatPrice: fmtPrice
+      })
+      candleSeries.attachPrimitive(previewCirclePrimitive)
+    }
   }
 }
 
