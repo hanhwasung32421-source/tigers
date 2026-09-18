@@ -4944,9 +4944,6 @@ function renderEntryLines() {
     })
     priceLines.push(pl)
   }
-  const activePos = currentPositions.value[currentPositions.value.length - 1]
-  const posLineColor = activePos ? (activePos.side === 'long' ? '#fb7185' : '#60a5fa') : ''
-  candleSeries.applyOptions({ priceLineColor: posLineColor })
   updateEntryBadges()
 }
 
