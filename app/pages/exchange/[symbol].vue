@@ -1864,6 +1864,8 @@ const drawingHintVisible = computed(
 const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
 // 선(수평선/추세선) 선택 상태: 커서 도구에서 클릭하면 선택되고, 끝점을 드래그하거나 Delete로 삭제 가능
 const selectedDrawingId = ref<string | null>(null)
+// Ctrl+C로 복사해둔 도형(있으면 Ctrl+V로 같은 모양을 y축으로 50px 아래에 붙여넣는다)
+const copiedDrawing = ref<(typeof chartPrefs.drawings)[number] | null>(null)
 // 사각형/원의 크기 조절 손잡이 8개: 모서리 4개 + 변 중앙 4개
 type ShapeHandle = 'tl' | 't' | 'tr' | 'r' | 'br' | 'b' | 'bl' | 'l'
 type DrawingHit =
@@ -2938,6 +2940,16 @@ function onChartMouseDown(e: MouseEvent) {
   drawingDragCleanup = onUp
 }
 
+// 화면상 y좌표 기준 dy(px)만큼 이동했을 때의 가격 변화량. 로그 스케일이어도 항상 정확하도록
+// (고정 가격차가 아니라) 실제 화면 좌표를 오갈 때마다 매번 다시 계산한다.
+function priceAfterYOffset(price: number, dy: number): number | null {
+  if (!candleSeries) return null
+  const y = candleSeries.priceToCoordinate(price)
+  if (y === null) return null
+  const shifted = candleSeries.coordinateToPrice(Number(y) + dy)
+  return shifted === null ? null : Number(shifted)
+}
+
 function onDrawingKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && measureBox.value) {
     measureBox.value = null
@@ -2946,6 +2958,49 @@ function onDrawingKeydown(e: KeyboardEvent) {
   }
   if (e.key === 'Escape' && activeTool.value !== 'cursor') {
     selectTool('cursor')
+    return
+  }
+
+  // Ctrl/Cmd+C: 지금 선택된 도형을 복사해둔다. Ctrl/Cmd+V: 복사해둔 도형과 똑같은 모양(각도 유지)을
+  // 화면 y좌표 기준 50px 아래에 새로 붙여넣는다.
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+    const tag = (e.target as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return
+    if (!selectedDrawingId.value) return
+    const src = chartPrefs.drawings.find((d) => d.id === selectedDrawingId.value)
+    if (!src) return
+    copiedDrawing.value = JSON.parse(JSON.stringify(src))
+    return
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+    const tag = (e.target as HTMLElement)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return
+    if (!copiedDrawing.value || !candleSeries) return
+    const src = copiedDrawing.value
+    const idPrefix = src.type === 'hline' ? 'h' : src.type === 'vline' ? 'v' : src.type === 'trend' ? 't' : src.type === 'rect' ? 'r' : 'c'
+    const pasted: (typeof chartPrefs.drawings)[number] = { id: `${idPrefix}-${Date.now()}`, type: src.type, color: src.color }
+    if (src.type === 'hline' && Number.isFinite(Number(src.price))) {
+      const price = priceAfterYOffset(Number(src.price), 50)
+      if (price === null) return
+      pasted.price = price
+    } else if (src.type === 'vline') {
+      // 수직선은 가격(y) 개념이 없어 그대로 같은 시간에 복제한다.
+      pasted.time = src.time
+    } else if (src.points?.length === 2) {
+      const p0 = priceAfterYOffset(Number(src.points[0].price), 50)
+      const p1 = priceAfterYOffset(Number(src.points[1].price), 50)
+      if (p0 === null || p1 === null) return
+      pasted.points = [
+        { time: src.points[0].time, price: p0 },
+        { time: src.points[1].time, price: p1 }
+      ]
+    } else {
+      return
+    }
+    chartPrefs.drawings.push(pasted)
+    selectedDrawingId.value = pasted.id
+    renderSavedDrawings()
+    scheduleSaveChartPrefs()
     return
   }
 
