@@ -4603,7 +4603,7 @@ function renderSavedDrawings() {
       const pl = candleSeries.createPriceLine({
         price: Number(d.price),
         color: d.color || '#2962ff',
-        lineWidth: isSelected ? 3 : 1,
+        lineWidth: isSelected ? 3 : 2,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
         axisLabelColor: d.color || '#2962ff',
