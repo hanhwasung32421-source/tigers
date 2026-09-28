@@ -250,7 +250,7 @@ const faqItems = [
   {
     q: '문제가 생기면 어떻게 도움을 받을 수 있나요?',
     qEn: 'How can I get help if something goes wrong?',
-    a: '우측 하단 실시간 상담이나 상단 고객센터를 통해 운영자에게 바로 문의할 수 있습니다.',
+    a: '우측 하단 실시간 상담이나 상단 고객센터를 통해 도움을 받을 수 있습니다.',
     aEn: 'Reach the operator directly via the live chat in the bottom right or Support in the top menu.'
   }
 ]

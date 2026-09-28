@@ -59,3 +59,37 @@ export async function logAdminCredit(payload: { adminUserId: number; userId: num
   })
 }
 
+export async function logAdminAction(
+  event: H3Event,
+  payload: { adminUserId: number; action: string; targetType?: string; targetId?: string | number | null; detail?: Record<string, any> }
+) {
+  const ua = getRequestHeader(event, 'user-agent')
+  const ip = getRequestIP(event)
+  await supaInsert('bitduck_log_admin_actions', {
+    admin_local_user_id: payload.adminUserId,
+    action: payload.action,
+    target_type: payload.targetType ?? null,
+    target_id: payload.targetId != null ? String(payload.targetId) : null,
+    detail: payload.detail ?? null,
+    ip,
+    user_agent: ua ?? null,
+    created_at: new Date().toISOString()
+  })
+}
+
+export async function logImpersonate(
+  event: H3Event,
+  payload: { adminUserId: number; targetUserId: number; targetUsername: string }
+) {
+  const ua = getRequestHeader(event, 'user-agent')
+  const ip = getRequestIP(event)
+  await supaInsert('bitduck_log_impersonations', {
+    admin_local_user_id: payload.adminUserId,
+    target_local_user_id: payload.targetUserId,
+    target_username: payload.targetUsername,
+    ip,
+    user_agent: ua ?? null,
+    created_at: new Date().toISOString()
+  })
+}
+

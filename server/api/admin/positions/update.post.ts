@@ -4,6 +4,7 @@ import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled } from '../../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../../utils/supabase'
 import { canEditMenu } from '../../../utils/menu-permissions'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   positionId: z.coerce.number().int().positive(),
@@ -29,6 +30,7 @@ export default defineEventHandler(async (event) => {
       .update(patch)
       .eq('id', body.positionId)
     if (error) throw error
+    await logAdminAction(event, { adminUserId: admin.id, action: 'position_force_update', targetType: 'position', targetId: body.positionId, detail: { field: body.field, value: patch[body.field] } })
     return { ok: true }
   }
 
@@ -38,5 +40,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: '수정할 수 없는 항목입니다.' })
   }
   db.prepare(`UPDATE positions SET ${body.field} = ? WHERE id = ?`).run(patch[body.field], body.positionId)
+  await logAdminAction(event, { adminUserId: admin.id, action: 'position_force_update', targetType: 'position', targetId: body.positionId, detail: { field: body.field, value: patch[body.field] } })
   return { ok: true }
 })

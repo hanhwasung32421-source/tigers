@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireSuperAdmin } from '../../../utils/auth'
 import { setLiquidationRoe } from '../../../utils/system-settings'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   // 예: -40 (음수 %). -1 ~ -99 범위로 제한.
@@ -8,11 +9,12 @@ const BodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const admin = await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
 
   try {
     const liquidationRoe = await setLiquidationRoe(body.liquidationRoe)
+    await logAdminAction(event, { adminUserId: admin.id, action: 'settings_system_update', targetType: 'system_settings', targetId: null, detail: { liquidationRoe } })
     return { ok: true, liquidationRoe }
   } catch (e: any) {
     throw createError({

@@ -5,6 +5,7 @@ import { supabaseAppDbEnabled, syncBalanceToSupabase, syncUserToSupabase } from 
 import { getSupabaseAdminClient, supaSelectOne } from '../../../utils/supabase'
 import { canEditMenu } from '../../../utils/menu-permissions'
 import { getRoleDefinition, canGrantRole } from '../../../utils/roles'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   userId: z.number().int().positive(),
@@ -190,6 +191,7 @@ async function handleUpdate(event: any) {
       if (error) throw error
     }
 
+    await logAdminAction(event, { adminUserId: admin.id, action: 'user_update', targetType: 'user', targetId: body.userId, detail: { fields: Object.keys(body).filter((k) => k !== 'userId') } })
     return { ok: true }
   }
 
@@ -325,5 +327,6 @@ async function handleUpdate(event: any) {
     await syncUserToSupabase(userRow)
   }
 
+  await logAdminAction(event, { adminUserId: admin.id, action: 'user_update', targetType: 'user', targetId: body.userId, detail: { fields: Object.keys(body).filter((k) => k !== 'userId') } })
   return { ok: true }
 }

@@ -7,6 +7,7 @@ import { canEditMenu } from '../../../utils/menu-permissions'
 import { getDepositRequest, resolveDepositRequest } from '../../../utils/deposit-requests'
 import { resolveKrwPerUsdtRate } from '../../../utils/system-settings'
 import { fetchDownlineUsernames } from '../../../utils/referral'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   requestId: z.number().int().positive(),
@@ -40,6 +41,7 @@ export default defineEventHandler(async (event) => {
 
   if (body.status === 'rejected') {
     await resolveDepositRequest(req.id, 'rejected')
+    await logAdminAction(event, { adminUserId: admin.id, action: 'deposit_request_resolve', targetType: 'deposit_request', targetId: req.id, detail: { status: 'rejected' } })
     return { ok: true }
   }
 
@@ -73,5 +75,6 @@ export default defineEventHandler(async (event) => {
   }
 
   await resolveDepositRequest(req.id, 'completed', { usdtAmount, rateUsed: rate })
+  await logAdminAction(event, { adminUserId: admin.id, action: 'deposit_request_resolve', targetType: 'deposit_request', targetId: req.id, detail: { status: 'completed', usdtAmount, rateUsed: rate } })
   return { ok: true, usdtAmount, rateUsed: rate }
 })

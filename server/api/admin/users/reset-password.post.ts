@@ -3,13 +3,14 @@ import { requireSuperAdmin, hashPassword } from '../../../utils/auth'
 import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled, syncUserToSupabase } from '../../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../../utils/supabase'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   userId: z.number().int().positive()
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const admin = await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
   const now = new Date().toISOString()
 
@@ -30,6 +31,7 @@ export default defineEventHandler(async (event) => {
       })
       .eq('id', body.userId)
     if (error) throw error
+    await logAdminAction(event, { adminUserId: admin.id, action: 'password_reset_force', targetType: 'user', targetId: body.userId })
     return { ok: true }
   }
 
@@ -45,5 +47,6 @@ export default defineEventHandler(async (event) => {
   const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(body.userId) as any
   await syncUserToSupabase(userRow)
 
+  await logAdminAction(event, { adminUserId: admin.id, action: 'password_reset_force', targetType: 'user', targetId: body.userId })
   return { ok: true }
 })

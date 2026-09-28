@@ -4,6 +4,7 @@ import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled } from '../../../utils/supa-appdb'
 import { supaSelectOne, supaUpsertStrict, supaUpsertUserSettings } from '../../../utils/supabase'
 import { getRoleDefinition, listRoles } from '../../../utils/roles'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   username: z.string().min(3).max(20),
@@ -18,7 +19,7 @@ const BodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const admin = await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
   const useSupa = supabaseAppDbEnabled()
 
@@ -63,6 +64,7 @@ export default defineEventHandler(async (event) => {
       updated_at: now
     })
 
+    await logAdminAction(event, { adminUserId: admin.id, action: 'branch_create', targetType: 'user', targetId: userId, detail: { username: body.username, role } })
     return { ok: true }
   }
 
@@ -88,5 +90,6 @@ export default defineEventHandler(async (event) => {
   const u = db.prepare('SELECT id FROM users WHERE username = ?').get(body.username) as { id: number }
   db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(u.id, 0)
 
+  await logAdminAction(event, { adminUserId: admin.id, action: 'branch_create', targetType: 'user', targetId: u.id, detail: { username: body.username, role } })
   return { ok: true }
 })

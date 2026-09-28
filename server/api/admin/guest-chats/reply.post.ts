@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { requireAdmin } from '../../../utils/auth'
 import { canEditMenu } from '../../../utils/menu-permissions'
 import { insertGuestChatMessage, listGuestChatThreadMessages } from '../../../utils/guest-chat'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   guestId: z.string().trim().min(8).max(80),
@@ -16,5 +17,6 @@ export default defineEventHandler(async (event) => {
   const body = BodySchema.parse(await readBody(event))
   await insertGuestChatMessage(body.guestId, 'admin', body.body)
   const items = await listGuestChatThreadMessages(body.guestId)
+  await logAdminAction(event, { adminUserId: admin.id, action: 'guest_chat_reply', targetType: 'guest_chat', targetId: body.guestId, detail: { body: body.body } })
   return { ok: true, items }
 })

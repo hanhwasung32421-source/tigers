@@ -3,7 +3,8 @@
 --   bcmk_game_sessions, cb3_coinbreaker_state, youtubeCRM_* (18개)
 -- bitduck_ 로 시작하는 테이블은 전혀 건드리지 않습니다.
 --
--- 실행: psql "postgresql://postgres.mbywcrniwwvlkrncxfky:dbsFJKJ123%21%40%23@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres" -f SUPABASE_BITDUCK_drop_non_bitduck_tables.sql
+-- 실행: psql "postgresql://postgres.mbywcrniwwvlkrncxfky:[DB_PASSWORD]@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres" -f SUPABASE_BITDUCK_drop_non_bitduck_tables.sql
+-- [DB_PASSWORD]는 Supabase 대시보드 > Settings > Database > Connection string에서 확인 (절대 파일/커밋에 남기지 말 것)
 
 do $$
 declare r record;

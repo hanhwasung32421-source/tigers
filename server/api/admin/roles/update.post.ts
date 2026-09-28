@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { requireSuperAdmin } from '../../../utils/auth'
 import { updateRole } from '../../../utils/roles'
 import { ADMIN_MENU_KEYS } from '../../../utils/menu-permissions'
+import { logAdminAction } from '../../../utils/supa-log'
 
 const MenuSchema = z.object({
   view: z.boolean().optional(),
@@ -16,8 +17,9 @@ const BodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const admin = await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
   const role = await updateRole(body.id, { label: body.label, menus: body.menus, tier: body.tier })
+  await logAdminAction(event, { adminUserId: admin.id, action: 'role_update', targetType: 'role', targetId: body.id, detail: { label: body.label, menus: body.menus, tier: body.tier } })
   return { ok: true, role }
 })

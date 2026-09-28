@@ -3,6 +3,7 @@ import { requireSuperAdmin, createSessionToken } from '../../../utils/auth'
 import { getDb } from '../../../utils/db'
 import { supabaseAppDbEnabled } from '../../../utils/supa-appdb'
 import { supaSelectOne } from '../../../utils/supabase'
+import { logImpersonate } from '../../../utils/supa-log'
 
 const BodySchema = z.object({
   userId: z.number().int().positive()
@@ -14,7 +15,7 @@ const BodySchema = z.object({
 // 세션은 토큰 기반으로 여러 개 동시에 존재할 수 있어(중복 로그인 허용), 대상 유저의
 // 기존 세션은 전혀 건드리지 않는다 — 즉 그 유저는 관리자가 자기 계정으로 접속한 것을 알 수 없다.
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const admin = await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
 
   const username = supabaseAppDbEnabled()
@@ -26,5 +27,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const { token } = await createSessionToken(body.userId)
+  await logImpersonate(event, { adminUserId: admin.id, targetUserId: body.userId, targetUsername: username })
   return { ok: true, username, token }
 })

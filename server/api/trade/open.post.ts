@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { requireUser } from '../../utils/auth'
 import { getDb } from '../../utils/db'
-import { getOkxLastPrice } from '../../utils/okx'
+import { getOkxLastPrice, clampToMarketPrice } from '../../utils/okx'
 import { logBuy } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
@@ -83,7 +83,8 @@ export default defineEventHandler(async (event) => {
   const liquidationTriggerRoe = await getLiquidationRoe()
 
   const symbol = body.symbol.toUpperCase()
-  const entry = body.price ?? (await getOkxLastPrice(symbol)).last
+  const marketPrice = (await getOkxLastPrice(symbol)).last
+  const entry = clampToMarketPrice(body.price, marketPrice)
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()

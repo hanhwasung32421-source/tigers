@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import { isMissingColumnError, supaCount, supaSelectAll, supaUpsert, supaUpsertStrict, supaInsert, supaUpsertUserSettings } from './supabase'
+import { isMissingColumnError, supaCount, supaUpsert, supaUpsertStrict, supaInsert, supaUpsertUserSettings } from './supabase'
 
 // Supabase 테이블명 (요구사항: bitduck_ prefix)
 const T_USERS = 'bitduck_users'
@@ -201,103 +201,9 @@ export async function bootstrapSupabaseAppDb(db: DatabaseSync) {
     if (messages.length) await supaUpsert(T_MESSAGES, messages, 'id')
   }
 
-  // 2) "무조건 Supabase에서 불러오기" 모드:
-  // Supabase가 존재하면 매 서버 시작마다 Supabase -> SQLite로 전체 동기화(덮어쓰기).
-  // (세션 테이블은 로컬 유지)
-  if (supaUsers > 0) {
-    const users = await supaSelectAll<any>(T_USERS, 'id').catch(() => [])
-    const balances = await supaSelectAll<any>(T_BALANCES, 'user_id').catch(() => [])
-    const settings = await supaSelectAll<any>(T_USER_SETTINGS, 'user_id').catch(() => [])
-    const positions = await supaSelectAll<any>(T_POSITIONS, 'id').catch(() => [])
-    const trades = await supaSelectAll<any>(T_TRADES, 'id').catch(() => [])
-    const messages = await supaSelectAll<any>(T_MESSAGES, 'id').catch(() => [])
-
-    // 덮어쓰기: 기존 데이터 제거 후 재삽입
-    db.exec('BEGIN;')
-    try {
-      db.exec('DELETE FROM users;')
-      db.exec('DELETE FROM balances;')
-      db.exec('DELETE FROM user_settings;')
-      db.exec('DELETE FROM positions;')
-      db.exec('DELETE FROM trades;')
-      db.exec('DELETE FROM messages;')
-      // profit_cards는 앱에서 저장하지만, 화면 핵심 데이터는 아니라서 여기서는 생략(원하면 추가 가능)
-
-      for (const u of users) {
-        db.prepare(
-          'INSERT OR REPLACE INTO users (id, username, password_hash, name, birth_date, bank_name, bank_account, account_holder, referral_code, terms_agreed_at, password_reset_required, password_reset_notice_dismissed_at, role, permissions, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        ).run(
-          u.id,
-          u.username,
-          u.password_hash,
-          u.name || '',
-          u.birth_date || '',
-          u.bank_name || '',
-          u.bank_account || '',
-          u.account_holder || '',
-          u.referral_code || '',
-          u.terms_agreed_at || null,
-          u.password_reset_required ? 1 : 0,
-          u.password_reset_notice_dismissed_at || null,
-          u.role,
-          JSON.stringify(u.permissions || {}),
-          new Date(u.created_at).toISOString(),
-          new Date(u.updated_at || u.created_at).toISOString()
-        )
-      }
-      for (const b of balances) {
-        db.prepare('INSERT OR REPLACE INTO balances (user_id, usdt) VALUES (?, ?)').run(b.user_id, b.usdt)
-      }
-      for (const s of settings) {
-        db.prepare('INSERT OR REPLACE INTO user_settings (user_id, trade_percent, trade_leverage, chart_prefs, updated_at) VALUES (?, ?, ?, ?, ?)').run(
-          s.user_id,
-          s.trade_percent,
-          s.trade_leverage,
-          JSON.stringify(s.chart_prefs || {}),
-          new Date(s.updated_at).toISOString()
-        )
-      }
-      for (const p of positions) {
-        db.prepare(
-          'INSERT OR REPLACE INTO positions (id, user_id, symbol, side, qty, entry_price, leverage, margin, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        ).run(p.id, p.user_id, p.symbol, p.side, p.qty, p.entry_price, p.leverage, p.margin, new Date(p.created_at).toISOString())
-      }
-      for (const t of trades) {
-        db.prepare(
-          'INSERT OR REPLACE INTO trades (id, user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, liquidation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        ).run(
-          t.id,
-          t.user_id,
-          t.symbol,
-          t.side,
-          t.qty,
-          t.entry_price,
-          t.exit_price,
-          t.leverage,
-          t.pnl,
-          Number((t as any).liquidation || 0),
-          new Date(t.created_at).toISOString()
-        )
-      }
-      for (const m of messages) {
-        db.prepare(
-          'INSERT OR REPLACE INTO messages (id, thread_key, sender_id, recipient_id, subject, body, read_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        ).run(
-          m.id,
-          m.thread_key,
-          m.sender_id,
-          m.recipient_id,
-          m.subject || '',
-          m.body || '',
-          m.read_at || null,
-          new Date(m.created_at).toISOString()
-        )
-      }
-
-      db.exec('COMMIT;')
-    } catch (e) {
-      db.exec('ROLLBACK;')
-      throw e
-    }
-  }
+  // (예전에는 여기서 매 서버 시작(콜드스타트)마다 Supabase의 users/balances/positions/
+  // trades/messages 전체를 SQLite로 통째로 재다운로드했다. 그런데 Supabase 연동 모드에서는
+  // 모든 API 라우트가 이 SQLite 사본을 전혀 읽지 않고 Supabase를 직접 읽고 쓴다 — 그래서
+  // 이 재다운로드는 아무 데도 안 쓰이면서 콜드스타트마다 egress/로그만 쓰고 있었다.
+  // Supabase 무료 플랜 egress/로그 한도 초과의 주 원인으로 확인되어 제거함.)
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireSuperAdmin } from '../../../utils/auth'
 import { updateSystemSettingsExtra } from '../../../utils/system-settings'
+import { logAdminAction } from '../../../utils/supa-log'
 
 // 필드별 상세 검증(색상 형식, 숫자 범위, 허용된 폰트인지)은 서버의
 // normalizeProfitCardStyle()이 실제 저장 전에 다시 한번 책임지고 수행한다(신뢰 경계).
@@ -19,8 +20,9 @@ const BodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const admin = await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
   const next = await updateSystemSettingsExtra(body)
+  await logAdminAction(event, { adminUserId: admin.id, action: 'settings_misc_update', targetType: 'system_settings', targetId: null, detail: { fields: Object.keys(body) } })
   return { ok: true, ...next }
 })

@@ -6,6 +6,7 @@ import { createKillEvent } from '../../utils/kill-events'
 import { getLiquidationRoe } from '../../utils/system-settings'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectWhere, supaUpsert } from '../../utils/supabase'
+import { logAdminAction } from '../../utils/supa-log'
 
 const FEE_RATE = 0.04
 
@@ -31,7 +32,7 @@ function isCrossed(side: string, shockedPrice: number, liqPrice: number) {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const admin = await requireSuperAdmin(event)
   const body = BodySchema.parse(await readBody(event))
   const symbol = body.symbol.toUpperCase()
   const useSupa = supabaseAppDbEnabled()
@@ -110,6 +111,13 @@ export default defineEventHandler(async (event) => {
       shockedPrice,
       durationMs: body.durationSeconds ? Math.round(body.durationSeconds * 1000) : undefined,
       tickCount: body.tickCount
+    })
+    await logAdminAction(event, {
+      adminUserId: admin.id,
+      action: 'kill_switch_toggle',
+      targetType: 'kill_event',
+      targetId: killEvent?.id ?? null,
+      detail: { symbol, direction: body.direction, percent: body.percent, durationSeconds: body.durationSeconds, tickCount: body.tickCount, liquidatedCount }
     })
     return { ok: true, event: killEvent, liquidatedCount }
   } catch (e: any) {

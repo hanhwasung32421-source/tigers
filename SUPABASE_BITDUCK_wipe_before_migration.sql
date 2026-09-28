@@ -3,7 +3,8 @@
 -- 그 안의 테이블/뷰/함수만 전부 삭제합니다 (PostgREST 인증이 깨지는 걸 방지).
 --
 -- 실행 방법 (BITDUCK 프로젝트에 대해):
---   psql "postgresql://postgres:dbsFJKJ123%21%40%23@db.dyfycrmltqosezmsufup.supabase.co:5432/postgres" -f SUPABASE_BITDUCK_wipe_before_migration.sql
+--   psql "postgresql://postgres:[DB_PASSWORD]@db.dyfycrmltqosezmsufup.supabase.co:5432/postgres" -f SUPABASE_BITDUCK_wipe_before_migration.sql
+--   [DB_PASSWORD]는 Supabase 대시보드 > Settings > Database > Connection string에서 확인 (절대 파일/커밋에 남기지 말 것)
 
 begin;
 
