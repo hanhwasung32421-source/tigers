@@ -422,8 +422,29 @@
         class="order-3 min-w-0 self-start rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1"
         :style="{ height: MATCHED_PANEL_HEIGHT + 'px' }"
       >
-        <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
           <div class="text-[15px] font-semibold text-slate-100">{{ t('호가', 'Order Book') }}</div>
+          <div v-if="isSuperAdminUser" class="flex items-center gap-1">
+            <input
+              type="text"
+              inputmode="decimal"
+              :placeholder="t('가격', 'Price')"
+              :title="t('이 가격에 도달하면 알람이 울립니다', 'Alarm rings when the price reaches this value')"
+              :key="`price-alarm-input-${locale}`"
+              class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
+              :value="priceAlarm.price"
+              @input="onPriceAlarmInput(($event.target as HTMLInputElement).value)"
+            />
+            <input
+              type="checkbox"
+              class="h-3.5 w-3.5 cursor-pointer accent-amber-400"
+              :title="t('가격 도달 알람', 'Price alarm')"
+              :key="`price-alarm-cb-${locale}`"
+              :checked="priceAlarm.enabled"
+              @change="onTogglePriceAlarm(($event.target as HTMLInputElement).checked)"
+            />
+            <span v-if="priceAlarm.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
+          </div>
         </div>
 
         <div class="mt-3 grid grid-cols-3 gap-2 text-[13px] text-slate-500">
@@ -5669,9 +5690,31 @@ const closeClickCooldown = reactive(new Set<number>())
 // percent는 "20" 처럼 하나만 쓸 수도 있고, "+20,-20" 처럼 콤마로 여러 값을 넣거나,
 // "+-20"(양쪽 다) 처럼 쓸 수도 있다. 기본값은 체크 안 된 상태 + "+-20"이 미리 채워져 있어서
 // 체크만 하면 바로 +20%/-20% 알람이 적용된다.
-type AlarmKind = 'profit' | 'loss'
+type AlarmKind = 'profit' | 'loss' | 'price'
 type PositionAlarm = { enabled: boolean; percent: string; triggered: boolean; triggeredKind?: AlarmKind | null }
 const positionAlarms = reactive<Record<number, PositionAlarm>>({})
+
+// 호가 헤더의 가격 도달 알람(총관리자 전용). 체크할 때 현재가가 목표가보다 아래면 "이상"이 될 때,
+// 위면 "이하"가 될 때 울린다(side: 1=아래에서 시작, -1=위에서 시작, 0=아직 미정). 가격을 적는 도중의
+// 중간값(예: "2", "20")이 우연히 걸려 울리는 일이 없도록 "교차"할 때만 울리게 한다.
+const priceAlarm = reactive({ enabled: false, price: '', triggered: false, side: 0 as -1 | 0 | 1 })
+
+function resetPriceAlarmState() {
+  priceAlarm.triggered = false
+  priceAlarm.side = 0
+}
+
+function onTogglePriceAlarm(checked: boolean) {
+  priceAlarm.enabled = checked
+  resetPriceAlarmState()
+  checkPositionAlarms()
+}
+
+function onPriceAlarmInput(raw: string) {
+  priceAlarm.price = raw
+  resetPriceAlarmState()
+  checkPositionAlarms()
+}
 const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '+-20', triggered: false, triggeredKind: null }
 let alarmSpeechTimer: any = null
 let currentAlarmKind: AlarmKind | null = null
@@ -5742,7 +5785,12 @@ let alarmActive = false
 function speakAlarmPhrase(kind: AlarmKind) {
   if (!process.client || typeof window === 'undefined' || !window.speechSynthesis) return
   if (!alarmActive || currentAlarmKind !== kind) return
-  const text = kind === 'profit' ? t('수익 수익 수익', 'Profit Profit Profit') : t('손실 손실 손실', 'Loss Loss Loss')
+  const text =
+    kind === 'profit'
+      ? t('수익 수익 수익', 'Profit Profit Profit')
+      : kind === 'loss'
+        ? t('손실 손실 손실', 'Loss Loss Loss')
+        : t('가격도달 가격도달 가격도달', 'Price reached Price reached Price reached')
   const utter = new SpeechSynthesisUtterance(text)
   utter.lang = locale.value === 'en' ? 'en-US' : 'ko-KR'
   utter.pitch = 1.15
@@ -5808,9 +5856,29 @@ function checkPositionAlarms() {
       else anyProfitTriggered = true
     }
   }
+  let anyPriceTriggered = false
+  if (priceAlarm.enabled) {
+    if (priceAlarm.triggered) {
+      anyPriceTriggered = true
+    } else {
+      const target = Number(String(priceAlarm.price).replace(/,/g, '').trim())
+      const cur = displayLastPrice.value
+      if (Number.isFinite(target) && target > 0 && cur !== null && Number.isFinite(cur)) {
+        if (cur === target) {
+          priceAlarm.triggered = true
+        } else if (priceAlarm.side === 0) {
+          priceAlarm.side = cur < target ? 1 : -1
+        } else if (priceAlarm.side === 1 ? cur >= target : cur <= target) {
+          priceAlarm.triggered = true
+        }
+        anyPriceTriggered = priceAlarm.triggered
+      }
+    }
+  }
   // 손실/수익 알람이 동시에 울리는 경우, 손실 쪽을 우선 안내한다(리스크 관리가 더 급함).
   if (anyLossTriggered) startAlarmLoop('loss')
   else if (anyProfitTriggered) startAlarmLoop('profit')
+  else if (anyPriceTriggered) startAlarmLoop('price')
   else stopAlarmLoop()
 }
 
@@ -6169,6 +6237,15 @@ watch(
     checkPositionAlarms()
   }
 )
+
+watch(displayLastPrice, () => checkPositionAlarms())
+
+watch(symbol, () => {
+  priceAlarm.enabled = false
+  priceAlarm.price = ''
+  resetPriceAlarmState()
+  checkPositionAlarms()
+})
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
