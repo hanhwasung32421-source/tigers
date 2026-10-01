@@ -1544,6 +1544,7 @@ const asks = ref<[string, string][]>([])
 const bids = ref<[string, string][]>([])
 const wsStatus = ref('')
 let ws: WebSocket | null = null
+let tradeWs: WebSocket | null = null
 let lastOrderbookTs = 0
 // 바이낸스 호가(depth20)는 최소 100ms~최대 250ms 간격으로 오는데, 그대로 다 화면에 반영하면
 // 너무 정신없이 바뀌어 보인다. 화면 갱신 자체는 최소 이 간격(0.3초)으로만 하도록 제한한다.
@@ -5387,6 +5388,7 @@ function connectWs() {
 
 function connectOkxWs() {
   if (!process.client) return
+  closeBinanceTradeWs()
   ws?.close()
   asks.value = []
   bids.value = []
@@ -5462,8 +5464,7 @@ function connectBinanceWs() {
   lastOrderbookApplyTs = 0
 
   const lower = symbol.value.toLowerCase()
-  const streams = [`${lower}@aggTrade`, `${lower}@depth20@100ms`, `${lower}@ticker`].join('/')
-  ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`)
+  ws = new WebSocket(`wss://fstream.binance.com/public/stream?streams=${lower}@depth20@100ms`)
 
   ws.onopen = () => (wsStatus.value = 'open')
   ws.onclose = () => (wsStatus.value = 'closed')
@@ -5504,6 +5505,26 @@ function connectBinanceWs() {
         return
       }
 
+    } catch {
+      // ignore
+    }
+  }
+  connectBinanceTradeWs(lower)
+  startOrderbookAutoReconnect()
+}
+
+// 바이낸스는 웹소켓 주소를 용도별로 나눴다: 호가(depth)는 /public, 체결(aggTrade)과 24시간 통계(ticker)는
+// /market. 예전 주소(/stream) 하나에 세 스트림을 같이 구독하면 호가만 오고 체결은 한 건도 오지 않는다
+// (그래서 봉이 전부 호가 중간값으로만 만들어졌다). 체결은 별도 연결로 받는다.
+function connectBinanceTradeWs(lower: string) {
+  if (!process.client) return
+  tradeWs?.close()
+  const sock = new WebSocket(`wss://fstream.binance.com/market/stream?streams=${lower}@aggTrade/${lower}@ticker`)
+  tradeWs = sock
+  sock.onmessage = (ev) => {
+    try {
+      const data = JSON.parse(ev.data)?.data
+      if (!data) return
       // 실시간 체결가(aggTrade)
       if (data.e === 'aggTrade') {
         const p = Number(data.p)
@@ -5513,7 +5534,6 @@ function connectBinanceWs() {
         }
         return
       }
-
       // 24시간 통계(ticker): 거래량만 반영
       if (data.e === '24hrTicker') {
         vol24.value = Number(data.v) || vol24.value
@@ -5522,7 +5542,19 @@ function connectBinanceWs() {
       // ignore
     }
   }
-  startOrderbookAutoReconnect()
+  // 연결이 끊겨도 아직 이 종목을 보고 있으면 다시 붙는다(그 사이 다른 종목으로 바뀌었으면 포기).
+  sock.onclose = () => {
+    if (tradeWs !== sock) return
+    setTimeout(() => {
+      if (tradeWs === sock && usesBinanceFeed(symbol.value)) connectBinanceTradeWs(symbol.value.toLowerCase())
+    }, 2000)
+  }
+}
+
+function closeBinanceTradeWs() {
+  const sock = tradeWs
+  tradeWs = null
+  sock?.close()
 }
 
 function startOrderbookAutoReconnect() {
@@ -6261,6 +6293,7 @@ onBeforeUnmount(() => {
   chartHeaderResizeRaf = 0
   ws?.close()
   ws = null
+  closeBinanceTradeWs()
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
   pendingCloseTimers.clear()
   if (markPollTimer) clearInterval(markPollTimer)
