@@ -31,15 +31,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       onResponseError(ctx: any) {
         const url = String(ctx.request)
         const status = ctx.response?.status
-        // OKX 공개 API의 캔들(과거 데이터 백필) 429는 OKX 쪽 요청 제한일 뿐이고,
-        // 호출부에서 이미 조용히 넘어가도록 처리돼 있어 실제 거래엔 영향이 없다 — 콘솔 노이즈만 되므로 제외.
-        if (url.includes('/api/okx/candles') && status === 429) return
-        // 로그인 세션이 만료된 상태에서 쪽지 안읽음 폴링이 401을 반환하는 건
-        // 정상적인 로그아웃 상태일 뿐이고(호출부에서 폴링을 바로 멈춤) 실제 오류가 아니므로 제외.
-        if (url.includes('/api/messages/unread') && status === 401) return
-        // 비로그인 게스트가 차트를 볼 때 킬업/다운 기준점 조회가 401을 반환하는 것도
-        // 호출부에서 로그인 상태일 때만 부르도록 이미 막아뒀고, 실제 오류가 아니므로 제외.
-        if (url.includes('/api/kill/latest') && status === 401) return
+        // 4xx는 "잔고가 부족합니다", 입력값 오류, 로그아웃 상태의 401, 요청 제한 429 등
+        // 서버가 의도적으로 돌려준 정상적인 거절이고 화면에도 이미 안내 문구가 뜨므로 로그에서 제외.
+        // 기능 고장(404 = 엔드포인트 없음, 408 = 타임아웃)과 5xx(서버 오류), 네트워크 오류만 남긴다.
+        if (status && status >= 400 && status < 500 && status !== 404 && status !== 408) return
         record({
           type: 'fetch',
           url,
