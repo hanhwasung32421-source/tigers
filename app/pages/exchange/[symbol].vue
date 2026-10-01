@@ -3170,13 +3170,17 @@ const measureBoxView = computed(() => {
   return { left, top, width, height, pct, positive, vArrow, hArrow, tooltipLine1, tooltipLine2 }
 })
 
-function updateLiveCandle(price: number, tsMs: number) {
+// flatOnly=true(호가 중간값 틱): 봉의 값(고가/저가/종가)에는 절대 반영하지 않고, 새 분(分)이
+// 시작됐는데 아직 체결이 없을 때만 "직전 종가로 납작한 봉"을 만들어 시간축만 이어간다.
+// (바이낸스 REST 봉은 실제 체결만 반영하므로, 중간값이 만든 꼬리가 20초 재동기화 때 사라지거나
+// 반대로 실제 체결 고가/저가가 갑자기 생기던 문제를 없애려는 것)
+function updateLiveCandle(price: number, tsMs: number, flatOnly = false) {
   // 관리자 킬 버튼 동작 중에는 실시간 업데이트로 "튀는 효과"가 즉시 덮어써지지 않게 잠깐 멈춤
   if (adminKillFreezeUntil && Date.now() < adminKillFreezeUntil) return
   // 수익/손실 버튼 동작(유지시간 포함) 중에도 동일하게, 실시간 시세가 덮어쓰지 않도록 멈춤
   if (adminProfitFreezeUntil && Date.now() < adminProfitFreezeUntil) return
   if (!candleSeries) return
-  const p = Number(price)
+  let p = Number(price)
   if (!Number.isFinite(p) || p <= 0) return
 
   const ts = Number.isFinite(tsMs) ? tsMs : Date.now()
@@ -3186,6 +3190,15 @@ function updateLiveCandle(price: number, tsMs: number) {
   const time = bucket as any
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
+
+  // 이미 더 최신 봉이 있는데 과거 구간의 틱이 늦게 도착한 경우: 봉을 새로 만들면 시간 순서가 꼬여
+  // 차트 update가 예외를 던지고 데이터가 오염되므로 무시한다.
+  if (last && bucket < Number((last as any).time)) return
+  if (flatOnly) {
+    if (!last || Number((last as any).time) === bucket) return
+    p = Number((last as any).close)
+    if (!Number.isFinite(p) || p <= 0) return
+  }
 
   // 새 캔들 생성 (시가는 직전 봉 종가를 그대로 물려받고, 고가/저가는 시가까지 감싸도록 잡는다)
   if (!last || Number((last as any).time) !== bucket) {
@@ -5288,6 +5301,22 @@ async function fetchCandles() {
   // candleData/volumeData를 미리 비워두므로 여기선 항상 같은 심볼의 과거 봉만 남는다).
   const candles = mergeCandleSeries(candleData.value, freshCandles)
   const vols = mergeCandleSeries(volumeData.value, freshVols)
+
+  // 요청을 보내고 응답을 받는 사이에도 실시간 틱은 계속 들어온다. 응답으로 통째로 덮어쓰면 그 사이의
+  // 새 틱(고가/저가 갱신, 새로 시작된 봉)이 잠깐 되돌아가므로, 같은 봉은 고가/저가를 합집합으로 유지하고
+  // 응답에 아직 없는 더 최신 봉은 실시간 봉을 그대로 뒤에 붙인다.
+  const liveNow = liveLastCandle.value as any
+  if (liveNow && candles.length) {
+    const lastFresh = candles[candles.length - 1] as any
+    const liveT = Number(liveNow.time)
+    const freshT = Number(lastFresh.time)
+    if (liveT === freshT) {
+      lastFresh.high = Math.max(Number(lastFresh.high), Number(liveNow.high))
+      lastFresh.low = Math.min(Number(lastFresh.low), Number(liveNow.low))
+    } else if (liveT > freshT) {
+      candles.push({ ...liveNow })
+    }
+  }
   chainCandleOpens(candles)
 
   candleSeries?.setData(candles)
@@ -5499,7 +5528,7 @@ function connectBinanceWs() {
         if (Number.isFinite(bestBid) && Number.isFinite(bestAsk) && bestBid > 0 && bestAsk > 0) {
           const mid = (bestBid + bestAsk) / 2
           lastPrice.value = mid
-          updateLiveCandle(mid, Date.now())
+          updateLiveCandle(mid, Date.now(), true)
         }
         return
       }
@@ -6165,6 +6194,7 @@ watch([() => symbol.value, timeframe], async () => {
   // 이전 심볼의 과거 봉과 섞이지 않도록 먼저 비워준다(과거 이어받기 상태도 같이 초기화).
   candleData.value = []
   volumeData.value = []
+  liveLastCandle.value = null
   resetOlderHistoryState()
   await fetchCandles().catch(() => {})
   fitChartAndLockPriceScale()
