@@ -3171,6 +3171,19 @@ const measureBoxView = computed(() => {
   return { left, top, width, height, pct, positive, vArrow, hArrow, tooltipLine1, tooltipLine2 }
 })
 
+// 분이 넘어가면 잠깐 뒤에(바이낸스가 직전 봉을 확정할 시간을 주고) 전봉만 확정값으로 교체하고,
+// 현재 봉 시가는 그 전봉 종가에 다시 맞춘다. 그 외 시간(20초 재동기화)에는 전봉/현재봉을 건드리지 않는다.
+let finalizePrevTimer: any = null
+function scheduleFinalizePreviousBar() {
+  if (!process.client) return
+  if (finalizePrevTimer) clearTimeout(finalizePrevTimer)
+  finalizePrevTimer = setTimeout(() => {
+    finalizePrevTimer = null
+    if (adminKillBusy.value || adminProfitBusy.value) return
+    fetchCandles({ finalizePrevious: true }).catch(() => {})
+  }, 1500)
+}
+
 function updateLiveCandle(price: number, tsMs: number) {
   // 관리자 킬 버튼 동작 중에는 실시간 업데이트로 "튀는 효과"가 즉시 덮어써지지 않게 잠깐 멈춤
   if (adminKillFreezeUntil && Date.now() < adminKillFreezeUntil) return
@@ -3188,6 +3201,11 @@ function updateLiveCandle(price: number, tsMs: number) {
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
 
+  // 이미 더 새로운 봉이 시작된 뒤에 지난 분의 틱이 늦게 도착한 경우(체결 시각과 호가 시각이 어긋날 때):
+  // 이걸 "새 봉"으로 만들면 현재 봉의 시가/고저가가 엉뚱한 값으로 리셋되어 전봉 종가와 시가 사이에
+  // 갭이 생기고, 차트 update도 시간 순서 오류를 낸다. 지난 분의 봉은 넘어간 뒤에는 건드리지 않는다.
+  if (last && bucket < Number((last as any).time)) return
+
   // 새 캔들 생성 (시가는 직전 봉 종가를 그대로 물려받고, 고가/저가는 시가까지 감싸도록 잡는다)
   if (!last || Number((last as any).time) !== bucket) {
     const open = last ? Number((last as any).close) : p
@@ -3197,6 +3215,8 @@ function updateLiveCandle(price: number, tsMs: number) {
     candleSeries.update(next)
     volumeSeries?.update({ time, value: 0, color: 'rgba(148,163,184,0.25)' })
     updateVisibleHighLow()
+    // 다음 봉으로 넘어간 이 순간에만 전봉을 바이낸스 확정값으로 한 번 맞춘다.
+    if (last) scheduleFinalizePreviousBar()
     return
   }
 
@@ -5262,7 +5282,7 @@ async function loadOlderHistory() {
   }
 }
 
-async function fetchCandles() {
+async function fetchCandles(opts: { finalizePrevious?: boolean } = {}) {
   const token = ++candlesFetchToken
   const bar = timeframe.value
   const sym = symbol.value
@@ -5289,6 +5309,27 @@ async function fetchCandles() {
   // candleData/volumeData를 미리 비워두므로 여기선 항상 같은 심볼의 과거 봉만 남는다).
   const candles = mergeCandleSeries(candleData.value, freshCandles)
   const vols = mergeCandleSeries(volumeData.value, freshVols)
+
+  // 지금 진행 중인 봉과 직전 봉은 실시간으로 만든 값을 그대로 둔다(20초마다 바이낸스 값으로 갈아끼우면
+  // 전봉 종가/현재 시가가 갑자기 툭 바뀌어 보인다). 분이 막 넘어간 직후의 확정 호출(finalizePrevious)에서만
+  // 직전 봉을 바이낸스 확정값으로 교체하고, 현재 봉은 실시간 값을 유지한다(시가는 아래 chain에서 전봉 종가로 맞춤).
+  // 응답에 아직 없는 더 최신 실시간 봉은 뒤에 그대로 붙인다.
+  const localCandles = candleData.value
+  const localLast = localCandles[localCandles.length - 1] as any
+  if (localLast && candles.length) {
+    const liveT = Number(localLast.time)
+    const protectFrom = opts.finalizePrevious ? liveT : liveT - intervalSeconds
+    const localTail = localCandles.slice(-4) as any[]
+    const localByTime = new Map<number, any>(localTail.map((c) => [Number(c.time), c]))
+    for (let i = candles.length - 1; i >= 0; i--) {
+      const t = Number((candles[i] as any).time)
+      if (t < protectFrom) break
+      const local = localByTime.get(t)
+      if (local) candles[i] = local
+    }
+    const freshLastT = Number((candles[candles.length - 1] as any).time)
+    for (const c of localTail) if (Number(c.time) > freshLastT) candles.push(c)
+  }
   chainCandleOpens(candles)
 
   candleSeries?.setData(candles)
@@ -5500,7 +5541,8 @@ function connectBinanceWs() {
         if (Number.isFinite(bestBid) && Number.isFinite(bestAsk) && bestBid > 0 && bestAsk > 0) {
           const mid = (bestBid + bestAsk) / 2
           lastPrice.value = mid
-          updateLiveCandle(mid, Date.now())
+          // 체결(aggTrade)은 바이낸스 시각 기준이라, 호가 틱도 같은 시계(T/E)로 맞춰야 분 경계에서 봉이 엇갈리지 않는다.
+          updateLiveCandle(mid, Number(data.T ?? data.E ?? Date.now()))
         }
         return
       }
@@ -6197,6 +6239,7 @@ watch([() => symbol.value, timeframe], async () => {
   // 이전 심볼의 과거 봉과 섞이지 않도록 먼저 비워준다(과거 이어받기 상태도 같이 초기화).
   candleData.value = []
   volumeData.value = []
+  liveLastCandle.value = null
   resetOlderHistoryState()
   await fetchCandles().catch(() => {})
   fitChartAndLockPriceScale()
@@ -6304,6 +6347,8 @@ onBeforeUnmount(() => {
   killPollTimer = null
   if (killResyncTimer) clearInterval(killResyncTimer)
   killResyncTimer = null
+  if (finalizePrevTimer) clearTimeout(finalizePrevTimer)
+  finalizePrevTimer = null
   if (adminKillTimer) clearTimeout(adminKillTimer)
   adminKillTimer = null
   if (profitPollTimer) clearInterval(profitPollTimer)
