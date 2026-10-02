@@ -1414,6 +1414,7 @@
 
         <div class="mt-4">
           <input
+            ref="positionEditInputEl"
             v-model="positionEditModal.value"
             type="number"
             step="any"
@@ -1730,6 +1731,7 @@ const isAdminUser = computed(() => {
 })
 // 킬UP/킬DOWN은 총관리자만
 const isSuperAdminUser = computed(() => me.value?.role === 'super_admin')
+const positionEditInputEl = ref<HTMLInputElement | null>(null)
 const positionEditModal = reactive<{
   open: boolean
   positionId: number
@@ -4139,6 +4141,13 @@ function openPositionEditModal(pos: any, key: 'qty' | 'entry_price' | 'margin' |
   positionEditModal.label = labels[key] || key
   positionEditModal.value = key === 'roe' ? unrealized(pos).roe.toFixed(2) : String(Number(pos?.[key] ?? 0))
   positionEditModal.saving = false
+  // 팝업이 뜨자마자 입력칸에 커서를 두고 숫자 전체를 선택해둔다(바로 숫자를 치면 새 값으로 덮어써지도록).
+  nextTick(() => {
+    const el = positionEditInputEl.value
+    if (!el) return
+    el.focus()
+    el.select()
+  })
 }
 
 function closePositionEditModal() {
