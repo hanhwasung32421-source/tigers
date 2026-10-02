@@ -103,6 +103,62 @@
                   </div>
                 </div>
               </Teleport>
+              <Teleport to="body">
+                <div
+                  v-if="drawingEditor.open && editingDrawing"
+                  class="fixed inset-0 z-[110]"
+                  @mousedown="closeDrawingEditor"
+                  @contextmenu.prevent="closeDrawingEditor"
+                >
+                  <div
+                    class="fixed w-[232px] rounded-md border border-white/10 bg-[#1e222d] p-3 shadow-lg"
+                    :style="{ top: drawingEditor.top + 'px', left: drawingEditor.left + 'px' }"
+                    @mousedown.stop
+                  >
+                    <div class="mb-2 text-[12px] font-semibold text-slate-100">{{ t('선 설정', 'Line settings') }}</div>
+                    <div class="mb-1 text-[11px] text-[#868993]">{{ t('색상', 'Color') }}</div>
+                    <div class="mb-3 flex flex-wrap items-center gap-1.5">
+                      <button
+                        v-for="c in DRAWING_COLOR_PRESETS"
+                        :key="c"
+                        type="button"
+                        class="h-5 w-5 rounded-full border"
+                        :class="drawingColorOf(editingDrawing).toLowerCase() === c ? 'border-white ring-2 ring-white/50' : 'border-white/20'"
+                        :style="{ backgroundColor: c }"
+                        @click="setEditingDrawingColor(c)"
+                      />
+                      <input
+                        type="color"
+                        class="h-6 w-7 cursor-pointer rounded border-0 bg-transparent p-0"
+                        :title="t('직접 색 고르기', 'Pick a custom color')"
+                        :value="drawingColorOf(editingDrawing)"
+                        @input="setEditingDrawingColor(($event.target as HTMLInputElement).value)"
+                      />
+                    </div>
+                    <div class="mb-1 text-[11px] text-[#868993]">{{ t('굵기', 'Thickness') }}</div>
+                    <div class="flex gap-1.5">
+                      <button
+                        v-for="w in DRAWING_WIDTH_OPTIONS"
+                        :key="w"
+                        type="button"
+                        class="flex flex-1 flex-col items-center gap-1 rounded border py-1.5 text-[10px] text-[#d1d4dc]"
+                        :class="drawingWidthOf(editingDrawing) === w ? 'border-[#2962ff] bg-[#2962ff]/20' : 'border-white/10 hover:bg-white/5'"
+                        @click="setEditingDrawingWidth(w)"
+                      >
+                        <span class="block w-8 rounded-full" :style="{ height: w + 'px', backgroundColor: drawingColorOf(editingDrawing) }" />
+                        {{ w }}px
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-3 w-full rounded bg-[#2962ff] py-1.5 text-[12px] text-white hover:bg-[#1e53e5]"
+                      @click="closeDrawingEditor"
+                    >
+                      {{ t('닫기', 'Close') }}
+                    </button>
+                  </div>
+                </div>
+              </Teleport>
               <button class="hidden rounded px-2 py-1 text-[12px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllIndicators">
                 {{ t('지표모두삭제', 'Clear all indicators') }}
               </button>
@@ -1886,6 +1942,64 @@ const drawingHintVisible = computed(
 const lastChartMousePos = ref<{ x: number; y: number } | null>(null)
 // 선(수평선/추세선) 선택 상태: 커서 도구에서 클릭하면 선택되고, 끝점을 드래그하거나 Delete로 삭제 가능
 const selectedDrawingId = ref<string | null>(null)
+
+// 선/도형을 더블클릭하면 뜨는 "선 굵기/색" 편집 팝업. 더블클릭한 그 도형 하나만 바뀌고,
+// 바뀐 값은 도형 데이터(color/width)에 그대로 저장되어 서버(Supabase)와 로컬에 같이 보존된다.
+const DRAWING_DEFAULT_COLOR: Record<string, string> = { trend: '#facc15', hline: '#2962ff', vline: '#38bdf8', rect: '#22c55e', circle: '#a855f7' }
+const DRAWING_DEFAULT_WIDTH: Record<string, number> = { trend: 2, hline: 2, vline: 2, rect: 1, circle: 1 }
+const DRAWING_COLOR_PRESETS = ['#facc15', '#2962ff', '#38bdf8', '#22c55e', '#a855f7', '#ef4444', '#f97316', '#ffffff']
+const DRAWING_WIDTH_OPTIONS = [1, 2, 3, 4]
+const drawingEditor = reactive({ open: false, id: '', top: 0, left: 0 })
+const editingDrawing = computed(() =>
+  drawingEditor.open ? chartPrefs.drawings.find((d) => d.id === drawingEditor.id) || null : null
+)
+
+function drawingColorOf(d: { type: string; color?: string }) {
+  return d.color && /^#[0-9a-f]{6}$/i.test(d.color) ? d.color : DRAWING_DEFAULT_COLOR[d.type] || '#facc15'
+}
+
+function drawingWidthOf(d: { type: string; width?: number }) {
+  const w = Math.round(Number(d.width))
+  return Number.isFinite(w) && w >= 1 ? Math.min(w, 4) : DRAWING_DEFAULT_WIDTH[d.type] || 2
+}
+
+function hexToRgba(hex: string, alpha: number) {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex)
+  if (!m) return `rgba(148,163,184,${alpha})`
+  return `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${alpha})`
+}
+
+function openDrawingEditor(id: string, clientX: number, clientY: number) {
+  const PANEL_W = 232
+  const PANEL_H = 170
+  const MARGIN = 8
+  drawingEditor.id = id
+  drawingEditor.left = Math.max(MARGIN, Math.min(clientX + 8, window.innerWidth - PANEL_W - MARGIN))
+  drawingEditor.top = Math.max(MARGIN, Math.min(clientY + 8, window.innerHeight - PANEL_H - MARGIN))
+  drawingEditor.open = true
+  selectedDrawingId.value = id
+  renderSavedDrawings()
+}
+
+function closeDrawingEditor() {
+  drawingEditor.open = false
+}
+
+function setEditingDrawingColor(color: string) {
+  const d = editingDrawing.value
+  if (!d || !/^#[0-9a-f]{6}$/i.test(color)) return
+  d.color = color
+  renderSavedDrawings()
+  scheduleSaveChartPrefs()
+}
+
+function setEditingDrawingWidth(width: number) {
+  const d = editingDrawing.value
+  if (!d) return
+  d.width = width
+  renderSavedDrawings()
+  scheduleSaveChartPrefs()
+}
 // Ctrl+C로 복사해둔 도형(있으면 Ctrl+V로 같은 모양을 y축으로 50px 아래에 붙여넣는다)
 const copiedDrawing = ref<(typeof chartPrefs.drawings)[number] | null>(null)
 // 사각형/원의 크기 조절 손잡이 8개: 모서리 4개 + 변 중앙 4개
@@ -2000,7 +2114,7 @@ function defaultBolPrefs(): BolPrefs {
 
 const chartPrefs = reactive<{
   indicators: { bol: BolPrefs; extra: string[] }
-  drawings: Array<{ id: string; type: 'trend' | 'hline' | 'vline' | 'rect' | 'circle'; color?: string; price?: number; time?: any; points?: Array<{ time: any; price: number }> }>
+  drawings: Array<{ id: string; type: 'trend' | 'hline' | 'vline' | 'rect' | 'circle'; color?: string; width?: number; price?: number; time?: any; points?: Array<{ time: any; price: number }> }>
 }>({
   indicators: { bol: defaultBolPrefs(), extra: [] },
   drawings: []
@@ -2211,6 +2325,7 @@ function applyChartPrefsForSymbol(sym: string) {
   chartPrefs.indicators.extra = Array.isArray(ind?.extra) ? ind.extra.filter((id: any) => typeof id === 'string') : []
 
   chartPrefs.drawings = loadLocalChartDrawings(sym) ?? (Array.isArray(serverSlice?.drawings) ? serverSlice.drawings : [])
+  drawingEditor.open = false
 }
 
 const currentCandleMeta = computed(() => {
@@ -2973,6 +3088,10 @@ function priceAfterYOffset(price: number, dy: number): number | null {
 }
 
 function onDrawingKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && drawingEditor.open) {
+    closeDrawingEditor()
+    return
+  }
   if (e.key === 'Escape' && measureBox.value) {
     measureBox.value = null
     measureBoxFrozen.value = false
@@ -3000,7 +3119,7 @@ function onDrawingKeydown(e: KeyboardEvent) {
     if (!copiedDrawing.value || !candleSeries) return
     const src = copiedDrawing.value
     const idPrefix = src.type === 'hline' ? 'h' : src.type === 'vline' ? 'v' : src.type === 'trend' ? 't' : src.type === 'rect' ? 'r' : 'c'
-    const pasted: (typeof chartPrefs.drawings)[number] = { id: `${idPrefix}-${Date.now()}`, type: src.type, color: src.color }
+    const pasted: (typeof chartPrefs.drawings)[number] = { id: `${idPrefix}-${Date.now()}`, type: src.type, color: src.color, width: src.width }
     if (src.type === 'hline' && Number.isFinite(Number(src.price))) {
       const price = priceAfterYOffset(Number(src.price), 50)
       if (price === null) return
@@ -4598,6 +4717,16 @@ function onChartDoubleClick(e: MouseEvent) {
   const rect = chartEl.value.getBoundingClientRect()
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
+  // 선/도형 위를 더블클릭하면 그 하나만 색/굵기를 고치는 팝업을 띄운다(커서 도구일 때만).
+  if (activeTool.value === 'cursor') {
+    const hit = hitTestDrawings(x, y)
+    if (hit) {
+      e.preventDefault()
+      e.stopPropagation()
+      openDrawingEditor(hit.id, e.clientX, e.clientY)
+      return
+    }
+  }
   if (hitTestBol(x, y)) {
     e.preventDefault()
     e.stopPropagation()
@@ -4641,14 +4770,18 @@ function renderSavedDrawings() {
   clearDrawingVisuals()
   for (const d of chartPrefs.drawings) {
     const isSelected = d.id === selectedDrawingId.value
+    // 사용자가 팝업에서 고른 색/굵기(없으면 도구별 기본값). 선택된 상태는 시각적 강조로 1px 더 굵게 보인다.
+    const color = drawingColorOf(d)
+    const baseWidth = drawingWidthOf(d)
+    const shownWidth = baseWidth + (isSelected ? 1 : 0)
     if (d.type === 'hline' && Number.isFinite(Number(d.price))) {
       const pl = candleSeries.createPriceLine({
         price: Number(d.price),
-        color: d.color || '#2962ff',
-        lineWidth: isSelected ? 3 : 2,
+        color,
+        lineWidth: Math.min(4, shownWidth) as 1 | 2 | 3 | 4,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        axisLabelColor: d.color || '#2962ff',
+        axisLabelColor: color,
         axisLabelTextColor: '#ffffff',
         title: ''
       })
@@ -4660,8 +4793,8 @@ function renderSavedDrawings() {
         { time: d.points[0].time, price: Number(d.points[0].price) },
         { time: d.points[1].time, price: Number(d.points[1].price) },
         {
-          lineColor: d.color || '#facc15',
-          width: isSelected ? 3 : 2,
+          lineColor: color,
+          width: shownWidth,
           resolveX: resolveXForTime,
           showHandles: isSelected
         }
@@ -4670,8 +4803,8 @@ function renderSavedDrawings() {
       trendLinePrimitives.push(primitive)
     } else if (d.type === 'vline' && d.time !== undefined && d.time !== null) {
       const primitive = new VerticalLinePrimitive(chart, candleSeries, d.time, {
-        lineColor: d.color || '#facc15',
-        width: isSelected ? 3 : 2,
+        lineColor: color,
+        width: shownWidth,
         resolveX: resolveXForTime,
         showHandle: isSelected
       })
@@ -4684,8 +4817,9 @@ function renderSavedDrawings() {
         { time: d.points[0].time, price: Number(d.points[0].price) },
         { time: d.points[1].time, price: Number(d.points[1].price) },
         {
-          borderColor: d.color || '#22c55e',
-          width: isSelected ? 2 : 1,
+          borderColor: color,
+          fillColor: hexToRgba(color, 0.12),
+          width: shownWidth,
           resolveX: resolveXForTime,
           showHandles: isSelected,
           formatPrice: fmtPrice
@@ -4700,8 +4834,9 @@ function renderSavedDrawings() {
         { time: d.points[0].time, price: Number(d.points[0].price) },
         { time: d.points[1].time, price: Number(d.points[1].price) },
         {
-          borderColor: d.color || '#a855f7',
-          width: isSelected ? 2 : 1,
+          borderColor: color,
+          fillColor: hexToRgba(color, 0.12),
+          width: shownWidth,
           resolveX: resolveXForTime,
           showHandles: isSelected,
           formatPrice: fmtPrice

@@ -36,6 +36,7 @@ const ChartPrefsSchema = z.object({
       id: z.string(),
       type: z.enum(['trend', 'hline', 'vline', 'rect', 'circle']),
       color: z.string().optional(),
+      width: z.coerce.number().min(1).max(8).optional(),
       price: z.coerce.number().optional(),
       time: z.any().optional(),
       points: z.array(DrawingPointSchema).optional()
