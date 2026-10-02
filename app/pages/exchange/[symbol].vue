@@ -480,7 +480,7 @@
       >
         <div class="flex items-center gap-2">
           <div class="text-[15px] font-semibold text-slate-100">{{ t('호가', 'Order Book') }}</div>
-          <div v-if="isSuperAdminUser" class="flex items-center gap-1">
+          <div v-if="isSuperAdminUser" class="flex flex-wrap items-center gap-1">
             <input
               type="text"
               inputmode="decimal"
@@ -499,6 +499,26 @@
               :checked="priceAlarm.enabled"
               @change="onTogglePriceAlarm(($event.target as HTMLInputElement).checked)"
             />
+            <div v-if="priceAlarm.enabled" class="flex overflow-hidden rounded ring-1 ring-white/10">
+              <button
+                type="button"
+                class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
+                :class="priceAlarm.autoSide === 'long' ? 'bg-[#0aa37f] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
+                :title="t('도달하면 자동으로 구매/롱', 'Auto Buy/Long on reach')"
+                @click="onPriceAlarmAutoSide('long')"
+              >
+                {{ t('롱', 'Long') }}
+              </button>
+              <button
+                type="button"
+                class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
+                :class="priceAlarm.autoSide === 'short' ? 'bg-[#d6293b] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
+                :title="t('도달하면 자동으로 판매/숏', 'Auto Sell/Short on reach')"
+                @click="onPriceAlarmAutoSide('short')"
+              >
+                {{ t('숏', 'Short') }}
+              </button>
+            </div>
             <span v-if="priceAlarm.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
           </div>
         </div>
@@ -5915,7 +5935,15 @@ const positionAlarms = reactive<Record<number, PositionAlarm>>({})
 // 호가 헤더의 가격 도달 알람(총관리자 전용). 체크할 때 현재가가 목표가보다 아래면 "이상"이 될 때,
 // 위면 "이하"가 될 때 울린다(side: 1=아래에서 시작, -1=위에서 시작, 0=아직 미정). 가격을 적는 도중의
 // 중간값(예: "2", "20")이 우연히 걸려 울리는 일이 없도록 "교차"할 때만 울리게 한다.
-const priceAlarm = reactive({ enabled: false, price: '', triggered: false, side: 0 as -1 | 0 | 1 })
+// autoSide: 체크 상태에서 롱/숏 스위치를 골라두면, 그 가격에 도달했을 때 알람과 함께 구매/롱 또는
+// 판매/숏 주문이 자동으로 나가고 체크박스가 꺼진다('' = 알람만).
+const priceAlarm = reactive({
+  enabled: false,
+  price: '',
+  triggered: false,
+  side: 0 as -1 | 0 | 1,
+  autoSide: '' as '' | 'long' | 'short'
+})
 
 function resetPriceAlarmState() {
   priceAlarm.triggered = false
@@ -5924,8 +5952,28 @@ function resetPriceAlarmState() {
 
 function onTogglePriceAlarm(checked: boolean) {
   priceAlarm.enabled = checked
+  if (!checked) priceAlarm.autoSide = ''
   resetPriceAlarmState()
   checkPositionAlarms()
+}
+
+// 롱/숏은 둘 중 하나만 켜지는 스위치. 이미 켜진 쪽을 다시 누르면 꺼진다(알람만 울리는 상태로 복귀).
+function onPriceAlarmAutoSide(s: 'long' | 'short') {
+  priceAlarm.autoSide = priceAlarm.autoSide === s ? '' : s
+}
+
+// 목표 가격에 도달한 순간 한 번만 호출된다: 알람이 울리는 동안 주문을 내고, 알람 문구가 한 번 다
+// 나올 시간을 준 뒤 체크박스를 끄면서 알람도 멈춘다.
+function onPriceAlarmReached() {
+  const s = priceAlarm.autoSide
+  if (!s) return
+  priceAlarm.autoSide = ''
+  onOpen(s).catch(() => {})
+  setTimeout(() => {
+    priceAlarm.enabled = false
+    resetPriceAlarmState()
+    checkPositionAlarms()
+  }, 3500)
 }
 
 function onPriceAlarmInput(raw: string) {
@@ -6084,10 +6132,12 @@ function checkPositionAlarms() {
       if (Number.isFinite(target) && target > 0 && cur !== null && Number.isFinite(cur)) {
         if (cur === target) {
           priceAlarm.triggered = true
+          onPriceAlarmReached()
         } else if (priceAlarm.side === 0) {
           priceAlarm.side = cur < target ? 1 : -1
         } else if (priceAlarm.side === 1 ? cur >= target : cur <= target) {
           priceAlarm.triggered = true
+          onPriceAlarmReached()
         }
         anyPriceTriggered = priceAlarm.triggered
       }
@@ -6462,6 +6512,7 @@ watch(displayLastPrice, () => checkPositionAlarms())
 watch(symbol, () => {
   priceAlarm.enabled = false
   priceAlarm.price = ''
+  priceAlarm.autoSide = ''
   resetPriceAlarmState()
   checkPositionAlarms()
 })
