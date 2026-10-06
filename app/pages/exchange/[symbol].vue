@@ -482,9 +482,10 @@
         <div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
           <div class="text-[15px] font-semibold text-slate-100">{{ t('호가', 'Order Book') }}</div>
           <template v-if="isSuperAdminUser">
-            <template v-for="(pa, pi) in priceAlarms" :key="`price-alarm-row-${pi}`">
+            <template v-for="(pa, pi) in priceAlarms" :key="pa.id">
               <div v-if="pi > 0" />
-              <div class="flex flex-wrap items-center gap-1">
+              <div class="flex items-center gap-1">
+              <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1">
                 <input
                   type="text"
                   inputmode="decimal"
@@ -524,6 +525,25 @@
                   </button>
                 </div>
                 <span v-if="pa.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
+              </div>
+              <button
+                v-if="pi === 0 && priceAlarms.length < PRICE_ALARM_MAX_ROWS"
+                type="button"
+                class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                :title="t('알람 줄 추가', 'Add alarm row')"
+                @click="addPriceAlarmRow"
+              >
+                +
+              </button>
+              <button
+                v-else-if="pi > 0"
+                type="button"
+                class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                :title="t('이 알람 줄 삭제', 'Remove this alarm row')"
+                @click="removePriceAlarmRow(pi)"
+              >
+                −
+              </button>
               </div>
             </template>
           </template>
@@ -5943,17 +5963,32 @@ const positionAlarms = reactive<Record<number, PositionAlarm>>({})
 // 중간값(예: "2", "20")이 우연히 걸려 울리는 일이 없도록 "교차"할 때만 울리게 한다.
 // autoSide: 체크 상태에서 롱/숏 스위치를 골라두면, 그 가격에 도달했을 때 알람과 함께 구매/롱 또는
 // 판매/숏 주문이 자동으로 나가고 체크박스가 꺼진다('' = 알람만).
-// 호가 헤더에는 이런 알람 행이 2줄 있다(각 행이 가격/체크박스/롱·숏 스위치를 따로 가진다).
+// 호가 헤더의 알람 행. 기본은 1줄이고, 첫 줄 오른쪽 끝의 + 버튼으로 줄을 추가, 추가된 줄의 - 버튼으로
+// 삭제한다(각 행이 가격/체크박스/롱·숏 스위치를 따로 가진다).
 type PriceAlarmRow = {
+  id: number
   enabled: boolean
   price: string
   triggered: boolean
   side: -1 | 0 | 1
   autoSide: '' | 'long' | 'short'
 }
-const priceAlarms: PriceAlarmRow[] = [0, 1].map(() =>
-  reactive<PriceAlarmRow>({ enabled: false, price: '', triggered: false, side: 0, autoSide: '' })
-)
+const PRICE_ALARM_MAX_ROWS = 5
+let priceAlarmSeq = 0
+const makePriceAlarmRow = () =>
+  reactive<PriceAlarmRow>({ id: ++priceAlarmSeq, enabled: false, price: '', triggered: false, side: 0, autoSide: '' })
+const priceAlarms = reactive<PriceAlarmRow[]>([makePriceAlarmRow()])
+
+function addPriceAlarmRow() {
+  if (priceAlarms.length < PRICE_ALARM_MAX_ROWS) priceAlarms.push(makePriceAlarmRow())
+}
+
+// 줄을 지우면 그 줄의 알람/자동주문도 함께 사라진다(울리던 중이었다면 알람도 멈춘다).
+function removePriceAlarmRow(idx: number) {
+  if (idx <= 0 || idx >= priceAlarms.length) return
+  priceAlarms.splice(idx, 1)
+  checkPositionAlarms()
+}
 
 function resetPriceAlarmState(pa: PriceAlarmRow) {
   pa.triggered = false
@@ -6527,6 +6562,7 @@ watch(
 watch(displayLastPrice, () => checkPositionAlarms())
 
 watch(symbol, () => {
+  priceAlarms.splice(1)
   for (const pa of priceAlarms) {
     pa.enabled = false
     pa.price = ''
