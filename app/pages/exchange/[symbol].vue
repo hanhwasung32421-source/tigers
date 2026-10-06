@@ -478,49 +478,55 @@
         class="order-3 min-w-0 self-start rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1"
         :style="{ height: MATCHED_PANEL_HEIGHT + 'px' }"
       >
-        <div class="flex items-center gap-2">
+        <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
+        <div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
           <div class="text-[15px] font-semibold text-slate-100">{{ t('호가', 'Order Book') }}</div>
-          <div v-if="isSuperAdminUser" class="flex flex-wrap items-center gap-1">
-            <input
-              type="text"
-              inputmode="decimal"
-              :placeholder="t('가격', 'Price')"
-              :title="t('이 가격에 도달하면 알람이 울립니다', 'Alarm rings when the price reaches this value')"
-              :key="`price-alarm-input-${locale}`"
-              class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
-              :value="priceAlarm.price"
-              @input="onPriceAlarmInput(($event.target as HTMLInputElement).value)"
-            />
-            <input
-              type="checkbox"
-              class="h-3.5 w-3.5 cursor-pointer accent-amber-400"
-              :title="t('가격 도달 알람', 'Price alarm')"
-              :key="`price-alarm-cb-${locale}`"
-              :checked="priceAlarm.enabled"
-              @change="onTogglePriceAlarm(($event.target as HTMLInputElement).checked)"
-            />
-            <div v-if="priceAlarm.enabled" class="flex overflow-hidden rounded ring-1 ring-white/10">
-              <button
-                type="button"
-                class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
-                :class="priceAlarm.autoSide === 'long' ? 'bg-[#0aa37f] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
-                :title="t('도달하면 자동으로 구매/롱', 'Auto Buy/Long on reach')"
-                @click="onPriceAlarmAutoSide('long')"
-              >
-                {{ t('롱', 'Long') }}
-              </button>
-              <button
-                type="button"
-                class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
-                :class="priceAlarm.autoSide === 'short' ? 'bg-[#d6293b] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
-                :title="t('도달하면 자동으로 판매/숏', 'Auto Sell/Short on reach')"
-                @click="onPriceAlarmAutoSide('short')"
-              >
-                {{ t('숏', 'Short') }}
-              </button>
-            </div>
-            <span v-if="priceAlarm.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
-          </div>
+          <template v-if="isSuperAdminUser">
+            <template v-for="(pa, pi) in priceAlarms" :key="`price-alarm-row-${pi}`">
+              <div v-if="pi > 0" />
+              <div class="flex flex-wrap items-center gap-1">
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  :placeholder="t('가격', 'Price')"
+                  :title="t('이 가격에 도달하면 알람이 울립니다', 'Alarm rings when the price reaches this value')"
+                  :key="`price-alarm-input-${pi}-${locale}`"
+                  class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
+                  :value="pa.price"
+                  @input="onPriceAlarmInput(pi, ($event.target as HTMLInputElement).value)"
+                />
+                <input
+                  type="checkbox"
+                  class="h-3.5 w-3.5 cursor-pointer accent-amber-400"
+                  :title="t('가격 도달 알람', 'Price alarm')"
+                  :key="`price-alarm-cb-${pi}-${locale}`"
+                  :checked="pa.enabled"
+                  @change="onTogglePriceAlarm(pi, ($event.target as HTMLInputElement).checked)"
+                />
+                <div v-if="pa.enabled" class="flex overflow-hidden rounded ring-1 ring-white/10">
+                  <button
+                    type="button"
+                    class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
+                    :class="pa.autoSide === 'long' ? 'bg-[#0aa37f] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
+                    :title="t('도달하면 자동으로 구매/롱', 'Auto Buy/Long on reach')"
+                    @click="onPriceAlarmAutoSide(pi, 'long')"
+                  >
+                    {{ t('롱', 'Long') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
+                    :class="pa.autoSide === 'short' ? 'bg-[#d6293b] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
+                    :title="t('도달하면 자동으로 판매/숏', 'Auto Sell/Short on reach')"
+                    @click="onPriceAlarmAutoSide(pi, 'short')"
+                  >
+                    {{ t('숏', 'Short') }}
+                  </button>
+                </div>
+                <span v-if="pa.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
+              </div>
+            </template>
+          </template>
         </div>
 
         <div class="mt-3 grid grid-cols-3 gap-2 text-[13px] text-slate-500">
@@ -5937,49 +5943,59 @@ const positionAlarms = reactive<Record<number, PositionAlarm>>({})
 // 중간값(예: "2", "20")이 우연히 걸려 울리는 일이 없도록 "교차"할 때만 울리게 한다.
 // autoSide: 체크 상태에서 롱/숏 스위치를 골라두면, 그 가격에 도달했을 때 알람과 함께 구매/롱 또는
 // 판매/숏 주문이 자동으로 나가고 체크박스가 꺼진다('' = 알람만).
-const priceAlarm = reactive({
-  enabled: false,
-  price: '',
-  triggered: false,
-  side: 0 as -1 | 0 | 1,
-  autoSide: '' as '' | 'long' | 'short'
-})
+// 호가 헤더에는 이런 알람 행이 2줄 있다(각 행이 가격/체크박스/롱·숏 스위치를 따로 가진다).
+type PriceAlarmRow = {
+  enabled: boolean
+  price: string
+  triggered: boolean
+  side: -1 | 0 | 1
+  autoSide: '' | 'long' | 'short'
+}
+const priceAlarms: PriceAlarmRow[] = [0, 1].map(() =>
+  reactive<PriceAlarmRow>({ enabled: false, price: '', triggered: false, side: 0, autoSide: '' })
+)
 
-function resetPriceAlarmState() {
-  priceAlarm.triggered = false
-  priceAlarm.side = 0
+function resetPriceAlarmState(pa: PriceAlarmRow) {
+  pa.triggered = false
+  pa.side = 0
 }
 
-function onTogglePriceAlarm(checked: boolean) {
-  priceAlarm.enabled = checked
-  if (!checked) priceAlarm.autoSide = ''
-  resetPriceAlarmState()
+function onTogglePriceAlarm(idx: number, checked: boolean) {
+  const pa = priceAlarms[idx]
+  if (!pa) return
+  pa.enabled = checked
+  if (!checked) pa.autoSide = ''
+  resetPriceAlarmState(pa)
+  checkPositionAlarms()
+}
+
+function onPriceAlarmInput(idx: number, raw: string) {
+  const pa = priceAlarms[idx]
+  if (!pa) return
+  pa.price = raw
+  resetPriceAlarmState(pa)
   checkPositionAlarms()
 }
 
 // 롱/숏은 둘 중 하나만 켜지는 스위치. 이미 켜진 쪽을 다시 누르면 꺼진다(알람만 울리는 상태로 복귀).
-function onPriceAlarmAutoSide(s: 'long' | 'short') {
-  priceAlarm.autoSide = priceAlarm.autoSide === s ? '' : s
+function onPriceAlarmAutoSide(idx: number, s: 'long' | 'short') {
+  const pa = priceAlarms[idx]
+  if (!pa) return
+  pa.autoSide = pa.autoSide === s ? '' : s
 }
 
 // 목표 가격에 도달한 순간 한 번만 호출된다: 알람이 울리는 동안 주문을 내고, 알람 문구가 한 번 다
-// 나올 시간을 준 뒤 체크박스를 끄면서 알람도 멈춘다.
-function onPriceAlarmReached() {
-  const s = priceAlarm.autoSide
+// 나올 시간을 준 뒤 그 행의 체크박스를 끄면서 알람도 멈춘다.
+function onPriceAlarmReached(pa: PriceAlarmRow) {
+  const s = pa.autoSide
   if (!s) return
-  priceAlarm.autoSide = ''
+  pa.autoSide = ''
   onOpen(s).catch(() => {})
   setTimeout(() => {
-    priceAlarm.enabled = false
-    resetPriceAlarmState()
+    pa.enabled = false
+    resetPriceAlarmState(pa)
     checkPositionAlarms()
   }, 3500)
-}
-
-function onPriceAlarmInput(raw: string) {
-  priceAlarm.price = raw
-  resetPriceAlarmState()
-  checkPositionAlarms()
 }
 const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '+-20', triggered: false, triggeredKind: null }
 let alarmSpeechTimer: any = null
@@ -6123,24 +6139,25 @@ function checkPositionAlarms() {
     }
   }
   let anyPriceTriggered = false
-  if (priceAlarm.enabled) {
-    if (priceAlarm.triggered) {
+  for (const pa of priceAlarms) {
+    if (!pa.enabled) continue
+    if (pa.triggered) {
       anyPriceTriggered = true
-    } else {
-      const target = Number(String(priceAlarm.price).replace(/,/g, '').trim())
-      const cur = displayLastPrice.value
-      if (Number.isFinite(target) && target > 0 && cur !== null && Number.isFinite(cur)) {
-        if (cur === target) {
-          priceAlarm.triggered = true
-          onPriceAlarmReached()
-        } else if (priceAlarm.side === 0) {
-          priceAlarm.side = cur < target ? 1 : -1
-        } else if (priceAlarm.side === 1 ? cur >= target : cur <= target) {
-          priceAlarm.triggered = true
-          onPriceAlarmReached()
-        }
-        anyPriceTriggered = priceAlarm.triggered
+      continue
+    }
+    const target = Number(String(pa.price).replace(/,/g, '').trim())
+    const cur = displayLastPrice.value
+    if (Number.isFinite(target) && target > 0 && cur !== null && Number.isFinite(cur)) {
+      if (cur === target) {
+        pa.triggered = true
+        onPriceAlarmReached(pa)
+      } else if (pa.side === 0) {
+        pa.side = cur < target ? 1 : -1
+      } else if (pa.side === 1 ? cur >= target : cur <= target) {
+        pa.triggered = true
+        onPriceAlarmReached(pa)
       }
+      if (pa.triggered) anyPriceTriggered = true
     }
   }
   // 손실/수익 알람이 동시에 울리는 경우, 손실 쪽을 우선 안내한다(리스크 관리가 더 급함).
@@ -6510,10 +6527,12 @@ watch(
 watch(displayLastPrice, () => checkPositionAlarms())
 
 watch(symbol, () => {
-  priceAlarm.enabled = false
-  priceAlarm.price = ''
-  priceAlarm.autoSide = ''
-  resetPriceAlarmState()
+  for (const pa of priceAlarms) {
+    pa.enabled = false
+    pa.price = ''
+    pa.autoSide = ''
+    resetPriceAlarmState(pa)
+  }
   checkPositionAlarms()
 })
 
