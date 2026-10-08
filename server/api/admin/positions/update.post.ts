@@ -17,7 +17,11 @@ export default defineEventHandler(async (event) => {
   if (!canEditMenu(admin, 'positions')) {
     throw createError({ statusCode: 403, statusMessage: '포지션 수정 권한이 없습니다.' })
   }
-  const body = BodySchema.parse(await readBody(event))
+  const parsed = BodySchema.safeParse(await readBody(event))
+  if (!parsed.success) {
+    throw createError({ statusCode: 400, statusMessage: '포지션 정보가 올바르지 않습니다. 새로고침 후 다시 시도해주세요.' })
+  }
+  const body = parsed.data
 
   const patch: Record<string, number> = {
     [body.field]: body.field === 'leverage' ? Math.max(1, Math.min(100, Math.round(body.value))) : body.value

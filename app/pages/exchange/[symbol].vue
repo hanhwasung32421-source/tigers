@@ -4172,8 +4172,24 @@ function closeLeverageModal() {
   leverageModalOpen.value = false
 }
 
-function openPositionEditModal(pos: any, key: 'qty' | 'entry_price' | 'margin' | 'leverage' | 'roe') {
+async function openPositionEditModal(pos: any, key: 'qty' | 'entry_price' | 'margin' | 'leverage' | 'roe') {
   if (!isAdminUser.value) return
+  // 방금 체결한 포지션은 서버 반영 전까지 임시(음수) id를 쓴다. 이 id로 수정 API를 호출하면 서버 검증에서
+  // 500이 나므로, 계정을 다시 불러와 같은 심볼/방향의 실제 포지션 id로 교체한 뒤 연다(F5와 같은 효과).
+  if (!(Number(pos?.id) > 0)) {
+    await loadAccount()
+    const real = positions.value.find(
+      (p: any) =>
+        Number(p.id) > 0 &&
+        String(p.symbol || '').toUpperCase() === String(pos?.symbol || '').toUpperCase() &&
+        String(p.side || '') === String(pos?.side || '')
+    )
+    if (!real) {
+      error.value = t('포지션이 아직 서버에 반영되지 않았습니다. 잠시 후 다시 시도해주세요.', 'The position has not been synced yet. Please try again in a moment.')
+      return
+    }
+    pos = real
+  }
   const labels: Record<string, string> = {
     qty: t('수량', 'Quantity'),
     entry_price: t('진입가격', 'Entry Price'),
