@@ -1,12 +1,9 @@
--- !!!!! 경고: BITDUCK과 BITRABBIT이 같은 Supabase 프로젝트를 공유하는 동안에는 이 파일을 실행하지 마세요. !!!!!
--- !!!!! 같은 DB 안의 bitduck_* (기존 BITDUCK 사이트) 테이블까지 삭제될 수 있습니다.            !!!!!
-
--- BITRABBIT 프로젝트를 깨끗이 비우는 스크립트.
+-- BITDUCK 프로젝트를 깨끗이 비우는 스크립트.
 -- public 스키마 자체나 Supabase 내부 role 권한(anon/authenticated/service_role)은 건드리지 않고,
 -- 그 안의 테이블/뷰/함수만 전부 삭제합니다 (PostgREST 인증이 깨지는 걸 방지).
 --
--- 실행 방법 (BITRABBIT 프로젝트에 대해):
---   psql "postgresql://postgres:[DB_PASSWORD]@db.YOUR_PROJECT_REF.supabase.co:5432/postgres" -f SUPABASE_BITRABBIT_wipe_before_migration.sql
+-- 실행 방법 (BITDUCK 프로젝트에 대해):
+--   psql "postgresql://postgres:[DB_PASSWORD]@db.dyfycrmltqosezmsufup.supabase.co:5432/postgres" -f SUPABASE_BITDUCK_wipe_before_migration.sql
 --   [DB_PASSWORD]는 Supabase 대시보드 > Settings > Database > Connection string에서 확인 (절대 파일/커밋에 남기지 말 것)
 
 begin;

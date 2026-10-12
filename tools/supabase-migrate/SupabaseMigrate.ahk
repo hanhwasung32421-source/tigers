@@ -2,15 +2,15 @@
 #SingleInstance Force
 FileEncoding "UTF-8"
 
-; BITRABBIT Supabase 전체 이전 도구
+; BITDUCK Supabase 전체 이전 도구
 ; 원본 DB의 public 스키마(테이블 구조 + 모든 데이터 + 시퀀스 번호)를 새 Supabase DB로 통째로 복사한다.
 ; 원본은 읽기만 하며(pg_dump) 절대 수정하지 않는다. 필요: PostgreSQL 클라이언트(pg_dump, psql).
 
-TMP := A_Temp "\bitrabbit_migrate"
+TMP := A_Temp "\bitduck_migrate"
 DirCreate TMP
 LOGFILE := A_ScriptDir "\migrate-log.txt"
 
-g := Gui(, "BITRABBIT Supabase 전체 이전 도구")
+g := Gui(, "BITDUCK Supabase 전체 이전 도구")
 g.SetFont("s10", "Malgun Gothic")
 g.MarginX := 14
 g.MarginY := 10

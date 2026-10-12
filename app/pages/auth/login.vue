@@ -127,7 +127,7 @@ const config = useRuntimeConfig()
 const appName = config.public.appName
 const { t, locale } = useLocale()
 
-const SAVED_ID_KEY = 'bitrabbit_saved_login_id'
+const SAVED_ID_KEY = 'bitduck_saved_login_id'
 
 const username = ref('')
 const password = ref('')

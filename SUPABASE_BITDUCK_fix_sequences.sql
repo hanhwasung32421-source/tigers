@@ -2,7 +2,7 @@
 -- 시퀀스 값이 갱신되지 않아서, 다음 INSERT 때 이미 존재하는 id와 충돌할 수 있습니다.
 -- 각 테이블의 시퀀스를 현재 최대 id에 맞춰 재조정합니다.
 --
--- 실행: psql "postgresql://postgres:[DB_PASSWORD]@db.YOUR_PROJECT_REF.supabase.co:5432/postgres" -f SUPABASE_BITRABBIT_fix_sequences.sql
+-- 실행: psql "postgresql://postgres:[DB_PASSWORD]@db.dyfycrmltqosezmsufup.supabase.co:5432/postgres" -f SUPABASE_BITDUCK_fix_sequences.sql
 -- [DB_PASSWORD]는 Supabase 대시보드 > Settings > Database > Connection string에서 확인 (절대 파일/커밋에 남기지 말 것)
 
 select setval(pg_get_serial_sequence('bitduck_profit_cards', 'id'), coalesce((select max(id) from bitduck_profit_cards), 1));

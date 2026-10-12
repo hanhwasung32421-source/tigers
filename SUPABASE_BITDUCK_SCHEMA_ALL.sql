@@ -1,9 +1,9 @@
 -- ============================================================================
--- BITRABBIT: 지금까지 나온 (bitduck_ 이름 기준으로 정리한) 모든 Supabase 패치를
+-- BITDUCK: 지금까지 나온 (bitduck_ 이름 기준으로 정리한) 모든 Supabase 패치를
 -- 한 번에 모아놓은 파일입니다. 전부 "이미 있으면 건너뛰기"(if not exists /
 -- on conflict do nothing) 방식이라 몇 번을 실행해도 안전합니다.
 --
--- 실행 순서: 먼저 SUPABASE_BITRABBIT_rename_trae_to_bitrabbit.sql로 기존 trae_*
+-- 실행 순서: 먼저 SUPABASE_BITDUCK_rename_trae_to_bitduck.sql로 기존 trae_*
 -- 테이블 이름을 bitduck_*로 바꾼 뒤, 이 파일을 실행하세요(누락된 컬럼/테이블을
 -- 채워주는 안전망 역할 — bitduck_users/balances/positions/trades/profit_cards/
 -- user_settings/sessions/messages/password_reset_requests 같은 핵심 테이블은
