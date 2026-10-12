@@ -16,9 +16,9 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   if (useSupa) {
-    const trade = await supaSelectOne<any>('bitrabbit_trades', { id: body.tradeId, user_id: user.id })
+    const trade = await supaSelectOne<any>('bitduck_trades', { id: body.tradeId, user_id: user.id })
     if (!trade) throw createError({ statusCode: 404, statusMessage: '거래를 찾을 수 없습니다.' })
-    await supaInsertStrict('bitrabbit_profit_cards', {
+    await supaInsertStrict('bitduck_profit_cards', {
       user_id: user.id,
       trade_id: body.tradeId,
       title: body.title,

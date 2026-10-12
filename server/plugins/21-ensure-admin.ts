@@ -17,12 +17,12 @@ export default defineNitroPlugin((nitroApp) => {
       const supa = getSupabaseAdminClient()
       const now = new Date().toISOString()
 
-      const existing = await supaSelectOne<any>('bitrabbit_users', { username: 'admin' })
+      const existing = await supaSelectOne<any>('bitduck_users', { username: 'admin' })
       const adminId = Number(existing?.id ?? 1053)
 
       if (!existing) {
         const desiredPasswordHash = hashPassword('1234')
-        const { error } = await supa.from('bitrabbit_users').insert({
+        const { error } = await supa.from('bitduck_users').insert({
           id: adminId,
           username: 'admin',
           password_hash: desiredPasswordHash,
@@ -44,13 +44,13 @@ export default defineNitroPlugin((nitroApp) => {
       }
 
       // 잔고/설정은 "없을 때만" 생성 (기존 값 절대 유지)
-      const bal = await supaSelectOne<any>('bitrabbit_balances', { user_id: adminId })
+      const bal = await supaSelectOne<any>('bitduck_balances', { user_id: adminId })
       if (!bal) {
-        const { error } = await supa.from('bitrabbit_balances').insert({ user_id: adminId, usdt: 10000 })
+        const { error } = await supa.from('bitduck_balances').insert({ user_id: adminId, usdt: 10000 })
         if (error) throw error
       }
 
-      const settings = await supaSelectOne<any>('bitrabbit_user_settings', { user_id: adminId })
+      const settings = await supaSelectOne<any>('bitduck_user_settings', { user_id: adminId })
       if (!settings) {
         await supaUpsertUserSettings({
           user_id: adminId,

@@ -2,7 +2,7 @@ import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { supaSelectOne, supaUpsertStrict, isMissingColumnError } from './supabase'
 
-const T_SYSTEM_SETTINGS = 'bitrabbit_system_settings'
+const T_SYSTEM_SETTINGS = 'bitduck_system_settings'
 export const DEFAULT_LIQUIDATION_ROE = -40
 
 // 강제청산 기준 ROE(%). 관리자 대시보드에서 조정하며, 모든 유저의 실시간 청산 판정에 사용됩니다.

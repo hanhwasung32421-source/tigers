@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     // 특정 회원의 거래내역 보기(회원목록에서 진입): 부관리자는 자기 하부 조직(팀장/팀원의 하부 포함)만 가능
     if (admin.role !== 'super_admin') {
       const targetUsername = supabaseAppDbEnabled()
-        ? String((await supaSelectOne<any>('bitrabbit_users', { id: userId }))?.username || '')
+        ? String((await supaSelectOne<any>('bitduck_users', { id: userId }))?.username || '')
         : String((getDb().prepare('SELECT username FROM users WHERE id = ?').get(userId) as any)?.username || '')
       const downline = await fetchDownlineUsernames(admin.username)
       if (!downline.has(targetUsername)) {
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     const selectBase = 'id, user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, created_at'
     const runQuery = async (select: string) => {
       let query = supa
-        .from('bitrabbit_trades')
+        .from('bitduck_trades')
         .select(select)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
@@ -122,14 +122,14 @@ export default defineEventHandler(async (event) => {
     let userMap = new Map<number, any>()
     let onlineSet = new Set<number>()
     try {
-      const { data: users, error: e2 } = await supa.from('bitrabbit_users').select('id, username, role').in('id', userIds)
+      const { data: users, error: e2 } = await supa.from('bitduck_users').select('id, username, role').in('id', userIds)
       if (!e2) userMap = new Map((users || []).map((u: any) => [Number(u.id), u]))
     } catch {
       // ignore
     }
     try {
       const { data: sessions, error: e3 } = await supa
-        .from('bitrabbit_sessions')
+        .from('bitduck_sessions')
         .select('user_id, expires_at')
         .in('user_id', userIds)
         .gt('expires_at', nowIso)

@@ -55,7 +55,7 @@ export async function createSessionToken(userId: number, days = 7): Promise<{ to
   const createdAt = new Date().toISOString()
   const expiresAt = isoPlusDays(days)
   if (supabaseAppDbEnabled()) {
-    await supaInsertStrict('bitrabbit_sessions', {
+    await supaInsertStrict('bitduck_sessions', {
       token,
       user_id: userId,
       created_at: createdAt,
@@ -89,7 +89,7 @@ export async function clearAuthSession(event: H3Event) {
     if (supabaseAppDbEnabled()) {
       try {
         const supa = getSupabaseAdminClient()
-        await supa.from('bitrabbit_sessions').delete().eq('token', token)
+        await supa.from('bitduck_sessions').delete().eq('token', token)
       } catch {
         // ignore
       }
@@ -111,10 +111,10 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
   if (supabaseAppDbEnabled()) {
     try {
       const now = new Date().toISOString()
-      const session = await supaSelectOne<any>('bitrabbit_sessions', { token })
+      const session = await supaSelectOne<any>('bitduck_sessions', { token })
       if (!session) return null
       if (session.expires_at && String(session.expires_at) <= now) return null
-      const user = await supaSelectOne<any>('bitrabbit_users', { id: Number(session.user_id) })
+      const user = await supaSelectOne<any>('bitduck_users', { id: Number(session.user_id) })
       if (!user) return null
       const role = String(user.role) as Role
       return {

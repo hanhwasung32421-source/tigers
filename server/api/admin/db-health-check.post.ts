@@ -40,10 +40,10 @@ export default defineEventHandler(async (event) => {
     try {
       const cfg = useRuntimeConfig()
       const supa = getSupabaseAdminClient()
-      const { error: upErr } = await supa.from('bitrabbit_system_settings').update({ health_marker: marker, health_checked_at: now }).eq('id', 1)
+      const { error: upErr } = await supa.from('bitduck_system_settings').update({ health_marker: marker, health_checked_at: now }).eq('id', 1)
       if (upErr) throw upErr
       const { data, error: selErr } = await supa
-        .from('bitrabbit_system_settings')
+        .from('bitduck_system_settings')
         .select('health_marker, health_checked_at')
         .eq('id', 1)
         .maybeSingle()

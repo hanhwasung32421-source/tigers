@@ -16,13 +16,13 @@ export default defineEventHandler(async (event) => {
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const { data: row, error: e1 } = await supa.from('bitrabbit_users').select('username').eq('id', body.userId).single()
+    const { data: row, error: e1 } = await supa.from('bitduck_users').select('username').eq('id', body.userId).single()
     if (e1) throw e1
     if (!row?.username) throw createError({ statusCode: 404, statusMessage: '유저를 찾을 수 없습니다.' })
 
     const passwordHash = hashPassword(String(row.username))
     const { error } = await supa
-      .from('bitrabbit_users')
+      .from('bitduck_users')
       .update({
         password_hash: passwordHash,
         password_reset_required: true,

@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     const nowIso = new Date().toISOString()
 
     const { data: users, error: e1 } = await supa
-      .from('bitrabbit_users')
+      .from('bitduck_users')
       .select('id, username, name, birth_date, bank_name, bank_account, account_holder, referral_code, role, permissions, created_at')
       .order('id', { ascending: false })
     if (e1) throw e1
@@ -44,19 +44,19 @@ export default defineEventHandler(async (event) => {
     if (!ids.length) return { items: [] }
 
     const { data: sessions, error: e2 } = await supa
-      .from('bitrabbit_sessions')
+      .from('bitduck_sessions')
       .select('user_id, expires_at')
       .in('user_id', ids)
       .gt('expires_at', nowIso)
     if (e2) throw e2
     const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
 
-    const { data: balances, error: eBalance } = await supa.from('bitrabbit_balances').select('user_id, usdt').in('user_id', ids)
+    const { data: balances, error: eBalance } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', ids)
     if (eBalance) throw eBalance
     const balanceMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
 
     const { data: events, error: e3 } = await supa
-      .from('bitrabbit_log_logins')
+      .from('bitduck_log_logins')
       .select('local_user_id, ip, created_at')
       .in('local_user_id', ids)
       .order('created_at', { ascending: false })
@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
 
     // 누적수익(실현손익 - 총수수료)
     const { data: trades, error: e4 } = await supa
-      .from('bitrabbit_trades')
+      .from('bitduck_trades')
       .select('user_id, pnl, entry_price, qty, leverage')
       .in('user_id', ids)
       .limit(5000)

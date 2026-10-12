@@ -45,19 +45,19 @@ export default defineEventHandler(async (event) => {
     const nowIso = new Date().toISOString()
 
     const { data: posRows, error: e1 } = await supa
-      .from('bitrabbit_positions')
+      .from('bitduck_positions')
       .select('id, user_id, symbol, side, qty, entry_price, leverage, margin, created_at')
       .order('created_at', { ascending: false })
     if (e1) throw e1
 
     const { data: userRows, error: e2 } = await supa
-      .from('bitrabbit_users')
+      .from('bitduck_users')
       .select('id, username, name, role')
     if (e2) throw e2
 
     const userIds = (userRows || []).map((u: any) => Number(u.id)).filter(Boolean)
     const { data: sessions, error: e3 } = await supa
-      .from('bitrabbit_sessions')
+      .from('bitduck_sessions')
       .select('user_id, expires_at')
       .in('user_id', userIds)
       .gt('expires_at', nowIso)

@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     const parsed = raw ? JSON.parse(raw) : null
     const report = parsed?.['csp-report'] || parsed || {}
 
-    await supaInsert('bitrabbit_log_csp_reports', {
+    await supaInsert('bitduck_log_csp_reports', {
       blocked_uri: report['blocked-uri'] ?? null,
       violated_directive: report['violated-directive'] ?? report['effective-directive'] ?? null,
       document_uri: report['document-uri'] ?? null,

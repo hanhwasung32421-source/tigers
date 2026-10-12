@@ -89,11 +89,11 @@ export default defineEventHandler(async (event) => {
   if (useSupa) {
     const supa = getSupabaseAdminClient()
 
-    const balRow = await supaSelectOne<{ usdt: number }>('bitrabbit_balances', { user_id: user.id })
+    const balRow = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })
     let usdt = Number(balRow?.usdt ?? 0)
 
     // 기존 포지션(현재 심볼 1개 기준)
-    const existing = await supaSelectOne<any>('bitrabbit_positions', { user_id: user.id, symbol })
+    const existing = await supaSelectOne<any>('bitduck_positions', { user_id: user.id, symbol })
 
     // 1) 반대 방향이면: 기존 포지션을 클릭 순간 가격(entry)으로 먼저 청산 후 새 포지션 오픈
     if (existing && String(existing.side) !== String(body.side)) {
@@ -106,12 +106,12 @@ export default defineEventHandler(async (event) => {
       const { settlementAfterFee } = calcSettlementAfterSellFee(gross0, pnl)
 
       // 포지션 제거
-      await supa.from('bitrabbit_positions').delete().eq('id', existing.id).eq('user_id', user.id)
+      await supa.from('bitduck_positions').delete().eq('id', existing.id).eq('user_id', user.id)
 
       // 거래 내역 저장(bigint PK 직접 생성)
       const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
       await supaUpsert(
-        'bitrabbit_trades',
+        'bitduck_trades',
         {
           id: tradeId,
           user_id: user.id,
@@ -130,11 +130,11 @@ export default defineEventHandler(async (event) => {
 
       // 잔고 반영(정산금 - 매도 수수료)
       usdt = usdt + settlementAfterFee
-      await supaUpsert('bitrabbit_balances', { user_id: user.id, usdt }, ['user_id'] as any)
+      await supaUpsert('bitduck_balances', { user_id: user.id, usdt }, ['user_id'] as any)
     }
 
     // 현재 포지션(같은 방향 합산용)
-    const current = await supaSelectOne<any>('bitrabbit_positions', { user_id: user.id, symbol })
+    const current = await supaSelectOne<any>('bitduck_positions', { user_id: user.id, symbol })
     const { usedGross, usedNet } = computeOpenAmounts(usdt, Number(body.margin))
     const newUsdt = usdt - usedGross
 
@@ -147,7 +147,7 @@ export default defineEventHandler(async (event) => {
       const newGrossMargin = Number(current.margin || 0) + usedGross
 
       await supaUpdate(
-        'bitrabbit_positions',
+        'bitduck_positions',
         { id: current.id, user_id: user.id },
         {
           qty: newQtyTotal,
@@ -157,8 +157,8 @@ export default defineEventHandler(async (event) => {
         }
       )
 
-      await supaUpsert('bitrabbit_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'] as any)
-      await supaUpdate('bitrabbit_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() })
+      await supaUpsert('bitduck_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'] as any)
+      await supaUpdate('bitduck_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() })
 
       await logBuy({
         userId: user.id,
@@ -178,7 +178,7 @@ export default defineEventHandler(async (event) => {
     const qty = calcQty(usedNet, body.leverage, entry)
     const posId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
     await supaUpsert(
-      'bitrabbit_positions',
+      'bitduck_positions',
       {
         id: posId,
         user_id: user.id,
@@ -193,8 +193,8 @@ export default defineEventHandler(async (event) => {
       ['id'] as any
     )
 
-    await supaUpsert('bitrabbit_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'] as any)
-    await supaUpdate('bitrabbit_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() })
+    await supaUpsert('bitduck_balances', { user_id: user.id, usdt: newUsdt }, ['user_id'] as any)
+    await supaUpdate('bitduck_user_settings', { user_id: user.id }, { updated_at: new Date().toISOString() })
 
     await logBuy({
       userId: user.id,

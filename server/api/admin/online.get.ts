@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     const nowIso = new Date().toISOString()
 
     const { data: sessions, error: e1 } = await supa
-      .from('bitrabbit_sessions')
+      .from('bitduck_sessions')
       .select('user_id, expires_at')
       .gt('expires_at', nowIso)
     if (e1) throw e1
@@ -31,11 +31,11 @@ export default defineEventHandler(async (event) => {
     const ids = Array.from(new Set((sessions || []).map((s: any) => Number(s.user_id)).filter(Boolean)))
     if (!ids.length) return { items: [] }
 
-    const { data: users, error: e2 } = await supa.from('bitrabbit_users').select('id, username, name, role, created_at').in('id', ids)
+    const { data: users, error: e2 } = await supa.from('bitduck_users').select('id, username, name, role, created_at').in('id', ids)
     if (e2) throw e2
 
     const { data: events, error: e3 } = await supa
-      .from('bitrabbit_log_logins')
+      .from('bitduck_log_logins')
       .select('local_user_id, ip, created_at')
       .in('local_user_id', ids)
       .order('created_at', { ascending: false })
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
       ipMap.set(uid, { ip, at })
     }
 
-    const { data: positions, error: e4 } = await supa.from('bitrabbit_positions').select('user_id, symbol').in('user_id', ids)
+    const { data: positions, error: e4 } = await supa.from('bitduck_positions').select('user_id, symbol').in('user_id', ids)
     if (e4) throw e4
     const posMap = new Map<number, string[]>()
     for (const p of positions || []) {
