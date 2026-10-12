@@ -1524,6 +1524,7 @@ import {
 } from 'lightweight-charts'
 import { TrendLinePrimitive } from '../../utils/chart/trendLinePrimitive'
 import { VerticalLinePrimitive } from '../../utils/chart/verticalLinePrimitive'
+import { HorizontalLineHandlePrimitive } from '../../utils/chart/horizontalLineHandlePrimitive'
 import { RectanglePrimitive } from '../../utils/chart/rectanglePrimitive'
 import { CirclePrimitive } from '../../utils/chart/circlePrimitive'
 import { calculateBollingerBands } from '../../utils/chart/movingAverage'
@@ -1926,6 +1927,7 @@ const entryBadges = ref<Array<{ id: number; y: number; isLong: boolean; label: s
 const drawingPriceLines: any[] = []
 const trendLinePrimitives: TrendLinePrimitive[] = []
 const verticalLinePrimitives: VerticalLinePrimitive[] = []
+const hlineHandlePrimitives: HorizontalLineHandlePrimitive[] = []
 const rectanglePrimitives: RectanglePrimitive[] = []
 const circlePrimitives: CirclePrimitive[] = []
 const candleData = ref<CandlestickData[]>([])
@@ -4813,6 +4815,10 @@ function clearDrawingVisuals() {
     const primitive = trendLinePrimitives.pop()
     try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
   }
+  while (hlineHandlePrimitives.length) {
+    const primitive = hlineHandlePrimitives.pop()
+    try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
+  }
   while (verticalLinePrimitives.length) {
     const primitive = verticalLinePrimitives.pop()
     try { if (primitive && candleSeries) candleSeries.detachPrimitive(primitive) } catch {}
@@ -4856,6 +4862,11 @@ function renderSavedDrawings() {
         title: ''
       })
       drawingPriceLines.push(pl)
+      if (isSelected) {
+        const handle = new HorizontalLineHandlePrimitive(chart, candleSeries, Number(d.price), color)
+        candleSeries.attachPrimitive(handle)
+        hlineHandlePrimitives.push(handle)
+      }
     } else if (d.type === 'trend' && d.points?.length === 2) {
       const primitive = new TrendLinePrimitive(
         chart,

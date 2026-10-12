@@ -25,6 +25,31 @@ export type TrendLinePrimitiveOptions = {
   handleColor?: string
 }
 
+// Liang–Barsky: 선분 (x1,y1)-(x2,y2)를 (0,0)-(w,h) 사각형으로 잘라 화면에 보이는 부분만 돌려준다(없으면 null).
+function clipSegmentToRect(x1: number, y1: number, x2: number, y2: number, w: number, h: number): [number, number, number, number] | null {
+  let t0 = 0
+  let t1 = 1
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const p = [-dx, dx, -dy, dy]
+  const q = [x1, w - x1, y1, h - y1]
+  for (let i = 0; i < 4; i++) {
+    if (p[i] === 0) {
+      if (q[i] < 0) return null
+      continue
+    }
+    const r = q[i] / p[i]
+    if (p[i] < 0) {
+      if (r > t1) return null
+      if (r > t0) t0 = r
+    } else {
+      if (r < t0) return null
+      if (r < t1) t1 = r
+    }
+  }
+  return [x1 + t0 * dx, y1 + t0 * dy, x1 + t1 * dx, y1 + t1 * dy]
+}
+
 class TrendLinePaneRenderer implements IPrimitivePaneRenderer {
   constructor(
     private p1: ViewPoint,
@@ -52,10 +77,14 @@ class TrendLinePaneRenderer implements IPrimitivePaneRenderer {
       if (this.options.showHandles) {
         const r = 5 * scope.horizontalPixelRatio
         const fill = this.options.handleColor || this.options.lineColor
-        for (const [hx, hy] of [
+        const handles: Array<[number, number]> = [
           [x1, y1],
           [x2, y2]
-        ]) {
+        ]
+        // 선택 표시용 가운데 점: 양 끝이 화면 밖으로 나가 있어도 "지금 화면에 보이는 선의 중앙"에 찍는다.
+        const visible = clipSegmentToRect(x1, y1, x2, y2, scope.bitmapSize.width, scope.bitmapSize.height)
+        if (visible) handles.push([(visible[0] + visible[2]) / 2, (visible[1] + visible[3]) / 2])
+        for (const [hx, hy] of handles) {
           ctx.beginPath()
           ctx.arc(hx, hy, r, 0, Math.PI * 2)
           ctx.fillStyle = fill
