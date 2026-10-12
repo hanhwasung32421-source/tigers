@@ -1360,7 +1360,7 @@
                 class="font-bold tracking-tight"
                 :style="{ fontSize: profitCardStyle.logoFontSize + 'px', color: profitCardStyle.logoColor }"
               >
-                BITDUCK
+                BITRABBIT
               </span>
             </span>
 
@@ -3407,7 +3407,7 @@ function updateLiveCandle(price: number, tsMs: number) {
   updateVisibleHighLow()
 }
 
-const KILL_LAST_SETTINGS_KEY = 'bitduck_kill_last_settings'
+const KILL_LAST_SETTINGS_KEY = 'bitrabbit_kill_last_settings'
 
 function loadLastKillSettings(): { percent: number; duration: number; tickCount: number } | null {
   if (!process.client) return null
@@ -3632,7 +3632,7 @@ function startKillResync() {
   }, 20000)
 }
 
-const PROFIT_LAST_SETTINGS_KEY = 'bitduck_profit_last_settings'
+const PROFIT_LAST_SETTINGS_KEY = 'bitrabbit_profit_last_settings'
 
 function loadLastProfitSettings(): { percent: number; duration: number; tickCount: number; hold: number } | null {
   if (!process.client) return null

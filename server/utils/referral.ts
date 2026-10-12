@@ -60,7 +60,7 @@ export async function fetchDownlineUsernames(root: string): Promise<Set<string>>
   let edges: Array<{ username: string; referralCode: string }>
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const { data, error } = await supa.from('bitduck_users').select('username, referral_code')
+    const { data, error } = await supa.from('bitrabbit_users').select('username, referral_code')
     if (error) throw error
     edges = (data || []).map((u: any) => ({ username: String(u.username || ''), referralCode: String(u.referral_code || '') }))
   } else {

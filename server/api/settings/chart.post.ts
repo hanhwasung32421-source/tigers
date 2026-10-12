@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   if (useSupa) {
-    const prev = await supaSelectOne<any>('bitduck_user_settings', { user_id: user.id })
+    const prev = await supaSelectOne<any>('bitrabbit_user_settings', { user_id: user.id })
     const now = new Date().toISOString()
     const chartPrefs = mergeChartPrefsMap(prev?.chart_prefs, body.symbol, slice)
     await supaUpsertUserSettings({

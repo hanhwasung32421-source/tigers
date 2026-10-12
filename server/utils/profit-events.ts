@@ -4,7 +4,7 @@ import { getSupabaseAdminClient, isMissingColumnError, isMissingTableError, supa
 
 // 관리자 수익/손실 버튼: 킬UP/킬DOWN과 동일하게 목표가까지 움직이지만, 그 상태를
 // hold_ms(유지 시간)만큼 유지한 뒤 복귀한다. kill-events.ts와 구조를 그대로 따른다.
-const T_PROFIT_EVENTS = 'bitduck_profit_events'
+const T_PROFIT_EVENTS = 'bitrabbit_profit_events'
 const DEFAULT_DURATION_MS = 1000
 const DEFAULT_TICK_COUNT = 3
 const DEFAULT_HOLD_MS = 3000
@@ -109,7 +109,7 @@ export async function latestProfitEvent(symbol: string): Promise<ProfitEvent | n
       const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit: 1 })
       return rows[0] ? rowToProfitEvent(rows[0]) : null
     } catch (e: any) {
-      // bitduck_profit_events 테이블이 아직 생성되지 않은 경우(SQL 패치 미실행): 이 엔드포인트는
+      // bitrabbit_profit_events 테이블이 아직 생성되지 않은 경우(SQL 패치 미실행): 이 엔드포인트는
       // 모든 접속자의 차트에서 1.5초마다 폴링되므로, 500으로 실패시키지 않고 조용히 "이벤트 없음"으로 처리한다.
       if (isMissingTableError(e)) return null
       throw e

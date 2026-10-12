@@ -67,7 +67,7 @@ async function handleUpdate(event: any) {
   // (다른 계정을 super_admin으로 "승격"하는 것은 계속 허용하되, 이미 super_admin인 계정은
   //  이후 잔액을 제외한 다른 필드는— 이름/역할/정산비율 등— 바꿀 수 없다.)
   const targetRole = useSupa
-    ? String((await supaSelectOne<any>('bitduck_users', { id: body.userId }))?.role || '')
+    ? String((await supaSelectOne<any>('bitrabbit_users', { id: body.userId }))?.role || '')
     : String((getDb().prepare('SELECT role FROM users WHERE id = ?').get(body.userId) as { role?: string } | undefined)?.role || '')
   const isLockedSuperAdmin = targetRole === 'super_admin'
   function assertNotLockedSuperAdmin() {
@@ -84,7 +84,7 @@ async function handleUpdate(event: any) {
       // 아이디(로그인 계정명) 변경은 총관리자만, 중복 확인 필요
       await requireSuperAdmin(event)
       const { data: existing, error: eCheck } = await supa
-        .from('bitduck_users')
+        .from('bitrabbit_users')
         .select('id')
         .eq('username', body.username)
         .neq('id', body.userId)
@@ -94,7 +94,7 @@ async function handleUpdate(event: any) {
         throw createError({ statusCode: 409, statusMessage: '이미 사용 중인 아이디입니다.' })
       }
       const { error } = await supa
-        .from('bitduck_users')
+        .from('bitrabbit_users')
         .update({ username: body.username, updated_at: new Date().toISOString() })
         .eq('id', body.userId)
       if (error) throw error
@@ -104,7 +104,7 @@ async function handleUpdate(event: any) {
       if (!canEditMenu(admin, 'members')) {
         throw createError({ statusCode: 403, statusMessage: '보유금액 수정 권한이 없습니다.' })
       }
-      const { error } = await supa.from('bitduck_balances').upsert({ user_id: body.userId, usdt: body.usdt }, { onConflict: 'user_id' })
+      const { error } = await supa.from('bitrabbit_balances').upsert({ user_id: body.userId, usdt: body.usdt }, { onConflict: 'user_id' })
       if (error) throw error
     }
 
@@ -112,7 +112,7 @@ async function handleUpdate(event: any) {
       // 역할이 실제로 바뀔 때만 권한(permissions)을 역할 기본값으로 초기화한다.
       // (그렇지 않으면 다른 필드만 저장할 때마다 매번 role이 같이 전송되어 기존에 설정해둔
       //  메뉴 권한/정산유형이 매 저장마다 지워져 버린다.)
-      const current = await supaSelectOne<any>('bitduck_users', { id: body.userId })
+      const current = await supaSelectOne<any>('bitrabbit_users', { id: body.userId })
       if (current && String(current.role) !== body.role) {
         assertNotLockedSuperAdmin()
         // 영업 조직 구조: 관리자 역할을 가진 계정은 "본인 코드로 가입한(직속)" 회원의 역할을
@@ -125,7 +125,7 @@ async function handleUpdate(event: any) {
         }
         const permissions = await resolveRolePermissions(body.role)
         const { error } = await supa
-          .from('bitduck_users')
+          .from('bitrabbit_users')
           .update({ role: body.role, permissions })
           .eq('id', body.userId)
         if (error) throw error
@@ -146,7 +146,7 @@ async function handleUpdate(event: any) {
       if (typeof body.bankName === 'string') patch.bank_name = body.bankName.trim()
       if (typeof body.bankAccount === 'string') patch.bank_account = body.bankAccount.trim()
       if (typeof body.accountHolder === 'string') patch.account_holder = body.accountHolder.trim()
-      const { error } = await supa.from('bitduck_users').update(patch).eq('id', body.userId)
+      const { error } = await supa.from('bitrabbit_users').update(patch).eq('id', body.userId)
       if (error) throw error
     }
 
@@ -155,7 +155,7 @@ async function handleUpdate(event: any) {
       // 추천코드 수정은 총관리자만
       await requireSuperAdmin(event)
       const { error } = await supa
-        .from('bitduck_users')
+        .from('bitrabbit_users')
         .update({ referral_code: body.referralCode.trim(), updated_at: new Date().toISOString() })
         .eq('id', body.userId)
       if (error) throw error
@@ -165,11 +165,11 @@ async function handleUpdate(event: any) {
       assertNotLockedSuperAdmin()
       // 정산유형(손실정산/레퍼럴정산) 지정은 총관리자만. 부관리자 1명당 하나만 배정된다.
       await requireSuperAdmin(event)
-      const current = await supaSelectOne<any>('bitduck_users', { id: body.userId })
+      const current = await supaSelectOne<any>('bitrabbit_users', { id: body.userId })
       const { settlementTypes: _drop, ...prevRest } = current?.permissions || {}
       const permissions = { ...prevRest, settlementType: body.settlementType }
       const { error } = await supa
-        .from('bitduck_users')
+        .from('bitrabbit_users')
         .update({ permissions, updated_at: new Date().toISOString() })
         .eq('id', body.userId)
       if (error) throw error
@@ -178,14 +178,14 @@ async function handleUpdate(event: any) {
     if (body.settlementPercent !== undefined) {
       assertNotLockedSuperAdmin()
       // 정산 비율 지정: 총관리자는 누구든, 관리자 역할 계정은 자기 직속 하부(본인 코드로 가입한 관리자)만 가능.
-      const current = await supaSelectOne<any>('bitduck_users', { id: body.userId })
+      const current = await supaSelectOne<any>('bitrabbit_users', { id: body.userId })
       const isDirectChild = isAdminRole(admin.role) && String(current?.referral_code || '').trim() === admin.username
       if (!isDirectChild) {
         await requireSuperAdmin(event)
       }
       const permissions = { ...(current?.permissions || {}), settlementPercent: body.settlementPercent }
       const { error } = await supa
-        .from('bitduck_users')
+        .from('bitrabbit_users')
         .update({ permissions, updated_at: new Date().toISOString() })
         .eq('id', body.userId)
       if (error) throw error

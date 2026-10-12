@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { data } = await supa
-      .from('bitduck_users')
+      .from('bitrabbit_users')
       .select('id, username, name, birth_date, role')
       .eq('username', body.username)
       .eq('role', 'user')

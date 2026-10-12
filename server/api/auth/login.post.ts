@@ -20,11 +20,11 @@ export default defineEventHandler(async (event) => {
     if (!String(cfg.supabaseServiceRoleKey || '')) {
       throw createError({ statusCode: 500, statusMessage: 'SUPABASE_SERVICE_ROLE_KEY가 설정되지 않았습니다.' })
     }
-    let user = await supaSelectOne<any>('bitduck_users', { username: body.username })
+    let user = await supaSelectOne<any>('bitrabbit_users', { username: body.username })
     // 서버리스 배포에서 Nitro plugin이 실행되지 않는 케이스 대비: admin은 로그인 시점에 없으면 생성
     if (!user && body.username === 'admin') {
       await ensureAdminExists()
-      user = await supaSelectOne<any>('bitduck_users', { username: body.username })
+      user = await supaSelectOne<any>('bitrabbit_users', { username: body.username })
     }
     if (!user) {
       await logLogin(event, { userId: null, username: body.username, area: 'main', success: false })

@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { error } = await supa
-      .from('bitduck_users')
+      .from('bitrabbit_users')
       .update({ password_reset_notice_dismissed_at: now, updated_at: now })
       .eq('id', user.id)
     if (error) throw error

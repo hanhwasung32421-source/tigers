@@ -3,7 +3,7 @@ import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, supaInsertStrict } from './supabase'
 import { defaultMenuPermissions, normalizeMenuPermissions, type MenuPermissions } from './menu-permissions'
 
-const T_ADMIN_ROLES = 'bitduck_admin_roles'
+const T_ADMIN_ROLES = 'bitrabbit_admin_roles'
 
 // 시스템에 고정된 역할(계정 생성/수정 UI에서 항상 존재) — 역할 관리에서 추가/삭제 대상이 아니다.
 export const RESERVED_ROLE_IDS = new Set(['user', 'super_admin'])
@@ -128,7 +128,7 @@ export async function grantableRolesFor(actorRole: string): Promise<RoleDefiniti
 async function countUsersWithRole(id: string): Promise<number> {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const { count, error } = await supa.from('bitduck_users').select('*', { count: 'exact', head: true }).eq('role', id)
+    const { count, error } = await supa.from('bitrabbit_users').select('*', { count: 'exact', head: true }).eq('role', id)
     if (error) throw error
     return count ?? 0
   }

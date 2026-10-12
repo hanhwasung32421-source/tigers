@@ -2,14 +2,14 @@
 -- 시퀀스 값이 갱신되지 않아서, 다음 INSERT 때 이미 존재하는 id와 충돌할 수 있습니다.
 -- 각 테이블의 시퀀스를 현재 최대 id에 맞춰 재조정합니다.
 --
--- 실행: psql "postgresql://postgres:[DB_PASSWORD]@db.dyfycrmltqosezmsufup.supabase.co:5432/postgres" -f SUPABASE_BITDUCK_fix_sequences.sql
+-- 실행: psql "postgresql://postgres:[DB_PASSWORD]@db.YOUR_PROJECT_REF.supabase.co:5432/postgres" -f SUPABASE_BITRABBIT_fix_sequences.sql
 -- [DB_PASSWORD]는 Supabase 대시보드 > Settings > Database > Connection string에서 확인 (절대 파일/커밋에 남기지 말 것)
 
-select setval(pg_get_serial_sequence('bitduck_profit_cards', 'id'), coalesce((select max(id) from bitduck_profit_cards), 1));
-select setval(pg_get_serial_sequence('bitduck_log_users', 'id'), coalesce((select max(id) from bitduck_log_users), 1));
-select setval(pg_get_serial_sequence('bitduck_log_logins', 'id'), coalesce((select max(id) from bitduck_log_logins), 1));
-select setval(pg_get_serial_sequence('bitduck_log_buys', 'id'), coalesce((select max(id) from bitduck_log_buys), 1));
-select setval(pg_get_serial_sequence('bitduck_log_credits', 'id'), coalesce((select max(id) from bitduck_log_credits), 1));
+select setval(pg_get_serial_sequence('bitrabbit_profit_cards', 'id'), coalesce((select max(id) from bitrabbit_profit_cards), 1));
+select setval(pg_get_serial_sequence('bitrabbit_log_users', 'id'), coalesce((select max(id) from bitrabbit_log_users), 1));
+select setval(pg_get_serial_sequence('bitrabbit_log_logins', 'id'), coalesce((select max(id) from bitrabbit_log_logins), 1));
+select setval(pg_get_serial_sequence('bitrabbit_log_buys', 'id'), coalesce((select max(id) from bitrabbit_log_buys), 1));
+select setval(pg_get_serial_sequence('bitrabbit_log_credits', 'id'), coalesce((select max(id) from bitrabbit_log_credits), 1));
 
 -- 위 5개 외에 identity 컬럼을 쓰는 테이블이 스키마 변경으로 더 생겼을 수 있으니,
 -- 아래 쿼리로 한번 전체 목록을 확인해서 빠진 테이블이 있으면 같은 패턴으로 추가하세요.

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
 
-    const { data: allUsers, error: e1 } = await supa.from('bitduck_users').select('id, username, name, referral_code, role')
+    const { data: allUsers, error: e1 } = await supa.from('bitrabbit_users').select('id, username, name, referral_code, role')
     if (e1) throw e1
 
     const downline = scopeToReferral
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     const ids = users.map((u: any) => Number(u.id)).filter(Boolean)
     if (!ids.length) return { items: [], canEdit }
 
-    const { data: balances, error: e2 } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', ids)
+    const { data: balances, error: e2 } = await supa.from('bitrabbit_balances').select('user_id, usdt').in('user_id', ids)
     if (e2) throw e2
     const balanceMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
     const userMap = new Map((users || []).map((u: any) => [Number(u.id), u]))

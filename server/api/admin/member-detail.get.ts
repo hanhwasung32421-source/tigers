@@ -22,16 +22,16 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const { data: u, error: e1 } = await supa
-      .from('bitduck_users')
+      .from('bitrabbit_users')
       .select('id, username, name, birth_date, bank_name, bank_account, account_holder, referral_code, role, created_at')
       .eq('username', username)
       .maybeSingle()
     if (e1) throw e1
     if (!u) throw createError({ statusCode: 404, statusMessage: '회원을 찾을 수 없습니다.' })
 
-    const { data: balRow } = await supa.from('bitduck_balances').select('usdt').eq('user_id', u.id).maybeSingle()
+    const { data: balRow } = await supa.from('bitrabbit_balances').select('usdt').eq('user_id', u.id).maybeSingle()
     const { data: positions, error: e2 } = await supa
-      .from('bitduck_positions')
+      .from('bitrabbit_positions')
       .select('id, symbol, side, qty, entry_price, leverage, margin')
       .eq('user_id', u.id)
     if (e2) throw e2

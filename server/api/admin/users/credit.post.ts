@@ -21,9 +21,9 @@ export default defineEventHandler(async (event) => {
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()
-    const prev = await supaSelectOne<any>('bitduck_balances', { user_id: body.userId })
+    const prev = await supaSelectOne<any>('bitrabbit_balances', { user_id: body.userId })
     const next = Number(prev?.usdt ?? 0) + Number(body.amount)
-    const { error } = await supa.from('bitduck_balances').upsert({ user_id: body.userId, usdt: next }, { onConflict: 'user_id' })
+    const { error } = await supa.from('bitrabbit_balances').upsert({ user_id: body.userId, usdt: next }, { onConflict: 'user_id' })
     if (error) throw error
     await logAdminCredit({ adminUserId: admin.id, userId: body.userId, amount: body.amount })
     return { ok: true }

@@ -76,7 +76,7 @@ export async function supaUpsertUserSettings(payload: {
     updated_at: payload.updated_at
   }
 
-  const { error } = await supa.from('bitduck_user_settings').upsert(fullPayload as any, { onConflict: 'user_id' })
+  const { error } = await supa.from('bitrabbit_user_settings').upsert(fullPayload as any, { onConflict: 'user_id' })
   if (!error) return
 
   // 구버전 스키마 호환: chart_prefs 컬럼이 아직 없으면 해당 컬럼 없이 재시도
@@ -87,7 +87,7 @@ export async function supaUpsertUserSettings(payload: {
       trade_leverage: Number(payload.trade_leverage),
       updated_at: payload.updated_at
     }
-    const retry = await supa.from('bitduck_user_settings').upsert(fallbackPayload as any, { onConflict: 'user_id' })
+    const retry = await supa.from('bitrabbit_user_settings').upsert(fallbackPayload as any, { onConflict: 'user_id' })
     if (retry.error) throw retry.error
     return
   }
@@ -100,7 +100,7 @@ export async function ensureAdminExists() {
   const cfg = useRuntimeConfig()
   if (!String(cfg.supabaseServiceRoleKey || '')) return
 
-  const existing = await supaSelectOne<any>('bitduck_users', { username: 'admin' }).catch(() => null)
+  const existing = await supaSelectOne<any>('bitrabbit_users', { username: 'admin' }).catch(() => null)
   if (existing) return
 
   const supa = getSupabaseAdminClient()
@@ -108,7 +108,7 @@ export async function ensureAdminExists() {
   const adminId = 1053
   const passwordHash = bcrypt.hashSync('1234', 10)
 
-  const { error } = await supa.from('bitduck_users').insert({
+  const { error } = await supa.from('bitrabbit_users').insert({
     id: adminId,
     username: 'admin',
     password_hash: passwordHash,
@@ -129,12 +129,12 @@ export async function ensureAdminExists() {
   if (error) throw error
 
   // 잔고/설정은 없을 때만 생성
-  const bal = await supaSelectOne<any>('bitduck_balances', { user_id: adminId }).catch(() => null)
+  const bal = await supaSelectOne<any>('bitrabbit_balances', { user_id: adminId }).catch(() => null)
   if (!bal) {
-    const { error: e2 } = await supa.from('bitduck_balances').insert({ user_id: adminId, usdt: 10000 })
+    const { error: e2 } = await supa.from('bitrabbit_balances').insert({ user_id: adminId, usdt: 10000 })
     if (e2) throw e2
   }
-  const settings = await supaSelectOne<any>('bitduck_user_settings', { user_id: adminId }).catch(() => null)
+  const settings = await supaSelectOne<any>('bitrabbit_user_settings', { user_id: adminId }).catch(() => null)
   if (!settings) {
     await supaUpsertUserSettings({
       user_id: adminId,

@@ -8,12 +8,12 @@ export default defineEventHandler(async (event) => {
   const useSupa = supabaseAppDbEnabled()
 
   if (useSupa) {
-    const bal = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })
+    const bal = await supaSelectOne<{ usdt: number }>('bitrabbit_balances', { user_id: user.id })
 
     // 사용자 거래 설정(비중/레버리지/차트 설정) - 없을 때만 기본값으로 생성.
     // 매 요청마다 upsert하면 이미 저장된 chart_prefs(BOL 등)가 기본값 {}로 덮어써져
     // 새로고침/재로그인 때마다 초기화되는 문제가 있었음(SQLite 쪽의 INSERT OR IGNORE와 동작이 달랐음).
-    let settings = await supaSelectOne<any>('bitduck_user_settings', { user_id: user.id })
+    let settings = await supaSelectOne<any>('bitrabbit_user_settings', { user_id: user.id })
     if (!settings) {
       await supaUpsertUserSettings({
         user_id: user.id,
@@ -22,24 +22,24 @@ export default defineEventHandler(async (event) => {
         chart_prefs: {},
         updated_at: new Date().toISOString()
       })
-      settings = await supaSelectOne<any>('bitduck_user_settings', { user_id: user.id })
+      settings = await supaSelectOne<any>('bitrabbit_user_settings', { user_id: user.id })
     }
 
     const positions = await supaSelectWhere<any>({
-      table: 'bitduck_positions',
+      table: 'bitrabbit_positions',
       where: { user_id: user.id },
       orderBy: 'id',
       ascending: false
     })
     const trades = await supaSelectWhere<any>({
-      table: 'bitduck_trades',
+      table: 'bitrabbit_trades',
       where: { user_id: user.id },
       orderBy: 'id',
       ascending: false,
       limit: 50
     })
     const cardsRaw = await supaSelectWhere<any>({
-      table: 'bitduck_profit_cards',
+      table: 'bitrabbit_profit_cards',
       where: { user_id: user.id },
       orderBy: 'id',
       ascending: false,
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     })
     const tradeIds = cardsRaw.map((c: any) => c.trade_id).filter(Boolean)
     const tradesForCards = await supaSelectIn<any>({
-      table: 'bitduck_trades',
+      table: 'bitrabbit_trades',
       column: 'id',
       values: tradeIds
     })

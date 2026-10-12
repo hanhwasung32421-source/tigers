@@ -1,7 +1,7 @@
 // 사이트 전체 언어 전환(한글/EN). 별도 번역 키 파일 없이, 호출부에서 t(한글, 영문)로
 // 두 버전을 같이 넘기는 방식 — 기존 한글 텍스트 위주 코드베이스에 최소 침습적으로 적용하기 위함.
 export type Locale = 'ko' | 'en'
-const LOCALE_STORAGE_KEY = 'bitduck_locale'
+const LOCALE_STORAGE_KEY = 'bitrabbit_locale'
 
 export function useLocale() {
   const locale = useState<Locale>('locale', () => 'ko')

@@ -3,24 +3,24 @@
 -- 메모리 대신 이 테이블에 카운터를 둡니다.
 -- 실행: Supabase 대시보드 > SQL Editor에서 이 파일 내용을 붙여넣고 실행하세요.
 
-create table if not exists bitduck_rate_limits (
+create table if not exists bitrabbit_rate_limits (
   bucket text primary key,
   count integer not null default 1,
   window_start timestamptz not null default now()
 );
 
-alter table bitduck_rate_limits enable row level security;
--- 다른 bitduck_* 테이블과 동일한 패턴: 앱 서버는 항상 service_role 키로 접근하므로
+alter table bitrabbit_rate_limits enable row level security;
+-- 다른 bitrabbit_* 테이블과 동일한 패턴: 앱 서버는 항상 service_role 키로 접근하므로
 -- anon/authenticated용 정책은 두지 않는다(둘 다 이 테이블에 접근 불가).
 
-create or replace function bitduck_rate_limit_hit(p_bucket text, p_window_seconds int)
+create or replace function bitrabbit_rate_limit_hit(p_bucket text, p_window_seconds int)
 returns table(hit_count integer, window_start timestamptz)
 language plpgsql
 security definer
 set search_path = public
 as $$
 begin
-  insert into bitduck_rate_limits as t (bucket, count, window_start)
+  insert into bitrabbit_rate_limits as t (bucket, count, window_start)
   values (p_bucket, 1, now())
   on conflict (bucket) do update
     set count = case
@@ -36,6 +36,6 @@ begin
 end;
 $$;
 
-grant execute on function bitduck_rate_limit_hit(text, int) to service_role;
+grant execute on function bitrabbit_rate_limit_hit(text, int) to service_role;
 
 notify pgrst, 'reload schema';
