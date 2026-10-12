@@ -3235,31 +3235,10 @@ function onDrawingKeydown(e: KeyboardEvent) {
     const tag = (e.target as HTMLElement)?.tagName
     if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
-    if (isKeyT || isKeyI || isKeyO || isKeyP) {
-      // Alt+T(추세선)/Alt+I(수직선)/Alt+O(원)/Alt+P(사각형): 도구를 활성화만 한다 - 시작점은 다음 클릭에서 찍힌다.
-      e.preventDefault()
-      selectTool(isKeyT ? 'trend' : isKeyI ? 'vline' : isKeyO ? 'circle' : 'rect')
-      return
-    }
-
-    // Alt+H/Alt+G/Alt+J: 지금 마우스가 있는 자리에 바로 수평선을 만든다(클릭 불필요).
+    // Alt+H(또는 예비키 Alt+G/Alt+J: 수평선)/Alt+T(추세선)/Alt+I(수직선)/Alt+O(원)/Alt+P(사각형):
+    // 도구를 활성화만 한다. 수평선도 수직선처럼 점선 미리보기가 마우스를 따라다니고, 클릭한 자리에 그려진다.
     e.preventDefault()
-    if (!chart || !candleSeries || !lastChartMousePos.value) return
-    const { x, y } = lastChartMousePos.value
-    const price = candleSeries.coordinateToPrice(y)
-    const time = resolveTimeAtX(null, x)
-    if (!Number.isFinite(Number(price)) || !time) return
-    chartPrefs.drawings.push({
-      id: `h-${Date.now()}`,
-      type: 'hline',
-      color: '#2962ff',
-      price: Number(price)
-    })
-    liveDrawingPoint.value = null
-    clearDrawingPreviewVisuals()
-    renderSavedDrawings()
-    scheduleSaveChartPrefs()
-    activeTool.value = 'cursor'
+    selectTool(isKeyT ? 'trend' : isKeyI ? 'vline' : isKeyO ? 'circle' : isKeyP ? 'rect' : 'hline')
     return
   }
 
