@@ -5,7 +5,7 @@
         <div>
           <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">THE NEW STANDARD OF TRADING</div>
           <h1 class="mt-6 text-[57.6px] font-black leading-[1.08] tracking-tight text-white md:text-[72px]">
-            {{ t('더 빠르고,', 'Faster,') }}
+            {{ t('더 안전하고,', 'Safer,') }}
             <br />
             {{ t('더 강력한', 'more powerful') }}
             <br />
