@@ -77,7 +77,7 @@ export default defineNuxtConfig({
     // 호출하지 않고, 항상 이 서버의 API 라우트를 거침) — 예전엔 public 밑에 있어서 방문자
     // 브라우저로 그대로 전송됐었다. anon key는 이미 노출된 적이 있으니 Supabase 대시보드에서
     // 재발급(rotate)하는 것을 권장.
-    supabaseUrl: process.env.SUPABASE_URL || 'https://dyfycrmltqosezmsufup.supabase.co',
+    supabaseUrl: process.env.SUPABASE_URL || 'https://mbywcrniwwvlkrncxfky.supabase.co',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
     // 서버 전용: Supabase 대시보드상의 프로젝트 이름(예: "BITDUCK"). API/URL만으로는 알 수 없어서
     // 별도 환경변수로 관리 — 관리자 "DB 연결 상태" 화면에 표시하기 위한 용도.
