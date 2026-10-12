@@ -893,26 +893,46 @@
                   >
                     {{ t('시장가청산', 'Market Close') }}
                   </button>
-                  <div v-if="isSuperAdminUser" class="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      class="h-3.5 w-3.5 cursor-pointer accent-amber-400"
-                      :title="t('알람', 'Alarm')"
-                      :key="`pos-alarm-cb-${locale}`"
-                      :checked="getPositionAlarm(p.id).enabled"
-                      @change="onToggleAlarm(p.id, ($event.target as HTMLInputElement).checked)"
-                    />
-                    <input
-                      type="text"
-                      inputmode="decimal"
-                      placeholder="+-20"
-                      :title="t('예: 20 / +20,-20 / +-20(양쪽 다) — 콤마로 여러 개 지정 시 하나라도 도달하면 알람', 'e.g. 20 / +20,-20 / +-20(both) — comma-separate multiple values; alarm fires when any is reached')"
-                      :key="`pos-alarm-input-${locale}`"
-                      class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
-                      :value="getPositionAlarm(p.id).percent"
-                      @input="onAlarmPercentInput(p.id, ($event.target as HTMLInputElement).value)"
-                    />
-                    <span v-if="getPositionAlarm(p.id).triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
+                  <div v-if="isSuperAdminUser" class="flex w-full flex-col gap-1">
+                    <div v-for="(al, ai) in getPositionAlarmRows(p.id)" :key="al.uid" class="flex items-center gap-1">
+                      <input
+                        type="text"
+                        inputmode="decimal"
+                        placeholder="+-20"
+                        :title="t('예: 20 / +20,-20 / +-20(양쪽 다) — 콤마로 여러 개 지정 시 하나라도 도달하면 알람', 'e.g. 20 / +20,-20 / +-20(both) — comma-separate multiple values; alarm fires when any is reached')"
+                        :key="`pos-alarm-input-${al.uid}-${locale}`"
+                        class="w-20 rounded bg-black/30 px-1 py-0.5 font-mono text-[11px] text-slate-100 ring-1 ring-white/10 focus:outline-none focus:ring-amber-400/50"
+                        :value="al.percent"
+                        @input="onAlarmPercentInput(p.id, ai, ($event.target as HTMLInputElement).value)"
+                      />
+                      <input
+                        type="checkbox"
+                        class="h-3.5 w-3.5 cursor-pointer accent-amber-400"
+                        :title="t('알람', 'Alarm')"
+                        :key="`pos-alarm-cb-${al.uid}-${locale}`"
+                        :checked="al.enabled"
+                        @change="onToggleAlarm(p.id, ai, ($event.target as HTMLInputElement).checked)"
+                      />
+                      <span v-if="al.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
+                      <button
+                        v-if="ai === 0 && getPositionAlarmRows(p.id).length < POSITION_ALARM_MAX_ROWS"
+                        type="button"
+                        class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                        :title="t('알람 줄 추가', 'Add alarm row')"
+                        @click="addPositionAlarmRow(p.id)"
+                      >
+                        +
+                      </button>
+                      <button
+                        v-else-if="ai > 0"
+                        type="button"
+                        class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                        :title="t('이 알람 줄 삭제', 'Remove this alarm row')"
+                        @click="removePositionAlarmRow(p.id, ai)"
+                      >
+                        −
+                      </button>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -5971,8 +5991,11 @@ const closeClickCooldown = reactive(new Set<number>())
 // "+-20"(양쪽 다) 처럼 쓸 수도 있다. 기본값은 체크 안 된 상태 + "+-20"이 미리 채워져 있어서
 // 체크만 하면 바로 +20%/-20% 알람이 적용된다.
 type AlarmKind = 'profit' | 'loss' | 'price'
-type PositionAlarm = { enabled: boolean; percent: string; triggered: boolean; triggeredKind?: AlarmKind | null }
-const positionAlarms = reactive<Record<number, PositionAlarm>>({})
+type PositionAlarm = { uid: number; enabled: boolean; percent: string; triggered: boolean; triggeredKind?: AlarmKind | null }
+// 포지션 하나에 알람 줄을 여러 개 둘 수 있다(첫 줄 오른쪽 + 버튼으로 추가, 추가된 줄의 - 버튼으로 삭제).
+const positionAlarms = reactive<Record<number, PositionAlarm[]>>({})
+const POSITION_ALARM_MAX_ROWS = 5
+let positionAlarmSeq = 0
 
 // 호가 헤더의 가격 도달 알람(총관리자 전용). 체크할 때 현재가가 목표가보다 아래면 "이상"이 될 때,
 // 위면 "이하"가 될 때 울린다(side: 1=아래에서 시작, -1=위에서 시작, 0=아직 미정). 가격을 적는 도중의
@@ -6048,18 +6071,42 @@ function onPriceAlarmReached(pa: PriceAlarmRow) {
     checkPositionAlarms()
   }, 3500)
 }
-const ALARM_DEFAULT: PositionAlarm = { enabled: false, percent: '+-20', triggered: false, triggeredKind: null }
+const newPositionAlarmRow = (): PositionAlarm => ({
+  uid: ++positionAlarmSeq,
+  enabled: false,
+  percent: '+-20',
+  triggered: false,
+  triggeredKind: null
+})
+// 아직 한 번도 건드리지 않은 포지션에 화면이 보여줄 기본 1줄(렌더 중에 상태를 만들지 않으려고 상수로 둔다).
+const POSITION_ALARM_PLACEHOLDER_ROWS: PositionAlarm[] = [
+  { uid: 0, enabled: false, percent: '+-20', triggered: false, triggeredKind: null }
+]
 let alarmSpeechTimer: any = null
 let currentAlarmKind: AlarmKind | null = null
 
-function getPositionAlarm(id: number) {
-  return positionAlarms[Number(id)] || ALARM_DEFAULT
+function getPositionAlarmRows(id: number): PositionAlarm[] {
+  return positionAlarms[Number(id)] || POSITION_ALARM_PLACEHOLDER_ROWS
 }
 
-function setPositionAlarm(id: number, patch: Partial<PositionAlarm>) {
+function ensurePositionAlarmRows(id: number): PositionAlarm[] {
   const key = Number(id)
-  const cur = positionAlarms[key] || { ...ALARM_DEFAULT }
-  positionAlarms[key] = { ...cur, ...patch }
+  // 첫 줄은 화면의 기본 줄(uid 0)과 같은 키를 써야, 처음 타이핑하는 순간 입력칸이 새로 만들어져 포커스를 잃지 않는다.
+  if (!positionAlarms[key]) positionAlarms[key] = [{ ...newPositionAlarmRow(), uid: 0 }]
+  return positionAlarms[key]
+}
+
+function addPositionAlarmRow(id: number) {
+  const rows = ensurePositionAlarmRows(id)
+  if (rows.length < POSITION_ALARM_MAX_ROWS) rows.push(newPositionAlarmRow())
+}
+
+// 줄을 지우면 그 줄의 알람도 사라진다(울리던 중이었다면 알람도 멈춘다).
+function removePositionAlarmRow(id: number, idx: number) {
+  const rows = positionAlarms[Number(id)]
+  if (!rows || idx <= 0 || idx >= rows.length) return
+  rows.splice(idx, 1)
+  checkPositionAlarms()
 }
 
 function parseAlarmThresholds(raw: string): number[] {
@@ -6082,17 +6129,21 @@ function parseAlarmThresholds(raw: string): number[] {
   return out
 }
 
-function onToggleAlarm(id: number, checked: boolean) {
-  setPositionAlarm(id, {
-    enabled: checked,
-    triggered: checked ? getPositionAlarm(id).triggered : false,
-    triggeredKind: checked ? getPositionAlarm(id).triggeredKind : null
-  })
+function onToggleAlarm(id: number, idx: number, checked: boolean) {
+  const a = ensurePositionAlarmRows(id)[idx]
+  if (!a) return
+  a.enabled = checked
+  if (!checked) {
+    a.triggered = false
+    a.triggeredKind = null
+  }
   checkPositionAlarms()
 }
 
-function onAlarmPercentInput(id: number, raw: string) {
-  setPositionAlarm(id, { percent: raw })
+function onAlarmPercentInput(id: number, idx: number, raw: string) {
+  const a = ensurePositionAlarmRows(id)[idx]
+  if (!a) return
+  a.percent = raw
   checkPositionAlarms()
 }
 
@@ -6171,22 +6222,23 @@ function checkPositionAlarms() {
   for (const p of visiblePositions.value) {
     const id = Number(p.id)
     if (!id) continue
-    const a = positionAlarms[id]
-    if (!a || !a.enabled) continue
-    if (a.triggered) {
-      if (a.triggeredKind === 'loss') anyLossTriggered = true
-      else anyProfitTriggered = true
-      continue
-    }
-    const thresholds = parseAlarmThresholds(a.percent)
-    if (!thresholds.length) continue
-    const roe = unrealized(p).roe
-    const hitThreshold = thresholds.find((t) => (t > 0 ? roe >= t : roe <= t))
-    if (hitThreshold !== undefined) {
-      a.triggered = true
-      a.triggeredKind = hitThreshold > 0 ? 'profit' : 'loss'
-      if (a.triggeredKind === 'loss') anyLossTriggered = true
-      else anyProfitTriggered = true
+    for (const a of positionAlarms[id] || []) {
+      if (!a.enabled) continue
+      if (a.triggered) {
+        if (a.triggeredKind === 'loss') anyLossTriggered = true
+        else anyProfitTriggered = true
+        continue
+      }
+      const thresholds = parseAlarmThresholds(a.percent)
+      if (!thresholds.length) continue
+      const roe = unrealized(p).roe
+      const hitThreshold = thresholds.find((t) => (t > 0 ? roe >= t : roe <= t))
+      if (hitThreshold !== undefined) {
+        a.triggered = true
+        a.triggeredKind = hitThreshold > 0 ? 'profit' : 'loss'
+        if (a.triggeredKind === 'loss') anyLossTriggered = true
+        else anyProfitTriggered = true
+      }
     }
   }
   let anyPriceTriggered = false
