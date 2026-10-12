@@ -83,7 +83,7 @@ export default defineNuxtConfig({
     // 별도 환경변수로 관리 — 관리자 "DB 연결 상태" 화면에 표시하기 위한 용도.
     supabaseProjectName: process.env.SUPABASE_PROJECT_NAME || '',
     public: {
-      appName: 'BITRABBIT'
+      appName: 'BITRABBITS'
     }
   }
 })

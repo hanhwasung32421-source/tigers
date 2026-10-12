@@ -527,7 +527,7 @@
                     <img src="/favicon.png" alt="" class="h-[80%] w-[80%] object-contain" style="image-rendering: pixelated" />
                   </span>
                   <span class="font-bold tracking-tight" :style="{ fontSize: profitCardDraft.logoFontSize + 'px', color: profitCardDraft.logoColor }">
-                    BITRABBIT
+                    BITRABBITS
                   </span>
                 </span>
 
@@ -1776,7 +1776,7 @@ function selectTarget(t: ProfitCardTarget) {
 
 const PROFIT_CARD_TARGET_LABELS: Record<ProfitCardTarget, { ko: string; en: string }> = {
   card: { ko: '카드 전체', en: 'Whole Card' },
-  logo: { ko: '로고(BITRABBIT)', en: 'Logo (BITRABBIT)' },
+  logo: { ko: '로고(BITRABBITS)', en: 'Logo (BITRABBITS)' },
   roe: { ko: '수익률(%) 큰 글씨', en: 'ROE (%) Large Text' },
   won: { ko: '원화 보조텍스트', en: 'KRW Subtext' },
   badge: { ko: '롱/숏 배지', en: 'Long/Short Badge' },

@@ -1360,7 +1360,7 @@
                 class="font-bold tracking-tight"
                 :style="{ fontSize: profitCardStyle.logoFontSize + 'px', color: profitCardStyle.logoColor }"
               >
-                BITRABBIT
+                BITRABBITS
               </span>
             </span>
 
