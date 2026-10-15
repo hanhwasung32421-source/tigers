@@ -25,6 +25,18 @@ export default defineNuxtPlugin((nuxtApp) => {
     errorHistory.value = [full, ...errorHistory.value].slice(0, MAX_ERROR_HISTORY)
   }
 
+  let pageUnloading = false
+  window.addEventListener('pagehide', () => {
+    pageUnloading = true
+  })
+  window.addEventListener('beforeunload', () => {
+    pageUnloading = true
+  })
+  // 뒤로가기 캐시(bfcache)로 페이지가 다시 살아나면 정상 상태로 돌려놓는다.
+  window.addEventListener('pageshow', () => {
+    pageUnloading = false
+  })
+
   const original = globalThis.$fetch as any
   if (original && !original.__wrappedForErrorLog__) {
     const wrapped = original.create({
@@ -46,6 +58,12 @@ export default defineNuxtPlugin((nuxtApp) => {
         })
       },
       onRequestError(ctx: any) {
+        // 새로고침/페이지 이동으로 진행 중이던 요청이 끊기거나, 탭이 백그라운드로 가서 브라우저가
+        // 요청을 중단시킨 경우, 또는 코드가 직접 취소(AbortError)한 경우는 실제 장애가 아니므로
+        // 관리자 오류 배너에 남기지 않는다(진짜 네트워크 오류만 기록).
+        if (pageUnloading) return
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+        if (ctx.error?.name === 'AbortError' || ctx.options?.signal?.aborted) return
         record({
           type: 'fetch-network',
           url: String(ctx.request),

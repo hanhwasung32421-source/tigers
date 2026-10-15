@@ -948,6 +948,7 @@
               <th class="px-3 py-2">{{ t('종목', 'Symbol') }}</th>
               <th class="px-3 py-2">{{ t('포지션', 'Position') }}</th>
               <th class="px-3 py-2">{{ t('구분', 'Type') }}</th>
+              <th class="px-3 py-2">{{ t('진입가격', 'Entry Price') }}</th>
               <th class="px-3 py-2">{{ t('체결가', 'Fill Price') }}</th>
               <th class="px-3 py-2">{{ t('수량', 'Quantity') }}</th>
               <th class="px-3 py-2">{{ t('수수료', 'Fee') }}</th>
@@ -956,7 +957,7 @@
           </thead>
           <tbody>
             <tr v-if="fills.length === 0 && !fillsLoading" class="border-t border-white/10">
-              <td colspan="8" class="px-3 py-4 text-slate-400">{{ t('거래내역이 없습니다.', 'No trade history.') }}</td>
+              <td colspan="9" class="px-3 py-4 text-slate-400">{{ t('거래내역이 없습니다.', 'No trade history.') }}</td>
             </tr>
             <tr v-for="tr in fills" :key="`fill-${tr.id}`" class="border-t border-white/10">
               <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(tr.created_at) }}</td>
@@ -972,6 +973,7 @@
                   {{ tradeResultLabel(tr) }}
                 </span>
               </td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.entry_price)) }}</td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.exit_price)) }}</td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty2(tr.symbol, Number(tr.qty)) }} {{ baseCoin(tr.symbol) }}</td>
               <td class="px-3 py-3 font-mono text-slate-300">{{ calcTradeFeeText(tr) }}</td>
@@ -991,7 +993,7 @@
               </td>
             </tr>
             <tr v-if="fillsLoading" class="border-t border-white/10">
-              <td colspan="8" class="px-3 py-3 text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</td>
+              <td colspan="9" class="px-3 py-3 text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</td>
             </tr>
           </tbody>
         </table>
@@ -5392,7 +5394,9 @@ async function fetchKillEventsFor(sym: string): Promise<KillEvent[]> {
     const res = await $fetch<{ items: KillEvent[] }>('/api/kill/history', { query: { symbol: sym, limit: 200 } })
     return res?.items || []
   } catch {
-    return []
+    // 일시적인 네트워크 끊김으로 실패해도 [] 를 쓰면 20초 재동기화 때 킬 꼬리가 사라져 보이므로,
+    // 같은 종목에서 직전에 받아둔 목록을 그대로 쓴다.
+    return cachedKillEvents.filter((e) => String(e.symbol).toUpperCase() === String(sym).toUpperCase())
   }
 }
 
@@ -5401,7 +5405,7 @@ async function fetchProfitEventsFor(sym: string): Promise<ProfitEvent[]> {
     const res = await $fetch<{ items: ProfitEvent[] }>('/api/profit/history', { query: { symbol: sym, limit: 200 } })
     return res?.items || []
   } catch {
-    return []
+    return cachedProfitEvents.filter((e) => String(e.symbol).toUpperCase() === String(sym).toUpperCase())
   }
 }
 
