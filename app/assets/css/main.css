@@ -120,21 +120,206 @@ select option:disabled {
    색상(hue)을 180도 돌려 원래 색상 계열(초록/빨강/파랑 등)을 유지하는 방식으로 적용한다.
    그림/영상/iframe은 한 번 더 반전해서 원래 색으로 보이게 한다. <html class="theme-light">일 때만 동작한다.
    (루트 요소에 건 filter는 position: fixed의 기준을 바꾸지 않으므로 고정 헤더/모달은 그대로 동작한다.) */
-html.theme-light {
+html.theme-filter {
   filter: invert(1) hue-rotate(180deg);
 }
 /* 반전되기 전 값이 검정(#000)이어야 화면에서는 완전한 흰색이 된다. */
-html.theme-light,
-html.theme-light body,
-html.theme-light .site-bg {
+html.theme-filter,
+html.theme-filter body,
+html.theme-filter .site-bg {
   background: #000000 !important;
 }
-html.theme-light .site-header {
+html.theme-filter .site-header {
   background-color: #000000 !important;
 }
-html.theme-light img,
-html.theme-light video,
-html.theme-light iframe,
-html.theme-light [data-keep-colors] {
+html.theme-filter img,
+html.theme-filter video,
+html.theme-filter iframe,
+html.theme-filter [data-keep-colors] {
   filter: invert(1) hue-rotate(180deg);
+}
+
+/* ───────── 첫 화면 화이트(native): 필터 없이 실제 색으로 칠한다 ─────────
+   포커스 색(사이트 이름, 눌러볼 수 있는 곳) = #f0b90b, 네모난 버튼 = 배경 #f0b90b + 글자 #383A3E.
+   <html class="theme-light theme-native">는 첫 화면('/')에서만 붙는다(아래 .theme-filter 방식과 서로 배타적). */
+html.theme-native .text-white {
+  color: #1e2329 !important;
+}
+html.theme-native .text-slate-100 {
+  color: #1e2329 !important;
+}
+html.theme-native .text-slate-200 {
+  color: #1e2329 !important;
+}
+html.theme-native .text-slate-300 {
+  color: #474d57 !important;
+}
+html.theme-native .text-slate-400 {
+  color: #707a8a !important;
+}
+html.theme-native .text-slate-500 {
+  color: #707a8a !important;
+}
+html.theme-native .text-slate-600 {
+  color: #929aa5 !important;
+}
+html.theme-native .text-amber-100 {
+  color: #1e2329 !important;
+}
+html.theme-native .text-yellow-300 {
+  color: #f0b90b !important;
+}
+html.theme-native .text-cyan-300 {
+  color: #f0b90b !important;
+}
+html.theme-native .placeholder\:text-slate-500::placeholder {
+  color: #929aa5 !important;
+}
+html.theme-native .hover\:text-white:hover {
+  color: #f0b90b !important;
+}
+html.theme-native .group:hover .group-hover\:text-cyan-200 {
+  color: #f0b90b !important;
+}
+html.theme-native .font-brand {
+  color: #f0b90b !important;
+}
+html.theme-native .text-amber-400 {
+  color: #f0b90b !important;
+}
+html.theme-native .border-amber-400 {
+  border-color: #f0b90b !important;
+}
+html.theme-native .border-amber-400\/20 {
+  border-color: #f0b90b !important;
+}
+html.theme-native .border-amber-400\/30 {
+  border-color: #f0b90b !important;
+}
+html.theme-native .bg-amber-400\/10 {
+  background-color: rgba(240, 185, 11, 0.12) !important;
+}
+html.theme-native .bg-cyan-400 {
+  background-color: #f0b90b !important;
+}
+html.theme-native .bg-white {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .bg-\[\#f0b90b\] {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .text-slate-950 {
+  color: #383A3E !important;
+}
+html.theme-native .hover\:bg-slate-200:hover {
+  background-color: #f0b90b !important;
+  filter: brightness(0.94);
+}
+html.theme-native .hover\:bg-\[\#d9a609\]:hover {
+  background-color: #f0b90b !important;
+  filter: brightness(0.94);
+}
+html.theme-native .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-native .bg-white\/\[0\.02\] {
+  background-color: rgba(0, 0, 0, 0.014) !important;
+}
+html.theme-native .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-native .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.028) !important;
+}
+html.theme-native .bg-white\/\[0\.05\] {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .bg-white\/\[0\.06\] {
+  background-color: rgba(0, 0, 0, 0.042) !important;
+}
+html.theme-native .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-native .hover\:bg-white\/15:hover {
+  background-color: rgba(0, 0, 0, 0.105) !important;
+}
+html.theme-native .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.140) !important;
+}
+html.theme-native .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgba(0, 0, 0, 0.049) !important;
+}
+html.theme-native .hover\:bg-white\/\[0\.12\]:hover {
+  background-color: rgba(0, 0, 0, 0.084) !important;
+}
+html.theme-native .hover\:bg-cyan-400\/10:hover {
+  background-color: rgba(240, 185, 11, 0.14) !important;
+}
+html.theme-native .bg-cyan-500\/5 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+html.theme-native .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-cyan-500\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-cyan-400\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .hover\:border-cyan-400\/25:hover {
+  border-color: #f0b90b !important;
+}
+html.theme-native .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .bg-\[\#020b16\]\/90 {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+html.theme-native .bg-\[\#020b16\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#03101d\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#0b1220\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#0b1220\]\/95 {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#07111b\]\/90 {
+  background-color: #ffffff !important;
+}
+html.theme-native .ring-\[\#020b16\] {
+  --tw-ring-color: #ffffff !important;
+}
+html.theme-native .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-native .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\] {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
+}
+html.theme-native,
+html.theme-native body,
+html.theme-native .site-bg,
+html.theme-native .site-header {
+  background: #ffffff !important;
+}
+html.theme-native .site-header {
+  background: rgba(255, 255, 255, 0.96) !important;
 }

@@ -16,7 +16,7 @@ export default defineNuxtConfig({
       script: [
         {
           innerHTML:
-            "(function(){try{var t=localStorage.getItem('bitduck_theme_v2');document.documentElement.classList.toggle('theme-light',t!=='dark')}catch(e){document.documentElement.classList.add('theme-light')}})()",
+            "(function(){var d=document.documentElement;try{var l=localStorage.getItem('bitduck_theme_v2')!=='dark',h=location.pathname==='/';d.classList.toggle('theme-light',l);d.classList.toggle('theme-native',l&&h);d.classList.toggle('theme-filter',l&&!h)}catch(e){d.classList.add('theme-light','theme-filter')}})()",
           tagPosition: 'head'
         }
       ]
