@@ -34,7 +34,7 @@ export function useMarketOverview() {
 
 export function fmtMarketPrice(n: number) {
   const v = Number(n || 0)
-  const digits = v >= 100 ? 2 : v >= 1 ? 4 : 7
+  const digits = v >= 100 ? 2 : v >= 1 ? 4 : v >= 0.01 ? 6 : 8
   return v.toLocaleString('en-US', { minimumFractionDigits: v >= 100 ? 2 : 0, maximumFractionDigits: digits })
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="grid gap-3 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+  <div class="grid gap-3 sm:grid-cols-[minmax(0,0.62fr)_minmax(0,1fr)]">
     <!-- 왼쪽: 상승률 상위 코인 카드 -->
     <div class="space-y-3">
       <template v-if="cards.length">
@@ -11,7 +11,7 @@
         >
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black text-white" :style="{ background: marketBadgeColor(c.base) }">{{ c.base.charAt(0) }}</span>
+              <CoinIcon :base="c.base" :size="32" />
               <span class="text-[15px] font-bold text-white">{{ c.base }}</span>
             </div>
             <span class="text-[13px] font-bold" :class="c.changePct >= 0 ? 'text-emerald-400' : 'text-rose-400'">{{ sign(c.changePct) }}{{ c.changePct.toFixed(3) }}%</span>
@@ -36,7 +36,7 @@
     <!-- 오른쪽: 주식 선물 목록(미니 차트) -->
     <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-[17px] font-bold text-white">{{ t('주식 선물', 'Stock Futures') }}</h3>
+        <h3 class="text-[17px] font-bold text-white">xStocks</h3>
         <NuxtLink to="/markets" class="text-[13px] text-slate-400 hover:text-white">{{ t('더보기', 'More') }} ›</NuxtLink>
       </div>
       <div class="mt-2 divide-y divide-white/5">
@@ -47,7 +47,7 @@
             :to="`/exchange/${r.symbol}`"
             class="flex items-center gap-3 py-3 transition hover:opacity-80"
           >
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-white" :style="{ background: marketBadgeColor(r.base) }">{{ r.base.charAt(0) }}</span>
+            <CoinIcon :base="r.base" :size="32" />
             <div class="min-w-0 flex-1">
               <div class="truncate text-[14px] font-bold text-white">{{ r.symbol }}</div>
               <div class="text-[12px] text-slate-400">{{ t('무기한', 'Perpetual') }}</div>
@@ -68,6 +68,8 @@
 </template>
 
 <script setup lang="ts">
+import type { MarketItem } from '../composables/useMarketOverview'
+
 const { t } = useLocale()
 const { items, refresh } = useMarketOverview()
 const spark = ref<Record<string, number[]>>({})
@@ -78,12 +80,14 @@ const cards = computed(() => {
   return coins.sort((a, b) => b.changePct - a.changePct).slice(0, 3)
 })
 
-const stockRows = computed(() =>
-  items.value
-    .filter((i) => i.category === 'krStock' || i.category === 'stock')
-    .sort((a, b) => b.volUsd - a.volUsd)
-    .slice(0, 5)
-)
+// 대표 종목을 먼저 보여주고(시세 목록에 있는 것만), 남는 자리는 거래대금 순으로 채운다.
+const FEATURED = ['SPCX', 'OPENAI', 'ARM', 'UNITREE', 'SKHYNIX']
+const stockRows = computed(() => {
+  const pool = items.value.filter((i) => i.category === 'krStock' || i.category === 'stock')
+  const picked = FEATURED.map((b) => pool.find((i) => i.base === b)).filter((x): x is MarketItem => !!x)
+  const rest = pool.filter((i) => !picked.includes(i)).sort((a, b) => b.volUsd - a.volUsd)
+  return [...picked, ...rest].slice(0, 5)
+})
 
 function sign(n: number) {
   return n > 0 ? '+' : ''

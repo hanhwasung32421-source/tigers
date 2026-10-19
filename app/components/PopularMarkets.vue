@@ -39,7 +39,7 @@
                 <tr v-for="r in rows(panel)" :key="r.symbol" class="border-t border-white/5">
                   <td class="py-3.5 pr-2">
                     <NuxtLink :to="`/exchange/${r.symbol}`" class="flex items-center gap-3 hover:opacity-80">
-                      <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-white" :style="{ background: marketBadgeColor(r.base) }">{{ r.base.charAt(0) }}</span>
+                      <CoinIcon :base="r.base" :size="32" />
                       <span class="font-bold text-white">{{ r.base }} <span class="font-normal text-slate-500">/USDT</span></span>
                     </NuxtLink>
                   </td>
