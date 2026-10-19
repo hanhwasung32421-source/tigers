@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css');
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -34,15 +35,19 @@ body {
 .font-landing,
 .font-landing * {
   font-family:
-    'Pretendard Variable',
-    Pretendard,
     Inter,
-    'Inter Fallback',
+    'PingFang SC',
+    'PingFang TC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    'Microsoft JhengHei',
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
-    sans-serif;
+    Roboto,
+    Arial,
+    sans-serif !important;
 }
 
 .font-brand {
@@ -102,7 +107,15 @@ select option:disabled {
    (루트 요소에 건 filter는 position: fixed의 기준을 바꾸지 않으므로 고정 헤더/모달은 그대로 동작한다.) */
 html.theme-light {
   filter: invert(1) hue-rotate(180deg);
-  background-color: #ffffff;
+}
+/* 반전되기 전 값이 검정(#000)이어야 화면에서는 완전한 흰색이 된다. */
+html.theme-light,
+html.theme-light body,
+html.theme-light .site-bg {
+  background: #000000 !important;
+}
+html.theme-light .site-header {
+  background-color: #000000 !important;
 }
 html.theme-light img,
 html.theme-light video,

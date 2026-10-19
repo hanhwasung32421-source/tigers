@@ -1,5 +1,5 @@
 <template>
-  <div class="font-noto-kr min-h-dvh bg-[radial-gradient(circle_at_top,_rgba(6,182,212,0.08),transparent_20%),linear-gradient(180deg,#010811,#02121d_40%,#010811)] text-slate-100">
+  <div class="site-bg font-noto-kr min-h-dvh bg-[radial-gradient(circle_at_top,_rgba(6,182,212,0.08),transparent_20%),linear-gradient(180deg,#010811,#02121d_40%,#010811)] text-slate-100">
     <Transition name="nav-loading-fade">
       <div v-if="navLoading" class="fixed inset-0 z-[120] flex items-center justify-center bg-[#020817]/55 backdrop-blur-[2px]">
         <div class="rounded-2xl border border-cyan-400/15 bg-[#07111b]/90 px-5 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
@@ -18,7 +18,7 @@
         </div>
       </div>
     </Transition>
-    <header class="font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
+    <header class="site-header font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
       <div class="flex w-full items-center justify-between gap-3 px-4 py-3 md:px-5 md:py-4">
         <div class="flex items-center gap-1">
           <NuxtLink to="/" class="mr-4" @click="startNavLoading('/')">
@@ -98,7 +98,7 @@
         </div>
       </div>
 
-      <div v-if="mobileMenuOpen" class="border-t border-cyan-500/10 bg-[#020b16] px-4 py-3 md:hidden">
+      <div v-if="mobileMenuOpen" class="site-header border-t border-cyan-500/10 bg-[#020b16] px-4 py-3 md:hidden">
         <nav class="flex flex-col gap-0.5 text-[15px] text-slate-200">
           <NuxtLink
             v-for="key in orderedMainNavKeys"
