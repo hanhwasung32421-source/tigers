@@ -50,6 +50,21 @@ body {
     sans-serif !important;
 }
 
+/* 한국어를 고른 경우(<html lang="ko">)에는 첫 화면 글꼴을 Pretendard 계열로 쓴다. */
+html:lang(ko) .font-landing,
+html:lang(ko) .font-landing * {
+  font-family:
+    'Pretendard Variable',
+    Pretendard,
+    Inter,
+    'Inter Fallback',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif !important;
+}
+
 .font-brand {
   font-family: 'Space Grotesk', 'Pretendard Variable', Pretendard, system-ui, sans-serif;
 }
