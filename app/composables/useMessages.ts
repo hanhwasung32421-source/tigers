@@ -55,7 +55,9 @@ export function useMessages() {
     if (!me.value) return false
     if (me.value.role === 'user') return false
     if (me.value.role === 'super_admin') return true
-    return (me.value as any)?.permissions?.menus?.messages?.view !== false
+    const perm = (me.value as any)?.permissions?.menus?.messages
+    // 쪽지 답장(수정) 권한이 있으면 보기 권한이 꺼져 있어도 알림음을 들을 수 있게 한다.
+    return perm?.view !== false || perm?.edit === true
   }
 
   async function refreshUnread() {

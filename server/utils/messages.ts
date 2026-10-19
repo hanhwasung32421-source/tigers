@@ -3,6 +3,7 @@ import { SessionUser } from './auth'
 import { getSupabaseAdminClient } from './supabase'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { createError } from 'h3'
+import { canEditMenu } from './menu-permissions'
 
 export type MessageRow = {
   id: number
@@ -215,8 +216,30 @@ export async function getThreadMessages(threadKey: string) {
   })) as MessageRow[]
 }
 
+// 회원 문의/입출금 알림은 항상 "운영자 계정(admin)" 앞으로 저장된다. "쪽지관리 > 쪽지 답장 권한"을 가진
+// 관리자 계정(총관리자 포함)은 그 운영자 앞으로 온 쪽지도 자기 쪽지처럼 안 읽음 수/종/알림음/읽음 처리에 포함한다.
+// (운영자 ID 조회가 폴링(5초)마다 DB를 치지 않도록 1분간 캐시)
+let operatorIdCache: { id: number; at: number } | null = null
+async function cachedOperatorId(): Promise<number | null> {
+  if (operatorIdCache && Date.now() - operatorIdCache.at < 60_000) return operatorIdCache.id
+  const operator = await getOperatorAdminUser()
+  if (!operator) return null
+  operatorIdCache = { id: Number(operator.id), at: Date.now() }
+  return operatorIdCache.id
+}
+
+export async function inboxRecipientIdsFor(user: SessionUser): Promise<number[]> {
+  const ids = new Set<number>([Number(user.id)])
+  if (user.role !== 'user' && canEditMenu(user, 'messages')) {
+    const operatorId = await cachedOperatorId()
+    if (operatorId) ids.add(operatorId)
+  }
+  return Array.from(ids)
+}
+
 export async function getThreadsForUser(user: SessionUser) {
   const isAdmin = user.role !== 'user'
+  const inboxIds = await inboxRecipientIdsFor(user)
 
   if (supabaseAppDbEnabled()) {
     try {
@@ -224,7 +247,7 @@ export async function getThreadsForUser(user: SessionUser) {
       let q: any = supa.from('bitduck_messages').select('*').order('created_at', { ascending: false }).limit(3000)
       if (!isAdmin) q = q.eq('thread_key', threadKeyForUser(user.id))
       const { data, error } = await q
-      if (!error) return normalizeThreadSummaries((data || []) as any[], user.id)
+      if (!error) return normalizeThreadSummaries((data || []) as any[], inboxIds)
     } catch {
       // fall through
     }
@@ -234,10 +257,10 @@ export async function getThreadsForUser(user: SessionUser) {
   const rows = isAdmin
     ? (db.prepare(`SELECT * FROM messages ORDER BY created_at DESC LIMIT 3000`).all() as any[])
     : (db.prepare(`SELECT * FROM messages WHERE thread_key = ? ORDER BY created_at DESC LIMIT 3000`).all(threadKeyForUser(user.id)) as any[])
-  return normalizeThreadSummaries(rows, user.id)
+  return normalizeThreadSummaries(rows, inboxIds)
 }
 
-function normalizeThreadSummaries(rows: any[], currentUserId: number) {
+function normalizeThreadSummaries(rows: any[], inboxIds: number[]) {
   const out = new Map<
     string,
     {
@@ -253,7 +276,7 @@ function normalizeThreadSummaries(rows: any[], currentUserId: number) {
   for (const m of rows) {
     const threadKey = String(m.thread_key || '')
     const userId = Number(String(threadKey).replace('user:', '')) || 0
-    const unread = Number(m.recipient_id) === Number(currentUserId) && !m.read_at ? 1 : 0
+    const unread = inboxIds.includes(Number(m.recipient_id)) && !m.read_at ? 1 : 0
     const prev = out.get(threadKey)
     if (!prev) {
       out.set(threadKey, {
@@ -272,12 +295,18 @@ function normalizeThreadSummaries(rows: any[], currentUserId: number) {
   return Array.from(out.values()).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)))
 }
 
-export async function markThreadAsRead(threadKey: string, userId: number) {
+function toIdList(v: number | number[]): number[] {
+  return (Array.isArray(v) ? v : [v]).map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0)
+}
+
+export async function markThreadAsRead(threadKey: string, userIds: number | number[]) {
+  const ids = toIdList(userIds)
+  if (!ids.length) return
   const readAt = nowIso()
   if (supabaseAppDbEnabled()) {
     try {
       const supa = getSupabaseAdminClient()
-      await supa.from('bitduck_messages').update({ read_at: readAt }).eq('thread_key', threadKey).eq('recipient_id', Number(userId)).is('read_at', null)
+      await supa.from('bitduck_messages').update({ read_at: readAt }).eq('thread_key', threadKey).in('recipient_id', ids).is('read_at', null)
       return
     } catch {
       // fall through
@@ -285,17 +314,20 @@ export async function markThreadAsRead(threadKey: string, userId: number) {
   }
 
   const db = getDb()
-  db.prepare(`UPDATE messages SET read_at = ? WHERE thread_key = ? AND recipient_id = ? AND read_at IS NULL`).run(readAt, threadKey, Number(userId))
+  const marks = ids.map(() => '?').join(',')
+  db.prepare(`UPDATE messages SET read_at = ? WHERE thread_key = ? AND recipient_id IN (${marks}) AND read_at IS NULL`).run(readAt, threadKey, ...ids)
 }
 
-export async function countUnreadMessages(userId: number) {
+export async function countUnreadMessages(userIds: number | number[]) {
+  const ids = toIdList(userIds)
+  if (!ids.length) return 0
   if (supabaseAppDbEnabled()) {
     try {
       const supa = getSupabaseAdminClient()
       const { count, error } = await supa
         .from('bitduck_messages')
         .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', Number(userId))
+        .in('recipient_id', ids)
         .is('read_at', null)
       if (!error) return Number(count || 0)
     } catch {
@@ -304,7 +336,8 @@ export async function countUnreadMessages(userId: number) {
   }
 
   const db = getDb()
-  const row = db.prepare(`SELECT COUNT(*) as c FROM messages WHERE recipient_id = ? AND read_at IS NULL`).get(Number(userId)) as any
+  const marks = ids.map(() => '?').join(',')
+  const row = db.prepare(`SELECT COUNT(*) as c FROM messages WHERE recipient_id IN (${marks}) AND read_at IS NULL`).get(...ids) as any
   return Number(row?.c || 0)
 }
 
