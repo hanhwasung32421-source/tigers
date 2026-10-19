@@ -276,7 +276,7 @@ const MAIN_NAV_ROUTES: Record<MainNavKey, string> = {
 }
 const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
   coin: '코인선물',
-  stock: '해외주식',
+  stock: '파생상품',
   kr: '국내주식',
   markets: '마켓',
   wallet: '내 지갑',
@@ -285,7 +285,7 @@ const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
 }
 const MAIN_NAV_LABELS_EN: Record<MainNavKey, string> = {
   coin: 'Coin Futures',
-  stock: 'Global Stocks',
+  stock: 'Derivative',
   kr: 'KR Stocks',
   markets: 'Markets',
   wallet: 'My Wallet',
