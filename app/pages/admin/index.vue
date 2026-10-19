@@ -1331,7 +1331,7 @@ const menuMeta: Record<MenuKey, { labelKo: string; labelEn: string; editable: bo
   trades: { labelKo: '거래 내역', labelEn: 'Trade History', editable: false },
   transfers: { labelKo: '입출금 내역', labelEn: 'Deposit/Withdrawal History', editable: false },
   positions: { labelKo: '포지션 목록', labelEn: 'Position List', editable: true, editLabelKo: '포지션 수정', editLabelEn: 'Edit Positions' },
-  messages: { labelKo: '쪽지관리', labelEn: 'Message Management', editable: true, editLabelKo: '쪽지 답장 권한', editLabelEn: 'Message Reply Permission' },
+  messages: { labelKo: '쪽지관리', labelEn: 'Message Management', editable: true, editLabelKo: '어드민권한', editLabelEn: 'Admin Permission' },
   settlement: { labelKo: '정산내역', labelEn: 'Settlement History', editable: false },
   deposits: { labelKo: '입출금 내역', labelEn: 'Deposit/Withdrawal History', editable: true, editLabelKo: '입금/출금 승인/거절', editLabelEn: 'Approve/Reject Deposits/Withdrawals' }
 }

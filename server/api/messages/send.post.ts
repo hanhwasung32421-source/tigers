@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   if (isAdmin) {
     if (!canEditMenu(user, 'messages')) {
-      throw createError({ statusCode: 403, statusMessage: '쪽지 답장/발송 권한이 없습니다.' })
+      throw createError({ statusCode: 403, statusMessage: '어드민권한이 없어 쪽지를 보낼 수 없습니다.' })
     }
     let targetIds = (body.userIds || []).map((v) => Number(v)).filter(Boolean)
     if (body.sendToAll) {

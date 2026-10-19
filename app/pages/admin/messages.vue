@@ -118,7 +118,7 @@
             {{ sending ? t('전송 중...', 'Sending...') : t('쪽지 보내기', 'Send Message') }}
           </button>
         </div>
-        <p v-if="!canManageMessages" class="mt-3 text-sm text-amber-300">{{ t('쪽지 답장 권한이 없어 쪽지를 보낼 수 없습니다.', 'You do not have permission to reply, so you cannot send messages.') }}</p>
+        <p v-if="!canManageMessages" class="mt-3 text-sm text-amber-300">{{ t('어드민권한이 없어 쪽지를 보낼 수 없습니다.', 'You do not have admin permission, so you cannot send messages.') }}</p>
         <p v-if="sendError" class="mt-3 text-sm text-rose-300">{{ sendError }}</p>
         <p v-if="sendMessageText" class="mt-3 text-sm text-emerald-300">{{ sendMessageText }}</p>
       </section>
@@ -221,7 +221,7 @@
                     {{ replySending ? t('전송 중...', 'Sending...') : t('답장 보내기', 'Send Reply') }}
                   </button>
                 </div>
-                <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">{{ t('쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.', 'You do not have permission to reply, so you cannot send a reply.') }}</p>
+                <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">{{ t('어드민권한이 없어 답장을 보낼 수 없습니다.', 'You do not have admin permission, so you cannot send a reply.') }}</p>
                 <p v-if="replyError" class="mt-2 text-sm text-rose-300">{{ replyError }}</p>
               </div>
             </div>
@@ -356,7 +356,7 @@
                 {{ guestReplySending ? t('전송 중...', 'Sending...') : t('답장 보내기', 'Send Reply') }}
               </button>
             </div>
-            <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">{{ t('쪽지 답장 권한이 없어 답장을 보낼 수 없습니다.', 'You do not have permission to reply, so you cannot send a reply.') }}</p>
+            <p v-if="!canManageMessages" class="mt-2 text-sm text-amber-300">{{ t('어드민권한이 없어 답장을 보낼 수 없습니다.', 'You do not have admin permission, so you cannot send a reply.') }}</p>
             <p v-if="guestReplyError" class="mt-2 text-sm text-rose-300">{{ guestReplyError }}</p>
           </div>
         </div>
@@ -428,7 +428,7 @@ const { me, refresh } = useMe()
 await refresh()
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
-// 총관리자는 항상 답장 가능, 부관리자는 총관리자가 부여한 "쪽지 답장 권한"이 있을 때만.
+// 총관리자는 항상 답장 가능, 부관리자는 총관리자가 부여한 "어드민권한"이 있을 때만.
 const canManageMessages = computed(() => {
   if (me.value?.role === 'super_admin') return true
   if (me.value?.role && me.value.role !== 'user') return Boolean((me.value as any)?.permissions?.menus?.messages?.edit)
