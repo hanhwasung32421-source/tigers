@@ -245,6 +245,7 @@
                   <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
                     <div class="text-[12px] text-slate-400">{{ t('보유잔고', 'Balance') }}</div>
                     <div class="mt-1 text-sm font-semibold text-cyan-100">{{ fmt2(memberDetail.balanceUsdt) }} USDT</div>
+                    <div v-if="krwPerUsdt > 0" class="mt-0.5 text-[12px]" style="color: rgb(148 163 184)">({{ fmtKrw(memberDetail.balanceUsdt * krwPerUsdt) }}{{ t('원', ' KRW') }})</div>
                   </div>
                   <div class="rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-3">
                     <div class="text-[12px] text-slate-400">{{ t('보유 포지션', 'Positions') }}</div>
@@ -531,6 +532,13 @@ function fmtRequestTime(iso: string) {
   return d.toLocaleString(locale.value === 'en' ? 'en-US' : 'ko-KR', { hour12: false })
 }
 
+// 원/USDT 환율은 입출금 권한과 무관하게 필요(잔고 원화 표시)하므로 따로, 한 번만 불러온다.
+async function loadKrwRate() {
+  if (krwPerUsdt.value > 0) return
+  const rate = await $fetch<{ rate: number }>('/api/settings/krw-rate').catch(() => null)
+  krwPerUsdt.value = Number(rate?.rate || 0)
+}
+
 async function loadMemberRequests(username: string) {
   memberPendingRequests.value = []
   memberRequestError.value = null
@@ -542,10 +550,6 @@ async function loadMemberRequests(username: string) {
     })
     memberPendingRequests.value = (res.items || []).filter((r) => r.status === 'pending')
     memberRequestsCanEdit.value = Boolean(res.canEdit)
-    if (!krwPerUsdt.value) {
-      const rate = await $fetch<{ rate: number }>('/api/settings/krw-rate').catch(() => null)
-      krwPerUsdt.value = Number(rate?.rate || 0)
-    }
   } catch {
     // 입출금 메뉴 권한이 없거나 조회에 실패하면 요청 영역만 조용히 숨긴다(회원정보 자체는 그대로 표시).
     memberPendingRequests.value = []
@@ -577,6 +581,7 @@ async function loadMemberDetail(username: string) {
   memberDetailError.value = null
   memberDetailLoading.value = true
   loadMemberRequests(username).catch(() => {})
+  loadKrwRate().catch(() => {})
   try {
     memberDetail.value = await $fetch<MemberDetail>('/api/admin/member-detail', {
       query: { username },
