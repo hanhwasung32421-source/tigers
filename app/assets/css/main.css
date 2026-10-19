@@ -120,8 +120,19 @@ select option:disabled {
    색상(hue)을 180도 돌려 원래 색상 계열(초록/빨강/파랑 등)을 유지하는 방식으로 적용한다.
    그림/영상/iframe은 한 번 더 반전해서 원래 색으로 보이게 한다. <html class="theme-light">일 때만 동작한다.
    (루트 요소에 건 filter는 position: fixed의 기준을 바꾸지 않으므로 고정 헤더/모달은 그대로 동작한다.) */
-html.theme-filter {
-  filter: invert(1) hue-rotate(180deg);
+/* 화면 전체를 덮는 투명한 "반전 베일". 베일 아래에 그려진 모든 것을 반전시킨다.
+   베일보다 위(z-index)에 올린 헤더/푸터/언어 패널은 반전되지 않아서 실제 색(#f0b90b 등)이 그대로 나온다. */
+.theme-veil {
+  display: none;
+}
+html.theme-filter .theme-veil {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  -webkit-backdrop-filter: invert(1) hue-rotate(180deg);
+  backdrop-filter: invert(1) hue-rotate(180deg);
 }
 /* 반전되기 전 값이 검정(#000)이어야 화면에서는 완전한 흰색이 된다. */
 html.theme-filter,
@@ -129,14 +140,29 @@ html.theme-filter body,
 html.theme-filter .site-bg {
   background: #000000 !important;
 }
+/* 베일 위에 올라가는 요소: 헤더, 푸터, 언어 패널(반전되지 않으므로 실제 색으로 칠한다) */
 html.theme-filter .site-header {
-  background-color: #000000 !important;
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  z-index: 10000 !important;
+}
+html.theme-filter .site-footer {
+  position: relative;
+  z-index: 10000;
+  background-color: #ffffff;
+}
+html.theme-filter .lang-panel {
+  z-index: 10001 !important;
 }
 html.theme-filter img,
 html.theme-filter video,
 html.theme-filter iframe,
 html.theme-filter [data-keep-colors] {
   filter: invert(1) hue-rotate(180deg);
+}
+html.theme-filter .site-header img,
+html.theme-filter .site-footer img,
+html.theme-filter .lang-panel img {
+  filter: none;
 }
 
 /* ───────── 첫 화면 화이트(native): 필터 없이 실제 색으로 칠한다 ─────────
@@ -324,14 +350,298 @@ html.theme-native .site-header {
   background: rgba(255, 255, 255, 0.96) !important;
 }
 
+/* ───────── 화이트(필터) 테마: 헤더/푸터/언어 패널(베일 위) ─────────
+   첫 화면(native) 규칙과 같은 색을, 필터 페이지의 헤더/푸터/언어 패널에도 적용한다. */
+html.theme-filter .site-header .text-white,
+html.theme-filter .site-footer .text-white,
+html.theme-filter .lang-panel .text-white {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-100,
+html.theme-filter .site-footer .text-slate-100,
+html.theme-filter .lang-panel .text-slate-100 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-200,
+html.theme-filter .site-footer .text-slate-200,
+html.theme-filter .lang-panel .text-slate-200 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-300,
+html.theme-filter .site-footer .text-slate-300,
+html.theme-filter .lang-panel .text-slate-300 {
+  color: #474d57 !important;
+}
+html.theme-filter .site-header .text-slate-400,
+html.theme-filter .site-footer .text-slate-400,
+html.theme-filter .lang-panel .text-slate-400 {
+  color: #707a8a !important;
+}
+html.theme-filter .site-header .text-slate-500,
+html.theme-filter .site-footer .text-slate-500,
+html.theme-filter .lang-panel .text-slate-500 {
+  color: #707a8a !important;
+}
+html.theme-filter .site-header .text-slate-600,
+html.theme-filter .site-footer .text-slate-600,
+html.theme-filter .lang-panel .text-slate-600 {
+  color: #929aa5 !important;
+}
+html.theme-filter .site-header .text-amber-100,
+html.theme-filter .site-footer .text-amber-100,
+html.theme-filter .lang-panel .text-amber-100 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-yellow-300,
+html.theme-filter .site-footer .text-yellow-300,
+html.theme-filter .lang-panel .text-yellow-300 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .text-cyan-300,
+html.theme-filter .site-footer .text-cyan-300,
+html.theme-filter .lang-panel .text-cyan-300 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .placeholder\:text-slate-500::placeholder,
+html.theme-filter .site-footer .placeholder\:text-slate-500::placeholder,
+html.theme-filter .lang-panel .placeholder\:text-slate-500::placeholder {
+  color: #929aa5 !important;
+}
+html.theme-filter .site-header .hover\:text-white:hover,
+html.theme-filter .site-footer .hover\:text-white:hover,
+html.theme-filter .lang-panel .hover\:text-white:hover {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .group:hover .group-hover\:text-cyan-200,
+html.theme-filter .site-footer .group:hover .group-hover\:text-cyan-200,
+html.theme-filter .lang-panel .group:hover .group-hover\:text-cyan-200 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .font-brand,
+html.theme-filter .site-footer .font-brand,
+html.theme-filter .lang-panel .font-brand {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .text-amber-400,
+html.theme-filter .site-footer .text-amber-400,
+html.theme-filter .lang-panel .text-amber-400 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .border-amber-400,
+html.theme-filter .site-footer .border-amber-400,
+html.theme-filter .lang-panel .border-amber-400 {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .border-amber-400\/20,
+html.theme-filter .site-footer .border-amber-400\/20,
+html.theme-filter .lang-panel .border-amber-400\/20 {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .border-amber-400\/30,
+html.theme-filter .site-footer .border-amber-400\/30,
+html.theme-filter .lang-panel .border-amber-400\/30 {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .bg-amber-400\/10,
+html.theme-filter .site-footer .bg-amber-400\/10,
+html.theme-filter .lang-panel .bg-amber-400\/10 {
+  background-color: rgba(240, 185, 11, 0.12) !important;
+}
+html.theme-filter .site-header .bg-cyan-400,
+html.theme-filter .site-footer .bg-cyan-400,
+html.theme-filter .lang-panel .bg-cyan-400 {
+  background-color: #f0b90b !important;
+}
+html.theme-filter .site-header .bg-white,
+html.theme-filter .site-footer .bg-white,
+html.theme-filter .lang-panel .bg-white {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-\[\#f0b90b\],
+html.theme-filter .site-footer .bg-\[\#f0b90b\],
+html.theme-filter .lang-panel .bg-\[\#f0b90b\] {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .text-slate-950,
+html.theme-filter .site-footer .text-slate-950,
+html.theme-filter .lang-panel .text-slate-950 {
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .hover\:bg-slate-200:hover,
+html.theme-filter .site-footer .hover\:bg-slate-200:hover,
+html.theme-filter .lang-panel .hover\:bg-slate-200:hover {
+  background-color: #f0b90b !important;
+  filter: brightness(0.94);
+}
+html.theme-filter .site-header .hover\:bg-\[\#d9a609\]:hover,
+html.theme-filter .site-footer .hover\:bg-\[\#d9a609\]:hover,
+html.theme-filter .lang-panel .hover\:bg-\[\#d9a609\]:hover {
+  background-color: #f0b90b !important;
+  filter: brightness(0.94);
+}
+html.theme-filter .site-header .bg-white\/5,
+html.theme-filter .site-footer .bg-white\/5,
+html.theme-filter .lang-panel .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .bg-white\/10,
+html.theme-filter .site-footer .bg-white\/10,
+html.theme-filter .lang-panel .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.02\],
+html.theme-filter .site-footer .bg-white\/\[0\.02\],
+html.theme-filter .lang-panel .bg-white\/\[0\.02\] {
+  background-color: rgba(0, 0, 0, 0.014) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.03\],
+html.theme-filter .site-footer .bg-white\/\[0\.03\],
+html.theme-filter .lang-panel .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.04\],
+html.theme-filter .site-footer .bg-white\/\[0\.04\],
+html.theme-filter .lang-panel .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.028) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.05\],
+html.theme-filter .site-footer .bg-white\/\[0\.05\],
+html.theme-filter .lang-panel .bg-white\/\[0\.05\] {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.06\],
+html.theme-filter .site-footer .bg-white\/\[0\.06\],
+html.theme-filter .lang-panel .bg-white\/\[0\.06\] {
+  background-color: rgba(0, 0, 0, 0.042) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/5:hover,
+html.theme-filter .site-footer .hover\:bg-white\/5:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/10:hover,
+html.theme-filter .site-footer .hover\:bg-white\/10:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/15:hover,
+html.theme-filter .site-footer .hover\:bg-white\/15:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/15:hover {
+  background-color: rgba(0, 0, 0, 0.105) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/20:hover,
+html.theme-filter .site-footer .hover\:bg-white\/20:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.140) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.05\]:hover,
+html.theme-filter .site-footer .hover\:bg-white\/\[0\.05\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.07\]:hover,
+html.theme-filter .site-footer .hover\:bg-white\/\[0\.07\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgba(0, 0, 0, 0.049) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.12\]:hover,
+html.theme-filter .site-footer .hover\:bg-white\/\[0\.12\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.12\]:hover {
+  background-color: rgba(0, 0, 0, 0.084) !important;
+}
+html.theme-filter .site-header .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .site-footer .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .lang-panel .hover\:bg-cyan-400\/10:hover {
+  background-color: rgba(240, 185, 11, 0.14) !important;
+}
+html.theme-filter .site-header .bg-cyan-500\/5,
+html.theme-filter .site-footer .bg-cyan-500\/5,
+html.theme-filter .lang-panel .bg-cyan-500\/5 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+html.theme-filter .site-header .border-white\/10,
+html.theme-filter .site-footer .border-white\/10,
+html.theme-filter .lang-panel .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-white\/5,
+html.theme-filter .site-footer .border-white\/5,
+html.theme-filter .lang-panel .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-cyan-500\/10,
+html.theme-filter .site-footer .border-cyan-500\/10,
+html.theme-filter .lang-panel .border-cyan-500\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-cyan-400\/15,
+html.theme-filter .site-footer .border-cyan-400\/15,
+html.theme-filter .lang-panel .border-cyan-400\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .hover\:border-cyan-400\/25:hover,
+html.theme-filter .site-footer .hover\:border-cyan-400\/25:hover,
+html.theme-filter .lang-panel .hover\:border-cyan-400\/25:hover {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .site-footer .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .lang-panel .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .site-footer .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .lang-panel .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .bg-\[\#020b16\]\/90,
+html.theme-filter .site-footer .bg-\[\#020b16\]\/90,
+html.theme-filter .lang-panel .bg-\[\#020b16\]\/90 {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+html.theme-filter .site-header .bg-\[\#020b16\],
+html.theme-filter .site-footer .bg-\[\#020b16\],
+html.theme-filter .lang-panel .bg-\[\#020b16\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#03101d\],
+html.theme-filter .site-footer .bg-\[\#03101d\],
+html.theme-filter .lang-panel .bg-\[\#03101d\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#0b1220\],
+html.theme-filter .site-footer .bg-\[\#0b1220\],
+html.theme-filter .lang-panel .bg-\[\#0b1220\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#0b1220\]\/95,
+html.theme-filter .site-footer .bg-\[\#0b1220\]\/95,
+html.theme-filter .lang-panel .bg-\[\#0b1220\]\/95 {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#07111b\]\/90,
+html.theme-filter .site-footer .bg-\[\#07111b\]\/90,
+html.theme-filter .lang-panel .bg-\[\#07111b\]\/90 {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .ring-\[\#020b16\],
+html.theme-filter .site-footer .ring-\[\#020b16\],
+html.theme-filter .lang-panel .ring-\[\#020b16\] {
+  --tw-ring-color: #ffffff !important;
+}
+html.theme-filter .site-header .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .site-header .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
+html.theme-filter .site-footer .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .site-footer .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
+html.theme-filter .lang-panel .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .lang-panel .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\] {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
+}
+
 /* 상단 메뉴의 100x 표시: 상자 배경 #f0b90b, 글씨 검정(어느 테마에서도 같게) */
 .nav-badge {
   background-color: #f0b90b !important;
   color: #000000 !important;
   border: 0 !important;
-}
-html.theme-filter .nav-badge {
-  filter: invert(1) hue-rotate(180deg); /* 반전 필터 아래에서 한 번 더 뒤집어 원래 색에 가깝게 */
 }
 
 /* 영어(그리고 한국어 외 언어) 사이트 전체 글꼴. 숫자용 font-mono는 그대로 둔다. */

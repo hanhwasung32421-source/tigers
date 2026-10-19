@@ -52,7 +52,7 @@
       <div
         v-if="langOpen"
         ref="langPanel"
-        class="fixed z-[200] w-[420px] max-w-[calc(100vw-16px)] rounded-xl border border-white/10 bg-[#0b1220] py-4 text-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.45)]"
+        class="lang-panel fixed z-[200] w-[420px] max-w-[calc(100vw-16px)] rounded-xl border border-white/10 bg-[#0b1220] py-4 text-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.45)]"
         :style="{ top: panelPos.top + 'px', left: panelPos.left + 'px' }"
       >
         <div class="grid max-h-[80vh] grid-cols-2 overflow-y-auto">
