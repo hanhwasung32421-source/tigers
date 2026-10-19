@@ -1,39 +1,84 @@
-// 사이트 전체 언어 전환(한글/EN). 별도 번역 키 파일 없이, 호출부에서 t(한글, 영문)로
-// 두 버전을 같이 넘기는 방식 — 기존 한글 텍스트 위주 코드베이스에 최소 침습적으로 적용하기 위함.
+// 사이트 전체 언어 전환. 호출부는 계속 t(한글, 영문)로 두 문장을 같이 넘기고,
+// - 한국어: 한글 문장, 영어: 영문 문장을 그대로 쓰며
+// - 그 밖의 언어(일본어/베트남어/러시아어/…)는 "영문 문장"을 키로 하는 번역 사전(app/i18n/<코드>.json)에서 찾는다.
+//   사전에 없는 문장(숫자/종목명이 끼어 있는 동적 문장 등)은 영어로 대신 보여준다.
+// 사전은 그 언어를 고를 때만 불러온다(번들 크기 절약).
 export type Locale = 'ko' | 'en'
-const LOCALE_STORAGE_KEY = 'bitduck_locale'
+export type LangCode = 'ko' | 'en' | 'ja' | 'vi' | 'ru' | 'th' | 'es' | 'pt-PT' | 'pt-BR' | 'zh-CN' | 'zh-TW'
+
+export const LANGUAGES: Array<{ code: LangCode; label: string }> = [
+  { code: 'ko', label: '한국어' },
+  { code: 'en', label: 'English' },
+  { code: 'ja', label: '日本語' },
+  { code: 'vi', label: 'Tiếng Việt' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'th', label: 'ภาษาไทย' },
+  { code: 'es', label: 'Español' },
+  { code: 'pt-PT', label: 'Português (Portugal)' },
+  { code: 'pt-BR', label: 'Português (Brasil)' },
+  { code: 'zh-CN', label: '简体中文' },
+  { code: 'zh-TW', label: '繁體中文' }
+]
+
+const LOCALE_STORAGE_KEY = 'bitduck_locale' // 예전 키(ko/en) — 호환 유지
+const LANG_STORAGE_KEY = 'bitduck_lang'
+const KNOWN = new Set<string>(LANGUAGES.map((l) => l.code))
 
 export function useLocale() {
+  // locale: 날짜/숫자 서식 등 기존 코드가 쓰는 'ko' | 'en' 구분(한국어 외에는 모두 'en' 취급)
   const locale = useState<Locale>('locale', () => 'ko')
+  const lang = useState<LangCode>('lang', () => 'ko')
+  const dicts = useState<Record<string, Record<string, string>>>('i18n_dicts', () => ({}))
 
-  function setLocale(l: Locale) {
-    locale.value = l
+  async function ensureDict(code: string) {
+    if (code === 'ko' || code === 'en' || dicts.value[code]) return
+    try {
+      const mod: any = await import(`../i18n/${code}.json`)
+      dicts.value = { ...dicts.value, [code]: (mod.default || mod) as Record<string, string> }
+    } catch {
+      // 사전을 못 불러오면 영어로 대신 보여준다
+    }
+  }
+
+  async function setLang(code: LangCode) {
+    await ensureDict(code)
+    lang.value = code
+    locale.value = code === 'ko' ? 'ko' : 'en'
     if (process.client) {
       try {
-        localStorage.setItem(LOCALE_STORAGE_KEY, l)
+        localStorage.setItem(LANG_STORAGE_KEY, code)
+        localStorage.setItem(LOCALE_STORAGE_KEY, locale.value)
+        document.documentElement.lang = code
       } catch {
         // ignore
       }
     }
   }
 
+  function setLocale(l: Locale) {
+    return setLang(l)
+  }
+
   function toggleLocale() {
-    setLocale(locale.value === 'ko' ? 'en' : 'ko')
+    return setLang(lang.value === 'ko' ? 'en' : 'ko')
   }
 
   function initLocale() {
     if (!process.client) return
     try {
-      const saved = localStorage.getItem(LOCALE_STORAGE_KEY)
-      if (saved === 'en' || saved === 'ko') locale.value = saved
+      const saved = localStorage.getItem(LANG_STORAGE_KEY) || localStorage.getItem(LOCALE_STORAGE_KEY)
+      if (saved && KNOWN.has(saved)) setLang(saved as LangCode)
     } catch {
       // ignore
     }
   }
 
   function t(ko: string, en: string) {
-    return locale.value === 'en' ? en : ko
+    const l = lang.value
+    if (l === 'ko') return ko
+    if (l === 'en') return en
+    return dicts.value[l]?.[en] ?? en
   }
 
-  return { locale, setLocale, toggleLocale, initLocale, t }
+  return { locale, lang, setLang, setLocale, toggleLocale, initLocale, t }
 }

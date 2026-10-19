@@ -74,20 +74,6 @@
               <NuxtLink to="/profile" class="hidden sm:inline text-slate-300 underline-offset-4 hover:text-white hover:underline" @click="startNavLoading('/profile')">
                 {{ me.name || me.username }}
               </NuxtLink>
-              <NuxtLink
-                :to="bellTarget"
-                class="relative rounded-md border px-3 py-1.5 transition"
-                :class="unread > 0 ? 'border-amber-400/60 bg-amber-400/15 text-amber-300 hover:bg-amber-400/20' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
-                @click="startNavLoading(bellTarget)"
-              >
-                <span>🔔</span>
-                <span
-                  v-if="unread > 0"
-                  class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold leading-none text-slate-900"
-                >
-                  {{ unread }}
-                </span>
-              </NuxtLink>
               <button class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10" @click="logout">
                 {{ t('로그아웃', 'Log Out') }}
               </button>
@@ -96,24 +82,10 @@
               <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">{{ t('로그인', 'Log In') }}</NuxtLink>
               <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">{{ t('회원가입', 'Sign Up') }}</NuxtLink>
             </template>
-            <LocaleSwitch />
+            <HeaderTools :bell-target="bellTarget" />
           </div>
 
-          <NuxtLink
-            v-if="me"
-            :to="bellTarget"
-            class="relative rounded-md border px-2.5 py-1.5 transition md:hidden"
-            :class="unread > 0 ? 'border-amber-400/60 bg-amber-400/15 text-amber-300 hover:bg-amber-400/20' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
-            @click="startNavLoading(bellTarget)"
-          >
-            <span>🔔</span>
-            <span
-              v-if="unread > 0"
-              class="absolute -right-1.5 -top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold leading-none text-slate-900"
-            >
-              {{ unread }}
-            </span>
-          </NuxtLink>
+          <HeaderTools class="md:hidden" :bell-target="bellTarget" />
           <button
             :key="`mobile-menu-btn-${locale}`"
             type="button"
@@ -128,9 +100,6 @@
 
       <div v-if="mobileMenuOpen" class="border-t border-cyan-500/10 bg-[#020b16] px-4 py-3 md:hidden">
         <nav class="flex flex-col gap-0.5 text-[15px] text-slate-200">
-          <div class="flex justify-end px-3 pb-2">
-            <LocaleSwitch />
-          </div>
           <NuxtLink
             v-for="key in orderedMainNavKeys"
             :key="key"

@@ -94,3 +94,19 @@ select option {
 select option:disabled {
   color: #94a3b8 !important; /* slate-400 */
 }
+
+/* ───────── 화이트(light) 테마 ─────────
+   사이트는 어두운 색을 기준으로 만들어져 있어서, 화이트 테마는 문서 전체의 색을 반전(invert)하고
+   색상(hue)을 180도 돌려 원래 색상 계열(초록/빨강/파랑 등)을 유지하는 방식으로 적용한다.
+   그림/영상/iframe은 한 번 더 반전해서 원래 색으로 보이게 한다. <html class="theme-light">일 때만 동작한다.
+   (루트 요소에 건 filter는 position: fixed의 기준을 바꾸지 않으므로 고정 헤더/모달은 그대로 동작한다.) */
+html.theme-light {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #ffffff;
+}
+html.theme-light img,
+html.theme-light video,
+html.theme-light iframe,
+html.theme-light [data-keep-colors] {
+  filter: invert(1) hue-rotate(180deg);
+}

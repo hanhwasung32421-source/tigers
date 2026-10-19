@@ -36,7 +36,7 @@
         </div>
 
         <div class="pb-6">
-          <SquareOrbitVisual mark="U" caption="TRADE CORE" />
+          <LandingHeroMarkets />
         </div>
       </div>
     </section>
@@ -63,28 +63,7 @@
 
     <!-- MARKETS -->
     <section class="border-t border-white/10 px-6 py-14 md:px-12">
-      <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_1.1fr]">
-        <div>
-          <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">MARKETS</div>
-          <h2 class="mt-4 text-[36px] font-black leading-tight text-white md:text-[43.2px]">{{ t('당신의 포트폴리오를', 'Complete Your') }}<br />{{ t('완성하세요', 'Portfolio') }}</h2>
-          <p class="mt-5 max-w-md text-[16.8px] leading-7 text-slate-400">
-            {{ t('처음 시작하는 순간부터 전문적인 전략까지, 주요 디지털 자산을 하나의 계정에서 빠르고 명확하게 거래하세요.', 'From your very first trade to professional strategies, trade major digital assets quickly and clearly in one account.') }}
-          </p>
-          <NuxtLink to="/exchange/SAMSUNGUSDT" class="mt-7 inline-block rounded-xl bg-white px-6 py-3 text-[16.8px] font-bold text-slate-950 hover:bg-slate-200">
-            {{ t('거래 시작하기', 'Start Trading') }}
-          </NuxtLink>
-        </div>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div v-for="m in markets" :key="m.symbol" class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <div class="flex items-center gap-2">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black text-white" :style="{ background: m.color }">{{ m.badge }}</span>
-              <span class="text-[16.8px] font-bold text-white">{{ m.symbol }}<span class="text-[12px] font-medium text-slate-500">/USDT</span></span>
-            </div>
-            <div class="mt-3 font-mono text-[21.6px] font-bold text-white">{{ m.price }}</div>
-            <div class="mt-1 text-[14.4px] font-semibold" :class="m.up ? 'text-emerald-400' : 'text-rose-400'">{{ m.up ? '+' : '' }}{{ m.change }}%</div>
-          </div>
-        </div>
-      </div>
+      <PopularMarkets />
     </section>
 
     <!-- PRODUCTS -->
@@ -173,15 +152,6 @@ const securityItems = [
     descEn: 'Check the required verification steps and complete the security settings you need to trade.',
     path: 'M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5zm3 4h4M8 13h8M8 17h5'
   }
-]
-
-const markets = [
-  { symbol: 'BTC', badge: 'B', color: '#f7931a', price: '80,090.10', change: '1.67', up: true },
-  { symbol: 'ETH', badge: 'Ξ', color: '#627eea', price: '2,499.87', change: '0.01', up: false },
-  { symbol: 'SOL', badge: '◎', color: '#14f195', price: '107.3200', change: '5.62', up: true },
-  { symbol: 'BNB', badge: 'B', color: '#f0b90b', price: '710.6700', change: '0.81', up: true },
-  { symbol: 'XRP', badge: 'X', color: '#4b5563', price: '1.4359', change: '1.87', up: true },
-  { symbol: 'AVAX', badge: 'A', color: '#e84142', price: '7.4720', change: '1.23', up: true }
 ]
 
 const products = [
