@@ -352,3 +352,186 @@ html:not(:lang(ko)) body *:not(.font-mono):not(.font-brand) {
     Arial,
     sans-serif !important;
 }
+
+/* ───────── 화이트(필터) 테마: 남색 배경을 무채색으로 ─────────
+   반전 필터는 푸른 기가 도는 어두운 색(#06121d 등)을 연한 파랑으로 바꿔 버린다.
+   그래서 이런 배경/테두리는 같은 밝기의 무채색(어두우면 순검정 → 화면에서는 순백)으로 먼저 바꿔 둔다.
+   (자동 생성: 54개 클래스) */
+html.theme-filter .bg-\[\#020817\]\/55 {
+  background-color: rgba(0, 0, 0, 0.55) !important;
+}
+html.theme-filter .bg-\[\#020b16\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#020b16\]\/90 {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+}
+html.theme-filter .bg-\[\#031019\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#03101d\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#03101d\]\/40 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+html.theme-filter .bg-\[\#041425\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#050709\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#05070c\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#050810\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#05111d\]\/90 {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+}
+html.theme-filter .bg-\[\#06101b\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#06121d\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#07111b\]\/90 {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+}
+html.theme-filter .bg-\[\#071722\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#0a0d13\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#0a0f18\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#0b0510\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#0b0510\]\/97 {
+  background-color: rgba(0, 0, 0, 0.97) !important;
+}
+html.theme-filter .bg-\[\#0b0f16\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#0b1220\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#0b1220\]\/95 {
+  background-color: rgba(0, 0, 0, 0.95) !important;
+}
+html.theme-filter .bg-\[\#0b1420\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#0f151b\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#10171d\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#111923\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#131722\] {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-\[\#131722\]\/80 {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+html.theme-filter .bg-\[\#151f35\] {
+  background-color: rgb(30, 30, 30) !important;
+}
+html.theme-filter .bg-\[\#1b2229\] {
+  background-color: rgb(33, 33, 33) !important;
+}
+html.theme-filter .bg-\[\#1e222d\] {
+  background-color: rgb(34, 34, 34) !important;
+}
+html.theme-filter .bg-\[\#1e222d\]\/95 {
+  background-color: rgba(34, 34, 34, 0.95) !important;
+}
+html.theme-filter .bg-\[\#20262f\] {
+  background-color: rgb(37, 37, 37) !important;
+}
+html.theme-filter .bg-\[\#222b34\] {
+  background-color: rgb(42, 42, 42) !important;
+}
+html.theme-filter .bg-\[\#2a2e39\] {
+  background-color: rgb(46, 46, 46) !important;
+}
+html.theme-filter .bg-\[\#2a3138\] {
+  background-color: rgb(48, 48, 48) !important;
+}
+html.theme-filter .bg-\[\#2b3445\] {
+  background-color: rgb(51, 51, 51) !important;
+}
+html.theme-filter .bg-\[linear-gradient\(180deg\,\#111920\,\#10171d\)\] {
+  background-image: none !important;
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-slate-950 {
+  background-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .bg-slate-950\/60 {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+html.theme-filter .bg-slate-950\/95 {
+  background-color: rgba(0, 0, 0, 0.95) !important;
+}
+html.theme-filter .border-\[\#0d2438\] {
+  border-color: rgb(33, 33, 33) !important;
+}
+html.theme-filter .border-\[\#12314a\] {
+  border-color: rgb(44, 44, 44) !important;
+}
+html.theme-filter .border-\[\#12314a\]\/40 {
+  border-color: rgba(44, 44, 44, 0.4) !important;
+}
+html.theme-filter .border-\[\#173753\] {
+  border-color: rgb(50, 50, 50) !important;
+}
+html.theme-filter .border-\[\#2a2e39\] {
+  border-color: rgb(46, 46, 46) !important;
+}
+html.theme-filter .border-slate-950\/40 {
+  border-color: rgba(0, 0, 0, 0.4) !important;
+}
+html.theme-filter .hover\:bg-\[\#1e222d\]:hover {
+  background-color: rgb(34, 34, 34) !important;
+}
+html.theme-filter .hover\:bg-\[\#252f39\]:hover {
+  background-color: rgb(46, 46, 46) !important;
+}
+html.theme-filter .hover\:bg-\[\#2a313b\]:hover {
+  background-color: rgb(48, 48, 48) !important;
+}
+html.theme-filter .hover\:bg-\[\#2c3944\]:hover {
+  background-color: rgb(55, 55, 55) !important;
+}
+html.theme-filter .hover\:bg-\[\#36404a\]:hover {
+  background-color: rgb(63, 63, 63) !important;
+}
+html.theme-filter .hover\:bg-slate-950\/75:hover {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+html.theme-filter .ring-\[\#020b16\] {
+  --tw-ring-color: rgb(0, 0, 0) !important;
+}
+html.theme-filter .border-cyan-500\/10 {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+html.theme-filter .border-cyan-400\/15 {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+html.theme-filter .border-cyan-500\/20 {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+html.theme-filter .ring-cyan-500\/10 {
+  --tw-ring-color: rgba(255, 255, 255, 0.14) !important;
+}
+html.theme-filter .ring-cyan-400\/20 {
+  --tw-ring-color: rgba(255, 255, 255, 0.14) !important;
+}
