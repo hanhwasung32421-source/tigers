@@ -20,14 +20,15 @@ export const LANGUAGES: Array<{ code: LangCode; label: string }> = [
   { code: 'zh-TW', label: '繁體中文' }
 ]
 
-const LOCALE_STORAGE_KEY = 'bitduck_locale' // 예전 키(ko/en) — 호환 유지
-const LANG_STORAGE_KEY = 'bitduck_lang'
+// 키 이름에 _v2를 붙여, 예전에 저장돼 있던 언어 선택(bitduck_lang / bitduck_locale)은 더 이상 읽지 않는다.
+// 기존 방문자도 처음 한 번은 영어로 시작하고, 거기서 다시 고른 언어부터 새로 기억된다.
+const LANG_STORAGE_KEY = 'bitduck_lang_v2'
 const KNOWN = new Set<string>(LANGUAGES.map((l) => l.code))
 
 export function useLocale() {
   // locale: 날짜/숫자 서식 등 기존 코드가 쓰는 'ko' | 'en' 구분(한국어 외에는 모두 'en' 취급)
-  const locale = useState<Locale>('locale', () => 'ko')
-  const lang = useState<LangCode>('lang', () => 'ko')
+  const locale = useState<Locale>('locale', () => 'en')
+  const lang = useState<LangCode>('lang', () => 'en')
   const dicts = useState<Record<string, Record<string, string>>>('i18n_dicts', () => ({}))
 
   async function ensureDict(code: string) {
@@ -47,7 +48,6 @@ export function useLocale() {
     if (process.client) {
       try {
         localStorage.setItem(LANG_STORAGE_KEY, code)
-        localStorage.setItem(LOCALE_STORAGE_KEY, locale.value)
         document.documentElement.lang = code
       } catch {
         // ignore
@@ -66,7 +66,7 @@ export function useLocale() {
   function initLocale() {
     if (!process.client) return
     try {
-      const saved = localStorage.getItem(LANG_STORAGE_KEY) || localStorage.getItem(LOCALE_STORAGE_KEY)
+      const saved = localStorage.getItem(LANG_STORAGE_KEY)
       if (saved && KNOWN.has(saved)) setLang(saved as LangCode)
     } catch {
       // ignore

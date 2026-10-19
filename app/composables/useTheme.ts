@@ -1,7 +1,7 @@
 // 사이트 테마: 처음(저장된 값이 없을 때)은 화이트(light). 해/달 버튼으로 어두운(dark) 테마와 전환하며 localStorage에 기억한다.
 // light는 <html class="theme-light">로 표시하고, 실제 색 반전은 assets/css/main.css의 .theme-light 규칙이 처리한다.
 export type ThemeName = 'light' | 'dark'
-const THEME_STORAGE_KEY = 'bitduck_theme'
+const THEME_STORAGE_KEY = 'bitduck_theme_v2' // _v2: 예전에 저장된 테마 선택은 무시하고 모두 화이트로 새로 시작
 
 export function useTheme() {
   const theme = useState<ThemeName>('theme', () => 'light')

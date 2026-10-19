@@ -16,7 +16,7 @@ export default defineNuxtConfig({
       script: [
         {
           innerHTML:
-            "(function(){try{var t=localStorage.getItem('bitduck_theme');document.documentElement.classList.toggle('theme-light',t!=='dark')}catch(e){document.documentElement.classList.add('theme-light')}})()",
+            "(function(){try{var t=localStorage.getItem('bitduck_theme_v2');document.documentElement.classList.toggle('theme-light',t!=='dark')}catch(e){document.documentElement.classList.add('theme-light')}})()",
           tagPosition: 'head'
         }
       ]
