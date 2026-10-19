@@ -213,12 +213,13 @@ function canViewAdminMenu(key: string) {
 }
 
 // 최상단 메인 메뉴(비회원도 봄): 관리자 대시보드의 "메뉴구성" 탭에서 순서/숨김을 설정한다.
-type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'wallet' | 'invest' | 'support'
+type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'buy' | 'wallet' | 'invest' | 'support'
 const MAIN_NAV_ROUTES: Record<MainNavKey, string> = {
   coin: '/exchange/BTCUSDT',
   stock: '/exchange/AAPLUSDT',
   kr: '/exchange/SAMSUNGUSDT',
   markets: '/markets',
+  buy: '/buy',
   wallet: '/wallet',
   invest: '/invest/balance',
   support: '/support'
@@ -228,6 +229,7 @@ const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
   stock: '파생상품',
   kr: '국내주식',
   markets: '마켓',
+  buy: '자산구매',
   wallet: '내 지갑',
   invest: '투자내역',
   support: '고객센터'
@@ -237,6 +239,7 @@ const MAIN_NAV_LABELS_EN: Record<MainNavKey, string> = {
   stock: 'Derivative',
   kr: 'KR Stocks',
   markets: 'Markets',
+  buy: 'Buy Crypto',
   wallet: 'My Wallet',
   invest: 'Investment History',
   support: 'Support'
@@ -248,9 +251,22 @@ async function loadMainNavConfig() {
     const data = await $fetch<{ order: string[]; hidden: string[] }>('/api/nav-menu')
     const known = new Set(DEFAULT_MAIN_NAV_ORDER)
     const fromServer = (data.order || []).filter((k) => known.has(k as MainNavKey)) as MainNavKey[]
-    const missing = DEFAULT_MAIN_NAV_ORDER.filter((k) => !fromServer.includes(k))
+    // 서버 순서에 없는 새 메뉴는 기본 순서상 바로 앞 메뉴 뒤에 끼워 넣는다.
+    const merged = [...fromServer]
+    DEFAULT_MAIN_NAV_ORDER.forEach((k, i) => {
+      if (merged.includes(k)) return
+      let at = -1
+      for (let j = i - 1; j >= 0; j--) {
+        const p = merged.indexOf(DEFAULT_MAIN_NAV_ORDER[j])
+        if (p >= 0) {
+          at = p
+          break
+        }
+      }
+      merged.splice(at + 1, 0, k)
+    })
     const hidden = new Set((data.hidden || []).filter((k) => known.has(k as MainNavKey)))
-    orderedMainNavKeys.value = [...fromServer, ...missing].filter((k) => !hidden.has(k))
+    orderedMainNavKeys.value = merged.filter((k) => !hidden.has(k))
   } catch {
     // 기본 순서 유지(투자내역은 기본 숨김)
   }

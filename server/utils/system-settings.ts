@@ -47,7 +47,7 @@ export const REORDERABLE_MENU_KEYS = ['members', 'online', 'trades', 'positions'
 export type ReorderableMenuKey = (typeof REORDERABLE_MENU_KEYS)[number]
 
 // 모든 방문자(비회원 포함)가 보는 최상단 메인 메뉴. 순서 변경/숨기기를 관리자 대시보드에서 지원한다.
-export const MAIN_NAV_KEYS = ['coin', 'stock', 'kr', 'markets', 'wallet', 'invest', 'support'] as const
+export const MAIN_NAV_KEYS = ['coin', 'stock', 'kr', 'markets', 'buy', 'wallet', 'invest', 'support'] as const
 export type MainNavKey = (typeof MAIN_NAV_KEYS)[number]
 // 기본값: 요청에 따라 "투자내역"은 처음부터 숨김 처리.
 const DEFAULT_MAIN_NAV_HIDDEN: MainNavKey[] = ['invest']
@@ -273,8 +273,21 @@ function normalizeMenuOrder(raw: any): string[] {
 function normalizeMainNavOrder(raw: any): string[] {
   const known = new Set<string>(MAIN_NAV_KEYS)
   const fromRaw = Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string' && known.has(k)) : []
-  const missing = MAIN_NAV_KEYS.filter((k) => !fromRaw.includes(k))
-  return [...fromRaw, ...missing]
+  // 저장된 순서에 없는 새 메뉴(예: buy)는 맨 뒤가 아니라 기본 순서상 바로 앞 메뉴 뒤에 끼워 넣는다.
+  const out = [...fromRaw]
+  MAIN_NAV_KEYS.forEach((k, i) => {
+    if (out.includes(k)) return
+    let at = -1
+    for (let j = i - 1; j >= 0; j--) {
+      const p = out.indexOf(MAIN_NAV_KEYS[j])
+      if (p >= 0) {
+        at = p
+        break
+      }
+    }
+    out.splice(at + 1, 0, k)
+  })
+  return out
 }
 
 function normalizeMainNavHidden(raw: any, fallback: string[]): string[] {

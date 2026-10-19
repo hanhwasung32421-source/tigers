@@ -1691,13 +1691,14 @@ const dailyKrwRate = ref(0)
 const dailyKrwRateDay = ref('')
 
 // 메뉴구성: 비회원도 보는 최상단 메인 메뉴(관리자 전용 서브메뉴와는 별개)
-type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'wallet' | 'invest' | 'support'
-const MAIN_NAV_KEYS: MainNavKey[] = ['coin', 'stock', 'kr', 'markets', 'wallet', 'invest', 'support']
+type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'buy' | 'wallet' | 'invest' | 'support'
+const MAIN_NAV_KEYS: MainNavKey[] = ['coin', 'stock', 'kr', 'markets', 'buy', 'wallet', 'invest', 'support']
 const MAIN_NAV_LABELS: Record<MainNavKey, { ko: string; en: string }> = {
   coin: { ko: '코인선물', en: 'Crypto Futures' },
   stock: { ko: '해외주식', en: 'Overseas Stocks' },
   kr: { ko: '국내주식', en: 'Domestic Stocks' },
   markets: { ko: '마켓', en: 'Markets' },
+  buy: { ko: '자산구매', en: 'Buy Crypto' },
   wallet: { ko: '내 지갑', en: 'My Wallet' },
   invest: { ko: '투자내역', en: 'Investment History' },
   support: { ko: '고객센터', en: 'Support' }
@@ -2060,8 +2061,20 @@ async function loadMiscSettings() {
     if (Array.isArray(data.mainNavOrder) && data.mainNavOrder.length) {
       const known = new Set(MAIN_NAV_KEYS)
       const fromServer = data.mainNavOrder.filter((k: string) => known.has(k as MainNavKey)) as MainNavKey[]
-      const missing = MAIN_NAV_KEYS.filter((k) => !fromServer.includes(k))
-      mainNavDraft.order = [...fromServer, ...missing]
+      const merged = [...fromServer]
+      MAIN_NAV_KEYS.forEach((k, i) => {
+        if (merged.includes(k)) return
+        let at = -1
+        for (let j = i - 1; j >= 0; j--) {
+          const p = merged.indexOf(MAIN_NAV_KEYS[j])
+          if (p >= 0) {
+            at = p
+            break
+          }
+        }
+        merged.splice(at + 1, 0, k)
+      })
+      mainNavDraft.order = merged
     }
     if (Array.isArray(data.mainNavHidden)) {
       const known = new Set(MAIN_NAV_KEYS)

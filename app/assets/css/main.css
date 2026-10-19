@@ -589,9 +589,10 @@ html.theme-filter .lang-panel.lang-panel {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
 }
 
+
 /* ───────── 화이트(native) 테마: 페이지별 색 클래스 자동 변환 ─────────
    첫 화면, 로그인/가입, 약관, 마켓 페이지가 쓰는 색 클래스를 흰 배경용 색으로 바꾼다.
-   (자동 생성: 80개 규칙 / 변환 스크립트: 작업 폴더의 gen_native.cjs) */
+   (자동 생성: 82개 규칙 / 변환 스크립트: 작업 폴더의 gen_native.cjs) */
 html.theme-native .bg-\[\#020817\]\/55 {
   background-color: rgba(255, 255, 255, 0.55) !important;
 }
@@ -682,6 +683,9 @@ html.theme-native .bg-white\/\[0\.05\] {
 html.theme-native .bg-white\/\[0\.06\] {
   background-color: rgba(0, 0, 0, 0.042) !important;
 }
+html.theme-native .bg-white\/\[0\.08\] {
+  background-color: rgba(0, 0, 0, 0.056) !important;
+}
 html.theme-native .border-cyan-400\/15 {
   border-color: rgba(0, 0, 0, 0.09) !important;
 }
@@ -689,6 +693,9 @@ html.theme-native .border-cyan-400\/25 {
   border-color: rgba(0, 0, 0, 0.16) !important;
 }
 html.theme-native .border-cyan-500\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-cyan-500\/15 {
   border-color: rgba(0, 0, 0, 0.09) !important;
 }
 html.theme-native .border-slate-950\/40 {
@@ -844,7 +851,7 @@ html.theme-native .text-white {
 /* ───────── END 화이트(native) 자동 변환 ───────── */
 
 /* ───────── 화이트(필터) 테마: 베일 위 영역(헤더/푸터/언어 패널/채팅) ─────────
-   반전 필터를 쓰는 페이지에서도 이 영역들은 베일 위(z-index)에 올려서 반전하지 않고, 첫 화면과 같은 규칙을 그대로 쓴다. (자동 생성: 104개) */
+   반전 필터를 쓰는 페이지에서도 이 영역들은 베일 위(z-index)에 올려서 반전하지 않고, 첫 화면과 같은 규칙을 그대로 쓴다. (자동 생성: 106개) */
 html.theme-filter .site-header,
 html.theme-filter .site-footer,
 html.theme-filter .lang-panel,
@@ -1317,11 +1324,23 @@ html.theme-filter .lang-panel .bg-slate-600\/60,
 html.theme-filter .guest-chat .bg-slate-600\/60 {
   background-color: rgba(255, 255, 255, 0.6) !important;
 }
+html.theme-filter .site-header .bg-white\/\[0\.08\],
+html.theme-filter .site-footer .bg-white\/\[0\.08\],
+html.theme-filter .lang-panel .bg-white\/\[0\.08\],
+html.theme-filter .guest-chat .bg-white\/\[0\.08\] {
+  background-color: rgba(0, 0, 0, 0.056) !important;
+}
 html.theme-filter .site-header .border-cyan-400\/25,
 html.theme-filter .site-footer .border-cyan-400\/25,
 html.theme-filter .lang-panel .border-cyan-400\/25,
 html.theme-filter .guest-chat .border-cyan-400\/25 {
   border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-filter .site-header .border-cyan-500\/15,
+html.theme-filter .site-footer .border-cyan-500\/15,
+html.theme-filter .lang-panel .border-cyan-500\/15,
+html.theme-filter .guest-chat .border-cyan-500\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
 }
 html.theme-filter .site-header .border-slate-950\/40,
 html.theme-filter .site-footer .border-slate-950\/40,

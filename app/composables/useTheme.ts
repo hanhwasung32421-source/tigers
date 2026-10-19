@@ -8,7 +8,7 @@ const THEME_STORAGE_KEY = 'bitduck_theme_v2' // _v2: 예전에 저장된 테마 
 // - theme-filter: 나머지 페이지. 어두운 화면을 반전(invert)해서 화이트로 만든다(반전 필터로는 #f0b90b 같은 선명한 노랑을 정확히 낼 수 없다).
 // 필터 없이 실제 색으로 칠하는 화면: 첫 화면, 로그인/가입(/auth/*), 약관(/legal/*), 마켓 목록(/markets)
 export function isNativeThemePath(p: string) {
-  return p === '/' || p === '/markets' || p.startsWith('/auth/') || p.startsWith('/legal')
+  return p === '/' || p === '/markets' || p === '/buy' || p.startsWith('/auth/') || p.startsWith('/legal')
 }
 
 export function applyThemeClasses(light: boolean) {
