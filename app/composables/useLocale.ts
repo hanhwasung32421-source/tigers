@@ -7,8 +7,8 @@ export type Locale = 'ko' | 'en'
 export type LangCode = 'ko' | 'en' | 'ja' | 'vi' | 'ru' | 'th' | 'es' | 'pt-PT' | 'pt-BR' | 'zh-CN' | 'zh-TW'
 
 export const LANGUAGES: Array<{ code: LangCode; label: string }> = [
-  { code: 'ko', label: '한국어' },
   { code: 'en', label: 'English' },
+  { code: 'ko', label: '한국어' },
   { code: 'ja', label: '日本語' },
   { code: 'vi', label: 'Tiếng Việt' },
   { code: 'ru', label: 'Русский' },

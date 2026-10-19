@@ -52,21 +52,36 @@
       <div
         v-if="langOpen"
         ref="langPanel"
-        class="fixed z-[200] w-[230px] rounded-xl border border-white/10 bg-[#0b1220] py-2 text-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.45)]"
+        class="fixed z-[200] w-[420px] max-w-[calc(100vw-16px)] rounded-xl border border-white/10 bg-[#0b1220] py-4 text-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.45)]"
         :style="{ top: panelPos.top + 'px', left: panelPos.left + 'px' }"
       >
-        <div class="px-4 pb-1 pt-1 text-[12px] font-semibold uppercase tracking-wide text-slate-500">Language</div>
-        <div class="max-h-[70vh] overflow-y-auto">
-          <button
-            v-for="l in LANGUAGES"
-            :key="l.code"
-            type="button"
-            class="block w-full px-4 py-2.5 text-center text-[14px] hover:bg-white/5"
-            :class="lang === l.code ? 'font-bold text-amber-400' : 'text-slate-200'"
-            @click="pick(l.code)"
-          >
-            {{ l.label }}
-          </button>
+        <div class="grid max-h-[80vh] grid-cols-2 overflow-y-auto">
+          <div>
+            <div class="px-4 pb-2 text-center text-[15px] font-semibold text-slate-500">Language</div>
+            <button
+              v-for="l in LANGUAGES"
+              :key="l.code"
+              type="button"
+              class="block h-[46px] w-full px-4 text-center text-[15px] hover:bg-white/5"
+              :class="lang === l.code ? 'font-bold text-amber-400' : 'text-slate-200'"
+              @click="pick(l.code)"
+            >
+              {{ l.label }}
+            </button>
+          </div>
+          <div class="border-l border-white/10">
+            <div class="px-4 pb-2 text-center text-[15px] font-semibold text-slate-500">Currency</div>
+            <button
+              v-for="c in CURRENCIES"
+              :key="c"
+              type="button"
+              class="block h-[46px] w-full px-4 text-center text-[15px] hover:bg-white/5"
+              :class="currency === c ? 'font-bold text-amber-400' : 'text-slate-200'"
+              @click="pickCurrency(c)"
+            >
+              {{ c }}
+            </button>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -81,6 +96,20 @@ const { unread } = useMessages()
 const { lang, setLang } = useLocale()
 const { theme, toggleTheme } = useTheme()
 
+// 통화 선택은 화면에만 기억해 둔다(거래소의 가격/잔액은 모두 USDT 기준이라 실제 환산은 하지 않는다).
+const CURRENCIES = ['USD', 'CNY', 'RUB', 'JPY', 'EUR', 'VND', 'THB', 'BRL', 'TWD', 'HKD', 'MXN']
+const CURRENCY_KEY = 'bitduck_currency_v2'
+const currency = useState<string>('currency', () => 'USD')
+function pickCurrency(c: string) {
+  currency.value = c
+  try {
+    localStorage.setItem(CURRENCY_KEY, c)
+  } catch {
+    // ignore
+  }
+  langOpen.value = false
+}
+
 const mounted = ref(false)
 const langOpen = ref(false)
 const langBtn = ref<HTMLElement | null>(null)
@@ -93,7 +122,7 @@ function toggleLang() {
     return
   }
   const r = langBtn.value?.getBoundingClientRect()
-  if (r) panelPos.value = { top: r.bottom + 8, left: Math.max(8, Math.min(r.right - 230, window.innerWidth - 238)) }
+  if (r) panelPos.value = { top: r.bottom + 8, left: Math.max(8, Math.min(r.right - 420, window.innerWidth - 428)) }
   langOpen.value = true
 }
 
@@ -114,6 +143,12 @@ function onKey(e: KeyboardEvent) {
 
 onMounted(() => {
   mounted.value = true
+  try {
+    const c = localStorage.getItem(CURRENCY_KEY)
+    if (c && CURRENCIES.includes(c)) currency.value = c
+  } catch {
+    // ignore
+  }
   document.addEventListener('click', onDocClick)
   document.addEventListener('keydown', onKey)
 })
