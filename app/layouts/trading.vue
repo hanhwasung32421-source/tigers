@@ -33,9 +33,6 @@
                 @click="startNavLoading(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
               >
                 {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
-                <span v-if="MAIN_NAV_BADGES[key]" class="nav-badge rounded px-1.5 py-0.5 text-[11px] font-bold leading-none">
-                  {{ MAIN_NAV_BADGES[key] }}
-                </span>
               </NuxtLink>
             </template>
             <div v-if="isAdmin" class="group relative">
@@ -108,9 +105,6 @@
             @click="onMobileNavClick(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
           >
             {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
-            <span v-if="MAIN_NAV_BADGES[key]" class="nav-badge rounded px-1.5 py-0.5 text-[11px] font-bold leading-none">
-              {{ MAIN_NAV_BADGES[key] }}
-            </span>
           </NuxtLink>
 
           <template v-if="isAdmin">
@@ -247,7 +241,6 @@ const MAIN_NAV_LABELS_EN: Record<MainNavKey, string> = {
   invest: 'Investment History',
   support: 'Support'
 }
-const MAIN_NAV_BADGES: Partial<Record<MainNavKey, string>> = { coin: '100x', stock: '100x', kr: '100x' }
 const DEFAULT_MAIN_NAV_ORDER = Object.keys(MAIN_NAV_ROUTES) as MainNavKey[]
 const orderedMainNavKeys = ref<MainNavKey[]>(DEFAULT_MAIN_NAV_ORDER.filter((k) => k !== 'invest'))
 async function loadMainNavConfig() {
