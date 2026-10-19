@@ -224,7 +224,7 @@ function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_
       if (v && typeof v === 'object') {
         const out: Record<string, { x: number; y: number; s?: number }> = {}
         const clamp = (n: any) => Math.max(-200, Math.min(200, Math.round(Number(n) || 0)))
-        const clampSize = (n: any) => Math.max(-40, Math.min(80, Math.round(Number(n) || 0)))
+        const clampSize = (n: any) => Math.max(-40, Math.min(1000, Math.round(Number(n) || 0)))
         for (const k of PROFIT_CARD_OFFSET_KEYS) {
           const o = (v as any)[k]
           if (!o || typeof o !== 'object') continue

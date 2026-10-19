@@ -1823,7 +1823,7 @@ const selectedOffset = computed(() => {
 })
 // 항목 크기 조정값(px): 글자는 글자 크기에, 그림/도형은 가로·세로 크기에 더한다.
 const SIZE_MIN = -40
-const SIZE_MAX = 80
+const SIZE_MAX = 1000
 function cardSz(key: string) {
   return profitCardDraft.offsets?.[key]?.s || 0
 }
