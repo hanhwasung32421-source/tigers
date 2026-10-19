@@ -1390,7 +1390,7 @@
               {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} {{ t('원', 'KRW') }}
             </div>
 
-            <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
+            <div class="mt-[18px] inline-flex items-center gap-2">
               <span
                 class="rounded-full px-2 py-0.5 font-bold"
                 :style="[
@@ -1405,7 +1405,7 @@
                 {{ closeSummary.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}
               </span>
               <span
-                class="font-semibold"
+                class="rounded-full bg-white/[0.04] px-3.5 py-1.5 font-semibold"
                 :style="[{ fontSize: cardFs(profitCardStyle.symbolFontSize, 'symbol'), color: profitCardStyle.symbolTextColor }, cardOffset('symbol')]"
               >
                 {{ shortSymbol(closeSummary.symbol) }}USDT

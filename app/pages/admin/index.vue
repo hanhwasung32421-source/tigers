@@ -569,7 +569,7 @@
                   {{ t(v.wonTextKo, v.wonTextEn) }}
                 </div>
 
-                <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
+                <div class="mt-[18px] inline-flex items-center gap-2">
                   <span
                     class="cursor-pointer rounded-full px-2 py-0.5 font-bold"
                     :style="{
@@ -585,7 +585,7 @@
                     {{ v.side === 'short' ? t('숏', 'Short') : t('롱', 'Long') }}
                   </span>
                   <span
-                    class="cursor-pointer rounded font-semibold"
+                    class="cursor-pointer rounded-full bg-white/[0.04] px-3.5 py-1.5 font-semibold"
                     :style="{
                       fontSize: cardFs(profitCardDraft.symbolFontSize, 'symbol'),
                       color: profitCardDraft.symbolTextColor,
