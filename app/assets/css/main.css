@@ -868,3 +868,10 @@ html.theme-filter .site-header.site-header {
 html.theme-filter .site-footer.site-footer {
   border-color: rgba(0, 0, 0, 0.09) !important;
 }
+
+/* 필터 페이지의 언어/통화 패널도 첫 화면과 똑같이 흰 배경(패널 자신의 배경이 자동 생성 규칙에 덮이지 않게 한 단계 더 구체적으로). */
+html.theme-filter .lang-panel.lang-panel {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.09) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
+}
