@@ -872,3 +872,13 @@ html.theme-filter .ring-cyan-400\/20 {
     animation: none;
   }
 }
+
+/* 필터 페이지에서도 상단 헤더/푸터는 첫 화면과 똑같이(흰 배경, 옅은 회색 선).
+   위쪽의 남색→무채색 변환 규칙(자동 생성)이 헤더 자신의 배경/테두리를 다시 덮어쓰지 못하도록 선택자를 한 단계 더 구체적으로 쓴다. */
+html.theme-filter .site-header.site-header {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-footer.site-footer {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
