@@ -9,12 +9,12 @@
             {{ t('하나의 계정으로.', 'one account.') }}
           </h1>
           <p class="mt-5 text-sm leading-6 text-slate-400">
-            {{
-              t(
+            <BrandText
+              :text="t(
                 `KYC 인증으로 전세계 300개 이상의 실시간 선물과 자산 관리를 연결하는 ${appName} 거래 환경을 지금 만나보세요.`,
                 `Meet ${appName}'s trading environment, connecting real-time futures and asset management across 300+ instruments worldwide with KYC verification.`
-              )
-            }}
+              )"
+            />
           </p>
 
           <div class="mt-10 border-t border-white/10 pt-8">
@@ -23,7 +23,7 @@
                 <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 text-sm font-bold text-white">
                   {{ item.icon }}
                 </div>
-                <span class="text-[11px] font-semibold tracking-wide text-slate-300">{{ item.label }}</span>
+                <span class="text-[11px] font-semibold tracking-wide text-slate-300"><BrandText :text="item.label" /></span>
               </div>
             </div>
           </div>

@@ -212,7 +212,7 @@
       </div>
 
       <div class="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-5 text-[11px] text-slate-600">
-        <span>© {{ new Date().getFullYear() }} {{ appName }}. All rights reserved.</span>
+        <span>© {{ new Date().getFullYear() }} <BrandText :text="appName" />. All rights reserved.</span>
         <span>{{ t('거래에는 원금 손실 위험이 있습니다.', 'Trading involves risk of loss of principal.') }}</span>
       </div>
     </footer>

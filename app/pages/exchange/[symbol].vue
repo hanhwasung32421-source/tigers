@@ -1352,18 +1352,7 @@
 
           <div class="flex flex-col items-center">
             <span class="inline-flex items-center gap-2" :style="cardOffset('logo')">
-              <span
-                class="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] border border-white bg-black"
-                :style="{ height: Math.max(8, profitCardIconSize + cardSize('logo')) + 'px', width: Math.max(8, profitCardIconSize + cardSize('logo')) + 'px' }"
-              >
-                <img src="/favicon.png" alt="" class="h-[80%] w-[80%] object-contain" style="image-rendering: pixelated" />
-              </span>
-              <span
-                class="font-bold tracking-tight"
-                :style="{ fontSize: cardFs(profitCardStyle.logoFontSize, 'logo'), color: profitCardStyle.logoColor }"
-              >
-                BITDUCK
-              </span>
+              <img src="/brand-logo.png" alt="" class="max-w-none object-contain" :style="{ height: Math.max(8, profitCardIconSize + cardSize('logo')) + 'px', width: 'auto' }" />
             </span>
 
             <div

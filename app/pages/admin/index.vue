@@ -520,15 +520,7 @@
                   :style="{ outline: selectedOffsetKey === 'logo' ? '2px solid #818cf8' : 'none', outlineOffset: '3px', ...cardOffsetStyle('logo') }"
                   @click.stop="selectTarget('logo', 'logo')"
                 >
-                  <span
-                    class="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] border border-white bg-black"
-                    :style="{ height: Math.max(8, Math.round(profitCardDraft.logoFontSize * 1.5) + cardSz('logo')) + 'px', width: Math.max(8, Math.round(profitCardDraft.logoFontSize * 1.5) + cardSz('logo')) + 'px' }"
-                  >
-                    <img src="/favicon.png" alt="" class="h-[80%] w-[80%] object-contain" style="image-rendering: pixelated" />
-                  </span>
-                  <span class="font-bold tracking-tight" :style="{ fontSize: cardFs(profitCardDraft.logoFontSize, 'logo'), color: profitCardDraft.logoColor }">
-                    BITDUCK
-                  </span>
+                  <img src="/brand-logo.png" alt="" class="max-w-none object-contain" :style="{ height: Math.max(8, Math.round(profitCardDraft.logoFontSize * 1.5) + cardSz('logo')) + 'px', width: 'auto' }" />
                 </span>
 
                 <div

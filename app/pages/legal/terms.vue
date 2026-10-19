@@ -7,7 +7,7 @@
     <div class="mt-10 space-y-8 border-t border-white/10 pt-10">
       <section v-for="(item, idx) in sections" :key="idx">
         <h2 class="text-base font-bold text-white">{{ t(item.title, item.titleEn) }}</h2>
-        <p class="mt-2 text-sm leading-7 text-slate-400">{{ t(item.body, item.bodyEn) }}</p>
+        <p class="mt-2 text-sm leading-7 text-slate-400"><BrandText :text="t(item.body, item.bodyEn)" /></p>
       </section>
     </div>
   </div>

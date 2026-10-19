@@ -12,7 +12,7 @@
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <CoinIcon :base="c.base" :size="32" />
-              <span class="text-[15px] font-bold text-white">{{ c.base }}</span>
+              <span class="text-[15px] font-bold text-white">{{ c.category === 'coin' ? c.base : c.symbol }}</span>
             </div>
             <span class="text-[13px] font-bold" :class="c.changePct >= 0 ? 'text-emerald-400' : 'text-rose-400'">{{ sign(c.changePct) }}{{ c.changePct.toFixed(3) }}%</span>
           </div>
@@ -75,9 +75,11 @@ const { items, refresh } = useMarketOverview()
 const spark = ref<Record<string, number[]>>({})
 
 const cards = computed(() => {
-  // 거래대금이 어느 정도 되는 코인 중 상승률 상위 3개(너무 한산한 종목이 맨 위로 오지 않게)
+  // 맨 위는 SAMSUNGUSDT 고정, 나머지 두 자리는 거래대금이 어느 정도 되는 코인 중 상승률 상위(한산한 종목이 올라오지 않게)
+  const samsung = items.value.find((i) => i.symbol === 'SAMSUNGUSDT')
   const coins = items.value.filter((i) => i.category === 'coin').sort((a, b) => b.volUsd - a.volUsd).slice(0, 60)
-  return coins.sort((a, b) => b.changePct - a.changePct).slice(0, 3)
+  const top = coins.sort((a, b) => b.changePct - a.changePct)
+  return samsung ? [samsung, ...top.slice(0, 2)] : top.slice(0, 3)
 })
 
 // 대표 종목을 먼저 보여주고(시세 목록에 있는 것만), 남는 자리는 거래대금 순으로 채운다.

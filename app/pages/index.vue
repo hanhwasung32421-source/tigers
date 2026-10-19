@@ -4,11 +4,13 @@
       <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
         <div>
           <h1 class="text-[36px] font-bold leading-[1.15] tracking-tight text-white md:text-[44px] xl:text-[56px]">
-            {{ t('인텔리전스에서 실행까지', 'From Intelligence to Execution') }}
-            <br />
-            {{ t(`${appName}에서 더 스마트하게 거래하세요`, `Trade Smarter on ${appName}`) }}
+            {{ t('더 안전하고, 더 강력한 디지털 자산 거래', 'Safer, more powerful, digital asset trading') }}
           </h1>
-          <p class="mt-6 text-[19px] font-medium text-slate-300">{{ t('코인 · RWA · 주식을 한 곳에서', 'Across Crypto · RWA · Stocks') }}</p>
+          <p class="mt-6 text-[19px] leading-8 text-slate-300">
+            {{ t('KYC 인증으로 신뢰할 수 있는 보안시스템.', 'A trusted security system backed by KYC verification.') }}<br />
+            {{ t('전세계 300개 이상의 레버리지 종목 거래 환경', 'Trade over 300 leveraged instruments worldwide.') }}<br />
+            {{ t('지금 시작하세요.', 'Start now') }}
+          </p>
 
           <form class="mt-10 flex max-w-[600px] items-center gap-2 rounded-2xl bg-white/[0.06] p-1.5" @submit.prevent="getStarted">
             <input
@@ -22,7 +24,7 @@
             </button>
           </form>
 
-          <div class="mt-12 text-[16px] text-slate-400">{{ t(`${appName} 앱 다운로드`, `Download ${appName} APP`) }}</div>
+          <div class="mt-12 text-[16px] text-slate-400"><BrandText :text="t(`${appName} 앱 다운로드`, `Download ${appName} APP`)" /></div>
           <div class="mt-4 flex items-center gap-3">
             <NuxtLink to="/exchange/SAMSUNGUSDT" aria-label="Google Play" class="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-white/[0.06] hover:bg-white/[0.12]">
               <svg viewBox="0 0 24 24" class="h-7 w-7" aria-hidden="true">
@@ -107,7 +109,7 @@
           <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">FAQ</div>
           <h2 class="mt-4 text-[36px] font-black leading-tight text-white md:text-[43.2px]">{{ t('궁금한 점이', 'Have a') }}<br />{{ t('있으신가요?', 'question?') }}</h2>
           <p class="mt-5 max-w-sm text-[16.8px] leading-7 text-slate-400">
-            {{ t(`자주 묻는 질문에서 ${appName} 이용에 필요한 핵심 정보를 확인하세요.`, `Check the FAQ for key information about using ${appName}.`) }}
+            <BrandText :text="t(`자주 묻는 질문에서 ${appName} 이용에 필요한 핵심 정보를 확인하세요.`, `Check the FAQ for key information about using ${appName}.`)" />
           </p>
           <NuxtLink to="/support" class="mt-6 inline-block text-[16.8px] font-semibold text-white underline underline-offset-4">
             {{ t('고객지원 바로가기', 'Go to Support') }} →
@@ -120,10 +122,10 @@
               class="flex w-full items-center justify-between gap-4 py-5 text-left text-[16.8px] font-semibold text-slate-100 hover:text-white"
               @click="openFaq = openFaq === idx ? null : idx"
             >
-              {{ t(item.q, item.qEn) }}
+              <BrandText :text="t(item.q, item.qEn)" />
               <span class="shrink-0 text-[21.6px] font-light text-slate-500">{{ openFaq === idx ? '−' : '+' }}</span>
             </button>
-            <p v-if="openFaq === idx" class="pb-5 text-[16.8px] leading-7 text-slate-400">{{ t(item.a, item.aEn) }}</p>
+            <p v-if="openFaq === idx" class="pb-5 text-[16.8px] leading-7 text-slate-400"><BrandText :text="t(item.a, item.aEn)" /></p>
           </div>
         </div>
       </div>
