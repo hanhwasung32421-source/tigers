@@ -7,8 +7,8 @@
       <!-- AI Trading Signal Radar: 왼쪽으로 계속 흐르고, 양끝은 서서히 사라진다 -->
       <section>
         <h2 class="text-[15px] font-medium text-white">AI Trading Signal Radar</h2>
-        <div class="radar-mask mt-3 overflow-hidden">
-          <div class="radar-track" :style="{ '--radar-dur': radarDuration + 's' }">
+        <div class="radar-mask mt-3 overflow-hidden" @mouseenter="radarPaused = true" @mouseleave="radarPaused = false">
+          <div class="radar-track" :style="{ transform: `translateX(-${radarIdx * RADAR_STEP}px)`, transition: radarAnim ? 'transform 600ms ease-in-out' : 'none' }">
             <div v-for="(c, i) in radarLoop" :key="`${c.symbol}-${i}`" class="mr-4 shrink-0">
               <SignalCard :item="c" />
             </div>
@@ -306,12 +306,15 @@ async function loadStats() {
 
 let refreshTimer: any = null
 onMounted(() => {
+  startRadar()
   loadFavorites()
   loadStats()
   refreshTimer = setInterval(() => load(false), 20_000)
 })
 onBeforeUnmount(() => {
   if (refreshTimer) clearInterval(refreshTimer)
+  if (radarTimer) clearInterval(radarTimer)
+  if (radarResetTimer) clearTimeout(radarResetTimer)
 })
 
 const upsharePct = computed(() => {
@@ -336,7 +339,27 @@ const radarItems = computed<MarketItem[]>(() => {
 })
 // 끊김 없이 이어지도록 같은 목록을 두 번 이어 붙이고, 절반만큼 이동시키는 애니메이션을 쓴다.
 const radarLoop = computed(() => [...radarItems.value, ...radarItems.value])
-const radarDuration = computed(() => Math.max(30, radarItems.value.length * 6))
+// 2초마다 카드 한 장씩 왼쪽으로 이동. 한 바퀴(원래 목록 길이)를 돌면 애니메이션 없이 처음 위치로 되돌려 끊김 없이 이어 보이게 한다.
+const RADAR_STEP = 286 // 카드 270px + 간격 16px
+const radarIdx = ref(0)
+const radarAnim = ref(true)
+const radarPaused = ref(false)
+let radarTimer: any = null
+let radarResetTimer: any = null
+function startRadar() {
+  radarTimer = setInterval(() => {
+    const n = radarItems.value.length
+    if (radarPaused.value || n < 2) return
+    radarAnim.value = true
+    radarIdx.value++
+    if (radarIdx.value >= n) {
+      radarResetTimer = setTimeout(() => {
+        radarAnim.value = false
+        radarIdx.value = 0
+      }, 700)
+    }
+  }, 2000)
+}
 
 // ── 공포·탐욕 게이지 위 점 위치(반원 위를 0~100으로) ──
 const fgDot = computed(() => {

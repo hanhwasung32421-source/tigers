@@ -851,26 +851,12 @@ html.theme-filter .ring-cyan-400\/20 {
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
 }
+/* 카드 한 장(270px + 간격 16px)씩 2초마다 왼쪽으로 밀리는 동작은 마켓 화면 스크립트가 transform으로 처리한다.
+   (OS의 "애니메이션 줄이기" 설정과 무관하게 동작하도록 CSS 애니메이션을 쓰지 않는다.) */
 .radar-track {
   display: flex;
   width: max-content;
-  animation: radar-left var(--radar-dur, 70s) linear infinite;
-}
-.radar-mask:hover .radar-track {
-  animation-play-state: paused;
-}
-@keyframes radar-left {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .radar-track {
-    animation: none;
-  }
+  will-change: transform;
 }
 
 /* 필터 페이지에서도 상단 헤더/푸터는 첫 화면과 똑같이(흰 배경, 옅은 회색 선).
