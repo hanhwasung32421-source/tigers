@@ -432,5 +432,7 @@
 "seconds": "segundos",
 "seconds, then revert": "segundos e depois reverter",
 "ticks to move over": "ticks a percorrer",
-"ticks to move over (0=auto)": "ticks a percorrer (0=automático)"
+"ticks to move over (0=auto)": "ticks a percorrer (0=automático)",
+"Login": "Iniciar sessão",
+"Register": "Registar"
 }

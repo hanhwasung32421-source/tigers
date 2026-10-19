@@ -432,5 +432,7 @@
 "seconds": "秒",
 "seconds, then revert": "秒后恢复",
 "ticks to move over": "个刻度内移动",
-"ticks to move over (0=auto)": "个刻度内移动（0=自动）"
+"ticks to move over (0=auto)": "个刻度内移动（0=自动）",
+"Login": "登录",
+"Register": "注册"
 }

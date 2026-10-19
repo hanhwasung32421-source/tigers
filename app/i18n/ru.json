@@ -432,5 +432,7 @@
 "seconds": "сек.",
 "seconds, then revert": "сек., затем вернуть",
 "ticks to move over": "тиков для перемещения",
-"ticks to move over (0=auto)": "тиков для перемещения (0=авто)"
+"ticks to move over (0=auto)": "тиков для перемещения (0=авто)",
+"Login": "Войти",
+"Register": "Регистрация"
 }

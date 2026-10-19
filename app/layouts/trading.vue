@@ -33,7 +33,7 @@
                 @click="startNavLoading(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
               >
                 {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
-                <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[11px] font-bold leading-none text-yellow-300">
+                <span v-if="MAIN_NAV_BADGES[key]" class="nav-badge rounded px-1.5 py-0.5 text-[11px] font-bold leading-none">
                   {{ MAIN_NAV_BADGES[key] }}
                 </span>
               </NuxtLink>
@@ -79,8 +79,8 @@
               </button>
             </template>
             <template v-else>
-              <NuxtLink to="/auth/login" class="px-2 py-1.5 text-slate-300 hover:text-white" @click="startNavLoading('/auth/login')">{{ t('로그인', 'Log In') }}</NuxtLink>
-              <NuxtLink to="/auth/register" class="rounded-lg bg-white px-4 py-1.5 font-bold text-slate-950 hover:bg-slate-200" @click="startNavLoading('/auth/register')">{{ t('회원가입', 'Sign Up') }}</NuxtLink>
+              <NuxtLink to="/auth/login" class="px-2 py-1.5 font-medium text-amber-400 hover:text-amber-300" @click="startNavLoading('/auth/login')">{{ t('로그인', 'Login') }}</NuxtLink>
+              <NuxtLink to="/auth/register" class="rounded-lg bg-[#f0b90b] px-5 py-1.5 font-medium text-[#383A3E] hover:bg-[#d9a609]" @click="startNavLoading('/auth/register')">{{ t('회원가입', 'Register') }}</NuxtLink>
             </template>
             <HeaderTools :bell-target="bellTarget" />
           </div>
@@ -108,7 +108,7 @@
             @click="onMobileNavClick(key === 'support' ? supportTarget : MAIN_NAV_ROUTES[key])"
           >
             {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
-            <span v-if="MAIN_NAV_BADGES[key]" class="rounded border border-emerald-400 px-1 py-0.5 text-[11px] font-bold leading-none text-yellow-300">
+            <span v-if="MAIN_NAV_BADGES[key]" class="nav-badge rounded px-1.5 py-0.5 text-[11px] font-bold leading-none">
               {{ MAIN_NAV_BADGES[key] }}
             </span>
           </NuxtLink>
@@ -144,8 +144,8 @@
             </button>
           </template>
           <template v-else>
-            <NuxtLink to="/auth/login" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/login')">{{ t('로그인', 'Log In') }}</NuxtLink>
-            <NuxtLink to="/auth/register" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/register')">{{ t('회원가입', 'Sign Up') }}</NuxtLink>
+            <NuxtLink to="/auth/login" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/login')">{{ t('로그인', 'Login') }}</NuxtLink>
+            <NuxtLink to="/auth/register" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick('/auth/register')">{{ t('회원가입', 'Register') }}</NuxtLink>
           </template>
           <div class="px-3 pt-2 text-[13px] text-slate-500">{{ appVersion }}</div>
         </nav>

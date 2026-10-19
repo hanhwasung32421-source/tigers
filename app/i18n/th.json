@@ -432,5 +432,7 @@
 "seconds": "วินาที",
 "seconds, then revert": "วินาที แล้วย้อนกลับ",
 "ticks to move over": "ติกที่จะเลื่อนผ่าน",
-"ticks to move over (0=auto)": "ติกที่จะเลื่อนผ่าน (0=อัตโนมัติ)"
+"ticks to move over (0=auto)": "ติกที่จะเลื่อนผ่าน (0=อัตโนมัติ)",
+"Login": "เข้าสู่ระบบ",
+"Register": "สมัครสมาชิก"
 }

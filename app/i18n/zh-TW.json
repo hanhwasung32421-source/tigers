@@ -432,5 +432,7 @@
 "seconds": "秒",
 "seconds, then revert": "秒後還原",
 "ticks to move over": "跳動數移動範圍",
-"ticks to move over (0=auto)": "跳動數移動範圍（0=自動）"
+"ticks to move over (0=auto)": "跳動數移動範圍（0=自動）",
+"Login": "登入",
+"Register": "註冊"
 }

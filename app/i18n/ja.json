@@ -432,5 +432,7 @@
 "seconds": "秒",
 "seconds, then revert": "秒後に元に戻す",
 "ticks to move over": "ティックかけて移動",
-"ticks to move over (0=auto)": "ティックかけて移動（0=自動）"
+"ticks to move over (0=auto)": "ティックかけて移動（0=自動）",
+"Login": "ログイン",
+"Register": "新規登録"
 }

@@ -432,5 +432,7 @@
 "seconds": "giây",
 "seconds, then revert": "giây, sau đó hoàn nguyên",
 "ticks to move over": "tick để di chuyển qua",
-"ticks to move over (0=auto)": "tick để di chuyển qua (0=tự động)"
+"ticks to move over (0=auto)": "tick để di chuyển qua (0=tự động)",
+"Login": "Đăng nhập",
+"Register": "Đăng ký"
 }
