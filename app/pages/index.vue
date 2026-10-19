@@ -4,7 +4,7 @@
       <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
         <div>
           <h1 class="text-[36px] font-bold leading-[1.15] tracking-tight text-white md:text-[44px] xl:text-[56px]">
-            {{ t('더 안전하고, 더 강력한 디지털 자산 거래', 'Safer, more powerful, digital asset trading') }}
+            {{ t('더 안전하고, 더 강력한', 'Safer, more powerful,') }}<br />{{ t('디지털 자산 거래', 'digital asset trading') }}
           </h1>
           <p class="mt-6 text-[19px] leading-8 text-slate-300">
             {{ t('KYC 인증으로 신뢰할 수 있는 보안시스템.', 'A trusted security system backed by KYC verification.') }}<br />
