@@ -3,7 +3,7 @@
     <section class="px-6 py-10 md:px-12 md:py-14">
       <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
         <div>
-          <h1 class="text-[40px] font-bold leading-[1.15] tracking-tight text-white md:text-[48px] xl:text-[56px]">
+          <h1 class="text-[36px] font-bold leading-[1.15] tracking-tight text-white md:text-[44px] xl:text-[56px]">
             {{ t('인텔리전스에서 실행까지', 'From Intelligence to Execution') }}
             <br />
             {{ t(`${appName}에서 더 스마트하게 거래하세요`, `Trade Smarter on ${appName}`) }}

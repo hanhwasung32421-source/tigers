@@ -152,7 +152,7 @@
       </div>
     </header>
 
-    <main class="mx-auto py-4 md:py-6" :class="route.path.startsWith('/admin') ? 'max-w-none px-3 sm:px-6 lg:px-[150px]' : 'max-w-6xl px-4'">
+    <main class="mx-auto py-4 md:py-6" :class="route.path.startsWith('/admin') ? 'max-w-none px-3 sm:px-6 lg:px-[150px]' : route.path === '/' ? 'max-w-none px-0' : 'max-w-6xl px-4'">
       <slot />
     </main>
 
@@ -173,7 +173,7 @@
       </div>
     </Teleport>
 
-    <footer class="font-landing mx-auto max-w-6xl border-t border-cyan-500/10 px-4 pb-10 pt-8 text-slate-500">
+    <footer :class="route.path === '/' ? 'max-w-none px-6 md:px-12' : 'max-w-6xl px-4'" class="font-landing mx-auto border-t border-cyan-500/10 pb-10 pt-8 text-slate-500">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <BrandLogo size="sm" />
         <div class="text-xs text-slate-500">{{ t('거래, 자산, 기회를 하나의 경험으로 연결합니다.', 'Connecting trading, assets, and opportunity in one experience.') }}</div>
