@@ -944,28 +944,28 @@
         <table class="w-full text-[14px]">
           <thead class="sticky top-0 bg-slate-950/95 text-slate-400">
             <tr class="text-left">
-              <th class="px-[10px] py-2">{{ t('시간', 'Time') }}</th>
-              <th class="px-[10px] py-2">{{ t('종목', 'Symbol') }}</th>
-              <th class="px-[10px] py-2">{{ t('포지션', 'Position') }}</th>
-              <th class="px-[10px] py-2">{{ t('구분', 'Type') }}</th>
-              <th class="px-[10px] py-2">{{ t('진입가격', 'Entry Price') }}</th>
-              <th class="px-[10px] py-2">{{ t('체결가', 'Fill Price') }}</th>
-              <th class="px-[10px] py-2">{{ t('수량', 'Quantity') }}</th>
-              <th class="px-[10px] py-2">{{ t('수수료', 'Fee') }}</th>
-              <th class="px-[10px] py-2">{{ t('실현손익', 'Realized P&L') }}</th>
+              <th class="px-3 py-2">{{ t('시간', 'Time') }}</th>
+              <th class="px-3 py-2">{{ t('종목', 'Symbol') }}</th>
+              <th class="px-3 py-2">{{ t('포지션', 'Position') }}</th>
+              <th class="px-3 py-2">{{ t('구분', 'Type') }}</th>
+              <th class="px-3 py-2">{{ t('진입가격', 'Entry Price') }}</th>
+              <th class="px-3 py-2">{{ t('체결가', 'Fill Price') }}</th>
+              <th class="px-3 py-2">{{ t('수량', 'Quantity') }}</th>
+              <th class="px-3 py-2">{{ t('수수료', 'Fee') }}</th>
+              <th class="px-3 py-2">{{ t('실현손익', 'Realized P&L') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="fills.length === 0 && !fillsLoading" class="border-t border-white/10">
-              <td colspan="9" class="px-[10px] py-4 text-slate-400">{{ t('거래내역이 없습니다.', 'No trade history.') }}</td>
+              <td colspan="9" class="px-3 py-4 text-slate-400">{{ t('거래내역이 없습니다.', 'No trade history.') }}</td>
             </tr>
             <tr v-for="tr in fills" :key="`fill-${tr.id}`" class="border-t border-white/10">
-              <td class="px-[10px] py-3 font-mono text-slate-300">{{ formatTradeTime(tr.created_at) }}</td>
-              <td class="px-[10px] py-3 text-slate-100">{{ shortSymbol(tr.symbol) }}</td>
-              <td class="px-[10px] py-3" :class="tr.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
+              <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(tr.created_at) }}</td>
+              <td class="px-3 py-3 text-slate-100">{{ shortSymbol(tr.symbol) }}</td>
+              <td class="px-3 py-3" :class="tr.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
                 {{ tr.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}
               </td>
-              <td class="px-[10px] py-3">
+              <td class="px-3 py-3">
                 <span
                   class="rounded px-2 py-1 text-[14px] font-semibold ring-1"
                   :class="tradeResultBadgeClass(tr)"
@@ -973,11 +973,11 @@
                   {{ tradeResultLabel(tr) }}
                 </span>
               </td>
-              <td class="px-[10px] py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.entry_price)) }}</td>
-              <td class="px-[10px] py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.exit_price)) }}</td>
-              <td class="px-[10px] py-3 font-mono text-slate-200">{{ fmtQty2(tr.symbol, Number(tr.qty)) }} {{ baseCoin(tr.symbol) }}</td>
-              <td class="px-[10px] py-3 font-mono text-slate-300">{{ calcTradeFeeText(tr) }}</td>
-              <td class="px-[10px] py-3">
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.entry_price)) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.exit_price)) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty2(tr.symbol, Number(tr.qty)) }} {{ baseCoin(tr.symbol) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-300">{{ calcTradeFeeText(tr) }}</td>
+              <td class="px-3 py-3">
                 <div class="flex items-center justify-between gap-2">
                   <div class="font-mono" :class="Number(tr.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
                     {{ Number(tr.pnl) >= 0 ? '+' : '' }}{{ Number(tr.pnl).toFixed(2) }} USDT
@@ -993,7 +993,7 @@
               </td>
             </tr>
             <tr v-if="fillsLoading" class="border-t border-white/10">
-              <td colspan="9" class="px-[10px] py-3 text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</td>
+              <td colspan="9" class="px-3 py-3 text-slate-400">{{ t('불러오는 중…', 'Loading…') }}</td>
             </tr>
           </tbody>
         </table>
