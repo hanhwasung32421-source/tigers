@@ -10,5 +10,5 @@ const props = withDefaults(defineProps<{ size?: 'sm' | 'md' }>(), { size: 'md' }
 const config = useRuntimeConfig()
 const appName = config.public.appName
 
-const heightClass = computed(() => (props.size === 'sm' ? 'h-6' : 'h-8'))
+const heightClass = computed(() => (props.size === 'sm' ? 'h-6' : 'h-[21px]'))
 </script>
