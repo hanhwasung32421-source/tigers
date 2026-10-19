@@ -1692,11 +1692,11 @@ const dailyKrwRateDay = ref('')
 
 // 메뉴구성: 비회원도 보는 최상단 메인 메뉴(관리자 전용 서브메뉴와는 별개)
 type MainNavKey = 'coin' | 'stock' | 'kr' | 'markets' | 'buy' | 'wallet' | 'invest' | 'support'
-const MAIN_NAV_KEYS: MainNavKey[] = ['coin', 'stock', 'kr', 'markets', 'buy', 'wallet', 'invest', 'support']
+const MAIN_NAV_KEYS: MainNavKey[] = ['buy', 'markets', 'coin', 'stock', 'kr', 'wallet', 'invest', 'support']
 const MAIN_NAV_LABELS: Record<MainNavKey, { ko: string; en: string }> = {
   coin: { ko: '코인선물', en: 'Crypto Futures' },
-  stock: { ko: '해외주식', en: 'Overseas Stocks' },
-  kr: { ko: '국내주식', en: 'Domestic Stocks' },
+  stock: { ko: '파생상품', en: 'Derivative' },
+  kr: { ko: 'KR주식', en: 'KR Stocks' },
   markets: { ko: '마켓', en: 'Markets' },
   buy: { ko: '자산구매', en: 'Buy Crypto' },
   wallet: { ko: '내 지갑', en: 'My Wallet' },

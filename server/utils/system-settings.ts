@@ -47,7 +47,8 @@ export const REORDERABLE_MENU_KEYS = ['members', 'online', 'trades', 'positions'
 export type ReorderableMenuKey = (typeof REORDERABLE_MENU_KEYS)[number]
 
 // 모든 방문자(비회원 포함)가 보는 최상단 메인 메뉴. 순서 변경/숨기기를 관리자 대시보드에서 지원한다.
-export const MAIN_NAV_KEYS = ['coin', 'stock', 'kr', 'markets', 'buy', 'wallet', 'invest', 'support'] as const
+// 기본 순서: 자산구매 > 마켓 > 코인선물 > 파생상품 > KR주식 > 내 지갑 > (투자내역: 기본 숨김) > 고객센터
+export const MAIN_NAV_KEYS = ['buy', 'markets', 'coin', 'stock', 'kr', 'wallet', 'invest', 'support'] as const
 export type MainNavKey = (typeof MAIN_NAV_KEYS)[number]
 // 기본값: 요청에 따라 "투자내역"은 처음부터 숨김 처리.
 const DEFAULT_MAIN_NAV_HIDDEN: MainNavKey[] = ['invest']
@@ -272,7 +273,13 @@ function normalizeMenuOrder(raw: any): string[] {
 
 function normalizeMainNavOrder(raw: any): string[] {
   const known = new Set<string>(MAIN_NAV_KEYS)
-  const fromRaw = Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string' && known.has(k)) : []
+  let fromRaw = Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string' && known.has(k)) : []
+  // 예전 기본 순서(관리자가 직접 바꾸지 않고 저장만 된 값)는 새 기본 순서로 바꿔 쓴다.
+  const LEGACY_DEFAULTS = [
+    'coin,stock,kr,markets,wallet,invest,support',
+    'coin,stock,kr,markets,buy,wallet,invest,support'
+  ]
+  if (LEGACY_DEFAULTS.includes(fromRaw.join(','))) fromRaw = []
   // 저장된 순서에 없는 새 메뉴(예: buy)는 맨 뒤가 아니라 기본 순서상 바로 앞 메뉴 뒤에 끼워 넣는다.
   const out = [...fromRaw]
   MAIN_NAV_KEYS.forEach((k, i) => {
