@@ -10,7 +10,7 @@ export default defineNuxtConfig({
       // 렌더링한 뒤 축소해서 보여주기 때문에, 손가락으로 옆으로 밀면 화면이 움직이는 문제가 생긴다.
       // width=device-width로 실제 기기 폭에 딱 맞춰 렌더링하게 한다.
       meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }],
-      link: [{ rel: 'icon', type: 'image/png', href: '/favicon.png' }],
+      link: [{ rel: 'icon', type: 'image/png', href: '/favicon.png?v=2' }],
       // 처음 방문(저장된 테마 없음)은 화이트 테마. 첫 화면이 어둡게 번쩍이지 않도록 렌더 전에 <html>에 클래스를 정해둔다.
       htmlAttrs: { class: 'theme-light' },
       script: [
