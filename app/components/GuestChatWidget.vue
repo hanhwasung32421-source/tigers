@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed bottom-4 right-4 z-[150] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-5 sm:right-5">
+  <div class="guest-chat fixed bottom-4 right-4 z-[150] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-5 sm:right-5">
     <Transition name="guest-chat-panel">
       <div
         v-if="open"

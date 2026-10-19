@@ -64,7 +64,7 @@
 
         <div class="flex items-center gap-2 text-[15px]">
           <div class="hidden items-center gap-2 md:flex">
-            <span class="hidden sm:inline rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 text-[13px] font-mono text-slate-300">
+            <span class="hidden whitespace-nowrap rounded-md border border-cyan-500/10 bg-cyan-500/5 px-2 py-1 font-mono text-[13px] text-slate-300 lg:inline">
               {{ appVersion }}
             </span>
             <template v-if="me">

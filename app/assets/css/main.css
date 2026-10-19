@@ -350,293 +350,6 @@ html.theme-native .site-header {
   background: rgba(255, 255, 255, 0.96) !important;
 }
 
-/* ───────── 화이트(필터) 테마: 헤더/푸터/언어 패널(베일 위) ─────────
-   첫 화면(native) 규칙과 같은 색을, 필터 페이지의 헤더/푸터/언어 패널에도 적용한다. */
-html.theme-filter .site-header .text-white,
-html.theme-filter .site-footer .text-white,
-html.theme-filter .lang-panel .text-white {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-slate-100,
-html.theme-filter .site-footer .text-slate-100,
-html.theme-filter .lang-panel .text-slate-100 {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-slate-200,
-html.theme-filter .site-footer .text-slate-200,
-html.theme-filter .lang-panel .text-slate-200 {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-slate-300,
-html.theme-filter .site-footer .text-slate-300,
-html.theme-filter .lang-panel .text-slate-300 {
-  color: #474d57 !important;
-}
-html.theme-filter .site-header .text-slate-400,
-html.theme-filter .site-footer .text-slate-400,
-html.theme-filter .lang-panel .text-slate-400 {
-  color: #707a8a !important;
-}
-html.theme-filter .site-header .text-slate-500,
-html.theme-filter .site-footer .text-slate-500,
-html.theme-filter .lang-panel .text-slate-500 {
-  color: #707a8a !important;
-}
-html.theme-filter .site-header .text-slate-600,
-html.theme-filter .site-footer .text-slate-600,
-html.theme-filter .lang-panel .text-slate-600 {
-  color: #929aa5 !important;
-}
-html.theme-filter .site-header .text-amber-100,
-html.theme-filter .site-footer .text-amber-100,
-html.theme-filter .lang-panel .text-amber-100 {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-yellow-300,
-html.theme-filter .site-footer .text-yellow-300,
-html.theme-filter .lang-panel .text-yellow-300 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .text-cyan-300,
-html.theme-filter .site-footer .text-cyan-300,
-html.theme-filter .lang-panel .text-cyan-300 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .placeholder\:text-slate-500::placeholder,
-html.theme-filter .site-footer .placeholder\:text-slate-500::placeholder,
-html.theme-filter .lang-panel .placeholder\:text-slate-500::placeholder {
-  color: #929aa5 !important;
-}
-html.theme-filter .site-header .hover\:text-white:hover,
-html.theme-filter .site-footer .hover\:text-white:hover,
-html.theme-filter .lang-panel .hover\:text-white:hover {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .group:hover .group-hover\:text-cyan-200,
-html.theme-filter .site-footer .group:hover .group-hover\:text-cyan-200,
-html.theme-filter .lang-panel .group:hover .group-hover\:text-cyan-200 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .font-brand,
-html.theme-filter .site-footer .font-brand,
-html.theme-filter .lang-panel .font-brand {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .text-amber-400,
-html.theme-filter .site-footer .text-amber-400,
-html.theme-filter .lang-panel .text-amber-400 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .border-amber-400,
-html.theme-filter .site-footer .border-amber-400,
-html.theme-filter .lang-panel .border-amber-400 {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .border-amber-400\/20,
-html.theme-filter .site-footer .border-amber-400\/20,
-html.theme-filter .lang-panel .border-amber-400\/20 {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .border-amber-400\/30,
-html.theme-filter .site-footer .border-amber-400\/30,
-html.theme-filter .lang-panel .border-amber-400\/30 {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .bg-amber-400\/10,
-html.theme-filter .site-footer .bg-amber-400\/10,
-html.theme-filter .lang-panel .bg-amber-400\/10 {
-  background-color: rgba(240, 185, 11, 0.12) !important;
-}
-html.theme-filter .site-header .bg-cyan-400,
-html.theme-filter .site-footer .bg-cyan-400,
-html.theme-filter .lang-panel .bg-cyan-400 {
-  background-color: #f0b90b !important;
-}
-html.theme-filter .site-header .bg-white,
-html.theme-filter .site-footer .bg-white,
-html.theme-filter .lang-panel .bg-white {
-  background-color: #f0b90b !important;
-  color: #383A3E !important;
-}
-html.theme-filter .site-header .bg-\[\#f0b90b\],
-html.theme-filter .site-footer .bg-\[\#f0b90b\],
-html.theme-filter .lang-panel .bg-\[\#f0b90b\] {
-  background-color: #f0b90b !important;
-  color: #383A3E !important;
-}
-html.theme-filter .site-header .text-slate-950,
-html.theme-filter .site-footer .text-slate-950,
-html.theme-filter .lang-panel .text-slate-950 {
-  color: #383A3E !important;
-}
-html.theme-filter .site-header .hover\:bg-slate-200:hover,
-html.theme-filter .site-footer .hover\:bg-slate-200:hover,
-html.theme-filter .lang-panel .hover\:bg-slate-200:hover {
-  background-color: #f0b90b !important;
-  filter: brightness(0.94);
-}
-html.theme-filter .site-header .hover\:bg-\[\#d9a609\]:hover,
-html.theme-filter .site-footer .hover\:bg-\[\#d9a609\]:hover,
-html.theme-filter .lang-panel .hover\:bg-\[\#d9a609\]:hover {
-  background-color: #f0b90b !important;
-  filter: brightness(0.94);
-}
-html.theme-filter .site-header .bg-white\/5,
-html.theme-filter .site-footer .bg-white\/5,
-html.theme-filter .lang-panel .bg-white\/5 {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .bg-white\/10,
-html.theme-filter .site-footer .bg-white\/10,
-html.theme-filter .lang-panel .bg-white\/10 {
-  background-color: rgba(0, 0, 0, 0.070) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.02\],
-html.theme-filter .site-footer .bg-white\/\[0\.02\],
-html.theme-filter .lang-panel .bg-white\/\[0\.02\] {
-  background-color: rgba(0, 0, 0, 0.014) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.03\],
-html.theme-filter .site-footer .bg-white\/\[0\.03\],
-html.theme-filter .lang-panel .bg-white\/\[0\.03\] {
-  background-color: rgba(0, 0, 0, 0.021) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.04\],
-html.theme-filter .site-footer .bg-white\/\[0\.04\],
-html.theme-filter .lang-panel .bg-white\/\[0\.04\] {
-  background-color: rgba(0, 0, 0, 0.028) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.05\],
-html.theme-filter .site-footer .bg-white\/\[0\.05\],
-html.theme-filter .lang-panel .bg-white\/\[0\.05\] {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.06\],
-html.theme-filter .site-footer .bg-white\/\[0\.06\],
-html.theme-filter .lang-panel .bg-white\/\[0\.06\] {
-  background-color: rgba(0, 0, 0, 0.042) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/5:hover,
-html.theme-filter .site-footer .hover\:bg-white\/5:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/5:hover {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/10:hover,
-html.theme-filter .site-footer .hover\:bg-white\/10:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/10:hover {
-  background-color: rgba(0, 0, 0, 0.070) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/15:hover,
-html.theme-filter .site-footer .hover\:bg-white\/15:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/15:hover {
-  background-color: rgba(0, 0, 0, 0.105) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/20:hover,
-html.theme-filter .site-footer .hover\:bg-white\/20:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/20:hover {
-  background-color: rgba(0, 0, 0, 0.140) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/\[0\.05\]:hover,
-html.theme-filter .site-footer .hover\:bg-white\/\[0\.05\]:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/\[0\.05\]:hover {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/\[0\.07\]:hover,
-html.theme-filter .site-footer .hover\:bg-white\/\[0\.07\]:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/\[0\.07\]:hover {
-  background-color: rgba(0, 0, 0, 0.049) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/\[0\.12\]:hover,
-html.theme-filter .site-footer .hover\:bg-white\/\[0\.12\]:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/\[0\.12\]:hover {
-  background-color: rgba(0, 0, 0, 0.084) !important;
-}
-html.theme-filter .site-header .hover\:bg-cyan-400\/10:hover,
-html.theme-filter .site-footer .hover\:bg-cyan-400\/10:hover,
-html.theme-filter .lang-panel .hover\:bg-cyan-400\/10:hover {
-  background-color: rgba(240, 185, 11, 0.14) !important;
-}
-html.theme-filter .site-header .bg-cyan-500\/5,
-html.theme-filter .site-footer .bg-cyan-500\/5,
-html.theme-filter .lang-panel .bg-cyan-500\/5 {
-  background-color: rgba(0, 0, 0, 0.04) !important;
-}
-html.theme-filter .site-header .border-white\/10,
-html.theme-filter .site-footer .border-white\/10,
-html.theme-filter .lang-panel .border-white\/10 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .border-white\/5,
-html.theme-filter .site-footer .border-white\/5,
-html.theme-filter .lang-panel .border-white\/5 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .border-cyan-500\/10,
-html.theme-filter .site-footer .border-cyan-500\/10,
-html.theme-filter .lang-panel .border-cyan-500\/10 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .border-cyan-400\/15,
-html.theme-filter .site-footer .border-cyan-400\/15,
-html.theme-filter .lang-panel .border-cyan-400\/15 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .hover\:border-cyan-400\/25:hover,
-html.theme-filter .site-footer .hover\:border-cyan-400\/25:hover,
-html.theme-filter .lang-panel .hover\:border-cyan-400\/25:hover {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .site-footer .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .lang-panel .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .site-footer .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .lang-panel .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .bg-\[\#020b16\]\/90,
-html.theme-filter .site-footer .bg-\[\#020b16\]\/90,
-html.theme-filter .lang-panel .bg-\[\#020b16\]\/90 {
-  background-color: rgba(255, 255, 255, 0.94) !important;
-}
-html.theme-filter .site-header .bg-\[\#020b16\],
-html.theme-filter .site-footer .bg-\[\#020b16\],
-html.theme-filter .lang-panel .bg-\[\#020b16\] {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .bg-\[\#03101d\],
-html.theme-filter .site-footer .bg-\[\#03101d\],
-html.theme-filter .lang-panel .bg-\[\#03101d\] {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .bg-\[\#0b1220\],
-html.theme-filter .site-footer .bg-\[\#0b1220\],
-html.theme-filter .lang-panel .bg-\[\#0b1220\] {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .bg-\[\#0b1220\]\/95,
-html.theme-filter .site-footer .bg-\[\#0b1220\]\/95,
-html.theme-filter .lang-panel .bg-\[\#0b1220\]\/95 {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .bg-\[\#07111b\]\/90,
-html.theme-filter .site-footer .bg-\[\#07111b\]\/90,
-html.theme-filter .lang-panel .bg-\[\#07111b\]\/90 {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .ring-\[\#020b16\],
-html.theme-filter .site-footer .ring-\[\#020b16\],
-html.theme-filter .lang-panel .ring-\[\#020b16\] {
-  --tw-ring-color: #ffffff !important;
-}
-html.theme-filter .site-header .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .site-header .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
-html.theme-filter .site-footer .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .site-footer .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
-html.theme-filter .lang-panel .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .lang-panel .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\] {
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
-}
-
 /* 상단 메뉴의 100x 표시: 상자 배경 #f0b90b, 글씨 검정(어느 테마에서도 같게) */
 .nav-badge {
   background-color: #f0b90b !important;
@@ -875,3 +588,922 @@ html.theme-filter .lang-panel.lang-panel {
   border-color: rgba(0, 0, 0, 0.09) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
 }
+
+/* ───────── 화이트(native) 테마: 페이지별 색 클래스 자동 변환 ─────────
+   첫 화면, 로그인/가입, 약관, 마켓 페이지가 쓰는 색 클래스를 흰 배경용 색으로 바꾼다.
+   (자동 생성: 80개 규칙 / 변환 스크립트: 작업 폴더의 gen_native.cjs) */
+html.theme-native .bg-\[\#020817\]\/55 {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+}
+html.theme-native .bg-\[\#020b16\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#020b16\]\/90 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+html.theme-native .bg-\[\#03101d\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#050709\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#050810\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#07111b\]\/90 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+html.theme-native .bg-\[\#0a0d13\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#0b0f16\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#0b1220\] {
+  background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#0b1220\]\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+html.theme-native .bg-cyan-400 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .bg-cyan-400\/70 {
+  background-color: rgba(240, 185, 11, 0.70) !important;
+}
+html.theme-native .bg-cyan-500 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .bg-cyan-500\/20 {
+  background-color: rgba(240, 185, 11, 0.20) !important;
+}
+html.theme-native .bg-cyan-500\/5 {
+  background-color: rgba(240, 185, 11, 0.05) !important;
+}
+html.theme-native .bg-emerald-400 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .bg-emerald-500 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .bg-indigo-500 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .bg-slate-600\/60 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+}
+html.theme-native .bg-white {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-native .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .bg-white\/\[0\.02\] {
+  background-color: rgba(0, 0, 0, 0.014) !important;
+}
+html.theme-native .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-native .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.028) !important;
+}
+html.theme-native .bg-white\/\[0\.05\] {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .bg-white\/\[0\.06\] {
+  background-color: rgba(0, 0, 0, 0.042) !important;
+}
+html.theme-native .border-cyan-400\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-cyan-400\/25 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-native .border-cyan-500\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-slate-950\/40 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-native .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-white\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .border-white\/40 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-native .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .focus\:border-cyan-500\/40:focus {
+  border-color: #f0b90b !important;
+}
+html.theme-native .group:hover .group-hover\:text-cyan-200 {
+  color: #f0b90b !important;
+}
+html.theme-native .hover\:bg-cyan-400:hover {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .hover\:bg-cyan-400\/10:hover {
+  background-color: rgba(240, 185, 11, 0.10) !important;
+}
+html.theme-native .hover\:bg-emerald-400:hover {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .hover\:bg-indigo-400:hover {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-native .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-native .hover\:bg-white\/15:hover {
+  background-color: rgba(0, 0, 0, 0.105) !important;
+}
+html.theme-native .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.140) !important;
+}
+html.theme-native .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-native .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-native .hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgba(0, 0, 0, 0.049) !important;
+}
+html.theme-native .hover\:bg-white\/\[0\.12\]:hover {
+  background-color: rgba(0, 0, 0, 0.084) !important;
+}
+html.theme-native .hover\:border-cyan-400\/25:hover {
+  border-color: #f0b90b !important;
+}
+html.theme-native .hover\:text-amber-300:hover {
+  color: #f0b90b !important;
+}
+html.theme-native .hover\:text-emerald-300:hover {
+  color: #0bb87b !important;
+}
+html.theme-native .hover\:text-indigo-200:hover {
+  color: #3b5bdb !important;
+}
+html.theme-native .hover\:text-indigo-300:hover {
+  color: #3b5bdb !important;
+}
+html.theme-native .hover\:text-slate-300:hover {
+  color: #1e2329 !important;
+}
+html.theme-native .hover\:text-slate-400:hover {
+  color: #474d57 !important;
+}
+html.theme-native .hover\:text-white:hover {
+  color: #1e2329 !important;
+}
+html.theme-native .placeholder\:text-slate-500::placeholder {
+  color: #707a8a !important;
+}
+html.theme-native .ring-\[\#020b16\] {
+  --tw-ring-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-native .ring-white\/10 {
+  --tw-ring-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .ring-white\/20 {
+  --tw-ring-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-native .text-amber-100 {
+  color: #f0b90b !important;
+}
+html.theme-native .text-amber-400 {
+  color: #f0b90b !important;
+}
+html.theme-native .text-cyan-300 {
+  color: #f0b90b !important;
+}
+html.theme-native .text-emerald-300 {
+  color: #0bb87b !important;
+}
+html.theme-native .text-emerald-400 {
+  color: #0bb87b !important;
+}
+html.theme-native .text-indigo-300 {
+  color: #3b5bdb !important;
+}
+html.theme-native .text-red-300 {
+  color: #f6465d !important;
+}
+html.theme-native .text-rose-300 {
+  color: #f6465d !important;
+}
+html.theme-native .text-rose-400 {
+  color: #f6465d !important;
+}
+html.theme-native .text-slate-100 {
+  color: #1e2329 !important;
+}
+html.theme-native .text-slate-200 {
+  color: #1e2329 !important;
+}
+html.theme-native .text-slate-300 {
+  color: #1e2329 !important;
+}
+html.theme-native .text-slate-400 {
+  color: #474d57 !important;
+}
+html.theme-native .text-slate-500 {
+  color: #707a8a !important;
+}
+html.theme-native .text-white {
+  color: #1e2329 !important;
+}
+/* ───────── END 화이트(native) 자동 변환 ───────── */
+
+/* ───────── 화이트(필터) 테마: 베일 위 영역(헤더/푸터/언어 패널/채팅) ─────────
+   반전 필터를 쓰는 페이지에서도 이 영역들은 베일 위(z-index)에 올려서 반전하지 않고, 첫 화면과 같은 규칙을 그대로 쓴다. (자동 생성: 104개) */
+html.theme-filter .site-header,
+html.theme-filter .site-footer,
+html.theme-filter .lang-panel,
+html.theme-filter .guest-chat {
+  color: #1e2329; /* 클래스로 색을 안 준 글자(로그아웃 버튼 등)가 흰색을 물려받아 안 보이는 문제 방지 */
+}
+html.theme-filter .site-header.site-header,
+html.theme-filter .site-footer.site-footer {
+  z-index: 10010 !important;
+}
+html.theme-filter .guest-chat.guest-chat {
+  z-index: 10015 !important;
+}
+html.theme-filter .lang-panel.lang-panel {
+  z-index: 10020 !important;
+}
+html.theme-filter img[src='/brand-logo.png'] {
+  position: relative;
+  z-index: 10003;
+  filter: none !important;
+}
+html.theme-native,
+html.theme-native body {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-white,
+html.theme-filter .site-footer .text-white,
+html.theme-filter .lang-panel .text-white,
+html.theme-filter .guest-chat .text-white {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-100,
+html.theme-filter .site-footer .text-slate-100,
+html.theme-filter .lang-panel .text-slate-100,
+html.theme-filter .guest-chat .text-slate-100 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-200,
+html.theme-filter .site-footer .text-slate-200,
+html.theme-filter .lang-panel .text-slate-200,
+html.theme-filter .guest-chat .text-slate-200 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-300,
+html.theme-filter .site-footer .text-slate-300,
+html.theme-filter .lang-panel .text-slate-300,
+html.theme-filter .guest-chat .text-slate-300 {
+  color: #474d57 !important;
+}
+html.theme-filter .site-header .text-slate-400,
+html.theme-filter .site-footer .text-slate-400,
+html.theme-filter .lang-panel .text-slate-400,
+html.theme-filter .guest-chat .text-slate-400 {
+  color: #707a8a !important;
+}
+html.theme-filter .site-header .text-slate-500,
+html.theme-filter .site-footer .text-slate-500,
+html.theme-filter .lang-panel .text-slate-500,
+html.theme-filter .guest-chat .text-slate-500 {
+  color: #707a8a !important;
+}
+html.theme-filter .site-header .text-slate-600,
+html.theme-filter .site-footer .text-slate-600,
+html.theme-filter .lang-panel .text-slate-600,
+html.theme-filter .guest-chat .text-slate-600 {
+  color: #929aa5 !important;
+}
+html.theme-filter .site-header .text-amber-100,
+html.theme-filter .site-footer .text-amber-100,
+html.theme-filter .lang-panel .text-amber-100,
+html.theme-filter .guest-chat .text-amber-100 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-yellow-300,
+html.theme-filter .site-footer .text-yellow-300,
+html.theme-filter .lang-panel .text-yellow-300,
+html.theme-filter .guest-chat .text-yellow-300 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .text-cyan-300,
+html.theme-filter .site-footer .text-cyan-300,
+html.theme-filter .lang-panel .text-cyan-300,
+html.theme-filter .guest-chat .text-cyan-300 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .placeholder\:text-slate-500::placeholder,
+html.theme-filter .site-footer .placeholder\:text-slate-500::placeholder,
+html.theme-filter .lang-panel .placeholder\:text-slate-500::placeholder,
+html.theme-filter .guest-chat .placeholder\:text-slate-500::placeholder {
+  color: #929aa5 !important;
+}
+html.theme-filter .site-header .hover\:text-white:hover,
+html.theme-filter .site-footer .hover\:text-white:hover,
+html.theme-filter .lang-panel .hover\:text-white:hover,
+html.theme-filter .guest-chat .hover\:text-white:hover {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .group:hover .group-hover\:text-cyan-200,
+html.theme-filter .site-footer .group:hover .group-hover\:text-cyan-200,
+html.theme-filter .lang-panel .group:hover .group-hover\:text-cyan-200,
+html.theme-filter .guest-chat .group:hover .group-hover\:text-cyan-200 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .font-brand,
+html.theme-filter .site-footer .font-brand,
+html.theme-filter .lang-panel .font-brand,
+html.theme-filter .guest-chat .font-brand {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .text-amber-400,
+html.theme-filter .site-footer .text-amber-400,
+html.theme-filter .lang-panel .text-amber-400,
+html.theme-filter .guest-chat .text-amber-400 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .border-amber-400,
+html.theme-filter .site-footer .border-amber-400,
+html.theme-filter .lang-panel .border-amber-400,
+html.theme-filter .guest-chat .border-amber-400 {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .border-amber-400\/20,
+html.theme-filter .site-footer .border-amber-400\/20,
+html.theme-filter .lang-panel .border-amber-400\/20,
+html.theme-filter .guest-chat .border-amber-400\/20 {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .border-amber-400\/30,
+html.theme-filter .site-footer .border-amber-400\/30,
+html.theme-filter .lang-panel .border-amber-400\/30,
+html.theme-filter .guest-chat .border-amber-400\/30 {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .bg-amber-400\/10,
+html.theme-filter .site-footer .bg-amber-400\/10,
+html.theme-filter .lang-panel .bg-amber-400\/10,
+html.theme-filter .guest-chat .bg-amber-400\/10 {
+  background-color: rgba(240, 185, 11, 0.12) !important;
+}
+html.theme-filter .site-header .bg-cyan-400,
+html.theme-filter .site-footer .bg-cyan-400,
+html.theme-filter .lang-panel .bg-cyan-400,
+html.theme-filter .guest-chat .bg-cyan-400 {
+  background-color: #f0b90b !important;
+}
+html.theme-filter .site-header .bg-white,
+html.theme-filter .site-footer .bg-white,
+html.theme-filter .lang-panel .bg-white,
+html.theme-filter .guest-chat .bg-white {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-\[\#f0b90b\],
+html.theme-filter .site-footer .bg-\[\#f0b90b\],
+html.theme-filter .lang-panel .bg-\[\#f0b90b\],
+html.theme-filter .guest-chat .bg-\[\#f0b90b\] {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .text-slate-950,
+html.theme-filter .site-footer .text-slate-950,
+html.theme-filter .lang-panel .text-slate-950,
+html.theme-filter .guest-chat .text-slate-950 {
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .hover\:bg-slate-200:hover,
+html.theme-filter .site-footer .hover\:bg-slate-200:hover,
+html.theme-filter .lang-panel .hover\:bg-slate-200:hover,
+html.theme-filter .guest-chat .hover\:bg-slate-200:hover {
+  background-color: #f0b90b !important;
+  filter: brightness(0.94);
+}
+html.theme-filter .site-header .hover\:bg-\[\#d9a609\]:hover,
+html.theme-filter .site-footer .hover\:bg-\[\#d9a609\]:hover,
+html.theme-filter .lang-panel .hover\:bg-\[\#d9a609\]:hover,
+html.theme-filter .guest-chat .hover\:bg-\[\#d9a609\]:hover {
+  background-color: #f0b90b !important;
+  filter: brightness(0.94);
+}
+html.theme-filter .site-header .bg-white\/5,
+html.theme-filter .site-footer .bg-white\/5,
+html.theme-filter .lang-panel .bg-white\/5,
+html.theme-filter .guest-chat .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .bg-white\/10,
+html.theme-filter .site-footer .bg-white\/10,
+html.theme-filter .lang-panel .bg-white\/10,
+html.theme-filter .guest-chat .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.02\],
+html.theme-filter .site-footer .bg-white\/\[0\.02\],
+html.theme-filter .lang-panel .bg-white\/\[0\.02\],
+html.theme-filter .guest-chat .bg-white\/\[0\.02\] {
+  background-color: rgba(0, 0, 0, 0.014) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.03\],
+html.theme-filter .site-footer .bg-white\/\[0\.03\],
+html.theme-filter .lang-panel .bg-white\/\[0\.03\],
+html.theme-filter .guest-chat .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.04\],
+html.theme-filter .site-footer .bg-white\/\[0\.04\],
+html.theme-filter .lang-panel .bg-white\/\[0\.04\],
+html.theme-filter .guest-chat .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.028) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.05\],
+html.theme-filter .site-footer .bg-white\/\[0\.05\],
+html.theme-filter .lang-panel .bg-white\/\[0\.05\],
+html.theme-filter .guest-chat .bg-white\/\[0\.05\] {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.06\],
+html.theme-filter .site-footer .bg-white\/\[0\.06\],
+html.theme-filter .lang-panel .bg-white\/\[0\.06\],
+html.theme-filter .guest-chat .bg-white\/\[0\.06\] {
+  background-color: rgba(0, 0, 0, 0.042) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/5:hover,
+html.theme-filter .site-footer .hover\:bg-white\/5:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/5:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/10:hover,
+html.theme-filter .site-footer .hover\:bg-white\/10:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/10:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/15:hover,
+html.theme-filter .site-footer .hover\:bg-white\/15:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/15:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/15:hover {
+  background-color: rgba(0, 0, 0, 0.105) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/20:hover,
+html.theme-filter .site-footer .hover\:bg-white\/20:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/20:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.140) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.05\]:hover,
+html.theme-filter .site-footer .hover\:bg-white\/\[0\.05\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.05\]:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.07\]:hover,
+html.theme-filter .site-footer .hover\:bg-white\/\[0\.07\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.07\]:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgba(0, 0, 0, 0.049) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.12\]:hover,
+html.theme-filter .site-footer .hover\:bg-white\/\[0\.12\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.12\]:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/\[0\.12\]:hover {
+  background-color: rgba(0, 0, 0, 0.084) !important;
+}
+html.theme-filter .site-header .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .site-footer .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .lang-panel .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .guest-chat .hover\:bg-cyan-400\/10:hover {
+  background-color: rgba(240, 185, 11, 0.14) !important;
+}
+html.theme-filter .site-header .bg-cyan-500\/5,
+html.theme-filter .site-footer .bg-cyan-500\/5,
+html.theme-filter .lang-panel .bg-cyan-500\/5,
+html.theme-filter .guest-chat .bg-cyan-500\/5 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+html.theme-filter .site-header .border-white\/10,
+html.theme-filter .site-footer .border-white\/10,
+html.theme-filter .lang-panel .border-white\/10,
+html.theme-filter .guest-chat .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-white\/5,
+html.theme-filter .site-footer .border-white\/5,
+html.theme-filter .lang-panel .border-white\/5,
+html.theme-filter .guest-chat .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-cyan-500\/10,
+html.theme-filter .site-footer .border-cyan-500\/10,
+html.theme-filter .lang-panel .border-cyan-500\/10,
+html.theme-filter .guest-chat .border-cyan-500\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-cyan-400\/15,
+html.theme-filter .site-footer .border-cyan-400\/15,
+html.theme-filter .lang-panel .border-cyan-400\/15,
+html.theme-filter .guest-chat .border-cyan-400\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .hover\:border-cyan-400\/25:hover,
+html.theme-filter .site-footer .hover\:border-cyan-400\/25:hover,
+html.theme-filter .lang-panel .hover\:border-cyan-400\/25:hover,
+html.theme-filter .guest-chat .hover\:border-cyan-400\/25:hover {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .site-footer .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .lang-panel .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .guest-chat .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .site-footer .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .lang-panel .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .guest-chat .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .bg-\[\#020b16\]\/90,
+html.theme-filter .site-footer .bg-\[\#020b16\]\/90,
+html.theme-filter .lang-panel .bg-\[\#020b16\]\/90,
+html.theme-filter .guest-chat .bg-\[\#020b16\]\/90 {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+html.theme-filter .site-header .bg-\[\#020b16\],
+html.theme-filter .site-footer .bg-\[\#020b16\],
+html.theme-filter .lang-panel .bg-\[\#020b16\],
+html.theme-filter .guest-chat .bg-\[\#020b16\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#03101d\],
+html.theme-filter .site-footer .bg-\[\#03101d\],
+html.theme-filter .lang-panel .bg-\[\#03101d\],
+html.theme-filter .guest-chat .bg-\[\#03101d\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#0b1220\],
+html.theme-filter .site-footer .bg-\[\#0b1220\],
+html.theme-filter .lang-panel .bg-\[\#0b1220\],
+html.theme-filter .guest-chat .bg-\[\#0b1220\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#0b1220\]\/95,
+html.theme-filter .site-footer .bg-\[\#0b1220\]\/95,
+html.theme-filter .lang-panel .bg-\[\#0b1220\]\/95,
+html.theme-filter .guest-chat .bg-\[\#0b1220\]\/95 {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#07111b\]\/90,
+html.theme-filter .site-footer .bg-\[\#07111b\]\/90,
+html.theme-filter .lang-panel .bg-\[\#07111b\]\/90,
+html.theme-filter .guest-chat .bg-\[\#07111b\]\/90 {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .ring-\[\#020b16\],
+html.theme-filter .site-footer .ring-\[\#020b16\],
+html.theme-filter .lang-panel .ring-\[\#020b16\],
+html.theme-filter .guest-chat .ring-\[\#020b16\] {
+  --tw-ring-color: #ffffff !important;
+}
+html.theme-filter .site-header .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .site-header .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
+html.theme-filter .site-footer .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .site-footer .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
+html.theme-filter .lang-panel .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .lang-panel .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
+html.theme-filter .guest-chat .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .guest-chat .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\] {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
+}
+html.theme-filter .site-header .bg-\[\#020817\]\/55,
+html.theme-filter .site-footer .bg-\[\#020817\]\/55,
+html.theme-filter .lang-panel .bg-\[\#020817\]\/55,
+html.theme-filter .guest-chat .bg-\[\#020817\]\/55 {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+}
+html.theme-filter .site-header .bg-\[\#020b16\]\/90,
+html.theme-filter .site-footer .bg-\[\#020b16\]\/90,
+html.theme-filter .lang-panel .bg-\[\#020b16\]\/90,
+html.theme-filter .guest-chat .bg-\[\#020b16\]\/90 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+html.theme-filter .site-header .bg-\[\#050709\],
+html.theme-filter .site-footer .bg-\[\#050709\],
+html.theme-filter .lang-panel .bg-\[\#050709\],
+html.theme-filter .guest-chat .bg-\[\#050709\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#050810\],
+html.theme-filter .site-footer .bg-\[\#050810\],
+html.theme-filter .lang-panel .bg-\[\#050810\],
+html.theme-filter .guest-chat .bg-\[\#050810\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#07111b\]\/90,
+html.theme-filter .site-footer .bg-\[\#07111b\]\/90,
+html.theme-filter .lang-panel .bg-\[\#07111b\]\/90,
+html.theme-filter .guest-chat .bg-\[\#07111b\]\/90 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+html.theme-filter .site-header .bg-\[\#0a0d13\],
+html.theme-filter .site-footer .bg-\[\#0a0d13\],
+html.theme-filter .lang-panel .bg-\[\#0a0d13\],
+html.theme-filter .guest-chat .bg-\[\#0a0d13\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#0b0f16\],
+html.theme-filter .site-footer .bg-\[\#0b0f16\],
+html.theme-filter .lang-panel .bg-\[\#0b0f16\],
+html.theme-filter .guest-chat .bg-\[\#0b0f16\] {
+  background-color: #ffffff !important;
+}
+html.theme-filter .site-header .bg-\[\#0b1220\]\/95,
+html.theme-filter .site-footer .bg-\[\#0b1220\]\/95,
+html.theme-filter .lang-panel .bg-\[\#0b1220\]\/95,
+html.theme-filter .guest-chat .bg-\[\#0b1220\]\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+html.theme-filter .site-header .bg-cyan-400,
+html.theme-filter .site-footer .bg-cyan-400,
+html.theme-filter .lang-panel .bg-cyan-400,
+html.theme-filter .guest-chat .bg-cyan-400 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-cyan-400\/70,
+html.theme-filter .site-footer .bg-cyan-400\/70,
+html.theme-filter .lang-panel .bg-cyan-400\/70,
+html.theme-filter .guest-chat .bg-cyan-400\/70 {
+  background-color: rgba(240, 185, 11, 0.70) !important;
+}
+html.theme-filter .site-header .bg-cyan-500,
+html.theme-filter .site-footer .bg-cyan-500,
+html.theme-filter .lang-panel .bg-cyan-500,
+html.theme-filter .guest-chat .bg-cyan-500 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-cyan-500\/20,
+html.theme-filter .site-footer .bg-cyan-500\/20,
+html.theme-filter .lang-panel .bg-cyan-500\/20,
+html.theme-filter .guest-chat .bg-cyan-500\/20 {
+  background-color: rgba(240, 185, 11, 0.20) !important;
+}
+html.theme-filter .site-header .bg-cyan-500\/5,
+html.theme-filter .site-footer .bg-cyan-500\/5,
+html.theme-filter .lang-panel .bg-cyan-500\/5,
+html.theme-filter .guest-chat .bg-cyan-500\/5 {
+  background-color: rgba(240, 185, 11, 0.05) !important;
+}
+html.theme-filter .site-header .bg-emerald-400,
+html.theme-filter .site-footer .bg-emerald-400,
+html.theme-filter .lang-panel .bg-emerald-400,
+html.theme-filter .guest-chat .bg-emerald-400 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-emerald-500,
+html.theme-filter .site-footer .bg-emerald-500,
+html.theme-filter .lang-panel .bg-emerald-500,
+html.theme-filter .guest-chat .bg-emerald-500 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-indigo-500,
+html.theme-filter .site-footer .bg-indigo-500,
+html.theme-filter .lang-panel .bg-indigo-500,
+html.theme-filter .guest-chat .bg-indigo-500 {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-slate-600\/60,
+html.theme-filter .site-footer .bg-slate-600\/60,
+html.theme-filter .lang-panel .bg-slate-600\/60,
+html.theme-filter .guest-chat .bg-slate-600\/60 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+}
+html.theme-filter .site-header .border-cyan-400\/25,
+html.theme-filter .site-footer .border-cyan-400\/25,
+html.theme-filter .lang-panel .border-cyan-400\/25,
+html.theme-filter .guest-chat .border-cyan-400\/25 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-filter .site-header .border-slate-950\/40,
+html.theme-filter .site-footer .border-slate-950\/40,
+html.theme-filter .lang-panel .border-slate-950\/40,
+html.theme-filter .guest-chat .border-slate-950\/40 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-filter .site-header .border-white\/15,
+html.theme-filter .site-footer .border-white\/15,
+html.theme-filter .lang-panel .border-white\/15,
+html.theme-filter .guest-chat .border-white\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-white\/20,
+html.theme-filter .site-footer .border-white\/20,
+html.theme-filter .lang-panel .border-white\/20,
+html.theme-filter .guest-chat .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .border-white\/40,
+html.theme-filter .site-footer .border-white\/40,
+html.theme-filter .lang-panel .border-white\/40,
+html.theme-filter .guest-chat .border-white\/40 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-filter .site-header .focus\:border-cyan-500\/40:focus,
+html.theme-filter .site-footer .focus\:border-cyan-500\/40:focus,
+html.theme-filter .lang-panel .focus\:border-cyan-500\/40:focus,
+html.theme-filter .guest-chat .focus\:border-cyan-500\/40:focus {
+  border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .hover\:bg-cyan-400:hover,
+html.theme-filter .site-footer .hover\:bg-cyan-400:hover,
+html.theme-filter .lang-panel .hover\:bg-cyan-400:hover,
+html.theme-filter .guest-chat .hover\:bg-cyan-400:hover {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .site-footer .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .lang-panel .hover\:bg-cyan-400\/10:hover,
+html.theme-filter .guest-chat .hover\:bg-cyan-400\/10:hover {
+  background-color: rgba(240, 185, 11, 0.10) !important;
+}
+html.theme-filter .site-header .hover\:bg-emerald-400:hover,
+html.theme-filter .site-footer .hover\:bg-emerald-400:hover,
+html.theme-filter .lang-panel .hover\:bg-emerald-400:hover,
+html.theme-filter .guest-chat .hover\:bg-emerald-400:hover {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .hover\:bg-indigo-400:hover,
+html.theme-filter .site-footer .hover\:bg-indigo-400:hover,
+html.theme-filter .lang-panel .hover\:bg-indigo-400:hover,
+html.theme-filter .guest-chat .hover\:bg-indigo-400:hover {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.03\]:hover,
+html.theme-filter .site-footer .hover\:bg-white\/\[0\.03\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.03\]:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-filter .site-header .hover\:text-amber-300:hover,
+html.theme-filter .site-footer .hover\:text-amber-300:hover,
+html.theme-filter .lang-panel .hover\:text-amber-300:hover,
+html.theme-filter .guest-chat .hover\:text-amber-300:hover {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .hover\:text-emerald-300:hover,
+html.theme-filter .site-footer .hover\:text-emerald-300:hover,
+html.theme-filter .lang-panel .hover\:text-emerald-300:hover,
+html.theme-filter .guest-chat .hover\:text-emerald-300:hover {
+  color: #0bb87b !important;
+}
+html.theme-filter .site-header .hover\:text-indigo-200:hover,
+html.theme-filter .site-footer .hover\:text-indigo-200:hover,
+html.theme-filter .lang-panel .hover\:text-indigo-200:hover,
+html.theme-filter .guest-chat .hover\:text-indigo-200:hover {
+  color: #3b5bdb !important;
+}
+html.theme-filter .site-header .hover\:text-indigo-300:hover,
+html.theme-filter .site-footer .hover\:text-indigo-300:hover,
+html.theme-filter .lang-panel .hover\:text-indigo-300:hover,
+html.theme-filter .guest-chat .hover\:text-indigo-300:hover {
+  color: #3b5bdb !important;
+}
+html.theme-filter .site-header .hover\:text-slate-300:hover,
+html.theme-filter .site-footer .hover\:text-slate-300:hover,
+html.theme-filter .lang-panel .hover\:text-slate-300:hover,
+html.theme-filter .guest-chat .hover\:text-slate-300:hover {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .hover\:text-slate-400:hover,
+html.theme-filter .site-footer .hover\:text-slate-400:hover,
+html.theme-filter .lang-panel .hover\:text-slate-400:hover,
+html.theme-filter .guest-chat .hover\:text-slate-400:hover {
+  color: #474d57 !important;
+}
+html.theme-filter .site-header .hover\:text-white:hover,
+html.theme-filter .site-footer .hover\:text-white:hover,
+html.theme-filter .lang-panel .hover\:text-white:hover,
+html.theme-filter .guest-chat .hover\:text-white:hover {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .placeholder\:text-slate-500::placeholder,
+html.theme-filter .site-footer .placeholder\:text-slate-500::placeholder,
+html.theme-filter .lang-panel .placeholder\:text-slate-500::placeholder,
+html.theme-filter .guest-chat .placeholder\:text-slate-500::placeholder {
+  color: #707a8a !important;
+}
+html.theme-filter .site-header .ring-\[\#020b16\],
+html.theme-filter .site-footer .ring-\[\#020b16\],
+html.theme-filter .lang-panel .ring-\[\#020b16\],
+html.theme-filter .guest-chat .ring-\[\#020b16\] {
+  --tw-ring-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-filter .site-header .ring-white\/10,
+html.theme-filter .site-footer .ring-white\/10,
+html.theme-filter .lang-panel .ring-white\/10,
+html.theme-filter .guest-chat .ring-white\/10 {
+  --tw-ring-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .ring-white\/20,
+html.theme-filter .site-footer .ring-white\/20,
+html.theme-filter .lang-panel .ring-white\/20,
+html.theme-filter .guest-chat .ring-white\/20 {
+  --tw-ring-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .text-amber-100,
+html.theme-filter .site-footer .text-amber-100,
+html.theme-filter .lang-panel .text-amber-100,
+html.theme-filter .guest-chat .text-amber-100 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .text-emerald-300,
+html.theme-filter .site-footer .text-emerald-300,
+html.theme-filter .lang-panel .text-emerald-300,
+html.theme-filter .guest-chat .text-emerald-300 {
+  color: #0bb87b !important;
+}
+html.theme-filter .site-header .text-emerald-400,
+html.theme-filter .site-footer .text-emerald-400,
+html.theme-filter .lang-panel .text-emerald-400,
+html.theme-filter .guest-chat .text-emerald-400 {
+  color: #0bb87b !important;
+}
+html.theme-filter .site-header .text-indigo-300,
+html.theme-filter .site-footer .text-indigo-300,
+html.theme-filter .lang-panel .text-indigo-300,
+html.theme-filter .guest-chat .text-indigo-300 {
+  color: #3b5bdb !important;
+}
+html.theme-filter .site-header .text-red-300,
+html.theme-filter .site-footer .text-red-300,
+html.theme-filter .lang-panel .text-red-300,
+html.theme-filter .guest-chat .text-red-300 {
+  color: #f6465d !important;
+}
+html.theme-filter .site-header .text-rose-300,
+html.theme-filter .site-footer .text-rose-300,
+html.theme-filter .lang-panel .text-rose-300,
+html.theme-filter .guest-chat .text-rose-300 {
+  color: #f6465d !important;
+}
+html.theme-filter .site-header .text-rose-400,
+html.theme-filter .site-footer .text-rose-400,
+html.theme-filter .lang-panel .text-rose-400,
+html.theme-filter .guest-chat .text-rose-400 {
+  color: #f6465d !important;
+}
+html.theme-filter .site-header .text-slate-300,
+html.theme-filter .site-footer .text-slate-300,
+html.theme-filter .lang-panel .text-slate-300,
+html.theme-filter .guest-chat .text-slate-300 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-400,
+html.theme-filter .site-footer .text-slate-400,
+html.theme-filter .lang-panel .text-slate-400,
+html.theme-filter .guest-chat .text-slate-400 {
+  color: #474d57 !important;
+}
+/* ───────── END 베일 위 영역 ───────── */
