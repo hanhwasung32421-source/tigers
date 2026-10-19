@@ -7,6 +7,9 @@ export type MarketItem = {
   price: number
   changePct: number
   volUsd: number
+  high24h?: number
+  low24h?: number
+  listTime?: number
 }
 
 export function useMarketOverview() {

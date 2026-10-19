@@ -845,3 +845,30 @@ html.theme-filter .ring-cyan-500\/10 {
 html.theme-filter .ring-cyan-400\/20 {
   --tw-ring-color: rgba(255, 255, 255, 0.14) !important;
 }
+
+/* ───────── 마켓: AI Trading Signal Radar (왼쪽으로 흐르는 카드, 양끝 페이드아웃) ───────── */
+.radar-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%);
+}
+.radar-track {
+  display: flex;
+  width: max-content;
+  animation: radar-left var(--radar-dur, 70s) linear infinite;
+}
+.radar-mask:hover .radar-track {
+  animation-play-state: paused;
+}
+@keyframes radar-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-track {
+    animation: none;
+  }
+}

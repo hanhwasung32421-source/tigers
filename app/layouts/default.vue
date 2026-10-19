@@ -146,7 +146,7 @@
       </div>
     </header>
 
-    <main class="mx-auto py-4 md:py-6" :class="route.path.startsWith('/admin') ? 'max-w-none px-3 sm:px-6 lg:px-[150px]' : route.path === '/' ? 'max-w-none px-0' : 'max-w-6xl px-4'">
+    <main class="mx-auto py-4 md:py-6" :class="route.path.startsWith('/admin') ? 'max-w-none px-3 sm:px-6 lg:px-[150px]' : route.path === '/' ? 'max-w-none px-0' : route.path === '/markets' ? 'max-w-none px-4 md:px-8' : 'max-w-6xl px-4'">
       <slot />
     </main>
 

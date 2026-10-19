@@ -13,6 +13,9 @@ export type MarketInstrument = {
   price: number
   changePct: number
   volUsd: number // 24시간 거래대금(USDT 명목가 기준)
+  high24h: number
+  low24h: number
+  listTime: number // 상장(상품 생성) 시각 ms. 모르면 0
 }
 
 // 국내(한국) 관련 티커로 분류할 항목들 — instCategory 3 안에 섞여 있는 것 중 직접 식별.
@@ -126,7 +129,7 @@ function displayName(base: string) {
   return DISPLAY_NAMES[base] || base
 }
 
-let cache: { at: number; data: { instruments: any[]; tickers: Map<string, { last: number; open24h: number; volCcy24h: number }> } } | null = null
+let cache: { at: number; data: { instruments: any[]; tickers: Map<string, { last: number; open24h: number; volCcy24h: number; high24h: number; low24h: number }> } } | null = null
 const CACHE_MS = 20_000
 
 async function loadOkxSwapData() {
@@ -138,12 +141,14 @@ async function loadOkxSwapData() {
   ])
 
   const instruments = (instRes?.data || []).filter((x: any) => x.state === 'live')
-  const tickers = new Map<string, { last: number; open24h: number; volCcy24h: number }>()
+  const tickers = new Map<string, { last: number; open24h: number; volCcy24h: number; high24h: number; low24h: number }>()
   for (const t of tickerRes?.data || []) {
     tickers.set(String(t.instId), {
       last: Number(t.last || 0),
       open24h: Number(t.open24h || 0),
-      volCcy24h: Number(t.volCcy24h || 0)
+      volCcy24h: Number(t.volCcy24h || 0),
+      high24h: Number(t.high24h || 0),
+      low24h: Number(t.low24h || 0)
     })
   }
 
@@ -163,7 +168,7 @@ function resolveCategory(instCategory: string, base: string): MarketInstrument['
   return null
 }
 
-function toMarketInstrument(inst: any, tickers: Map<string, { last: number; open24h: number; volCcy24h: number }>): MarketInstrument | null {
+function toMarketInstrument(inst: any, tickers: Map<string, { last: number; open24h: number; volCcy24h: number; high24h: number; low24h: number }>): MarketInstrument | null {
   const instId = String(inst.instId || '')
   const m = instId.match(/^([A-Z0-9]+)-USDT-SWAP$/)
   if (!m) return null
@@ -183,7 +188,10 @@ function toMarketInstrument(inst: any, tickers: Map<string, { last: number; open
     categoryLabel: CATEGORY_LABELS[category],
     price,
     changePct,
-    volUsd: t?.volCcy24h || 0
+    volUsd: t?.volCcy24h || 0,
+    high24h: t?.high24h || 0,
+    low24h: t?.low24h || 0,
+    listTime: Number(inst.listTime || 0) || 0
   }
 }
 

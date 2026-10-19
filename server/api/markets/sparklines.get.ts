@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
         .map((s) => s.trim().toUpperCase())
         .filter((s) => /^[A-Z0-9]{2,20}USDT$/.test(s))
     )
-  ).slice(0, 16)
+  ).slice(0, 24)
   const out: Record<string, number[]> = {}
   await Promise.all(
     symbols.map(async (s) => {
