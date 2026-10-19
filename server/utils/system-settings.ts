@@ -93,7 +93,27 @@ export type ProfitCardStyle = {
   statLabelFontSize: number
   statValueColor: string
   statValueFontSize: number
+  // 카드 안 각 항목의 위치 미세조정(px). 키는 PROFIT_CARD_OFFSET_KEYS, 값이 없으면 기본 위치.
+  offsets: Record<string, { x: number; y: number }>
 }
+
+export const PROFIT_CARD_OFFSET_KEYS = [
+  'logo',
+  'divider',
+  'roe',
+  'won',
+  'badge',
+  'symbol',
+  'statBox',
+  'levLabel',
+  'levValue',
+  'pnlLabel',
+  'pnlValue',
+  'entryLabel',
+  'entryValue',
+  'exitLabel',
+  'exitValue'
+] as const
 
 // 외부 폰트 로딩 없이 항상 안전하게 렌더되는 폰트 스택만 허용.
 export const PROFIT_CARD_FONT_FAMILIES = [
@@ -137,10 +157,11 @@ export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   statLabelColor: '#64748b',
   statLabelFontSize: 12,
   statValueColor: '#e2e8f0',
-  statValueFontSize: 16
+  statValueFontSize: 16,
+  offsets: {}
 }
 
-type ProfitCardFieldDef = { kind: 'color' } | { kind: 'number'; min: number; max: number } | { kind: 'font' }
+type ProfitCardFieldDef = { kind: 'color' } | { kind: 'number'; min: number; max: number } | { kind: 'font' } | { kind: 'offsets' }
 
 const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> = {
   fontFamily: { kind: 'font' },
@@ -174,7 +195,8 @@ const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> 
   statLabelColor: { kind: 'color' },
   statLabelFontSize: { kind: 'number', min: 8, max: 18 },
   statValueColor: { kind: 'color' },
-  statValueFontSize: { kind: 'number', min: 10, max: 24 }
+  statValueFontSize: { kind: 'number', min: 10, max: 24 },
+  offsets: { kind: 'offsets' }
 }
 
 // 색상 문자열만 허용(#rgb/#rrggbb/#rrggbbaa, rgb()/rgba()). 저장된 값이 깨져 있어도 항상 기본값으로 안전하게 대체.
@@ -198,6 +220,19 @@ function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_
       if (Number.isFinite(n)) (next as any)[key] = Math.max(def.min, Math.min(def.max, Math.round(n)))
     } else if (def.kind === 'font') {
       if (typeof v === 'string' && (PROFIT_CARD_FONT_FAMILIES as readonly string[]).includes(v)) (next as any)[key] = v
+    } else if (def.kind === 'offsets') {
+      if (v && typeof v === 'object') {
+        const out: Record<string, { x: number; y: number }> = {}
+        const clamp = (n: any) => Math.max(-200, Math.min(200, Math.round(Number(n) || 0)))
+        for (const k of PROFIT_CARD_OFFSET_KEYS) {
+          const o = (v as any)[k]
+          if (!o || typeof o !== 'object') continue
+          const x = clamp(o.x)
+          const y = clamp(o.y)
+          if (x || y) out[k] = { x, y }
+        }
+        next.offsets = out
+      }
     }
   }
   return next

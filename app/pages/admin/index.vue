@@ -517,8 +517,8 @@
               <div class="flex flex-col items-center">
                 <span
                   class="inline-flex cursor-pointer items-center gap-2 rounded"
-                  :style="{ outline: selectedTarget === 'logo' ? '2px solid #818cf8' : 'none', outlineOffset: '3px' }"
-                  @click.stop="selectTarget('logo')"
+                  :style="{ outline: selectedOffsetKey === 'logo' ? '2px solid #818cf8' : 'none', outlineOffset: '3px', ...cardOffsetStyle('logo') }"
+                  @click.stop="selectTarget('logo', 'logo')"
                 >
                   <span
                     class="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] border border-white bg-black"
@@ -532,19 +532,26 @@
                 </span>
 
                 <div
-                  class="mt-5 h-[2px] w-9 rounded-full opacity-50"
-                  :style="{ backgroundColor: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
-                />
+                  class="-mb-2 mt-3 cursor-pointer rounded py-2"
+                  :style="{ outline: selectedOffsetKey === 'divider' ? '2px solid #818cf8' : 'none', outlineOffset: '1px', ...cardOffsetStyle('divider') }"
+                  @click.stop="selectTarget('divider', 'divider')"
+                >
+                  <div
+                    class="h-[2px] w-9 rounded-full opacity-50"
+                    :style="{ backgroundColor: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
+                  />
+                </div>
 
                 <div
                   class="mt-4 cursor-pointer rounded font-extrabold leading-none tracking-tight"
                   :style="{
                     fontSize: profitCardDraft.roeFontSize + 'px',
                     color: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor,
-                    outline: selectedTarget === 'roe' ? '2px solid #818cf8' : 'none',
-                    outlineOffset: '3px'
+                    outline: selectedOffsetKey === 'roe' ? '2px solid #818cf8' : 'none',
+                    outlineOffset: '3px',
+                    ...cardOffsetStyle('roe')
                   }"
-                  @click.stop="selectTarget('roe')"
+                  @click.stop="selectTarget('roe', 'roe')"
                 >
                   {{ v.roeText }}
                 </div>
@@ -553,10 +560,11 @@
                   :style="{
                     fontSize: profitCardDraft.wonFontSize + 'px',
                     color: profitCardDraft.wonTextColor,
-                    outline: selectedTarget === 'won' ? '2px solid #818cf8' : 'none',
-                    outlineOffset: '3px'
+                    outline: selectedOffsetKey === 'won' ? '2px solid #818cf8' : 'none',
+                    outlineOffset: '3px',
+                    ...cardOffsetStyle('won')
                   }"
-                  @click.stop="selectTarget('won')"
+                  @click.stop="selectTarget('won', 'won')"
                 >
                   {{ t(v.wonTextKo, v.wonTextEn) }}
                 </div>
@@ -568,10 +576,11 @@
                       fontSize: profitCardDraft.badgeFontSize + 'px',
                       backgroundColor: v.side === 'short' ? profitCardDraft.shortBadgeBg : profitCardDraft.longBadgeBg,
                       color: v.side === 'short' ? profitCardDraft.shortBadgeText : profitCardDraft.longBadgeText,
-                      outline: selectedTarget === 'badge' ? '2px solid #818cf8' : 'none',
-                      outlineOffset: '2px'
+                      outline: selectedOffsetKey === 'badge' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px',
+                      ...cardOffsetStyle('badge')
                     }"
-                    @click.stop="selectTarget('badge')"
+                    @click.stop="selectTarget('badge', 'badge')"
                   >
                     {{ v.side === 'short' ? t('숏', 'Short') : t('롱', 'Long') }}
                   </span>
@@ -580,10 +589,11 @@
                     :style="{
                       fontSize: profitCardDraft.symbolFontSize + 'px',
                       color: profitCardDraft.symbolTextColor,
-                      outline: selectedTarget === 'symbol' ? '2px solid #818cf8' : 'none',
-                      outlineOffset: '2px'
+                      outline: selectedOffsetKey === 'symbol' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px',
+                      ...cardOffsetStyle('symbol')
                     }"
-                    @click.stop="selectTarget('symbol')"
+                    @click.stop="selectTarget('symbol', 'symbol')"
                   >
                     {{ v.symbol }}
                   </span>
@@ -594,13 +604,14 @@
                 class="mt-[26px] grid cursor-pointer grid-cols-2 gap-px overflow-hidden bg-white/[0.06]"
                 :style="{
                   borderRadius: profitCardDraft.statBoxRadius + 'px',
-                  outline: selectedTarget === 'statBox' ? '2px solid #818cf8' : 'none',
-                  outlineOffset: '2px'
+                  outline: selectedOffsetKey === 'statBox' ? '2px solid #818cf8' : 'none',
+                  outlineOffset: '2px',
+                  ...cardOffsetStyle('statBox')
                 }"
-                @click.stop="selectTarget('statBox')"
+                @click.stop="selectTarget('statBox', 'statBox')"
               >
                 <div
-                  v-for="box in [
+                  v-for="(box, bi) in [
                     { label: t('레버리지', 'Leverage'), value: t('격리 x', 'Isolated x') + v.leverage, positive: null },
                     { label: t('손익', 'P&L'), value: v.pnlText, positive: v.positive },
                     { label: t('진입가격', 'Entry Price'), value: v.entry, positive: null },
@@ -617,10 +628,11 @@
                     :style="{
                       fontSize: profitCardDraft.statLabelFontSize + 'px',
                       color: profitCardDraft.statLabelColor,
-                      outline: selectedTarget === 'statLabel' ? '2px solid #818cf8' : 'none',
-                      outlineOffset: '2px'
+                      outline: selectedOffsetKey === STAT_BOX_KEYS[bi] + 'Label' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px',
+                      ...cardOffsetStyle(STAT_BOX_KEYS[bi] + 'Label')
                     }"
-                    @click.stop="selectTarget('statLabel')"
+                    @click.stop="selectTarget('statLabel', STAT_BOX_KEYS[bi] + 'Label')"
                   >
                     {{ box.label }}
                   </div>
@@ -629,10 +641,11 @@
                     :style="{
                       fontSize: profitCardDraft.statValueFontSize + 'px',
                       color: box.positive === null ? profitCardDraft.statValueColor : box.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor,
-                      outline: selectedTarget === 'statValue' ? '2px solid #818cf8' : 'none',
-                      outlineOffset: '2px'
+                      outline: selectedOffsetKey === STAT_BOX_KEYS[bi] + 'Value' ? '2px solid #818cf8' : 'none',
+                      outlineOffset: '2px',
+                      ...cardOffsetStyle(STAT_BOX_KEYS[bi] + 'Value')
                     }"
-                    @click.stop="selectTarget('statValue')"
+                    @click.stop="selectTarget('statValue', STAT_BOX_KEYS[bi] + 'Value')"
                   >
                     {{ box.value }}
                   </div>
@@ -646,6 +659,17 @@
         <div class="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 lg:sticky lg:top-4 lg:self-start">
           <div class="text-sm font-semibold text-indigo-300">{{ t(PROFIT_CARD_TARGET_LABELS[selectedTarget].ko, PROFIT_CARD_TARGET_LABELS[selectedTarget].en) }}</div>
           <p v-if="PROFIT_CARD_TARGET_HINTS[selectedTarget]" class="text-xs text-slate-500">{{ t(PROFIT_CARD_TARGET_HINTS[selectedTarget].ko, PROFIT_CARD_TARGET_HINTS[selectedTarget].en) }}</p>
+
+          <div v-if="selectedOffsetKey" class="rounded-lg border border-indigo-400/30 bg-indigo-400/5 p-3 text-xs text-slate-300">
+            <div class="font-semibold text-indigo-200">{{ t('위치 이동', 'Move Position') }}</div>
+            <p class="mt-1 text-slate-400">
+              {{ t('키보드 방향키(← ↑ → ↓)로 1px씩, Shift와 함께 누르면 10px씩 움직입니다. 움직인 뒤 아래 "저장"을 눌러야 고정됩니다. (Esc: 선택 해제)', 'Use the arrow keys (← ↑ → ↓) to move 1px, or hold Shift for 10px. Press "Save" below to lock the position. (Esc: deselect)') }}
+            </p>
+            <div class="mt-2 font-mono text-slate-200">X {{ selectedOffset.x }}px · Y {{ selectedOffset.y }}px</div>
+            <button type="button" class="mt-2 rounded bg-white/10 px-2 py-1 text-[11px] hover:bg-white/15" @click="resetSelectedOffset">
+              {{ t('이 항목 위치 초기화', 'Reset this item position') }}
+            </button>
+          </div>
 
           <div v-if="selectedTarget === 'card'" class="flex flex-col gap-1">
             <label class="text-xs text-slate-400">{{ t('폰트', 'Font') }}</label>
@@ -1723,6 +1747,7 @@ type ProfitCardStyle = {
   statLabelFontSize: number
   statValueColor: string
   statValueFontSize: number
+  offsets: Record<string, { x: number; y: number }>
 }
 const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   fontFamily: 'ui-sans-serif, system-ui, sans-serif',
@@ -1756,7 +1781,8 @@ const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   statLabelColor: '#64748b',
   statLabelFontSize: 12,
   statValueColor: '#e2e8f0',
-  statValueFontSize: 16
+  statValueFontSize: 16,
+  offsets: {}
 }
 
 const PROFIT_CARD_FONT_OPTIONS = [
@@ -1768,15 +1794,64 @@ const PROFIT_CARD_FONT_OPTIONS = [
   { value: 'Arial, Helvetica, sans-serif', labelKo: 'Arial', labelEn: 'Arial' }
 ]
 
-type ProfitCardTarget = 'card' | 'logo' | 'roe' | 'won' | 'badge' | 'symbol' | 'statBox' | 'statLabel' | 'statValue'
+type ProfitCardTarget = 'card' | 'logo' | 'divider' | 'roe' | 'won' | 'badge' | 'symbol' | 'statBox' | 'statLabel' | 'statValue'
 const selectedTarget = ref<ProfitCardTarget>('card')
-function selectTarget(t: ProfitCardTarget) {
+// 지금 방향키로 움직일 "개별 항목"의 키(없으면 null). 글자크기/색 설정 패널은 selectedTarget(그룹) 기준이고,
+// 위치 이동은 정보박스의 라벨/값처럼 같은 그룹 안에서도 항목마다 따로 움직일 수 있게 이 키로 구분한다.
+const selectedOffsetKey = ref<string | null>(null)
+function selectTarget(t: ProfitCardTarget, offsetKey: string | null = null) {
   selectedTarget.value = t
+  selectedOffsetKey.value = offsetKey
 }
+const STAT_BOX_KEYS = ['lev', 'pnl', 'entry', 'exit']
+
+const OFFSET_LIMIT = 200
+function cardOffsetStyle(key: string) {
+  const o = profitCardDraft.offsets?.[key]
+  return o && (o.x || o.y) ? { transform: `translate(${o.x}px, ${o.y}px)` } : {}
+}
+const selectedOffset = computed(() => (selectedOffsetKey.value ? profitCardDraft.offsets?.[selectedOffsetKey.value] || { x: 0, y: 0 } : { x: 0, y: 0 }))
+function moveSelectedOffset(dx: number, dy: number) {
+  const k = selectedOffsetKey.value
+  if (!k) return
+  const cur = profitCardDraft.offsets?.[k] || { x: 0, y: 0 }
+  const clamp = (n: number) => Math.max(-OFFSET_LIMIT, Math.min(OFFSET_LIMIT, n))
+  profitCardDraft.offsets = { ...profitCardDraft.offsets, [k]: { x: clamp(cur.x + dx), y: clamp(cur.y + dy) } }
+}
+function resetSelectedOffset() {
+  const k = selectedOffsetKey.value
+  if (!k) return
+  const next = { ...profitCardDraft.offsets }
+  delete next[k]
+  profitCardDraft.offsets = next
+}
+// 항목을 클릭해 선택한 뒤 키보드 방향키로 1px(Shift: 10px)씩 이동. 입력칸/슬라이더에 포커스가 있을 땐 건드리지 않는다.
+function onCardArrowKey(e: KeyboardEvent) {
+  if (activeTab.value !== 'profitCard' || !selectedOffsetKey.value) return
+  const tag = (e.target as HTMLElement)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  const step = e.shiftKey ? 10 : 1
+  if (e.key === 'Escape') {
+    selectedOffsetKey.value = null
+    return
+  }
+  let dx = 0
+  let dy = 0
+  if (e.key === 'ArrowLeft') dx = -step
+  else if (e.key === 'ArrowRight') dx = step
+  else if (e.key === 'ArrowUp') dy = -step
+  else if (e.key === 'ArrowDown') dy = step
+  else return
+  e.preventDefault()
+  moveSelectedOffset(dx, dy)
+}
+onMounted(() => window.addEventListener('keydown', onCardArrowKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onCardArrowKey))
 
 const PROFIT_CARD_TARGET_LABELS: Record<ProfitCardTarget, { ko: string; en: string }> = {
   card: { ko: '카드 전체', en: 'Whole Card' },
   logo: { ko: '로고(BITDUCK)', en: 'Logo (BITDUCK)' },
+  divider: { ko: '구분선', en: 'Divider Line' },
   roe: { ko: '수익률(%) 큰 글씨', en: 'ROE (%) Large Text' },
   won: { ko: '원화 보조텍스트', en: 'KRW Subtext' },
   badge: { ko: '롱/숏 배지', en: 'Long/Short Badge' },
@@ -1787,7 +1862,8 @@ const PROFIT_CARD_TARGET_LABELS: Record<ProfitCardTarget, { ko: string; en: stri
 }
 const PROFIT_CARD_TARGET_HINTS: Partial<Record<ProfitCardTarget, { ko: string; en: string }>> = {
   statValue: { ko: '"손익" 값의 색은 위 "수익률" 항목의 수익(+)/손실(-) 색을 그대로 따릅니다.', en: 'The color of the "P&L" value follows the profit(+)/loss(-) color from the "ROE" item above.' },
-  badge: { ko: '롱/숏 각각 배경색·글자색을 따로 지정할 수 있습니다.', en: 'You can set separate background and text colors for Long and Short.' }
+  badge: { ko: '롱/숏 각각 배경색·글자색을 따로 지정할 수 있습니다.', en: 'You can set separate background and text colors for Long and Short.' },
+  divider: { ko: '구분선은 위치만 조정할 수 있습니다(색은 수익/손실 색을 따릅니다).', en: 'The divider only has a position setting (its color follows the profit/loss color).' }
 }
 
 type ProfitCardNumField = { key: keyof ProfitCardStyle; labelKo: string; labelEn: string; min: number; max: number }
@@ -1803,6 +1879,7 @@ const PROFIT_CARD_TARGET_NUMBER_FIELDS: Record<ProfitCardTarget, ProfitCardNumFi
     { key: 'gridSize', labelKo: '격자 크기', labelEn: 'Grid Size', min: 8, max: 48 }
   ],
   logo: [{ key: 'logoFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 28 }],
+  divider: [],
   roe: [{ key: 'roeFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 24, max: 60 }],
   won: [{ key: 'wonFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 28 }],
   badge: [{ key: 'badgeFontSize', labelKo: '글자 크기', labelEn: 'Font Size', min: 10, max: 22 }],
@@ -1822,6 +1899,7 @@ const PROFIT_CARD_TARGET_COLOR_FIELDS: Record<ProfitCardTarget, ProfitCardColorF
     { key: 'gridColor', labelKo: '격자무늬 색', labelEn: 'Grid Pattern Color' }
   ],
   logo: [{ key: 'logoColor', labelKo: '글자색', labelEn: 'Text Color' }],
+  divider: [],
   roe: [
     { key: 'positiveColor', labelKo: '수익(+) 색', labelEn: 'Profit (+) Color' },
     { key: 'negativeColor', labelKo: '손실(-) 색', labelEn: 'Loss (-) Color' }
@@ -1873,13 +1951,14 @@ const PROFIT_CARD_PREVIEW_VARIANTS = [
     exit: '175100.00'
   }
 ]
-const profitCardDraft = reactive<ProfitCardStyle>({ ...DEFAULT_PROFIT_CARD_STYLE })
+const profitCardDraft = reactive<ProfitCardStyle>({ ...DEFAULT_PROFIT_CARD_STYLE, offsets: {} })
 const profitCardSaving = ref(false)
 const profitCardError = ref<string | null>(null)
 const profitCardMsg = ref<string | null>(null)
 
 function resetProfitCardStyle() {
-  Object.assign(profitCardDraft, DEFAULT_PROFIT_CARD_STYLE)
+  Object.assign(profitCardDraft, DEFAULT_PROFIT_CARD_STYLE, { offsets: {} })
+  selectedOffsetKey.value = null
 }
 
 async function saveProfitCardStyle() {
@@ -1887,7 +1966,7 @@ async function saveProfitCardStyle() {
   profitCardError.value = null
   profitCardMsg.value = null
   try {
-    await $fetch('/api/admin/settings/misc', { method: 'POST', body: { profitCardStyle: { ...profitCardDraft } } })
+    await $fetch('/api/admin/settings/misc', { method: 'POST', body: { profitCardStyle: { ...profitCardDraft, offsets: JSON.parse(JSON.stringify(profitCardDraft.offsets || {})) } } })
     profitCardMsg.value = t('저장되었습니다.', 'Saved.')
   } catch (e: any) {
     profitCardError.value = e?.data?.statusMessage || t('저장 실패', 'Save failed')
@@ -1953,7 +2032,7 @@ async function loadMiscSettings() {
       mainNavDraft.hidden = data.mainNavHidden.filter((k: string) => known.has(k as MainNavKey))
     }
     if (data.profitCardStyle && typeof data.profitCardStyle === 'object') {
-      Object.assign(profitCardDraft, DEFAULT_PROFIT_CARD_STYLE, data.profitCardStyle)
+      Object.assign(profitCardDraft, DEFAULT_PROFIT_CARD_STYLE, data.profitCardStyle, { offsets: { ...(data.profitCardStyle.offsets || {}) } })
     }
   } catch {
     // 기본값 유지

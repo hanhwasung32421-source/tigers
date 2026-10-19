@@ -1351,7 +1351,7 @@
           </button>
 
           <div class="flex flex-col items-center">
-            <span class="inline-flex items-center gap-2">
+            <span class="inline-flex items-center gap-2" :style="cardOffset('logo')">
               <span
                 class="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] border border-white bg-black"
                 :style="{ height: profitCardIconSize + 'px', width: profitCardIconSize + 'px' }"
@@ -1368,21 +1368,24 @@
 
             <div
               class="mt-5 h-[2px] w-9 rounded-full opacity-50"
-              :style="{ backgroundColor: closeSummary.roe >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor }"
+              :style="[{ backgroundColor: closeSummary.roe >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor }, cardOffset('divider')]"
             />
 
             <div
               class="mt-4 font-extrabold leading-none tracking-tight"
-              :style="{
-                fontSize: profitCardStyle.roeFontSize + 'px',
-                color: closeSummary.roe >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor
-              }"
+              :style="[
+                {
+                  fontSize: profitCardStyle.roeFontSize + 'px',
+                  color: closeSummary.roe >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor
+                },
+                cardOffset('roe')
+              ]"
             >
               {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }}%
             </div>
             <div
               class="mt-1.5 font-medium"
-              :style="{ fontSize: profitCardStyle.wonFontSize + 'px', color: profitCardStyle.wonTextColor }"
+              :style="[{ fontSize: profitCardStyle.wonFontSize + 'px', color: profitCardStyle.wonTextColor }, cardOffset('won')]"
             >
               {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.wonText }} {{ t('원', 'KRW') }}
             </div>
@@ -1390,17 +1393,20 @@
             <div class="mt-[18px] inline-flex items-center gap-2 rounded-full bg-white/[0.04] py-1.5 pl-2 pr-3.5">
               <span
                 class="rounded-full px-2 py-0.5 font-bold"
-                :style="{
-                  fontSize: profitCardStyle.badgeFontSize + 'px',
-                  backgroundColor: closeSummary.side === 'short' ? profitCardStyle.shortBadgeBg : profitCardStyle.longBadgeBg,
-                  color: closeSummary.side === 'short' ? profitCardStyle.shortBadgeText : profitCardStyle.longBadgeText
-                }"
+                :style="[
+                  {
+                    fontSize: profitCardStyle.badgeFontSize + 'px',
+                    backgroundColor: closeSummary.side === 'short' ? profitCardStyle.shortBadgeBg : profitCardStyle.longBadgeBg,
+                    color: closeSummary.side === 'short' ? profitCardStyle.shortBadgeText : profitCardStyle.longBadgeText
+                  },
+                  cardOffset('badge')
+                ]"
               >
                 {{ closeSummary.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}
               </span>
               <span
                 class="font-semibold"
-                :style="{ fontSize: profitCardStyle.symbolFontSize + 'px', color: profitCardStyle.symbolTextColor }"
+                :style="[{ fontSize: profitCardStyle.symbolFontSize + 'px', color: profitCardStyle.symbolTextColor }, cardOffset('symbol')]"
               >
                 {{ shortSymbol(closeSummary.symbol) }}USDT
               </span>
@@ -1409,7 +1415,7 @@
 
           <div
             class="mt-[26px] grid grid-cols-2 gap-px overflow-hidden bg-white/[0.06]"
-            :style="{ borderRadius: profitCardStyle.statBoxRadius + 'px' }"
+            :style="[{ borderRadius: profitCardStyle.statBoxRadius + 'px' }, cardOffset('statBox')]"
           >
             <div
               :style="{
@@ -1417,8 +1423,8 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('레버리지', 'Leverage') }}</div>
-              <div class="mt-1 font-bold" :style="{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }">
+              <div :style="[{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }, cardOffset('levLabel')]">{{ t('레버리지', 'Leverage') }}</div>
+              <div class="mt-1 font-bold" :style="[{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }, cardOffset('levValue')]">
                 {{ t('격리', 'Isolated') }} x{{ closeSummary.leverage }}
               </div>
             </div>
@@ -1428,13 +1434,16 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('손익', 'P&L') }}</div>
+              <div :style="[{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }, cardOffset('pnlLabel')]">{{ t('손익', 'P&L') }}</div>
               <div
                 class="mt-1 font-bold"
-                :style="{
-                  fontSize: profitCardStyle.statValueFontSize + 'px',
-                  color: closeSummary.pnl >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor
-                }"
+                :style="[
+                  {
+                    fontSize: profitCardStyle.statValueFontSize + 'px',
+                    color: closeSummary.pnl >= 0 ? profitCardStyle.positiveColor : profitCardStyle.negativeColor
+                  },
+                  cardOffset('pnlValue')
+                ]"
               >
                 {{ closeSummary.pnl >= 0 ? '+' : '' }}{{ closeSummary.pnl.toFixed(2) }} USDT
               </div>
@@ -1445,8 +1454,8 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('진입가격', 'Entry Price') }}</div>
-              <div class="mt-1 font-bold" :style="{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }">
+              <div :style="[{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }, cardOffset('entryLabel')]">{{ t('진입가격', 'Entry Price') }}</div>
+              <div class="mt-1 font-bold" :style="[{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }, cardOffset('entryValue')]">
                 {{ closeSummary.entryPrice.toFixed(2) }}
               </div>
             </div>
@@ -1456,8 +1465,8 @@
                 padding: profitCardStyle.statBoxPaddingY + 'px ' + profitCardStyle.statBoxPaddingX + 'px'
               }"
             >
-              <div :style="{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }">{{ t('종료가격', 'Exit Price') }}</div>
-              <div class="mt-1 font-bold" :style="{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }">
+              <div :style="[{ fontSize: profitCardStyle.statLabelFontSize + 'px', color: profitCardStyle.statLabelColor }, cardOffset('exitLabel')]">{{ t('종료가격', 'Exit Price') }}</div>
+              <div class="mt-1 font-bold" :style="[{ fontSize: profitCardStyle.statValueFontSize + 'px', color: profitCardStyle.statValueColor }, cardOffset('exitValue')]">
                 {{ closeSummary.exitPrice.toFixed(2) }}
               </div>
             </div>
@@ -1731,6 +1740,7 @@ type ProfitCardStyle = {
   statLabelFontSize: number
   statValueColor: string
   statValueFontSize: number
+  offsets: Record<string, { x: number; y: number }>
 }
 const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   fontFamily: 'ui-sans-serif, system-ui, sans-serif',
@@ -1764,9 +1774,16 @@ const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   statLabelColor: '#64748b',
   statLabelFontSize: 12,
   statValueColor: '#e2e8f0',
-  statValueFontSize: 16
+  statValueFontSize: 16,
+  offsets: {}
 }
 const profitCardStyle = ref<ProfitCardStyle>({ ...DEFAULT_PROFIT_CARD_STYLE })
+
+// 관리자 "카드 디자인"에서 저장한 항목별 위치 이동값(px)을 style transform으로 바꿔준다.
+function cardOffset(key: string) {
+  const o = profitCardStyle.value.offsets?.[key]
+  return o && (o.x || o.y) ? { transform: `translate(${o.x}px, ${o.y}px)` } : {}
+}
 const profitCardIconSize = computed(() => Math.round(profitCardStyle.value.logoFontSize * 1.5))
 
 async function refreshLiquidationSettings() {
@@ -1778,7 +1795,7 @@ async function refreshLiquidationSettings() {
       LIQUIDATION_TRIGGER_FRACTION = Math.abs(roe) / 100
     }
     if (res?.profitCardStyle && typeof res.profitCardStyle === 'object') {
-      profitCardStyle.value = { ...DEFAULT_PROFIT_CARD_STYLE, ...res.profitCardStyle }
+      profitCardStyle.value = { ...DEFAULT_PROFIT_CARD_STYLE, ...res.profitCardStyle, offsets: { ...(res.profitCardStyle.offsets || {}) } }
     }
   } catch {
     // 네트워크 실패 시 이전 값 유지
