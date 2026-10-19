@@ -1381,7 +1381,7 @@
                 cardOffset('roe')
               ]"
             >
-              {{ closeSummary.roe >= 0 ? '+' : '' }}{{ closeSummary.roe.toFixed(2) }}%
+              {{ closeSummary.roe >= 0 ? '+' : '−' }}{{ Math.abs(closeSummary.roe).toFixed(2) }}%
             </div>
             <div
               class="mt-1.5 font-medium"

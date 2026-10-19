@@ -1984,7 +1984,7 @@ const PROFIT_CARD_PREVIEW_VARIANTS = [
     titleKo: '손실일 때',
     titleEn: 'When at a loss',
     positive: false,
-    roeText: '-8.21%',
+    roeText: '−8.21%',
     wonTextKo: '-54,320 원',
     wonTextEn: '-₩54,320',
     side: 'short' as const,
