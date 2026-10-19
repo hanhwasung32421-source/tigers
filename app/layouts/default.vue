@@ -173,7 +173,7 @@
       </div>
     </Teleport>
 
-    <footer :class="route.path === '/' ? 'max-w-none px-6 md:px-12' : 'max-w-6xl px-4'" class="font-landing mx-auto border-t border-cyan-500/10 pb-10 pt-8 text-slate-500">
+    <footer :class="route.path === '/' ? 'max-w-none px-6 sm:px-12 md:px-24' : 'max-w-6xl px-4'" class="font-landing mx-auto border-t border-cyan-500/10 pb-10 pt-8 text-slate-500">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <BrandLogo size="sm" />
         <div class="text-xs text-slate-500">{{ t('거래, 자산, 기회를 하나의 경험으로 연결합니다.', 'Connecting trading, assets, and opportunity in one experience.') }}</div>
