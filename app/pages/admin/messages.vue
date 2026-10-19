@@ -251,6 +251,43 @@
                     <div class="mt-1 text-sm font-semibold text-cyan-100">{{ t(`${memberDetail.positions.length}건`, `${memberDetail.positions.length}`) }}</div>
                   </div>
                 </div>
+                <div v-if="memberPendingRequests.length" class="mt-3 space-y-2">
+                  <div
+                    v-for="rq in memberPendingRequests"
+                    :key="rq.id"
+                    class="rounded-lg border border-amber-400/30 bg-amber-400/5 p-3"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-[12px] font-semibold text-amber-200">
+                        {{ rq.type === 'withdrawal' ? t('출금요청', 'Withdrawal Request') : t('입금요청', 'Deposit Request') }}
+                      </span>
+                      <span class="text-[11px] text-slate-500">{{ fmtRequestTime(rq.requestedAt) }}</span>
+                    </div>
+                    <div class="mt-1 text-sm font-semibold text-slate-100">
+                      {{ fmtKrw(rq.krwAmount) }}{{ t('원', ' KRW') }}
+                      <span v-if="krwPerUsdt > 0" class="ml-1 text-[12px] font-normal text-slate-400">(≈ {{ fmt2(rq.krwAmount / krwPerUsdt) }} USDT)</span>
+                    </div>
+                    <div v-if="memberRequestsCanEdit" class="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        class="flex-1 rounded-md bg-[#0aa37f] px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
+                        :disabled="resolvingRequestId !== null"
+                        @click="resolveMemberRequest(rq, 'completed')"
+                      >
+                        {{ t('수락', 'Accept') }}
+                      </button>
+                      <button
+                        type="button"
+                        class="flex-1 rounded-md bg-[#8f1c1c] px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-[#a52222] disabled:cursor-not-allowed disabled:opacity-60"
+                        :disabled="resolvingRequestId !== null"
+                        @click="resolveMemberRequest(rq, 'rejected')"
+                      >
+                        {{ t('거절', 'Reject') }}
+                      </button>
+                    </div>
+                  </div>
+                  <p v-if="memberRequestError" class="text-sm text-rose-300">{{ memberRequestError }}</p>
+                </div>
               </template>
               <p v-else-if="memberDetailError" class="text-sm text-rose-300">{{ memberDetailError }}</p>
             </template>
@@ -470,10 +507,76 @@ function fmt2(v: number) {
   return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// 회원정보 패널에 보여줄 "처리 대기 중인 입금/출금 요청" + 수락/거절.
+type MemberRequest = {
+  id: number
+  type: 'deposit' | 'withdrawal'
+  krwAmount: number
+  status: 'pending' | 'completed' | 'rejected'
+  requestedAt: string
+}
+const memberPendingRequests = ref<MemberRequest[]>([])
+const memberRequestsCanEdit = ref(false)
+const memberRequestError = ref<string | null>(null)
+const resolvingRequestId = ref<number | null>(null)
+const krwPerUsdt = ref(0)
+
+function fmtKrw(v: number) {
+  return Math.round(Number(v || 0)).toLocaleString('ko-KR')
+}
+
+function fmtRequestTime(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString(locale.value === 'en' ? 'en-US' : 'ko-KR', { hour12: false })
+}
+
+async function loadMemberRequests(username: string) {
+  memberPendingRequests.value = []
+  memberRequestError.value = null
+  try {
+    const res = await $fetch<{ items: MemberRequest[]; canEdit: boolean }>('/api/admin/deposits', {
+      query: { username },
+      headers: requestHeaders,
+      credentials: 'include'
+    })
+    memberPendingRequests.value = (res.items || []).filter((r) => r.status === 'pending')
+    memberRequestsCanEdit.value = Boolean(res.canEdit)
+    if (!krwPerUsdt.value) {
+      const rate = await $fetch<{ rate: number }>('/api/settings/krw-rate').catch(() => null)
+      krwPerUsdt.value = Number(rate?.rate || 0)
+    }
+  } catch {
+    // 입출금 메뉴 권한이 없거나 조회에 실패하면 요청 영역만 조용히 숨긴다(회원정보 자체는 그대로 표시).
+    memberPendingRequests.value = []
+  }
+}
+
+async function resolveMemberRequest(rq: MemberRequest, status: 'completed' | 'rejected') {
+  if (resolvingRequestId.value) return
+  resolvingRequestId.value = rq.id
+  memberRequestError.value = null
+  try {
+    await $fetch('/api/admin/deposit-requests/resolve', {
+      method: 'POST',
+      headers: requestHeaders,
+      credentials: 'include',
+      body: { requestId: rq.id, status }
+    })
+    const username = activeThread.value?.username
+    if (username) await loadMemberDetail(username)
+  } catch (e: any) {
+    memberRequestError.value = e?.data?.statusMessage || t('처리 중 오류가 발생했습니다.', 'An error occurred while processing.')
+  } finally {
+    resolvingRequestId.value = null
+  }
+}
+
 async function loadMemberDetail(username: string) {
   memberDetail.value = null
   memberDetailError.value = null
   memberDetailLoading.value = true
+  loadMemberRequests(username).catch(() => {})
   try {
     memberDetail.value = await $fetch<MemberDetail>('/api/admin/member-detail', {
       query: { username },

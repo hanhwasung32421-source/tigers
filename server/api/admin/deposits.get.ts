@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
 
   const canEdit = canEditMenu(admin, 'deposits')
   const scopeToReferral = admin.role !== 'super_admin' ? admin.username : null
+  // 선택: 한 회원의 요청만 조회(쪽지관리의 회원정보 패널에서 사용). 없으면 전체.
+  const onlyUsername = String(getQuery(event).username || '').trim()
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
@@ -24,7 +26,10 @@ export default defineEventHandler(async (event) => {
     const downline = scopeToReferral
       ? computeDownlineUsernames(scopeToReferral, (allUsers || []).map((u: any) => ({ username: u.username, referralCode: u.referral_code })))
       : null
-    const users = (allUsers || []).filter((u: any) => String(u.role) === 'user' && (!downline || downline.has(String(u.username))))
+    // 특정 회원을 지정하면 역할(role)과 무관하게 그 회원의 요청을 보여준다(관리자 계정의 요청도 확인 가능).
+    const users = (allUsers || []).filter(
+      (u: any) => (onlyUsername ? String(u.username) === onlyUsername : String(u.role) === 'user') && (!downline || downline.has(String(u.username)))
+    )
 
     const ids = users.map((u: any) => Number(u.id)).filter(Boolean)
     if (!ids.length) return { items: [], canEdit }
@@ -64,7 +69,9 @@ export default defineEventHandler(async (event) => {
   const downline = scopeToReferral
     ? computeDownlineUsernames(scopeToReferral, allUsers.map((u) => ({ username: u.username, referralCode: u.referral_code })))
     : null
-  const users = allUsers.filter((u) => String(u.role) === 'user' && (!downline || downline.has(String(u.username))))
+  const users = allUsers.filter(
+    (u) => (onlyUsername ? String(u.username) === onlyUsername : String(u.role) === 'user') && (!downline || downline.has(String(u.username)))
+  )
 
   const ids = users.map((u: any) => Number(u.id))
   if (!ids.length) return { items: [], canEdit }
