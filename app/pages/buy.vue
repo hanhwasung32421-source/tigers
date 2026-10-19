@@ -102,24 +102,6 @@
             </div>
           </div>
 
-          <!-- 구매 채널: 은행 -->
-          <div class="rounded-2xl border border-white/10 px-4 py-3">
-            <div class="text-[13px] text-slate-300">{{ t('구매 채널 선택', 'Select Purchase Channel') }}</div>
-            <div class="mt-1 flex items-center justify-between text-[18px] font-semibold text-white">
-              <span>{{ t('은행', 'Bank') }}</span>
-              <span class="text-[12px] text-slate-400">▼</span>
-            </div>
-          </div>
-
-          <!-- 결제 수단: 계좌번호 -->
-          <div class="rounded-2xl border border-white/10 px-4 py-3">
-            <div class="text-[13px] text-slate-300">{{ t('결제 수단 선택', 'Select Payment Method') }}</div>
-            <div class="mt-1 flex items-center justify-between text-[18px] font-semibold text-white">
-              <span>{{ t('계좌번호', 'Account Number') }}</span>
-              <span class="text-[12px] text-slate-400">▼</span>
-            </div>
-          </div>
-
           <div class="text-[14px] text-slate-300">
             {{ t('예상 가격', 'Estimated Price') }} <span class="text-white">1 USDT ≈ {{ rate > 0 ? Math.round(rate).toLocaleString('en-US') : '—' }} KRW</span>
           </div>
