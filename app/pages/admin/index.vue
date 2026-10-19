@@ -522,11 +522,11 @@
                 >
                   <span
                     class="flex shrink-0 items-center justify-center overflow-hidden rounded-[9px] border border-white bg-black"
-                    :style="{ height: Math.round(profitCardDraft.logoFontSize * 1.5) + 'px', width: Math.round(profitCardDraft.logoFontSize * 1.5) + 'px' }"
+                    :style="{ height: Math.max(8, Math.round(profitCardDraft.logoFontSize * 1.5) + cardSz('logo')) + 'px', width: Math.max(8, Math.round(profitCardDraft.logoFontSize * 1.5) + cardSz('logo')) + 'px' }"
                   >
                     <img src="/favicon.png" alt="" class="h-[80%] w-[80%] object-contain" style="image-rendering: pixelated" />
                   </span>
-                  <span class="font-bold tracking-tight" :style="{ fontSize: profitCardDraft.logoFontSize + 'px', color: profitCardDraft.logoColor }">
+                  <span class="font-bold tracking-tight" :style="{ fontSize: cardFs(profitCardDraft.logoFontSize, 'logo'), color: profitCardDraft.logoColor }">
                     BITDUCK
                   </span>
                 </span>
@@ -538,14 +538,14 @@
                 >
                   <div
                     class="h-[2px] w-9 rounded-full opacity-50"
-                    :style="{ backgroundColor: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
+                    :style="{ width: Math.max(4, 36 + cardSz('divider')) + 'px', backgroundColor: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor }"
                   />
                 </div>
 
                 <div
                   class="mt-4 cursor-pointer rounded font-extrabold leading-none tracking-tight"
                   :style="{
-                    fontSize: profitCardDraft.roeFontSize + 'px',
+                    fontSize: cardFs(profitCardDraft.roeFontSize, 'roe'),
                     color: v.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor,
                     outline: selectedOffsetKey === 'roe' ? '2px solid #818cf8' : 'none',
                     outlineOffset: '3px',
@@ -558,7 +558,7 @@
                 <div
                   class="mt-1.5 cursor-pointer rounded font-medium"
                   :style="{
-                    fontSize: profitCardDraft.wonFontSize + 'px',
+                    fontSize: cardFs(profitCardDraft.wonFontSize, 'won'),
                     color: profitCardDraft.wonTextColor,
                     outline: selectedOffsetKey === 'won' ? '2px solid #818cf8' : 'none',
                     outlineOffset: '3px',
@@ -573,7 +573,7 @@
                   <span
                     class="cursor-pointer rounded-full px-2 py-0.5 font-bold"
                     :style="{
-                      fontSize: profitCardDraft.badgeFontSize + 'px',
+                      fontSize: cardFs(profitCardDraft.badgeFontSize, 'badge'),
                       backgroundColor: v.side === 'short' ? profitCardDraft.shortBadgeBg : profitCardDraft.longBadgeBg,
                       color: v.side === 'short' ? profitCardDraft.shortBadgeText : profitCardDraft.longBadgeText,
                       outline: selectedOffsetKey === 'badge' ? '2px solid #818cf8' : 'none',
@@ -587,7 +587,7 @@
                   <span
                     class="cursor-pointer rounded font-semibold"
                     :style="{
-                      fontSize: profitCardDraft.symbolFontSize + 'px',
+                      fontSize: cardFs(profitCardDraft.symbolFontSize, 'symbol'),
                       color: profitCardDraft.symbolTextColor,
                       outline: selectedOffsetKey === 'symbol' ? '2px solid #818cf8' : 'none',
                       outlineOffset: '2px',
@@ -606,6 +606,7 @@
                   borderRadius: profitCardDraft.statBoxRadius + 'px',
                   outline: selectedOffsetKey === 'statBox' ? '2px solid #818cf8' : 'none',
                   outlineOffset: '2px',
+                  ...cardBoxSizeStyle(),
                   ...cardOffsetStyle('statBox')
                 }"
                 @click.stop="selectTarget('statBox', 'statBox')"
@@ -626,7 +627,7 @@
                   <div
                     class="cursor-pointer rounded"
                     :style="{
-                      fontSize: profitCardDraft.statLabelFontSize + 'px',
+                      fontSize: cardFs(profitCardDraft.statLabelFontSize, STAT_BOX_KEYS[bi] + 'Label'),
                       color: profitCardDraft.statLabelColor,
                       outline: selectedOffsetKey === STAT_BOX_KEYS[bi] + 'Label' ? '2px solid #818cf8' : 'none',
                       outlineOffset: '2px',
@@ -639,7 +640,7 @@
                   <div
                     class="mt-1 cursor-pointer rounded font-bold"
                     :style="{
-                      fontSize: profitCardDraft.statValueFontSize + 'px',
+                      fontSize: cardFs(profitCardDraft.statValueFontSize, STAT_BOX_KEYS[bi] + 'Value'),
                       color: box.positive === null ? profitCardDraft.statValueColor : box.positive ? profitCardDraft.positiveColor : profitCardDraft.negativeColor,
                       outline: selectedOffsetKey === STAT_BOX_KEYS[bi] + 'Value' ? '2px solid #818cf8' : 'none',
                       outlineOffset: '2px',
@@ -663,9 +664,15 @@
           <div v-if="selectedOffsetKey" class="rounded-lg border border-indigo-400/30 bg-indigo-400/5 p-3 text-xs text-slate-300">
             <div class="font-semibold text-indigo-200">{{ t('위치 이동', 'Move Position') }}</div>
             <p class="mt-1 text-slate-400">
-              {{ t('키보드 방향키(← ↑ → ↓)로 1px씩, Shift와 함께 누르면 10px씩 움직입니다. 움직인 뒤 아래 "저장"을 눌러야 고정됩니다. (Esc: 선택 해제)', 'Use the arrow keys (← ↑ → ↓) to move 1px, or hold Shift for 10px. Press "Save" below to lock the position. (Esc: deselect)') }}
+              {{ t('방향키(← ↑ → ↓)로 1px씩 이동, + / − 키로 크기를 1px씩 늘리고 줄입니다(글자는 글자 크기, 그림/선은 가로 길이). Shift를 같이 누르면 10px씩. 조정 후 아래 "저장"을 눌러야 고정됩니다. (Esc: 선택 해제)', 'Arrow keys (← ↑ → ↓) move 1px; + / − change the size by 1px (font size for text, width for pictures/lines). Hold Shift for 10px. Press "Save" below to lock it. (Esc: deselect)') }}
             </p>
-            <div class="mt-2 font-mono text-slate-200">X {{ selectedOffset.x }}px · Y {{ selectedOffset.y }}px</div>
+            <div class="mt-2 font-mono text-slate-200">X {{ selectedOffset.x }}px · Y {{ selectedOffset.y }}px · {{ t('크기', 'Size') }} {{ selectedOffset.s > 0 ? '+' : '' }}{{ selectedOffset.s }}px</div>
+            <div class="mt-2 flex items-center gap-2">
+              <span class="text-slate-400">{{ t('크기', 'Size') }}</span>
+              <button type="button" class="h-6 w-6 rounded bg-white/10 text-sm font-bold hover:bg-white/20" @click="changeSelectedSize(-1)">−</button>
+              <button type="button" class="h-6 w-6 rounded bg-white/10 text-sm font-bold hover:bg-white/20" @click="changeSelectedSize(1)">+</button>
+              <span class="text-slate-500">{{ t('(키보드 + / − 도 가능)', '(or the + / − keys)') }}</span>
+            </div>
             <button type="button" class="mt-2 rounded bg-white/10 px-2 py-1 text-[11px] hover:bg-white/15" @click="resetSelectedOffset">
               {{ t('이 항목 위치 초기화', 'Reset this item position') }}
             </button>
@@ -1747,7 +1754,7 @@ type ProfitCardStyle = {
   statLabelFontSize: number
   statValueColor: string
   statValueFontSize: number
-  offsets: Record<string, { x: number; y: number }>
+  offsets: Record<string, { x: number; y: number; s?: number }>
 }
 const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   fontFamily: 'ui-sans-serif, system-ui, sans-serif',
@@ -1810,13 +1817,40 @@ function cardOffsetStyle(key: string) {
   const o = profitCardDraft.offsets?.[key]
   return o && (o.x || o.y) ? { transform: `translate(${o.x}px, ${o.y}px)` } : {}
 }
-const selectedOffset = computed(() => (selectedOffsetKey.value ? profitCardDraft.offsets?.[selectedOffsetKey.value] || { x: 0, y: 0 } : { x: 0, y: 0 }))
+const selectedOffset = computed(() => {
+  const o = selectedOffsetKey.value ? profitCardDraft.offsets?.[selectedOffsetKey.value] : null
+  return { x: o?.x || 0, y: o?.y || 0, s: o?.s || 0 }
+})
+// 항목 크기 조정값(px): 글자는 글자 크기에, 그림/도형은 가로·세로 크기에 더한다.
+const SIZE_MIN = -40
+const SIZE_MAX = 80
+function cardSz(key: string) {
+  return profitCardDraft.offsets?.[key]?.s || 0
+}
+function cardFs(base: number, key: string) {
+  return Math.max(6, base + cardSz(key)) + 'px'
+}
+function cardBoxSizeStyle() {
+  const s = cardSz('statBox')
+  return s ? { width: `calc(100% + ${s}px)`, marginLeft: `${-s / 2}px` } : {}
+}
+function changeSelectedSize(ds: number) {
+  const k = selectedOffsetKey.value
+  if (!k) return
+  const cur = profitCardDraft.offsets?.[k] || { x: 0, y: 0 }
+  const s = Math.max(SIZE_MIN, Math.min(SIZE_MAX, (cur.s || 0) + ds))
+  const entry: { x: number; y: number; s?: number } = { x: cur.x, y: cur.y }
+  if (s) entry.s = s
+  profitCardDraft.offsets = { ...profitCardDraft.offsets, [k]: entry }
+}
 function moveSelectedOffset(dx: number, dy: number) {
   const k = selectedOffsetKey.value
   if (!k) return
   const cur = profitCardDraft.offsets?.[k] || { x: 0, y: 0 }
   const clamp = (n: number) => Math.max(-OFFSET_LIMIT, Math.min(OFFSET_LIMIT, n))
-  profitCardDraft.offsets = { ...profitCardDraft.offsets, [k]: { x: clamp(cur.x + dx), y: clamp(cur.y + dy) } }
+  const entry: { x: number; y: number; s?: number } = { x: clamp(cur.x + dx), y: clamp(cur.y + dy) }
+  if (cur.s) entry.s = cur.s
+  profitCardDraft.offsets = { ...profitCardDraft.offsets, [k]: entry }
 }
 function resetSelectedOffset() {
   const k = selectedOffsetKey.value
@@ -1833,6 +1867,16 @@ function onCardArrowKey(e: KeyboardEvent) {
   const step = e.shiftKey ? 10 : 1
   if (e.key === 'Escape') {
     selectedOffsetKey.value = null
+    return
+  }
+  if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') {
+    e.preventDefault()
+    changeSelectedSize(step)
+    return
+  }
+  if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
+    e.preventDefault()
+    changeSelectedSize(-step)
     return
   }
   let dx = 0

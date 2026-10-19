@@ -94,7 +94,7 @@ export type ProfitCardStyle = {
   statValueColor: string
   statValueFontSize: number
   // 카드 안 각 항목의 위치 미세조정(px). 키는 PROFIT_CARD_OFFSET_KEYS, 값이 없으면 기본 위치.
-  offsets: Record<string, { x: number; y: number }>
+  offsets: Record<string, { x: number; y: number; s?: number }>
 }
 
 export const PROFIT_CARD_OFFSET_KEYS = [
@@ -222,14 +222,16 @@ function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_
       if (typeof v === 'string' && (PROFIT_CARD_FONT_FAMILIES as readonly string[]).includes(v)) (next as any)[key] = v
     } else if (def.kind === 'offsets') {
       if (v && typeof v === 'object') {
-        const out: Record<string, { x: number; y: number }> = {}
+        const out: Record<string, { x: number; y: number; s?: number }> = {}
         const clamp = (n: any) => Math.max(-200, Math.min(200, Math.round(Number(n) || 0)))
+        const clampSize = (n: any) => Math.max(-40, Math.min(80, Math.round(Number(n) || 0)))
         for (const k of PROFIT_CARD_OFFSET_KEYS) {
           const o = (v as any)[k]
           if (!o || typeof o !== 'object') continue
           const x = clamp(o.x)
           const y = clamp(o.y)
-          if (x || y) out[k] = { x, y }
+          const sz = clampSize(o.s)
+          if (x || y || sz) out[k] = sz ? { x, y, s: sz } : { x, y }
         }
         next.offsets = out
       }
