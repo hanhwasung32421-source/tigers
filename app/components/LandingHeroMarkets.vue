@@ -72,7 +72,7 @@ import type { MarketItem } from '../composables/useMarketOverview'
 
 const { t } = useLocale()
 const { items, refresh } = useMarketOverview()
-const spark = ref<Record<string, number[]>>({})
+const spark = useState<Record<string, number[]>>('landing_sparks', () => ({}))
 
 const cards = computed(() => {
   // 위에서부터: SAMSUNGUSDT 고정 / 상승률 상위 코인 1개 / PEPE 고정.
@@ -124,10 +124,13 @@ async function loadSparks() {
   }
 }
 
+// 미니 차트도 서버에서 미리 받아 둔다(이미 있으면 다시 받지 않는다)
+if (!Object.keys(spark.value).length) await loadSparks()
+
 let timer: any = null
 onMounted(async () => {
-  await refresh(true)
-  await loadSparks()
+  await refresh()
+  if (!Object.keys(spark.value).length) await loadSparks()
   timer = setInterval(async () => {
     await refresh(true)
     await loadSparks()

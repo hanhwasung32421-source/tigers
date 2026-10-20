@@ -23,6 +23,7 @@ async function loadCloses(symbol: string): Promise<number[]> {
 }
 
 export default defineEventHandler(async (event) => {
+  setHeader(event, 'Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60')
   const q = getQuery(event)
   const symbols = Array.from(
     new Set(

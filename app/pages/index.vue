@@ -1,5 +1,6 @@
 <template>
   <div class="font-landing">
+    <SplashScreen />
     <LandingPopup />
     <section class="relative overflow-hidden px-6 py-10 sm:px-12 md:px-24 md:py-14">
       <HeroVideo />
@@ -176,6 +177,9 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const appName = config.public.appName
+// 종목 시세를 서버에서 먼저 받아 두면 첫 HTML에 카드가 들어 있어서, 접속 직후 빈 카드가 2~3초 보이는 일이 없다.
+await useMarketOverview().refresh(true)
+
 const heroEmail = ref('')
 // 보안 항목 카드: 터치 화면에서 탭으로 뒤집힌 카드(마우스 화면은 CSS :hover로 뒤집힌다)
 const flippedIdx = ref(-1)
