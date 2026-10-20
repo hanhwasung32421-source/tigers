@@ -239,7 +239,7 @@ const MAIN_NAV_LABELS_EN: Record<MainNavKey, string> = {
   markets: 'Markets',
   coin: 'Coin Futures',
   stock: 'Derivative',
-  kr: '레버리지',
+  kr: 'Leverage',
   wallet: 'My Wallet',
   invest: 'Investment History',
   support: 'Support'
