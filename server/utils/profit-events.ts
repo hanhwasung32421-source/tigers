@@ -82,7 +82,7 @@ export async function createProfitEvent(input: {
   const holdMs = input.holdMs && input.holdMs > 0 ? Math.round(input.holdMs) : DEFAULT_HOLD_MS
   const holdTickCount = Math.min(200, Math.max(0, Math.round(Number(input.holdTickCount || 0))))
   const revertMs = input.revertMs && input.revertMs > 0 ? Math.min(10000, Math.round(input.revertMs)) : durationMs
-  const revertTickCount = Math.min(20, Math.max(0, Math.round(Number(input.revertTickCount || 0))))
+  const revertTickCount = Math.min(200, Math.max(0, Math.round(Number(input.revertTickCount || 0))))
   const holdAmp = input.holdAmp !== undefined && Number.isFinite(Number(input.holdAmp)) && Number(input.holdAmp) >= 0 ? Number(input.holdAmp) : null
   // DB에는 기존 컬럼에 합쳐서 저장(컬럼 추가 불필요)
   const storedDuration = durationMs + revertMs * DURATION_PACK

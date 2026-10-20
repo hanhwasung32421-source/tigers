@@ -1166,7 +1166,7 @@
           <div class="mt-2 flex flex-wrap items-center gap-2">
             <input v-model.number="profitDurationDraft" type="number" min="0.1" max="10" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
-            <input v-model.number="profitTickCountDraft" type="number" min="0" max="20" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <input v-model.number="profitTickCountDraft" type="number" min="0" max="200" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
           </div>
         </div>
@@ -1191,7 +1191,7 @@
           <div class="mt-2 flex flex-wrap items-center gap-2">
             <input v-model.number="profitRevertSecondsDraft" type="number" min="0.1" max="10" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
-            <input v-model.number="profitRevertTickDraft" type="number" min="0" max="20" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <input v-model.number="profitRevertTickDraft" type="number" min="0" max="200" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
           </div>
         </div>
@@ -3726,8 +3726,8 @@ async function confirmProfitModal() {
     return
   }
   const tickCount = Math.round(Number(profitTickCountDraft.value))
-  if (!Number.isFinite(tickCount) || tickCount < 0 || tickCount > 20) {
-    profitError.value = t('몇 틱은 0~20 사이로 입력해주세요. (0 = 자동)', 'Please enter a tick count between 0 and 20. (0 = auto)')
+  if (!Number.isFinite(tickCount) || tickCount < 0 || tickCount > 200) {
+    profitError.value = t('몇 틱은 0~200 사이로 입력해주세요. (0 = 자동)', 'Please enter a tick count between 0 and 200. (0 = auto)')
     return
   }
   const holdTickCount = Math.round(Number(profitHoldTickDraft.value || 0))
@@ -3751,8 +3751,8 @@ async function confirmProfitModal() {
     return
   }
   const revertTickCount = Math.round(Number(profitRevertTickDraft.value || 0))
-  if (!Number.isFinite(revertTickCount) || revertTickCount < 0 || revertTickCount > 20) {
-    profitError.value = t('복귀 틱은 0~20 사이로 입력해주세요. (0 = 자동)', 'Please enter a return tick count between 0 and 20. (0 = auto)')
+  if (!Number.isFinite(revertTickCount) || revertTickCount < 0 || revertTickCount > 200) {
+    profitError.value = t('복귀 틱은 0~200 사이로 입력해주세요. (0 = 자동)', 'Please enter a return tick count between 0 and 200. (0 = auto)')
     return
   }
   adminProfitBusy.value = true
@@ -3795,6 +3795,39 @@ function buildLinearPath(start: number, end: number, steps: number): number[] {
   for (let k = 1; k <= n; k++) out.push(start + ((end - start) * k) / n)
   out[out.length - 1] = end
   return out
+}
+
+// 이동/복귀용 랜덤 경로: 틱마다 올랐다 내렸다 하면서 움직이고, 마지막 틱은 정확히 end가 된다(브라운 브릿지).
+// 중간 편차는 이동폭의 약 35% 안으로 제한하고 start~end 범위를 벗어나지 않게 자른다.
+function buildRandomPath(start: number, end: number, steps: number): number[] {
+  const n = Math.max(1, Math.round(steps))
+  if (n === 1) return [end]
+  const move = end - start
+  const absMove = Math.abs(move)
+  const stepNoise = (absMove * 0.6) / Math.sqrt(n)
+  const walk: number[] = [0]
+  for (let i = 1; i <= n; i++) walk.push(walk[i - 1] + (Math.random() * 2 - 1) * stepNoise * 1.7)
+  const totalWalk = walk[n]
+  const maxDev = absMove * 0.35
+  const lo = Math.min(start, end)
+  const hi = Math.max(start, end)
+  const out: number[] = []
+  for (let i = 1; i <= n; i++) {
+    let bridge = walk[i] - (totalWalk * i) / n
+    bridge = Math.max(-maxDev, Math.min(maxDev, bridge))
+    out.push(Math.min(hi, Math.max(lo, start + (move * i) / n + bridge)))
+  }
+  out[n - 1] = end
+  return out
+}
+
+// n틱 사이의 (n-1)개 간격을 100~1000ms 비율로 랜덤하게 만들고, 합이 정확히 durationMs가 되게 맞춘다.
+function buildRandomGaps(n: number, durationMs: number): number[] {
+  const count = Math.max(0, Math.round(n) - 1)
+  if (count === 0) return []
+  const weights = Array.from({ length: count }, () => 1 + Math.random() * 9)
+  const total = weights.reduce((a, b) => a + b, 0)
+  return weights.map((w) => (w / total) * durationMs)
 }
 
 // start~end를 잇는 가격 경로를 "위아래로 적당히 오르내리며" 만든다(브라운 브릿지 방식).
@@ -3856,11 +3889,9 @@ async function runProfitAnimation(ev: ProfitEvent) {
   const durationMs = Math.max(100, ev.durationMs || 1000)
   const holdMs = Math.max(100, ev.holdMs || 3000)
   const steps = resolveWiggleSteps(userTickCount, durationMs)
-  const stepMs = durationMs / steps
   // 복귀 구간은 이동 구간과 별도의 시간/틱 수를 쓴다(예전 이벤트는 이동과 같게 복귀).
   const revertMs = Math.max(100, ev.revertMs || durationMs)
   const revertSteps = resolveWiggleSteps(ev.revertTickCount && ev.revertTickCount > 0 ? ev.revertTickCount : userTickCount, revertMs)
-  const revertStepMs = revertMs / revertSteps
 
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitBusy.value = true
@@ -3883,14 +3914,14 @@ async function runProfitAnimation(ev: ProfitEvent) {
     try { candleSeries?.update(candle as any) } catch {}
   }
 
-  // 킬UP/킬DOWN과 같은 방식: path의 첫 틱은 바로 적용하고, 이후 stepMs 간격으로 한 틱씩 "파파팍" 움직인다. 마지막 틱 = 목표가.
-  const runPath = (path: number[], onDone: () => void, gapMs = stepMs) => {
+  // path의 첫 틱은 바로 적용하고, 이후 gaps(랜덤 간격, 합 = 구간 시간)마다 한 틱씩 움직인다. 마지막 틱 = 목표가.
+  const runPath = (path: number[], onDone: () => void, gaps: number[]) => {
     let i = 0
     const step = () => {
       applyPrice(path[i])
       i += 1
       if (i < path.length) {
-        adminProfitTimer = setTimeout(step, gapMs)
+        adminProfitTimer = setTimeout(step, gaps[i - 1] ?? 0)
       } else {
         onDone()
       }
@@ -3933,12 +3964,12 @@ async function runProfitAnimation(ev: ProfitEvent) {
   // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 OKX 현재가로 되돌아간다.
   const startRevert = () => {
     const realPrice = Number(lastPrice.value || ev.shockedPrice)
-    const revertPath = buildLinearPath(lastHoldPrice, realPrice, revertSteps)
-    runPath(revertPath, finish, revertStepMs)
+    const revertPath = buildRandomPath(lastHoldPrice, realPrice, revertSteps)
+    runPath(revertPath, finish, buildRandomGaps(revertSteps, revertMs))
   }
 
-  const risePath = buildLinearPath(ev.basePrice, ev.shockedPrice, steps)
-  runPath(risePath, () => runHold(startRevert))
+  const risePath = buildRandomPath(ev.basePrice, ev.shockedPrice, steps)
+  runPath(risePath, () => runHold(startRevert), buildRandomGaps(steps, durationMs))
 }
 
 async function pollProfitEvents() {
