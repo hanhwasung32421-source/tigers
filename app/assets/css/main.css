@@ -582,9 +582,160 @@ html.theme-filter .lang-panel.lang-panel {
 }
 
 
+/* 첫 화면 SECURITY & CONTROL 카드: 마우스를 올리면 가로로 뒤집힌다 */
+.flip-card {
+  perspective: 1000px;
+  cursor: default;
+}
+.flip-inner {
+  display: grid;
+  transition: transform 0.6s ease;
+  transform-style: preserve-3d;
+}
+.flip-face {
+  grid-area: 1 / 1;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-back {
+  transform: rotateY(180deg);
+}
+.flip-card:hover .flip-inner,
+.flip-card.is-flipped .flip-inner {
+  transform: rotateY(180deg);
+}
+
+/* 첫 화면 파트4 픽셀 방패 모션그래픽(10초 반복) */
+.px-cell,
+.px-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.px-cell {
+  animation: px-cycle 10s ease-out infinite, px-shine 10s linear infinite;
+  animation-delay: var(--d, 0s), var(--s, 0s);
+  animation-fill-mode: backwards, none;
+}
+.px-mark {
+  animation: px-mark 10s ease-out infinite;
+  animation-delay: var(--d, 0s);
+  animation-fill-mode: backwards;
+}
+@keyframes px-cycle {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  4% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  6%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90%,
+  100% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+@keyframes px-shine {
+  0%,
+  48% {
+    filter: brightness(1);
+  }
+  54% {
+    filter: brightness(1.6);
+  }
+  60%,
+  100% {
+    filter: brightness(1);
+  }
+}
+@keyframes px-mark {
+  0%,
+  26% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+  31% {
+    opacity: 1;
+    transform: scale(0.85);
+  }
+  34%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90%,
+  100% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+/* 첫 화면 파트7 협력 보안 기관 타일 모션그래픽(마우스에 반응하지 않는다) */
+.sa-tile {
+  animation: sa-pop 9s ease-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.18s);
+  animation-fill-mode: backwards;
+}
+.sa-tile-inner {
+  animation: sa-float 4.5s ease-in-out infinite alternate;
+  animation-delay: var(--f, 0s);
+}
+.sa-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, 0.7) 50%, transparent 62%);
+  transform: translateX(-120%);
+  animation: sa-sweep 9s linear infinite;
+}
+@keyframes sa-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.88);
+  }
+  7% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+  10%,
+  86% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.94);
+  }
+}
+@keyframes sa-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-8px);
+  }
+}
+@keyframes sa-sweep {
+  0%,
+  18% {
+    transform: translateX(-120%);
+  }
+  48%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
 /* ───────── 화이트(native) 테마: 페이지별 색 클래스 자동 변환 ─────────
    첫 화면, 로그인/가입, 약관, 마켓 페이지가 쓰는 색 클래스를 흰 배경용 색으로 바꾼다.
-   (자동 생성: 83개 규칙 / 변환 스크립트: 작업 폴더의 gen_native.cjs) */
+   (자동 생성: 88개 규칙 / 변환 스크립트: 작업 폴더의 gen_native.cjs) */
 html.theme-native .bg-\[\#020817\]\/55 {
   background-color: rgba(255, 255, 255, 0.55) !important;
 }
@@ -693,6 +844,12 @@ html.theme-native .border-cyan-500\/10 {
 html.theme-native .border-cyan-500\/15 {
   border-color: rgba(0, 0, 0, 0.09) !important;
 }
+html.theme-native .border-slate-200 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-native .border-slate-300\/60 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
 html.theme-native .border-slate-950\/40 {
   border-color: rgba(0, 0, 0, 0.16) !important;
 }
@@ -759,6 +916,9 @@ html.theme-native .hover\:bg-white\/\[0\.05\]:hover {
 html.theme-native .hover\:bg-white\/\[0\.07\]:hover {
   background-color: rgba(0, 0, 0, 0.049) !important;
 }
+html.theme-native .hover\:bg-white\/\[0\.09\]:hover {
+  background-color: rgba(0, 0, 0, 0.063) !important;
+}
 html.theme-native .hover\:bg-white\/\[0\.12\]:hover {
   background-color: rgba(0, 0, 0, 0.084) !important;
 }
@@ -813,6 +973,9 @@ html.theme-native .text-emerald-300 {
 html.theme-native .text-emerald-400 {
   color: #0bb87b !important;
 }
+html.theme-native .text-emerald-500 {
+  color: #0bb87b !important;
+}
 html.theme-native .text-indigo-300 {
   color: #3b5bdb !important;
 }
@@ -823,6 +986,9 @@ html.theme-native .text-rose-300 {
   color: #f6465d !important;
 }
 html.theme-native .text-rose-400 {
+  color: #f6465d !important;
+}
+html.theme-native .text-rose-500 {
   color: #f6465d !important;
 }
 html.theme-native .text-slate-100 {
@@ -846,7 +1012,7 @@ html.theme-native .text-white {
 /* ───────── END 화이트(native) 자동 변환 ───────── */
 
 /* ───────── 화이트(필터) 테마: 베일 위 영역(헤더/푸터/언어 패널/채팅) ─────────
-   반전 필터를 쓰는 페이지에서도 이 영역들은 베일 위(z-index)에 올려서 반전하지 않고, 첫 화면과 같은 규칙을 그대로 쓴다. (자동 생성: 107개) */
+   반전 필터를 쓰는 페이지에서도 이 영역들은 베일 위(z-index)에 올려서 반전하지 않고, 첫 화면과 같은 규칙을 그대로 쓴다. (자동 생성: 112개) */
 html.theme-filter .site-header,
 html.theme-filter .lang-panel,
 html.theme-filter .guest-chat {
@@ -1264,6 +1430,16 @@ html.theme-filter .lang-panel .border-cyan-500\/15,
 html.theme-filter .guest-chat .border-cyan-500\/15 {
   border-color: rgba(0, 0, 0, 0.09) !important;
 }
+html.theme-filter .site-header .border-slate-200,
+html.theme-filter .lang-panel .border-slate-200,
+html.theme-filter .guest-chat .border-slate-200 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-filter .site-header .border-slate-300\/60,
+html.theme-filter .lang-panel .border-slate-300\/60,
+html.theme-filter .guest-chat .border-slate-300\/60 {
+  border-color: rgba(0, 0, 0, 0.16) !important;
+}
 html.theme-filter .site-header .border-slate-950\/40,
 html.theme-filter .lang-panel .border-slate-950\/40,
 html.theme-filter .guest-chat .border-slate-950\/40 {
@@ -1316,6 +1492,11 @@ html.theme-filter .site-header .hover\:bg-white\/\[0\.03\]:hover,
 html.theme-filter .lang-panel .hover\:bg-white\/\[0\.03\]:hover,
 html.theme-filter .guest-chat .hover\:bg-white\/\[0\.03\]:hover {
   background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.09\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.09\]:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/\[0\.09\]:hover {
+  background-color: rgba(0, 0, 0, 0.063) !important;
 }
 html.theme-filter .site-header .hover\:text-amber-300:hover,
 html.theme-filter .lang-panel .hover\:text-amber-300:hover,
@@ -1387,6 +1568,11 @@ html.theme-filter .lang-panel .text-emerald-400,
 html.theme-filter .guest-chat .text-emerald-400 {
   color: #0bb87b !important;
 }
+html.theme-filter .site-header .text-emerald-500,
+html.theme-filter .lang-panel .text-emerald-500,
+html.theme-filter .guest-chat .text-emerald-500 {
+  color: #0bb87b !important;
+}
 html.theme-filter .site-header .text-indigo-300,
 html.theme-filter .lang-panel .text-indigo-300,
 html.theme-filter .guest-chat .text-indigo-300 {
@@ -1407,6 +1593,11 @@ html.theme-filter .lang-panel .text-rose-400,
 html.theme-filter .guest-chat .text-rose-400 {
   color: #f6465d !important;
 }
+html.theme-filter .site-header .text-rose-500,
+html.theme-filter .lang-panel .text-rose-500,
+html.theme-filter .guest-chat .text-rose-500 {
+  color: #f6465d !important;
+}
 html.theme-filter .site-header .text-slate-300,
 html.theme-filter .lang-panel .text-slate-300,
 html.theme-filter .guest-chat .text-slate-300 {
@@ -1418,97 +1609,3 @@ html.theme-filter .guest-chat .text-slate-400 {
   color: #474d57 !important;
 }
 /* ───────── END 베일 위 영역 ───────── */
-
-/* 첫 화면 SECURITY & CONTROL 카드: 마우스를 올리면 가로로 뒤집힌다 */
-.flip-card {
-  perspective: 1000px;
-  cursor: default;
-}
-.flip-inner {
-  display: grid;
-  transition: transform 0.6s ease;
-  transform-style: preserve-3d;
-}
-.flip-face {
-  grid-area: 1 / 1;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-.flip-back {
-  transform: rotateY(180deg);
-}
-.flip-card:hover .flip-inner,
-.flip-card.is-flipped .flip-inner {
-  transform: rotateY(180deg);
-}
-
-/* 첫 화면 파트4 픽셀 방패 모션그래픽(10초 반복) */
-.px-cell,
-.px-mark {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.px-cell {
-  animation: px-cycle 10s ease-out infinite, px-shine 10s linear infinite;
-  animation-delay: var(--d, 0s), var(--s, 0s);
-  animation-fill-mode: backwards, none;
-}
-.px-mark {
-  animation: px-mark 10s ease-out infinite;
-  animation-delay: var(--d, 0s);
-  animation-fill-mode: backwards;
-}
-@keyframes px-cycle {
-  0% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  4% {
-    opacity: 1;
-    transform: scale(1.18);
-  }
-  6%,
-  80% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  90%,
-  100% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-}
-@keyframes px-shine {
-  0%,
-  48% {
-    filter: brightness(1);
-  }
-  54% {
-    filter: brightness(1.6);
-  }
-  60%,
-  100% {
-    filter: brightness(1);
-  }
-}
-@keyframes px-mark {
-  0%,
-  26% {
-    opacity: 0;
-    transform: scale(2.4);
-  }
-  31% {
-    opacity: 1;
-    transform: scale(0.85);
-  }
-  34%,
-  80% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  90%,
-  100% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-}

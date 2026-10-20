@@ -105,6 +105,21 @@
       <AssetSecurity />
     </section>
 
+    <!-- 파트5: TOOLS FOR TRADERS -->
+    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+      <ToolsForTraders />
+    </section>
+
+    <!-- 파트6: TRADE ANYTIME, ANYWHERE -->
+    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+      <TradeAnywhere />
+    </section>
+
+    <!-- 파트7: SECURITY AUDIT -->
+    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+      <SecurityAudit />
+    </section>
+
     <!-- PRODUCTS -->
     <section class="border-t border-white/10 px-6 sm:px-12 py-14 text-center md:px-24">
       <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">PRODUCTS</div>
