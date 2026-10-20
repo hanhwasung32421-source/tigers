@@ -71,33 +71,31 @@
         <div class="space-y-4 p-5 pt-6">
           <!-- 지불 / 판매 -->
           <div class="rounded-2xl border border-white/10 px-4 py-3">
-            <div class="text-[13px] text-slate-300">{{ mode === 'buy' ? t('지불 금액', 'You Pay') : t('판매 수량', 'You Sell') }}</div>
+            <div class="text-[13px] text-slate-300">{{ mode === 'buy' ? t('지불 금액', 'You Pay') : t('받을 금액', 'You Will Receive') }}</div>
             <div class="mt-1 flex items-center justify-between gap-3">
               <input
                 :key="`pay-${mode}-${locale}`"
                 :value="payInput"
                 type="text"
-                inputmode="decimal"
-                :placeholder="mode === 'buy' ? t('금액 입력', 'Enter amount') : t('수량 입력', 'Enter quantity')"
+                inputmode="numeric"
+                :placeholder="t('금액 입력', 'Enter amount')"
                 class="w-full min-w-0 bg-transparent text-[24px] text-white outline-none placeholder:text-slate-500"
                 @input="onPayInput(($event.target as HTMLInputElement).value)"
               />
               <span class="flex shrink-0 items-center gap-2 text-[16px] font-bold text-white">
-                <template v-if="mode === 'buy'"><img :src="flagUrl('kr')" alt="KRW" class="h-5 w-5 rounded-full object-cover" />KRW</template>
-                <template v-else><CoinIcon base="USDT" :size="22" />USDT</template>
+                <img :src="flagUrl('kr')" alt="KRW" class="h-5 w-5 rounded-full object-cover" />KRW
               </span>
             </div>
-            <div v-if="mode === 'buy' && locale === 'ko' && krwText" class="mt-1 text-xs text-slate-400">{{ krwText }}</div>
+            <div v-if="locale === 'ko' && krwText" class="mt-1 text-xs text-slate-400">{{ krwText }}</div>
           </div>
 
-          <!-- 받는 금액 -->
+          <!-- 구매: 받는 USDT / 판매: 판매할 USDT -->
           <div class="rounded-2xl border border-white/10 px-4 py-3">
-            <div class="text-[13px] text-slate-300">{{ t('받는 금액', 'You Will Receive') }}</div>
+            <div class="text-[13px] text-slate-300">{{ mode === 'buy' ? t('받는 금액', 'You Will Receive') : t('판매 수량', 'You Sell') }}</div>
             <div class="mt-1 flex items-center justify-between gap-3">
               <div class="min-w-0 truncate text-[24px] text-white">{{ receiveText }}</div>
               <span class="flex shrink-0 items-center gap-2 text-[16px] font-bold text-white">
-                <template v-if="mode === 'buy'"><CoinIcon base="USDT" :size="22" />USDT</template>
-                <template v-else><img :src="flagUrl('kr')" alt="KRW" class="h-5 w-5 rounded-full object-cover" />KRW</template>
+                <CoinIcon base="USDT" :size="22" />USDT
               </span>
             </div>
           </div>
@@ -192,16 +190,10 @@ function switchMode(m: 'buy' | 'sell') {
   payInput.value = ''
 }
 
-// 입력값: 구매는 원화(정수, 천단위 콤마), 판매는 USDT(소수 허용)
+// 입력값: 구매/판매 모두 원화(KRW, 정수, 천단위 콤마). USDT 수량은 환율로 계산해서 보여준다.
 function onPayInput(raw: string) {
-  if (mode.value === 'buy') {
-    const digits = raw.replace(/[^\d]/g, '')
-    payInput.value = digits ? Number(digits).toLocaleString('en-US') : ''
-  } else {
-    const cleaned = raw.replace(/[^\d.]/g, '')
-    const [i, ...rest] = cleaned.split('.')
-    payInput.value = rest.length ? `${i}.${rest.join('').slice(0, 6)}` : i
-  }
+  const digits = raw.replace(/[^\d]/g, '')
+  payInput.value = digits ? Number(digits).toLocaleString('en-US') : ''
 }
 const payNumber = computed(() => {
   const n = Number(String(payInput.value || '').replace(/,/g, ''))
@@ -210,8 +202,7 @@ const payNumber = computed(() => {
 
 const receiveText = computed(() => {
   if (!(payNumber.value > 0) || !(rate.value > 0)) return '—'
-  if (mode.value === 'buy') return (payNumber.value / rate.value).toFixed(6)
-  return Math.round(payNumber.value * rate.value).toLocaleString('en-US')
+  return (payNumber.value / rate.value).toFixed(6)
 })
 
 // "1,234만원" 같은 한글식 금액(원화 구매일 때 한국어 화면에서만)
@@ -253,7 +244,7 @@ async function onSubmit() {
   }
   if (submitting.value) return
   if (!(payNumber.value > 0)) {
-    alert(mode.value === 'buy' ? t('지불할 금액을 입력해 주세요.', 'Please enter the amount to pay.') : t('판매할 수량을 입력해 주세요.', 'Please enter the quantity to sell.'))
+    alert(mode.value === 'buy' ? t('지불할 금액을 입력해 주세요.', 'Please enter the amount to pay.') : t('받을 금액을 입력해 주세요.', 'Please enter the amount to receive.'))
     return
   }
   if (!(rate.value > 0)) {
@@ -265,7 +256,7 @@ async function onSubmit() {
     if (mode.value === 'buy') {
       await $fetch('/api/wallet/deposit-request', { method: 'POST', body: { krwAmount: Math.round(payNumber.value) } })
     } else {
-      await $fetch('/api/wallet/withdraw-request', { method: 'POST', body: { krwAmount: Math.round(payNumber.value * rate.value) } })
+      await $fetch('/api/wallet/withdraw-request', { method: 'POST', body: { krwAmount: Math.round(payNumber.value) } })
     }
     doneKind.value = mode.value
     payInput.value = ''
