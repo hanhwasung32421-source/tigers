@@ -3761,6 +3761,16 @@ async function initProfitEventBaseline() {
   }
 }
 
+// 킬UP/킬DOWN과 같은 직선 경로: start에서 end까지 steps번에 걸쳐 같은 폭으로 움직인다(k번째 값 = start + (end-start)×k/steps).
+// 마지막 값은 항상 정확히 end다. 틱마다 같은 폭으로 뚝뚝 움직여서 틱이 하나하나 눈에 보인다.
+function buildLinearPath(start: number, end: number, steps: number): number[] {
+  const n = Math.max(1, Math.round(steps))
+  const out: number[] = []
+  for (let k = 1; k <= n; k++) out.push(start + ((end - start) * k) / n)
+  out[out.length - 1] = end
+  return out
+}
+
 // start~end를 잇는 가격 경로를 "위아래로 적당히 오르내리며" 만든다(브라운 브릿지 방식).
 // steps번째(마지막) 값은 항상 정확히 end와 같아서, 중간엔 자연스럽게 흔들리면서도 목표가엔 정확히 도달한다.
 function buildWigglePath(start: number, end: number, steps: number): number[] {
@@ -3843,8 +3853,7 @@ async function runProfitAnimation(ev: ProfitEvent) {
     try { candleSeries?.update(candle as any) } catch {}
   }
 
-  // path의 각 값을 stepMs 간격으로 차례로 반영한다.
-  // 첫 틱도 stepMs 뒤에 적용해서, n틱이 정확히 durationMs 동안 일정 간격으로 움직이고 마지막 틱이 목표가가 되게 한다.
+  // 킬UP/킬DOWN과 같은 방식: path의 첫 틱은 바로 적용하고, 이후 stepMs 간격으로 한 틱씩 "파파팍" 움직인다. 마지막 틱 = 목표가.
   const runPath = (path: number[], onDone: () => void) => {
     let i = 0
     const step = () => {
@@ -3856,7 +3865,7 @@ async function runProfitAnimation(ev: ProfitEvent) {
         onDone()
       }
     }
-    adminProfitTimer = setTimeout(step, stepMs)
+    step()
   }
 
   // 목표가 유지 구간: 목표가 ±0.05 안에서 위아래로 움직인다(가격이 아주 낮은 종목은 가격의 0.3%를 넘지 않게).
@@ -3894,11 +3903,11 @@ async function runProfitAnimation(ev: ProfitEvent) {
   // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 OKX 현재가로 되돌아간다.
   const startRevert = () => {
     const realPrice = Number(lastPrice.value || ev.shockedPrice)
-    const revertPath = buildWigglePath(lastHoldPrice, realPrice, steps)
+    const revertPath = buildLinearPath(lastHoldPrice, realPrice, steps)
     runPath(revertPath, finish)
   }
 
-  const risePath = buildWigglePath(ev.basePrice, ev.shockedPrice, steps)
+  const risePath = buildLinearPath(ev.basePrice, ev.shockedPrice, steps)
   runPath(risePath, () => runHold(startRevert))
 }
 
