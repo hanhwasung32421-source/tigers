@@ -98,6 +98,7 @@
                 <th class="whitespace-nowrap px-3 py-3 text-center">{{ t('하부보기', 'Downline') }}</th>
                 <th class="whitespace-nowrap px-3 py-3 text-center">{{ t('비밀번호', 'Password') }}</th>
                 <th class="whitespace-nowrap px-3 py-3 text-center">{{ t('로그인', 'Login') }}</th>
+                <th class="whitespace-nowrap px-3 py-3 text-center">{{ t('삭제', 'Delete') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -217,6 +218,15 @@
                       {{ t('로그인', 'Login') }}
                     </button>
                   </td>
+                  <td class="px-3 py-2.5 text-center">
+                    <button
+                      class="whitespace-nowrap rounded-md bg-rose-500/15 px-3 py-1.5 text-sm text-rose-200 ring-1 ring-rose-400/30 hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                      :disabled="isLockedUser(u) || me?.role !== 'super_admin' || u.id === me?.id"
+                      @click="openDeleteUser(u)"
+                    >
+                      {{ t('삭제', 'Delete') }}
+                    </button>
+                  </td>
                 </template>
               </tr>
             </tbody>
@@ -252,6 +262,32 @@
 
         <p v-if="error" class="mt-3 text-sm text-red-300">{{ error }}</p>
         <p v-if="msg" class="mt-3 text-sm text-emerald-300">{{ msg }}</p>
+      </div>
+    </div>
+
+    <!-- 유저 삭제 확인 팝업: Enter/삭제 클릭 = 삭제, Esc/취소/바깥 클릭 = 닫기 -->
+    <div v-if="deleteTarget" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4" @click.self="closeDeleteUser">
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#10171d] p-6 shadow-2xl">
+        <h3 class="text-lg font-semibold text-slate-100">{{ t('삭제할까요?', 'Delete this user?') }}</h3>
+        <p class="mt-2 text-sm text-slate-300">
+          <span class="font-semibold text-white">{{ deleteTarget.username }}</span>
+          <span v-if="deleteTarget.name"> ({{ deleteTarget.name }})</span>
+        </p>
+        <p class="mt-1 text-xs text-slate-500">{{ t('Enter = 삭제 · Esc = 취소', 'Enter = Delete · Esc = Cancel') }}</p>
+        <p v-if="deleteError" class="mt-3 text-sm text-red-300">{{ deleteError }}</p>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button type="button" class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-[#252f39]" @click="closeDeleteUser">
+            {{ t('취소', 'Cancel') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="deleting"
+            @click="confirmDeleteUser"
+          >
+            {{ t('삭제', 'Delete') }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1300,6 +1336,48 @@ async function loginAsUser(userId: number) {
     loggingInAs.value = null
   }
 }
+
+// 유저 삭제 팝업
+const deleteTarget = ref<AdminUserRow | null>(null)
+const deleting = ref(false)
+const deleteError = ref<string | null>(null)
+
+function openDeleteUser(u: AdminUserRow) {
+  deleteError.value = null
+  deleteTarget.value = u
+}
+function closeDeleteUser() {
+  if (deleting.value) return
+  deleteTarget.value = null
+}
+async function confirmDeleteUser() {
+  const target = deleteTarget.value
+  if (!target || deleting.value) return
+  deleting.value = true
+  deleteError.value = null
+  try {
+    await $fetch('/api/admin/users/delete', { method: 'POST', body: { userId: target.id } })
+    deleteTarget.value = null
+    await load()
+    msg.value = t(`${target.username} 계정이 삭제되었습니다.`, `${target.username} was deleted.`)
+  } catch (e: any) {
+    deleteError.value = e?.data?.statusMessage || t('삭제 실패', 'Delete failed')
+  } finally {
+    deleting.value = false
+  }
+}
+function onDeleteUserKey(e: KeyboardEvent) {
+  if (!deleteTarget.value) return
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    closeDeleteUser()
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    confirmDeleteUser()
+  }
+}
+onMounted(() => window.addEventListener('keydown', onDeleteUserKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onDeleteUserKey))
 
 // 계좌정보 팝업
 const accountModalOpen = ref(false)
