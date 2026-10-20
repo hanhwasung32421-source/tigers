@@ -678,12 +678,12 @@ html.theme-filter .lang-panel.lang-panel {
 
 /* 첫 화면 파트7 협력 보안 기관 타일 모션그래픽(마우스에 반응하지 않는다) */
 .sa-tile {
-  animation: sa-pop 9s ease-out infinite;
-  animation-delay: calc(var(--i, 0) * 0.18s);
+  animation: sa-pop 6s ease-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.12s);
   animation-fill-mode: backwards;
 }
 .sa-tile-inner {
-  animation: sa-float 4.5s ease-in-out infinite alternate;
+  animation: sa-float 3s ease-in-out infinite alternate;
   animation-delay: var(--f, 0s);
 }
 .sa-sweep {
@@ -692,7 +692,7 @@ html.theme-filter .lang-panel.lang-panel {
   pointer-events: none;
   background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, 0.7) 50%, transparent 62%);
   transform: translateX(-120%);
-  animation: sa-sweep 9s linear infinite;
+  animation: sa-sweep 6s linear infinite;
 }
 @keyframes sa-pop {
   0% {

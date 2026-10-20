@@ -64,7 +64,7 @@
     <div class="sa-panel pointer-events-none relative overflow-hidden rounded-3xl p-6 md:p-10" aria-hidden="true" style="background: linear-gradient(160deg, #fffdf8 0%, #fdf3df 100%)">
       <div class="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <div v-for="(tile, i) in tiles" :key="tile.key" class="sa-tile" :style="{ '--i': i }">
-          <div class="sa-tile-inner flex aspect-square flex-col items-center justify-center rounded-[28px] border bg-[#ffffff] px-2 text-center" style="border-color: #efe7d6; color: #111111; --f: calc(var(--i) * -0.55s)">
+          <div class="sa-tile-inner flex aspect-square flex-col items-center justify-center rounded-[28px] border bg-[#ffffff] px-2 text-center" style="border-color: #efe7d6; color: #111111; --f: calc(var(--i) * -0.37s)">
             <!-- CERTIK -->
             <template v-if="tile.key === 'certik'">
               <svg viewBox="0 0 60 48" class="h-[44px] w-[56px]"><path d="M30 4 L8 12 L18 44 L30 36 L42 44 L52 12 Z M30 36 L22 18 M30 36 L38 18" fill="none" stroke="#111" stroke-width="3" stroke-linejoin="round" /></svg>
