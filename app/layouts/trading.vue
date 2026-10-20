@@ -343,10 +343,31 @@ const showResetNotice = computed(
     !me.value?.password_reset_notice_dismissed_at
 )
 
+let navLoadingTimer: any = null
 function startNavLoading(target?: string) {
   if (target && String(target) === String(route.path)) return
   navLoading.value = true
+  // 안전장치: 이동이 끝나는 신호를 못 받아도 로딩 표시가 영원히 남지 않게 한다.
+  if (process.client) {
+    if (navLoadingTimer) clearTimeout(navLoadingTimer)
+    navLoadingTimer = setTimeout(() => {
+      navLoading.value = false
+    }, 8000)
+  }
 }
+
+// 로그인이 필요한 메뉴를 눌렀는데 로그인 화면으로 되돌려지는 경우(이미 로그인 화면에 있을 때 등)에는 주소(route.fullPath)가 바뀌지 않아서
+// 아래 watch가 동작하지 않는다. 이동이 끝나거나 취소/중복으로 끝나는 모든 경우에 로딩 표시를 끄도록 라우터 훅도 쓴다.
+const navRouter = useRouter()
+const stopAfterEach = navRouter.afterEach(() => {
+  setTimeout(() => {
+    navLoading.value = false
+  }, 180)
+})
+onBeforeUnmount(() => {
+  stopAfterEach()
+  if (navLoadingTimer) clearTimeout(navLoadingTimer)
+})
 
 // 모바일 상단 메뉴(햄버거 버튼으로 여닫는 드롭다운)
 const mobileMenuOpen = ref(false)
