@@ -11,7 +11,7 @@
         <div ref="chartHeaderEl">
         <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
           <div class="flex min-w-0 items-center gap-3">
-              <SelectDropdown v-model="symbolSelect" :options="symbolOptions" @change="onChangeSymbol" />
+              <SelectDropdown v-model="symbolSelect" :options="symbolOptions" searchable :search-placeholder="t('종목 검색', 'Search symbol')" @change="onChangeSymbol" />
               <div class="ml-auto flex items-center gap-2">
               <div ref="timeframeMenuRoot" class="relative hidden md:block">
                 <button
