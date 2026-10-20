@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-const SOURCES = ['/hero-bg.mp4', '/hero-bg-2.mp4']
+const SOURCES = ['/hero-bg.mp4', '/hero-bg-3.mp4']
 const FADE_SEC = 1.2 // 끝나기 이 시간 전부터 다음 영상으로 크로스페이드
 
 const videos: Array<HTMLVideoElement | null> = [null, null]
