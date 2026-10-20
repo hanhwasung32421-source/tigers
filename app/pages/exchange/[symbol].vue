@@ -1162,21 +1162,21 @@
         </div>
         <p class="mt-2 text-sm text-slate-400">
           {{ t(
-            `레버리지 100배 포지션 기준으로 몇 % ${profitModalDirection === 'up' ? '수익' : '손실'}이 날 정도의 가격 움직임인지 입력하세요(실제 가격 변동폭 = 입력% ÷ 100). 그 상태를 몇 초 동안 유지할지도 함께 입력하세요. 이 범위에서 강제청산가에 닿은 포지션은 실제로 청산됩니다. 이동/복귀는 위아래로 자연스럽게 흔들리며 진행되고, 유지 중에는 목표가 근처에서 ±1~2%씩 움직이며, 복귀는 그 시점의 실시간 현재가로 향합니다.`,
-            `Enter the price movement as a % ${profitModalDirection === 'up' ? 'profit' : 'loss'} on a 100x leveraged position (actual price move = input% ÷ 100). Also enter how many seconds to hold that state. Positions that reach their liquidation price within this range will actually be liquidated. The move/revert happens with a natural up-and-down wobble; while holding, the price moves ±1-2% around the target, and the revert heads to the live current price at that moment.`
+            `현재가에서 아래 목표 금액까지 ${profitModalDirection === 'up' ? '올렸다가' : '내렸다가'} 그 금액에 정확히 멈춰서 유지합니다. 몇 초에 걸쳐 움직일지, 몇 초 동안 유지한 뒤 실제 시세로 복귀시킬지도 입력하세요.`,
+            `The price moves from the current price to the target price below (${profitModalDirection === 'up' ? 'up' : 'down'}) and stops exactly at that amount. Also enter how many seconds the move takes and how long to hold before reverting to the live price.`
           ) }}
         </p>
         <div class="mt-5 flex items-center gap-2">
           <input
-            v-model.number="profitPercentDraft"
+            v-model.number="profitTargetDraft"
             type="number"
-            min="0.1"
-            max="90"
-            step="0.1"
-            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            min="0"
+            step="any"
+            class="w-40 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
           />
-          <span class="text-sm text-slate-400">{{ t('% (레버리지 100배 기준 수익률)', '% (return rate at 100x leverage)') }}</span>
+          <span class="text-sm text-slate-400">{{ t('목표 금액 (USDT)', 'Target price (USDT)') }}</span>
         </div>
+        <p class="mt-1 text-xs text-slate-500">{{ t('현재가', 'Current') }} {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}</p>
         <div class="mt-3 flex items-center gap-2">
           <input
             v-model.number="profitDurationDraft"
@@ -2168,7 +2168,7 @@ const profitModalOpen = ref(false)
 const profitModalDirection = ref<'up' | 'down'>('up')
 const profitDurationDraft = ref(1)
 const profitTickCountDraft = ref(3)
-const profitPercentDraft = ref(0.5)
+const profitTargetDraft = ref<number | null>(null)
 const profitHoldDraft = ref(3)
 const profitError = ref<string | null>(null)
 let lastSeenProfitEventId = 0
@@ -3682,7 +3682,8 @@ function openProfitModal(dir: 'up' | 'down') {
   profitModalDirection.value = dir
   // 마지막으로 실행했던 수익/손실 수치를 그대로 불러온다(없으면 기본값).
   const last = loadLastProfitSettings()
-  profitPercentDraft.value = last?.percent ?? 0.5
+  const cur = Number(displayLastPrice.value || lastPrice.value || 0)
+  profitTargetDraft.value = cur > 0 ? Number((cur * (dir === 'up' ? 1.001 : 0.999)).toPrecision(8)) : null
   profitDurationDraft.value = last?.duration ?? 1
   profitTickCountDraft.value = last?.tickCount ?? 3
   profitHoldDraft.value = last?.hold ?? 3
@@ -3695,11 +3696,23 @@ function closeProfitModal() {
 }
 
 async function confirmProfitModal() {
-  const percent = Number(profitPercentDraft.value)
-  if (!Number.isFinite(percent) || percent < 0.1 || percent > 90) {
-    profitError.value = t('0.1~90 사이의 숫자를 입력해주세요.', 'Please enter a number between 0.1 and 90.')
+  const targetPrice = Number(profitTargetDraft.value)
+  if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+    profitError.value = t('목표 금액을 입력해주세요.', 'Please enter a target price.')
     return
   }
+  const curPrice = Number(displayLastPrice.value || lastPrice.value || 0)
+  if (curPrice > 0) {
+    if (profitModalDirection.value === 'up' && targetPrice <= curPrice) {
+      profitError.value = t('상승STOP은 현재가보다 높은 금액을 입력해주세요.', 'For UP STOP, enter a price above the current price.')
+      return
+    }
+    if (profitModalDirection.value === 'down' && targetPrice >= curPrice) {
+      profitError.value = t('하락STOP은 현재가보다 낮은 금액을 입력해주세요.', 'For DOWN STOP, enter a price below the current price.')
+      return
+    }
+  }
+  const percent = curPrice > 0 ? Number((Math.abs(targetPrice - curPrice) / curPrice * 100 * 100).toFixed(4)) : 0
   const durationSeconds = Number(profitDurationDraft.value)
   if (!Number.isFinite(durationSeconds) || durationSeconds < 0.1 || durationSeconds > 10) {
     profitError.value = t('몇 초는 0.1~10 사이로 입력해주세요.', 'Please enter seconds between 0.1 and 10.')
@@ -3720,7 +3733,7 @@ async function confirmProfitModal() {
   try {
     const res = await $fetch<{ ok: boolean; event: ProfitEvent; liquidatedCount: number }>('/api/admin/profit', {
       method: 'POST',
-      body: { symbol: symbol.value, direction: profitModalDirection.value, percent, durationSeconds, tickCount, holdSeconds }
+      body: { symbol: symbol.value, direction: profitModalDirection.value, targetPrice, durationSeconds, tickCount, holdSeconds }
     })
     saveLastProfitSettings(percent, durationSeconds, tickCount, holdSeconds)
     profitModalOpen.value = false
@@ -3769,6 +3782,10 @@ function buildWigglePath(start: number, end: number, steps: number): number[] {
     else if (bridge < -maxDeviation) bridge = -maxDeviation
     prices.push(start + bridge + (totalMove * i) / steps)
   }
+  // 흔들리면서 움직이더라도 start~end 범위를 벗어나지 않게(목표 금액을 넘어서 지나가지 않게) 자른다.
+  const lo = Math.min(start, end)
+  const hi = Math.max(start, end)
+  for (let k = 0; k < prices.length; k++) prices[k] = Math.min(hi, Math.max(lo, prices[k]))
   prices[prices.length - 1] = end
   return prices
 }
@@ -3847,10 +3864,8 @@ async function runProfitAnimation(ev: ProfitEvent) {
     const holdSteps = Math.max(1, Math.round(holdMs / holdStepMs))
     let i = 0
     const step = () => {
-      const isLast = i === holdSteps - 1
-      const magnitude = shockFraction * (Math.random() * 0.09)
-      const sign = Math.random() < 0.5 ? -1 : 1
-      applyPrice(isLast ? ev.shockedPrice : ev.shockedPrice * (1 + sign * magnitude))
+      // 목표 금액에 정확히 멈춘다(주변에서 흔들리지 않는다).
+      applyPrice(ev.shockedPrice)
       i += 1
       if (i < holdSteps) {
         adminProfitTimer = setTimeout(step, holdStepMs)
