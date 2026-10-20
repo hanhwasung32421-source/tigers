@@ -94,6 +94,7 @@ withDefaults(defineProps<{ bellTarget?: string; showBell?: boolean }>(), { bellT
 const { me } = useMe()
 const { unread } = useMessages()
 const { lang, setLang } = useLocale()
+const userLangChanges = useState<number>('user_lang_changes', () => 0)
 const { theme, toggleTheme } = useTheme()
 
 // 통화 선택은 화면에만 기억해 둔다(거래소의 가격/잔액은 모두 USDT 기준이라 실제 환산은 하지 않는다).
@@ -128,6 +129,8 @@ function toggleLang() {
 
 async function pick(code: any) {
   await setLang(code)
+  // 사용자가 직접 언어를 바꿨다는 신호(첫 화면의 안내 팝업이 '다시보지않기'를 눌렀어도 한 번 더 뜨게 한다)
+  userLangChanges.value += 1
   langOpen.value = false
 }
 

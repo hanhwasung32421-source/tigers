@@ -33,6 +33,12 @@ const { t } = useLocale()
 const COOKIE_NAME = 'ktx_hide_ranking_popup'
 const open = ref(false)
 
+// 언어를 직접 바꾸면(지구본 메뉴), '다시보지않기'를 눌렀더라도 새 언어로 한 번 더 보여준다.
+const userLangChanges = useState<number>('user_lang_changes', () => 0)
+watch(userLangChanges, () => {
+  open.value = true
+})
+
 // 같은 접속(새로고침 전)에서 닫은 뒤 첫 화면으로 다시 돌아와도 또 뜨지 않게 한다.
 let closedThisLoad = false
 
