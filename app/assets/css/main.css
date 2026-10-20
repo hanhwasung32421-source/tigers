@@ -1592,25 +1592,6 @@ html.splash-skip .splash {
   margin: 0 auto;
   animation: splash-logo 0.9s ease-out both;
 }
-.splash-text {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 26px;
-  color: #111111;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  opacity: 0;
-}
-.splash-t1 {
-  font-size: 28px;
-  animation: splash-text 1.3s ease-in-out 0.6s both;
-}
-.splash-t2 {
-  font-size: 24px;
-  animation: splash-text 1.5s ease-in-out 1.9s both;
-}
 @keyframes splash-logo {
   0% {
     opacity: 0;
@@ -1621,22 +1602,6 @@ html.splash-skip .splash {
     transform: none;
   }
 }
-@keyframes splash-text {
-  0% {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  25%,
-  75% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-}
-
 /* 첫 화면: 파트(섹션)별 스크롤. 마우스 휠/키보드는 자바스크립트(useLandingSnapScroll)가 부드럽게 다음 파트로 옮기고,
    터치 화면(손가락 스크롤)에서만 CSS scroll-snap으로 파트 시작 위치에 맞춘다. */
 html.snap-landing {
@@ -1652,114 +1617,96 @@ html.snap-landing {
   scroll-snap-stop: always;
 }
 
-/* 스플래시: 세 번째 문구 + 보안 점검/로봇 확인 표시 */
-.splash-t3 {
-  font-size: 20px;
-  font-weight: 500;
-  color: #374151;
-  animation: splash-text 1.5s ease-in-out 3.4s both;
+/* 스플래시: 로고 아래 한 자리에서 문구가 계속 돌아가고, 준비가 끝나면 Human verified ✓가 뜬다 */
+.splash-slot {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 26px;
+  height: 40px;
 }
-.splash-check {
+.splash-msg {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 11vh;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  height: 24px;
+  color: #111111;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.splash-s1 {
+  font-size: 28px;
+}
+.splash-s2 {
+  font-size: 24px;
+}
+.splash-s3 {
+  font-size: 20px;
+  font-weight: 500;
+  color: #374151;
+}
+.splash-check {
+  font-size: 16px;
+  font-weight: 500;
   color: #6b7280;
-  font-size: 14px;
-}
-.splash-ic {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  flex: none;
-}
-.splash-chkbox {
-  position: relative;
-  width: 190px;
-  height: 20px;
 }
 .splash-spin {
-  position: absolute;
-  inset: 0;
   width: 16px;
   height: 16px;
+  flex: none;
   border: 2px solid #e5e7eb;
   border-top-color: #f0b90b;
   border-radius: 50%;
-  animation: splash-spin 0.8s linear infinite, splash-spin-hide 0.3s ease 3.5s forwards;
+  animation: splash-spin 0.8s linear infinite;
 }
-.splash-ok {
-  position: absolute;
-  inset: 0;
-  text-align: center;
-  line-height: 18px;
+.splash-verified {
+  font-size: 22px;
   color: #16a34a;
-  font-weight: 800;
+}
+.splash-vok {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  fill: none;
+  stroke: #16a34a;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.splash-vok-ring {
+  stroke-dasharray: 63;
+  stroke-dashoffset: 63;
+  animation: splash-draw 0.45s ease-out 0.15s forwards;
+}
+.splash-vok-tick {
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+  animation: splash-draw 0.3s ease-out 0.4s forwards;
+}
+.splash-msg-enter-active,
+.splash-msg-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.splash-msg-enter-from {
   opacity: 0;
-  animation: splash-fadein 0.3s ease 3.5s forwards;
+  transform: translateY(14px);
 }
-.splash-chk {
-  position: absolute;
-  left: 0;
-  top: 0;
-  line-height: 20px;
+.splash-msg-leave-to {
   opacity: 0;
-  white-space: nowrap;
-}
-.splash-c1 {
-  animation: splash-chk 1.4s ease-in-out 0.6s both;
-}
-.splash-c2 {
-  animation: splash-chk 1.5s ease-in-out 2s both;
-}
-.splash-c3 {
-  color: #16a34a;
-  font-weight: 600;
-  animation: splash-chk-last 1.5s ease-in-out 3.5s both;
+  transform: translateY(-10px);
 }
 @keyframes splash-spin {
   to {
     transform: rotate(360deg);
   }
 }
-@keyframes splash-spin-hide {
+@keyframes splash-draw {
   to {
-    opacity: 0;
-  }
-}
-@keyframes splash-fadein {
-  to {
-    opacity: 1;
-  }
-}
-@keyframes splash-chk {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  20%,
-  80% {
-    opacity: 1;
-    transform: none;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-}
-@keyframes splash-chk-last {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  20%,
-  100% {
-    opacity: 1;
-    transform: none;
+    stroke-dashoffset: 0;
   }
 }

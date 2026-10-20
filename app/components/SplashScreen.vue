@@ -1,39 +1,77 @@
 <template>
-  <!-- 처음 접속(브라우저 탭당 한 번)에 흰 화면 가운데 KTX 로고가 뜨고, 문구가 차례로 페이드인/아웃된 뒤 홈페이지가 나타난다. 화면을 누르면 바로 건너뛴다. -->
+  <!-- 처음 접속(브라우저 탭당 한 번)에 흰 화면 가운데 KTX 로고가 뜨고, 로딩되는 동안 문구가 계속 돌아가며 나온다.
+       첫 화면 준비가 끝나면 문구가 사라지고 같은 자리에 "Human verified ✓"가 뜬 뒤 0.5초 후 홈페이지가 나타난다. 화면을 누르면 바로 건너뛴다. -->
   <div v-if="show" class="splash" :class="{ 'splash-out': leaving }" role="presentation" @click="finish">
     <div class="splash-inner">
       <img src="/brand-logo.png" alt="" class="splash-logo" />
-      <div class="splash-text splash-t1">{{ t('세계 랭킹 거래소', 'World Ranking Exchange') }}</div>
-      <div class="splash-text splash-t2">{{ t('더 안전하고, 더 강력한 디지털 자산 거래', 'Safer, more powerful, digital asset trading') }}</div>
-      <div class="splash-text splash-t3">{{ t('전 세계 300개 이상의 레버리지 종목을 거래하세요.', 'Trade over 300 leveraged instruments worldwide.') }}</div>
-    </div>
-    <!-- 보안 점검 / 로봇 확인 표시(연출): 점검 중 → 로봇인지 확인 중 → 확인 완료 -->
-    <div class="splash-check" aria-hidden="true">
-      <span class="splash-ic"><span class="splash-spin" /><span class="splash-ok">✓</span></span>
-      <span class="splash-chkbox">
-        <span class="splash-chk splash-c1">{{ t('보안 점검 중…', 'Security check in progress…') }}</span>
-        <span class="splash-chk splash-c2">{{ t('로봇이 아닌지 확인 중…', 'Verifying you are human…') }}</span>
-        <span class="splash-chk splash-c3">{{ t('확인 완료', 'Verified') }}</span>
-      </span>
+      <div class="splash-slot">
+        <Transition name="splash-msg" mode="out-in">
+          <div v-if="!verified" :key="idx" class="splash-msg" :class="messages[idx].cls">
+            <span v-if="messages[idx].spin" class="splash-spin" />
+            <span>{{ messages[idx].text }}</span>
+          </div>
+          <div v-else key="verified" class="splash-msg splash-verified">
+            <svg class="splash-vok" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="splash-vok-ring" cx="12" cy="12" r="10" />
+              <path class="splash-vok-tick" d="M7 12.5l3.4 3.4L17 9" />
+            </svg>
+            <span>{{ t('사람 인증 완료', 'Human verified') }}</span>
+          </div>
+        </Transition>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 const { t } = useLocale()
+const { items: marketItems } = useMarketOverview()
 const SEEN_KEY = 'ktx_splash_seen'
+const MIN_SHOW_MS = 2500 // 문구가 최소한 한두 개는 읽히도록
+const MAX_SHOW_MS = 12000 // 로딩이 아주 오래 걸려도 이 시간이 지나면 넘어간다
+const MSG_MS = 1800 // 문구 하나가 머무는 시간
+const VERIFIED_HOLD_MS = 850 // Human verified가 나타난 뒤 홈페이지로 넘어가기까지(전환 0.35초 + 0.5초)
 const show = ref(true) // 서버가 만든 HTML에도 스플래시가 들어 있어야 카드가 먼저 보였다가 가려지는 번쩍임이 없다
 const leaving = ref(false)
-let t1: any = null
-let t2: any = null
+const verified = ref(false)
+const idx = ref(0)
+
+const messages = computed(() => [
+  { text: t('세계 랭킹 거래소', 'World Ranking Exchange'), cls: 'splash-slogan splash-s1', spin: false },
+  { text: t('더 안전하고, 더 강력한 디지털 자산 거래', 'Safer, more powerful, digital asset trading'), cls: 'splash-slogan splash-s2', spin: false },
+  { text: t('보안 점검 중…', 'Security check in progress…'), cls: 'splash-check', spin: true },
+  { text: t('전 세계 300개 이상의 레버리지 종목을 거래하세요.', 'Trade over 300 leveraged instruments worldwide.'), cls: 'splash-slogan splash-s3', spin: false },
+  { text: t('로봇이 아닌지 확인 중…', 'Verifying you are human…'), cls: 'splash-check', spin: true }
+])
+
+let rotateTimer: any = null
+let readyTimer: any = null
+let doneTimer: any = null
+let outTimer: any = null
+let startedAt = 0
 
 function finish() {
   if (!show.value || leaving.value) return
   leaving.value = true
-  if (t1) clearTimeout(t1)
-  t2 = setTimeout(() => {
+  if (rotateTimer) clearInterval(rotateTimer)
+  if (readyTimer) clearInterval(readyTimer)
+  if (doneTimer) clearTimeout(doneTimer)
+  outTimer = setTimeout(() => {
     show.value = false
   }, 600)
+}
+
+// 첫 화면 카드(종목 시세)가 만들어지고 페이지 리소스 로딩이 끝나면 "준비 완료"
+function isReady() {
+  return marketItems.value.length > 0 && document.readyState === 'complete'
+}
+
+function markVerified() {
+  if (verified.value || leaving.value) return
+  verified.value = true
+  if (rotateTimer) clearInterval(rotateTimer)
+  if (readyTimer) clearInterval(readyTimer)
+  doneTimer = setTimeout(finish, VERIFIED_HOLD_MS)
 }
 
 onMounted(() => {
@@ -48,10 +86,20 @@ onMounted(() => {
     show.value = false
     return
   }
-  t1 = setTimeout(finish, 5000)
+  startedAt = Date.now()
+  // 로딩되는 동안 문구가 계속 돌아간다
+  rotateTimer = setInterval(() => {
+    idx.value = (idx.value + 1) % messages.value.length
+  }, MSG_MS)
+  readyTimer = setInterval(() => {
+    const elapsed = Date.now() - startedAt
+    if ((elapsed >= MIN_SHOW_MS && isReady()) || elapsed >= MAX_SHOW_MS) markVerified()
+  }, 150)
 })
 onBeforeUnmount(() => {
-  if (t1) clearTimeout(t1)
-  if (t2) clearTimeout(t2)
+  if (rotateTimer) clearInterval(rotateTimer)
+  if (readyTimer) clearInterval(readyTimer)
+  if (doneTimer) clearTimeout(doneTimer)
+  if (outTimer) clearTimeout(outTimer)
 })
 </script>
