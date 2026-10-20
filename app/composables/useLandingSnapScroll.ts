@@ -1,19 +1,20 @@
 // 첫 화면 전용 "파트별 스크롤": 마우스 휠을 한 번 굴리면 조금씩 움직이지 않고, 부드럽게 쭉 다음(또는 이전) 파트로 넘어간다.
 // - 휠/키보드(↑ ↓ PageUp PageDown Space Home End)로 한 칸씩 이동, 이동하는 동안(약 0.9초)에는 추가 입력을 무시한다.
-// - 화면보다 긴 파트는 "시작"과 "끝" 두 지점에 멈춘다. 마지막은 페이지 맨 아래(푸터).
+// - 파트당 한 번(시작 지점)만 멈춘다. 화면보다 1.3배 넘게 긴 파트만 "시작"과 "끝" 두 지점에 멈춘다. 마지막은 페이지 맨 아래(푸터).
 // - 스크롤 가능한 작은 영역(언어 목록 등) 위에서 굴리는 휠, 입력창 안의 키보드, 팝업/스플래시가 떠 있는 동안은 건드리지 않는다.
 export function useLandingSnapScroll() {
   if (!process.client) return
 
-  const DURATION = 900
+  const DURATION = 600 // 이전 900ms의 1.5배 빠르게
   const HEADER = 64
   let animating = false
   let rafId = 0
   let lastWheelTs = 0
   let unlockedAt = 0
 
+  // easeInOutQuint: 출발과 도착이 기존(cubic)보다 훨씬 완만해서 움직임이 두 배쯤 부드럽게 느껴진다.
   function ease(t: number) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2
   }
 
   function stops(): number[] {
@@ -23,7 +24,8 @@ export function useLandingSnapScroll() {
     document.querySelectorAll<HTMLElement>('.snap-part').forEach((p) => {
       const top = p.getBoundingClientRect().top + window.scrollY
       list.push(Math.max(0, top - HEADER))
-      if (p.offsetHeight > vh - HEADER + 20) list.push(top + p.offsetHeight - vh) // 화면보다 긴 파트의 끝
+      // 화면보다 훨씬 긴 파트(1.3배 초과)만 끝 지점에도 한 번 멈춘다. 그보다 짧으면 파트당 한 번(시작 지점)만 멈춘다.
+      if (p.offsetHeight > (vh - HEADER) * 1.3) list.push(top + p.offsetHeight - vh)
     })
     list.push(maxY)
     const sorted = Array.from(new Set(list.map((n) => Math.round(Math.min(maxY, Math.max(0, n)))))).sort((a, b) => a - b)
