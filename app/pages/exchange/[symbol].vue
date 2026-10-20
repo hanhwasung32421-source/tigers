@@ -998,9 +998,6 @@
           </tbody>
         </table>
       </div>
-      <div v-else class="rounded-lg bg-black/20 p-4 text-sm text-slate-400">
-        {{ t('준비중입니다.', 'Coming soon.') }}
-      </div>
         </div>
       </div>
     </section>

@@ -30,11 +30,7 @@
         </button>
       </div>
 
-      <div v-if="topTab !== 'market'" class="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-16 text-center text-slate-400">
-        {{ t('준비 중입니다.', 'Coming soon.') }}
-      </div>
-
-      <template v-else>
+      <template v-if="topTab === 'market'">
         <!-- 요약 카드 -->
         <section class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <div class="rounded-xl bg-white/[0.04] p-4">
@@ -322,15 +318,10 @@ const upsharePct = computed(() => {
   return (overview.value.upCount / overview.value.totalCount) * 100
 })
 
-// ── 상단 탭(Market만 실제 화면) ──
-type TopTab = 'market' | 'leaderboard' | 'insight' | 'anomaly'
+// ── 상단 탭(준비 중이던 Leaderboard / X Insight / Market Anomaly는 삭제, Market만 남김) ──
+type TopTab = 'market'
 const topTab = ref<TopTab>('market')
-const topTabs = computed(() => [
-  { key: 'market' as TopTab, label: t('마켓', 'Market') },
-  { key: 'leaderboard' as TopTab, label: 'Leaderboard' },
-  { key: 'insight' as TopTab, label: 'X Insight' },
-  { key: 'anomaly' as TopTab, label: 'Market Anomaly' }
-])
+const topTabs = computed(() => [{ key: 'market' as TopTab, label: t('마켓', 'Market') }])
 
 // ── 시그널 레이더(좌로 흐르는 카드) ──
 const radarItems = computed<MarketItem[]>(() => {
