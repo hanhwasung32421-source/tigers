@@ -185,6 +185,12 @@ async function sendMessage() {
   }
 }
 
-await loadThreads()
-await refreshUnread()
+// 관리자 계정은 회원용 고객지원 화면(내 쪽지함)이 없다. 대화 상대(userId) 없이 대화를 불러오면 서버가 400을 돌려주므로,
+// 관리자는 쪽지관리 화면으로 보내고 이 화면의 쪽지 불러오기는 건너뛴다.
+if (me.value && me.value.role !== 'user') {
+  await navigateTo('/admin/messages')
+} else {
+  await loadThreads()
+  await refreshUnread()
+}
 </script>
