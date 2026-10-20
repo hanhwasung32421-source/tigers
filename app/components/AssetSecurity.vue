@@ -37,10 +37,33 @@
         </NuxtLink>
       </div>
 
-      <!-- 픽셀 방패: 로고(KTX)처럼 노란 네모 블록으로 만든다 -->
-      <div class="mx-auto w-[220px] md:w-[280px]" aria-hidden="true">
+      <!-- 픽셀 방패 모션그래픽(10초 반복): 위에서부터 블록이 쌓이고 → 체크 표시가 하나씩 새겨지고 → 빛이 대각선으로 훑고 지나간 뒤 → 위에서부터 사라지며 다시 시작 -->
+      <div class="mx-auto w-[220px] md:-translate-x-[100px] md:w-[280px]" aria-hidden="true">
         <svg :viewBox="`0 0 ${COLS * CELL} ${ROWS.length * CELL}`" class="block h-auto w-full">
-          <rect v-for="(c, i) in cells" :key="i" :x="c.x" :y="c.y" :width="CELL - GAP" :height="CELL - GAP" rx="2" :fill="c.mark ? '#0b0c0f' : '#f0b90b'" />
+          <rect
+            v-for="(c, i) in cells"
+            :key="'y' + i"
+            class="px-cell"
+            :x="c.x"
+            :y="c.y"
+            :width="CELL - GAP"
+            :height="CELL - GAP"
+            rx="2"
+            fill="#f0b90b"
+            :style="{ '--d': c.delay + 's', '--s': c.shine + 's' }"
+          />
+          <rect
+            v-for="(m, i) in markCells"
+            :key="'m' + i"
+            class="px-mark"
+            :x="m.x"
+            :y="m.y"
+            :width="CELL - GAP"
+            :height="CELL - GAP"
+            rx="2"
+            fill="#0b0c0f"
+            :style="{ '--d': m.delay + 's' }"
+          />
         </svg>
       </div>
     </div>
@@ -70,11 +93,22 @@ const ROWS = [
   '......###......',
   '.......#.......'
 ]
-const MARK = new Set(['6,4', '7,5', '8,6', '7,7', '6,8', '5,9', '4,10'])
+// 체크 표시(어두운 블록). 순서대로 하나씩 새겨진다. [행, 열]
+const MARK: Array<[number, number]> = [
+  [6, 4],
+  [7, 5],
+  [8, 6],
+  [7, 7],
+  [6, 8],
+  [5, 9],
+  [4, 10]
+]
 const COLS = 15
 const CELL = 18
 const GAP = 3
+// 노란 블록: 위 행부터 차례로 나타나고(delay), 빛이 대각선(행+열)으로 훑고 지나간다(shine)
 const cells = ROWS.flatMap((row, r) =>
-  row.split('').flatMap((ch, c) => (ch === '#' ? [{ x: c * CELL, y: r * CELL, mark: MARK.has(`${r},${c}`) }] : []))
+  row.split('').flatMap((ch, c) => (ch === '#' ? [{ x: c * CELL, y: r * CELL, delay: +(r * 0.1 + (c % 3) * 0.03).toFixed(2), shine: +((r + c) * 0.05).toFixed(2) }] : []))
 )
+const markCells = MARK.map(([r, c], k) => ({ x: c * CELL, y: r * CELL, delay: +(k * 0.3).toFixed(2) }))
 </script>

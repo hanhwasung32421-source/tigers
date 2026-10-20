@@ -70,14 +70,27 @@
         <div
           v-for="(item, idx) in securityItems"
           :key="item.title"
-          class="border-t border-white/10 pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0"
-          :class="idx === 0 ? 'md:border-l-0 md:pl-0' : ''"
+          class="flip-card border-t border-white/10 pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0"
+          :class="[idx === 0 ? 'md:border-l-0 md:pl-0' : '', flippedIdx === idx ? 'is-flipped' : '']"
+          @click="flippedIdx = flippedIdx === idx ? -1 : idx"
         >
-          <svg viewBox="0 0 24 24" class="mx-auto h-8 w-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path :d="item.path" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <div class="mt-4 text-[19.2px] font-bold text-white">{{ t(item.title, item.titleEn) }}</div>
-          <p class="mt-2 text-[16.8px] leading-6 text-slate-400">{{ t(item.desc, item.descEn) }}</p>
+          <!-- 마우스를 올리면(터치 화면은 탭하면) 가로로 뒤집히면서 같은 뜻의 다른 문장이 나온다 -->
+          <div class="flip-inner">
+            <div class="flip-face">
+              <svg viewBox="0 0 24 24" class="mx-auto h-8 w-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path :d="item.path" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <div class="mt-4 text-[19.2px] font-bold text-white">{{ t(item.title, item.titleEn) }}</div>
+              <p class="mt-2 text-[16.8px] leading-6 text-slate-400">{{ t(item.desc, item.descEn) }}</p>
+            </div>
+            <div class="flip-face flip-back">
+              <svg viewBox="0 0 24 24" class="mx-auto h-8 w-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path :d="item.path" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <div class="mt-4 text-[19.2px] font-bold text-white">{{ t(item.title, item.titleEn) }}</div>
+              <p class="mt-2 text-[16.8px] leading-6 text-slate-400">{{ t(item.back, item.backEn) }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -148,6 +161,8 @@
 const config = useRuntimeConfig()
 const appName = config.public.appName
 const heroEmail = ref('')
+// 보안 항목 카드: 터치 화면에서 탭으로 뒤집힌 카드(마우스 화면은 CSS :hover로 뒤집힌다)
+const flippedIdx = ref(-1)
 // 앱 다운로드 버튼(Google Play / App Store / QR): 로그인 전에는 로그인 화면으로, 로그인하면 삼성전자(SAMSUNGUSDT) 차트로 바로 이동한다.
 // (로그인 화면은 로그인에 성공하면 /exchange/SAMSUNGUSDT로 보낸다. 이미 로그인한 상태면 차트로 바로 간다.)
 const { me: landingMe } = useMe()
@@ -164,6 +179,8 @@ const securityItems = [
     titleEn: 'Proven Stability',
     desc: '시장 변화 속에서도 계정과 주문 상태를 명확하게 확인할 수 있도록 설계했습니다.',
     descEn: 'Designed so you can always clearly see your account and order status, even amid market swings.',
+    back: '시장이 크게 출렁여도 내 계정과 주문 상태를 한눈에 알아볼 수 있도록 만들었습니다.',
+    backEn: 'Built so your account and order status stay easy to read at a glance, even when the market gets volatile.',
     path: 'M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3zm-3 9 2 2 4-4'
   },
   {
@@ -171,6 +188,8 @@ const securityItems = [
     titleEn: 'Transparent Asset Management',
     desc: '펀딩 지갑과 거래 지갑의 흐름을 구분하고 모든 이동 내역을 한곳에서 추적합니다.',
     descEn: 'Funding and trading wallet flows are kept separate, with every transfer tracked in one place.',
+    back: '펀딩 잔고와 거래 잔고를 서로 다른 지갑으로 나누어 관리하고, 지갑 간 이동은 하나의 화면에서 기록을 따라가며 확인할 수 있습니다.',
+    backEn: 'Funding and trading balances live in separate wallets, and each movement between them is recorded and easy to follow in one view.',
     path: 'M4 21V10l8-6 8 6v11M9 21v-6h6v6'
   },
   {
@@ -178,6 +197,8 @@ const securityItems = [
     titleEn: 'Easy Deposits & Withdrawals',
     desc: '복잡한 단계를 줄이고, 처리 상태와 필요한 다음 행동을 분명하게 안내합니다.',
     descEn: 'Fewer steps, with clear guidance on processing status and what to do next.',
+    back: '거쳐야 할 단계는 줄이고, 요청이 어디까지 진행됐는지와 다음에 할 일을 명확히 알려 드립니다.',
+    backEn: 'Fewer steps to go through, plus clear updates on where your request stands and what comes next.',
     path: 'M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zm4 3 4 4 4-4M12 7v7'
   },
   {
@@ -185,6 +206,8 @@ const securityItems = [
     titleEn: 'Fast Identity Verification',
     desc: '필요한 인증 단계를 확인하고 거래에 필요한 보안 설정까지 이어서 완료하세요.',
     descEn: 'Check the required verification steps and complete the security settings you need to trade.',
+    back: '필요한 인증 절차를 확인하고, 거래에 필요한 보안 설정과 함께 한 번에 마무리하세요.',
+    backEn: 'See which verification steps are needed, then finish them together with the security settings required for trading.',
     path: 'M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5zm3 4h4M8 13h8M8 17h5'
   }
 ]
