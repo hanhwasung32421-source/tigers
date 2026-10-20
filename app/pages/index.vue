@@ -150,7 +150,7 @@
           <p class="mt-5 max-w-sm text-[16.8px] leading-7 text-slate-400">
             <BrandText :text="t(`자주 묻는 질문에서 ${appName} 이용에 필요한 핵심 정보를 확인하세요.`, `Check the FAQ for key information about using ${appName}.`)" />
           </p>
-          <NuxtLink to="/support" class="mt-6 inline-block text-[16.8px] font-semibold text-white underline underline-offset-4">
+          <NuxtLink :to="supportLinkTarget" class="mt-6 inline-block text-[16.8px] font-semibold text-white underline underline-offset-4">
             {{ t('고객지원 바로가기', 'Go to Support') }} →
           </NuxtLink>
         </div>
@@ -181,6 +181,8 @@ const flippedIdx = ref(-1)
 // 앱 다운로드 버튼(Google Play / App Store / QR): 로그인 전에는 로그인 화면으로, 로그인하면 삼성전자(SAMSUNGUSDT) 차트로 바로 이동한다.
 // (로그인 화면은 로그인에 성공하면 /exchange/SAMSUNGUSDT로 보낸다. 이미 로그인한 상태면 차트로 바로 간다.)
 const { me: landingMe } = useMe()
+// 고객지원 바로가기: 로그인 전에는 로그인 화면으로, 로그인했다면 고객지원(관리자는 쪽지관리)으로 이동한다.
+const supportLinkTarget = computed(() => (!landingMe.value ? '/auth/login' : landingMe.value.role !== 'user' ? '/admin/messages' : '/support'))
 const appButtonTarget = computed(() => (landingMe.value ? '/exchange/SAMSUNGUSDT' : '/auth/login'))
 function getStarted() {
   // 회원가입 화면에는 이메일 입력칸이 없어서(아이디 기반) 여기서는 가입 화면으로만 이동한다. 이메일은 주소창/서버로 보내지 않는다.
