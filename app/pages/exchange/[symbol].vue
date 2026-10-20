@@ -3821,13 +3821,48 @@ function buildRandomPath(start: number, end: number, steps: number): number[] {
   return out
 }
 
-// n틱 사이의 (n-1)개 간격을 100~1000ms 비율로 랜덤하게 만들고, 합이 정확히 durationMs가 되게 맞춘다.
+// n틱 사이의 (n-1)개 간격을 100~1000ms 안에서 랜덤하게 만들되, 합이 정확히 durationMs가 되게 맞춘다.
+// (예: 10초에 20틱 → 평균 약 500ms, 각 간격은 100~1000ms 사이 랜덤). 불가능한 조합(평균이 범위 밖)이면 비율만 유지하고 합을 맞춘다.
+const GAP_MIN_MS = 100
+const GAP_MAX_MS = 1000
 function buildRandomGaps(n: number, durationMs: number): number[] {
   const count = Math.max(0, Math.round(n) - 1)
   if (count === 0) return []
-  const weights = Array.from({ length: count }, () => 1 + Math.random() * 9)
-  const total = weights.reduce((a, b) => a + b, 0)
-  return weights.map((w) => (w / total) * durationMs)
+  const gaps = Array.from({ length: count }, () => GAP_MIN_MS + Math.random() * (GAP_MAX_MS - GAP_MIN_MS))
+  const feasible = durationMs >= GAP_MIN_MS * count && durationMs <= GAP_MAX_MS * count
+  if (!feasible) {
+    const total = gaps.reduce((a, b) => a + b, 0)
+    return gaps.map((g) => (g / total) * durationMs)
+  }
+  // 합이 durationMs가 되도록 여유(상한/하한까지 남은 폭)에 비례해 나눠서 조정한다. 범위는 유지된다.
+  for (let iter = 0; iter < 50; iter++) {
+    const sum = gaps.reduce((a, b) => a + b, 0)
+    const diff = durationMs - sum
+    if (Math.abs(diff) < 0.01) break
+    const room = gaps.map((g) => (diff > 0 ? GAP_MAX_MS - g : g - GAP_MIN_MS))
+    const roomTotal = room.reduce((a, b) => a + b, 0)
+    if (roomTotal <= 0) break
+    const k = Math.min(1, Math.abs(diff) / roomTotal)
+    for (let i = 0; i < count; i++) gaps[i] += Math.sign(diff) * room[i] * k
+  }
+  // 부동소수점 오차는 마지막 간격에 흡수
+  const rest = durationMs - gaps.slice(0, -1).reduce((a, b) => a + b, 0)
+  gaps[count - 1] = Math.min(GAP_MAX_MS, Math.max(GAP_MIN_MS, rest))
+  return gaps
+}
+
+// 이동/복귀 경로: 앞쪽 90% 틱은 올랐다 내렸다 랜덤하게 움직이고, 마지막 10% 틱(최소 1틱)은 목표가를 향해 곧게 가서 반드시 목표가에 도착한다.
+function buildRandomPathToTarget(start: number, end: number, steps: number): number[] {
+  const n = Math.max(1, Math.round(steps))
+  if (n === 1) return [end]
+  const m = Math.max(1, Math.round(n * 0.1))
+  const free = n - m
+  const waypoint = start + ((end - start) * free) / n
+  const head = buildRandomPath(start, waypoint, free)
+  const out = head.slice()
+  for (let k = 1; k <= m; k++) out.push(waypoint + ((end - waypoint) * k) / m)
+  out[n - 1] = end
+  return out
 }
 
 // start~end를 잇는 가격 경로를 "위아래로 적당히 오르내리며" 만든다(브라운 브릿지 방식).
@@ -3964,11 +3999,11 @@ async function runProfitAnimation(ev: ProfitEvent) {
   // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 OKX 현재가로 되돌아간다.
   const startRevert = () => {
     const realPrice = Number(lastPrice.value || ev.shockedPrice)
-    const revertPath = buildRandomPath(lastHoldPrice, realPrice, revertSteps)
+    const revertPath = buildRandomPathToTarget(lastHoldPrice, realPrice, revertSteps)
     runPath(revertPath, finish, buildRandomGaps(revertSteps, revertMs))
   }
 
-  const risePath = buildRandomPath(ev.basePrice, ev.shockedPrice, steps)
+  const risePath = buildRandomPathToTarget(ev.basePrice, ev.shockedPrice, steps)
   runPath(risePath, () => runHold(startRevert), buildRandomGaps(steps, durationMs))
 }
 
