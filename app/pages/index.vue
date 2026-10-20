@@ -87,6 +87,11 @@
       <PopularMarkets />
     </section>
 
+    <!-- ASSET SECURITY -->
+    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+      <AssetSecurity />
+    </section>
+
     <!-- PRODUCTS -->
     <section class="border-t border-white/10 px-6 sm:px-12 py-14 text-center md:px-24">
       <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">PRODUCTS</div>
