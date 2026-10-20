@@ -75,11 +75,19 @@ const { items, refresh } = useMarketOverview()
 const spark = ref<Record<string, number[]>>({})
 
 const cards = computed(() => {
-  // 맨 위는 SAMSUNGUSDT 고정, 나머지 두 자리는 거래대금이 어느 정도 되는 코인 중 상승률 상위(한산한 종목이 올라오지 않게)
+  // 위에서부터: SAMSUNGUSDT 고정 / 상승률 상위 코인 1개 / PEPE 고정.
+  // (거래대금이 어느 정도 되는 코인 중에서만 상승률 상위를 고른다 — 한산한 종목이 올라오지 않게)
   const samsung = items.value.find((i) => i.symbol === 'SAMSUNGUSDT')
-  const coins = items.value.filter((i) => i.category === 'coin').sort((a, b) => b.volUsd - a.volUsd).slice(0, 60)
+  const pepe = items.value.find((i) => i.base === 'PEPE' && i.category === 'coin')
+  const coins = items.value.filter((i) => i.category === 'coin' && i.base !== 'PEPE').sort((a, b) => b.volUsd - a.volUsd).slice(0, 60)
   const top = coins.sort((a, b) => b.changePct - a.changePct)
-  return samsung ? [samsung, ...top.slice(0, 2)] : top.slice(0, 3)
+  const rows = [samsung, top[0], pepe].filter(Boolean) as typeof items.value
+  // 고정 종목이 시세 목록에 없으면 상승률 상위로 채워서 3장을 맞춘다.
+  for (const c of top) {
+    if (rows.length >= 3) break
+    if (!rows.includes(c)) rows.push(c)
+  }
+  return rows.slice(0, 3)
 })
 
 // 대표 종목을 먼저 보여주고(시세 목록에 있는 것만), 남는 자리는 거래대금 순으로 채운다.
