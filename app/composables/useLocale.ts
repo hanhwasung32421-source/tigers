@@ -25,6 +25,21 @@ export const LANGUAGES: Array<{ code: LangCode; label: string }> = [
 const LANG_STORAGE_KEY = 'bitduck_lang_v2'
 const KNOWN = new Set<string>(LANGUAGES.map((l) => l.code))
 
+// 날짜를 언어별 형식으로 표시하기 위한 로케일 코드
+const DATE_LOCALES: Record<LangCode, string> = {
+  ko: 'ko-KR',
+  en: 'en-US',
+  ja: 'ja-JP',
+  vi: 'vi-VN',
+  ru: 'ru-RU',
+  th: 'th-TH',
+  es: 'es-ES',
+  'pt-PT': 'pt-PT',
+  'pt-BR': 'pt-BR',
+  'zh-CN': 'zh-CN',
+  'zh-TW': 'zh-TW'
+}
+
 export function useLocale() {
   // locale: 날짜/숫자 서식 등 기존 코드가 쓰는 'ko' | 'en' 구분(한국어 외에는 모두 'en' 취급)
   const locale = useState<Locale>('locale', () => 'en')
@@ -80,5 +95,16 @@ export function useLocale() {
     return dicts.value[l]?.[en] ?? en
   }
 
-  return { locale, lang, setLang, setLocale, toggleLocale, initLocale, t }
+  // 'YYYY-MM-DD'를 현재 선택된 언어의 긴 날짜(요일 포함)로 바꾼다. 예: 2026년 10월 20일 (화) / Tuesday, October 20, 2026
+  function formatLongDate(iso: string) {
+    const d = new Date(`${iso}T00:00:00Z`)
+    if (Number.isNaN(d.getTime())) return iso
+    try {
+      return new Intl.DateTimeFormat(DATE_LOCALES[lang.value] || 'en-US', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short', timeZone: 'UTC' }).format(d)
+    } catch {
+      return iso
+    }
+  }
+
+  return { locale, lang, setLang, setLocale, toggleLocale, initLocale, t, formatLongDate }
 }

@@ -176,10 +176,10 @@ import { IMPERSONATE_STORAGE_KEY } from '../plugins/impersonation.client'
 
 const config = useRuntimeConfig()
 const appName = config.public.appName
-const { data: versionData } = await useFetch<{ date: string; build: number }>('/api/version', { key: 'app-version' })
+const { data: versionData } = await useFetch<{ date: string; iso?: string; build: number }>('/api/version', { key: 'app-version' })
 const route = useRoute()
 const navLoading = useState<boolean>('global_nav_loading', () => false)
-const { t, locale } = useLocale()
+const { t, locale, formatLongDate } = useLocale()
 
 const { me, refresh } = useMe()
 await refresh()
@@ -187,7 +187,9 @@ await refresh()
 // 빌드 번호(- n)는 총관리자에게만 표시하고, 그 외에는 날짜만 표시한다.
 const appVersion = computed(() => {
   if (!versionData.value) return ''
-  return me.value?.role === 'super_admin' ? `${versionData.value.date} - ${versionData.value.build}` : versionData.value.date
+  // 날짜는 현재 선택된 언어로 표시한다(서버가 준 한국어 문자열은 iso가 없을 때만 사용).
+  const dateText = versionData.value.iso ? formatLongDate(versionData.value.iso) : versionData.value.date
+  return me.value?.role === 'super_admin' ? `${dateText} - ${versionData.value.build}` : dateText
 })
 const { unread, toast, refreshUnread, startUnreadPolling, stopUnreadPolling } = useMessages()
 const resetNoticeHidden = ref(false)

@@ -44,5 +44,8 @@ export default defineEventHandler(() => {
   const info = versionInfo as { date?: string; build?: number }
   const build = info?.date === today && Number.isFinite(Number(info?.build)) ? Number(info.build) : 1
 
-  return { date: formatKoreanDate(now), build }
+  // iso: 클라이언트가 현재 선택된 언어로 날짜를 직접 포맷할 수 있게 한국 기준 날짜(YYYY-MM-DD)도 같이 내려준다.
+  const { year, month, day } = kstParts(now)
+  const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  return { date: formatKoreanDate(now), iso, build }
 })
