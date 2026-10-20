@@ -280,7 +280,7 @@ const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
   markets: '마켓',
   coin: '코인선물',
   stock: '파생상품',
-  kr: 'KR주식',
+  kr: '레버리지',
   wallet: '내 지갑',
   invest: '투자내역',
   support: '고객센터'
@@ -290,7 +290,7 @@ const MAIN_NAV_LABELS_EN: Record<MainNavKey, string> = {
   markets: 'Markets',
   coin: 'Coin Futures',
   stock: 'Derivative',
-  kr: 'KR Stocks',
+  kr: '레버리지',
   wallet: 'My Wallet',
   invest: 'Investment History',
   support: 'Support'

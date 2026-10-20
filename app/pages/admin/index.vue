@@ -1696,7 +1696,7 @@ const MAIN_NAV_KEYS: MainNavKey[] = ['buy', 'markets', 'coin', 'stock', 'kr', 'w
 const MAIN_NAV_LABELS: Record<MainNavKey, { ko: string; en: string }> = {
   coin: { ko: '코인선물', en: 'Crypto Futures' },
   stock: { ko: '파생상품', en: 'Derivative' },
-  kr: { ko: 'KR주식', en: 'KR Stocks' },
+  kr: { ko: '레버리지', en: '레버리지' },
   markets: { ko: '마켓', en: 'Markets' },
   buy: { ko: '자산구매', en: 'Buy Crypto' },
   wallet: { ko: '내 지갑', en: 'My Wallet' },
