@@ -2422,7 +2422,7 @@ const currentCandleMeta = computed(() => {
 
 function fmtPrice(v: number) {
   if (!Number.isFinite(v)) return '—'
-  return v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 5 })
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 })
 }
 // 포지션 테이블 전용: 소수점 2자리까지만 표시
 function fmtPrice2(v: number) {
