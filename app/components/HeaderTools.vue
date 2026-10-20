@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-0.5 text-slate-300">
+  <div class="relative flex items-center gap-0.5 text-slate-300">
     <!-- 언어(지구본) -->
     <button
       ref="langBtn"
@@ -47,6 +47,25 @@
       <span v-if="unread > 0" class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#020b16]" />
     </NuxtLink>
 
+    <!-- 첫 화면 배경 영상의 흰 필터 농도 조절(총관리자만, 첫 화면에서만). 평소엔 거의 보이지 않게 투명하다. -->
+    <div v-if="showWashControl && isSuperAdmin && isHome" class="absolute right-0 top-[44px] z-[60] flex flex-col items-end">
+      <button
+        type="button"
+        class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-slate-400 opacity-25 transition hover:opacity-90"
+        aria-label="Background filter"
+        @click="washOpen = !washOpen"
+      >
+        <svg viewBox="0 0 24 24" class="h-[16px] w-[16px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" />
+        </svg>
+      </button>
+      <div v-if="washOpen" class="mt-1 flex items-center gap-1 rounded-full border border-white/10 bg-[#0b1220] px-2 py-1 text-[13px] text-slate-200 shadow-lg">
+        <button type="button" class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-[16px] leading-none hover:bg-white/10" aria-label="Lighter" @click="setWash(heroWash - 5)">−</button>
+        <span class="w-11 text-center font-semibold tabular-nums">{{ heroWash }}%</span>
+        <button type="button" class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-[16px] leading-none hover:bg-white/10" aria-label="Stronger" @click="setWash(heroWash + 5)">+</button>
+      </div>
+    </div>
+
     <!-- 언어 목록: 헤더(overflow/stacking)에 가려지지 않도록 body에 띄운다 -->
     <Teleport to="body">
       <div
@@ -89,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{ bellTarget?: string; showBell?: boolean }>(), { bellTarget: '/support', showBell: true })
+withDefaults(defineProps<{ bellTarget?: string; showBell?: boolean; showWashControl?: boolean }>(), { bellTarget: '/support', showBell: true, showWashControl: false })
 
 const { me } = useMe()
 const { unread } = useMessages()
@@ -109,6 +128,26 @@ function pickCurrency(c: string) {
     // ignore
   }
   langOpen.value = false
+}
+
+// 첫 화면 배경 영상 흰 필터 농도(총관리자가 +/-로 조절, Supabase에 저장되어 모든 방문자에게 같게 적용)
+const route = useRoute()
+const isHome = computed(() => route.path === '/')
+const isSuperAdmin = computed(() => me.value?.role === 'super_admin')
+const heroWash = useState<number>('hero_wash', () => 55)
+const washOpen = ref(false)
+let washTimer: any = null
+function setWash(n: number) {
+  const v = Math.min(100, Math.max(0, Math.round(n)))
+  heroWash.value = v // 화면에는 바로 반영
+  if (washTimer) clearTimeout(washTimer)
+  washTimer = setTimeout(async () => {
+    try {
+      await $fetch('/api/admin/hero-wash', { method: 'POST', body: { percent: v } })
+    } catch (e: any) {
+      alert(e?.data?.statusMessage || '필터 농도를 저장하지 못했습니다.')
+    }
+  }, 500)
 }
 
 const mounted = ref(false)

@@ -79,7 +79,7 @@
               <NuxtLink to="/auth/login" class="px-2 py-1.5 font-medium text-amber-400 hover:text-amber-300" @click="startNavLoading('/auth/login')">{{ t('로그인', 'Login') }}</NuxtLink>
               <NuxtLink to="/auth/register" class="rounded-lg bg-[#f0b90b] px-5 py-1.5 font-medium text-[#383A3E] hover:bg-[#d9a609]" @click="startNavLoading('/auth/register')">{{ t('회원가입', 'Register') }}</NuxtLink>
             </template>
-            <HeaderTools :bell-target="bellTarget" />
+            <HeaderTools :bell-target="bellTarget" show-wash-control />
           </div>
 
           <HeaderTools class="md:hidden" :bell-target="bellTarget" />
