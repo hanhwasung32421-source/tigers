@@ -54,6 +54,11 @@
           <LandingHeroMarkets />
         </div>
       </div>
+
+      <!-- 첫 화면 1파트 하단: 왼쪽으로 돌아가는 AI Trading Signal Radar -->
+      <div class="mt-10">
+        <SignalRadar />
+      </div>
     </section>
 
     <!-- SECURITY & CONTROL -->
