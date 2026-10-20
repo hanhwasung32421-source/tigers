@@ -24,7 +24,7 @@
         </div>
         <div>
           <label class="text-sm text-slate-300">{{ t('생년월일', 'Date of Birth') }}</label>
-          <input v-model.trim="birthDate" placeholder="YYYY-MM-DD" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+          <input v-model="birthDate" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" @input="onBirthInput" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
         </div>
       </div>
 
@@ -97,6 +97,15 @@ const newPasswordConfirm = ref('')
 const saving = ref(false)
 const error = ref<string | null>(null)
 const okText = ref<string | null>(null)
+
+// 숫자만 쳐도(19770101) YYYY-MM-DD 형태로 자동으로 맞춘다.
+function onBirthInput(e: Event) {
+  const digits = String((e.target as HTMLInputElement)?.value || '').replace(/\D/g, '').slice(0, 8)
+  let out = digits.slice(0, 4)
+  if (digits.length > 4) out += `-${digits.slice(4, 6)}`
+  if (digits.length > 6) out += `-${digits.slice(6, 8)}`
+  birthDate.value = out
+}
 
 async function save() {
   saving.value = true

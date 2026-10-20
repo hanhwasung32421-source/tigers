@@ -9,7 +9,14 @@ const BodySchema = z.object({
   // 관리자 계정처럼 이름/생년월일/계좌정보가 아직 없는 경우에도(예: 총관리자 admin/1234)
   // 비밀번호만 바꿀 수 있어야 하므로 빈 값 저장을 허용한다.
   name: z.string().trim().max(40).optional().default(''),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')).optional().default(''),
+  // 19770101처럼 숫자 8자리로 와도 1977-01-01로 바꿔서 받는다.
+  birthDate: z
+    .preprocess(
+      (v) => (typeof v === 'string' && /^\d{8}$/.test(v.trim()) ? `${v.trim().slice(0, 4)}-${v.trim().slice(4, 6)}-${v.trim().slice(6, 8)}` : v),
+      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '생년월일은 YYYY-MM-DD 형식으로 입력해주세요. (예: 1977-01-01)').or(z.literal(''))
+    )
+    .optional()
+    .default(''),
   bankName: z.string().trim().max(40).optional().default(''),
   bankAccount: z.string().trim().max(80).optional().default(''),
   accountHolder: z.string().trim().max(40).optional().default(''),
