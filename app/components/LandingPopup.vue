@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="open" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 py-6" @click.self="close">
+    <div v-if="open" class="landing-popup-overlay fixed inset-0 z-[200] flex items-center justify-center bg-black/60 px-4 py-6" @click.self="close">
       <div class="relative flex max-h-full w-full max-w-[460px] flex-col overflow-auto rounded-2xl border border-cyan-500/15 bg-[#0b1220] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
         <img src="/marketcap-ranking-v2.png" alt="Market cap ranking" class="w-full cursor-pointer rounded-xl border border-white/10 object-contain" @click="close" />
         <div class="mt-5 text-center">

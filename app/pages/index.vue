@@ -179,6 +179,7 @@ const config = useRuntimeConfig()
 const appName = config.public.appName
 // 스크롤을 내리면 파트(섹션)별로 한 칸씩 딱딱 맞춰 내려간다(CSS scroll-snap). 첫 화면에 있는 동안에만 켜고, 다른 화면으로 가면 끈다.
 onMounted(() => document.documentElement.classList.add('snap-landing'))
+useLandingSnapScroll() // 마우스 휠/키보드는 조금씩이 아니라 한 번에 부드럽게 다음 파트로 이동
 onBeforeUnmount(() => document.documentElement.classList.remove('snap-landing'))
 
 // 종목 시세를 서버에서 먼저 받아 두면 첫 HTML에 카드가 들어 있어서, 접속 직후 빈 카드가 2~3초 보이는 일이 없다.

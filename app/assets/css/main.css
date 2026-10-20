@@ -1637,10 +1637,15 @@ html.splash-skip .splash {
   }
 }
 
-/* 첫 화면: 파트(섹션)별 스크롤 맞춤. 한 번 스크롤하면 다음 파트의 시작 위치로 이동한다(헤더 높이만큼 여백). */
+/* 첫 화면: 파트(섹션)별 스크롤. 마우스 휠/키보드는 자바스크립트(useLandingSnapScroll)가 부드럽게 다음 파트로 옮기고,
+   터치 화면(손가락 스크롤)에서만 CSS scroll-snap으로 파트 시작 위치에 맞춘다. */
 html.snap-landing {
-  scroll-snap-type: y mandatory;
   scroll-padding-top: 64px;
+}
+@media (pointer: coarse) {
+  html.snap-landing {
+    scroll-snap-type: y mandatory;
+  }
 }
 .snap-part {
   scroll-snap-align: start;
