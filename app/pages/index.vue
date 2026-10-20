@@ -1,5 +1,6 @@
 <template>
   <div class="font-landing">
+    <LandingPopup />
     <section class="px-6 py-10 sm:px-12 md:px-24 md:py-14">
       <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
         <div>
