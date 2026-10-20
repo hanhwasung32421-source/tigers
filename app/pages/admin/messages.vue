@@ -190,7 +190,7 @@
                 </div>
               </div>
 
-              <div class="max-h-[440px] space-y-3 overflow-auto pr-1">
+              <div ref="messageListEl" class="max-h-[440px] space-y-3 overflow-auto pr-1">
                 <div
                   v-for="message in activeMessages"
                   :key="message.id"
@@ -599,6 +599,23 @@ const recipients = ref<Recipient[]>([])
 const threads = ref<ThreadSummary[]>([])
 const activeThread = ref<ThreadSummary | null>(null)
 const activeMessages = ref<MessageItem[]>([])
+// 대화창은 항상 가장 아래(가장 최근 쪽지)가 보이는 상태로 열린다.
+const messageListEl = ref<HTMLElement | null>(null)
+function scrollMessagesToBottom() {
+  const el = messageListEl.value
+  if (el) el.scrollTop = el.scrollHeight
+}
+watch(
+  [activeMessages, () => activeThread.value?.threadKey],
+  () => {
+    nextTick(() => {
+      scrollMessagesToBottom()
+      // 화면 그리기가 한 박자 늦는 경우를 대비해 한 번 더
+      requestAnimationFrame(scrollMessagesToBottom)
+    })
+  },
+  { flush: 'post' }
+)
 const pendingResetRequest = ref<PendingResetRequest>(null)
 const selectedRecipientIds = ref<number[]>([])
 const recipientKeyword = ref('')
