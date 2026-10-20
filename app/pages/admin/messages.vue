@@ -85,7 +85,7 @@
                   <td class="px-2 py-2">
                     <input v-model="selectedRecipientIds" :value="user.id" type="checkbox" class="rounded border-white/20 bg-white/5" :disabled="sendToAll" />
                   </td>
-                  <td class="px-2 py-2 text-slate-100">{{ user.username }}{{ user.name ? `(${user.name})` : '' }}</td>
+                  <td class="px-2 py-2 text-slate-100">{{ user.name ? `${user.name}(${user.username})` : user.username }}</td>
                   <td class="px-2 py-2 text-right font-data text-slate-300">{{ Number(user.usdt || 0).toFixed(2) }}</td>
                   <td class="px-2 py-2 font-data text-slate-400">{{ dateOnly(user.created_at) }}</td>
                   <td class="px-2 py-2 font-data text-slate-400">{{ user.lastLoginAt ? formatDateTime(user.lastLoginAt) : '—' }}</td>
@@ -234,7 +234,7 @@
               <template v-else-if="memberDetail">
                 <div class="text-base font-semibold text-slate-100">{{ t('회원정보', 'Member Info') }}</div>
                 <div class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-slate-300">
-                  <div class="text-slate-500">{{ t('이름', 'Name') }}</div><div>{{ memberDetail.name || '—' }}</div>
+                  <div class="text-slate-500">{{ t('이름', 'Name') }}</div><div>{{ memberDetail.name ? `${memberDetail.name}(${activeThread?.username || ''})` : activeThread?.username || '—' }}</div>
                   <div class="text-slate-500">{{ t('생년월일', 'Date of Birth') }}</div><div>{{ memberDetail.birthDate || '—' }}</div>
                   <div class="text-slate-500">{{ t('은행', 'Bank') }}</div><div>{{ memberDetail.bankName || '—' }}</div>
                   <div class="text-slate-500">{{ t('계좌', 'Account') }}</div><div>{{ memberDetail.bankAccount || '—' }}</div>

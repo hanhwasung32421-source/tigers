@@ -4,6 +4,7 @@ import { getSupabaseAdminClient } from './supabase'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { createError } from 'h3'
 import { canEditMenu } from './menu-permissions'
+import { sendTelegramText } from './telegram-notify'
 
 export type MessageRow = {
   id: number
@@ -348,44 +349,49 @@ export async function countUnreadMessages(userIds: number | number[]) {
 // - 화면 표시용 발신자 이름은 subject 마커("입출금센터")로 구분해 실제 계정명 대신 보여준다.
 export const WALLET_NOTICE_SUBJECT = '입출금센터'
 
-// 아직 읽지 않은 입출금센터 알림 수(입금요청 / 출금요청 각각). 관리자 화면의 음성(TTS) 알림이 어떤 말을 할지 정하는 데 쓴다.
-export async function countUnreadWalletNotices(userIds: number | number[]): Promise<{ deposit: number; withdrawal: number }> {
-  const ids = toIdList(userIds)
-  const out = { deposit: 0, withdrawal: 0 }
-  if (!ids.length) return out
-  const tally = (bodies: string[]) => {
-    for (const b of bodies) {
-      const s = String(b || '')
-      if (s.startsWith('입금')) out.deposit += 1
-      else if (s.startsWith('출금')) out.withdrawal += 1
-    }
-  }
-  if (supabaseAppDbEnabled()) {
-    try {
+async function getMemberProfileForNotice(memberId: number) {
+  try {
+    if (supabaseAppDbEnabled()) {
       const supa = getSupabaseAdminClient()
-      const { data, error } = await supa
-        .from('bitduck_messages')
-        .select('body')
-        .in('recipient_id', ids)
-        .is('read_at', null)
-        .eq('subject', WALLET_NOTICE_SUBJECT)
-        .limit(200)
-      if (!error) {
-        tally((data || []).map((r: any) => r.body))
-        return out
-      }
-    } catch {
-      // fall through
+      const { data } = await supa
+        .from('bitduck_users')
+        .select('username, name, birth_date, bank_name, bank_account, account_holder, referral_code')
+        .eq('id', memberId)
+        .maybeSingle()
+      return (data as any) || null
     }
+    return (getDb().prepare('SELECT username, name, birth_date, bank_name, bank_account, account_holder, referral_code FROM users WHERE id = ?').get(memberId) as any) || null
+  } catch {
+    return null
   }
-  const db = getDb()
-  const marks = ids.map(() => '?').join(',')
-  const rows = db.prepare(`SELECT body FROM messages WHERE recipient_id IN (${marks}) AND read_at IS NULL AND subject = ? LIMIT 200`).all(...ids, WALLET_NOTICE_SUBJECT) as any[]
-  tally(rows.map((r) => r.body))
-  return out
+}
+
+// 입금/출금 요청이 들어오면 텔레그램 방으로 회원 정보와 함께 한글로 알린다.
+async function notifyTelegramOfWalletRequest(memberId: number, kind: 'deposit' | 'withdrawal', krwAmount: number) {
+  const label = kind === 'deposit' ? '입금' : '출금'
+  const amountText = `${Math.round(Number(krwAmount) || 0).toLocaleString('en-US')}원`
+  const u = await getMemberProfileForNotice(memberId)
+  const dash = (v: any) => (String(v || '').trim() ? String(v).trim() : '-')
+  const nameWithId = u ? (u.name ? `${u.name}(${u.username})` : dash(u.username)) : '-'
+  const bank = u ? `${dash(u.bank_name)}(${dash(u.bank_account)})` : '-'
+  const text = [
+    `${label}요청이 접수되었습니다.`,
+    `(신청 금액: ${amountText})`,
+    '',
+    `이름 : ${nameWithId}`,
+    `생년월일 : ${dash(u?.birth_date)}`,
+    `은행 : ${bank}`,
+    `예금주 : ${dash(u?.account_holder)}`,
+    `추천코드 : ${dash(u?.referral_code)}`
+  ].join('\n')
+  await sendTelegramText(text)
 }
 
 export async function notifyAdminOfWalletRequest(memberId: number, kind: 'deposit' | 'withdrawal', krwAmount: number) {
+  // 텔레그램 알림은 쪽지 알림과 별개로 항상 시도한다(실패해도 요청 처리에는 영향 없음).
+  await notifyTelegramOfWalletRequest(memberId, kind, krwAmount).catch((e) => {
+    console.error('[wallet-notice] telegram notify failed:', e?.message || e)
+  })
   const operator = await getOperatorAdminUser()
   if (!operator) return
   const label = kind === 'deposit' ? '입금' : '출금'

@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     const body = BodySchema.parse(await readBody(event))
     const req = await createDepositRequest(user.id, body.krwAmount)
     // 쪽지 알림은 부가 기능이므로 실패해도 입금요청 자체는 그대로 성공 처리한다.
-    notifyAdminOfWalletRequest(user.id, 'deposit', body.krwAmount).catch((e) => {
+    await notifyAdminOfWalletRequest(user.id, 'deposit', body.krwAmount).catch((e) => {
       console.error('[wallet/deposit-request] admin notice failed:', e)
     })
     return { ok: true, request: req }
