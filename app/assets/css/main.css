@@ -1651,3 +1651,115 @@ html.snap-landing {
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
+
+/* 스플래시: 세 번째 문구 + 보안 점검/로봇 확인 표시 */
+.splash-t3 {
+  font-size: 20px;
+  font-weight: 500;
+  color: #374151;
+  animation: splash-text 1.5s ease-in-out 3.4s both;
+}
+.splash-check {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 11vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 24px;
+  color: #6b7280;
+  font-size: 14px;
+}
+.splash-ic {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.splash-chkbox {
+  position: relative;
+  width: 190px;
+  height: 20px;
+}
+.splash-spin {
+  position: absolute;
+  inset: 0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #f0b90b;
+  border-radius: 50%;
+  animation: splash-spin 0.8s linear infinite, splash-spin-hide 0.3s ease 3.5s forwards;
+}
+.splash-ok {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  line-height: 18px;
+  color: #16a34a;
+  font-weight: 800;
+  opacity: 0;
+  animation: splash-fadein 0.3s ease 3.5s forwards;
+}
+.splash-chk {
+  position: absolute;
+  left: 0;
+  top: 0;
+  line-height: 20px;
+  opacity: 0;
+  white-space: nowrap;
+}
+.splash-c1 {
+  animation: splash-chk 1.4s ease-in-out 0.6s both;
+}
+.splash-c2 {
+  animation: splash-chk 1.5s ease-in-out 2s both;
+}
+.splash-c3 {
+  color: #16a34a;
+  font-weight: 600;
+  animation: splash-chk-last 1.5s ease-in-out 3.5s both;
+}
+@keyframes splash-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes splash-spin-hide {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes splash-fadein {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes splash-chk {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes splash-chk-last {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
