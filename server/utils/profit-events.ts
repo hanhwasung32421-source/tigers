@@ -18,6 +18,8 @@ export type ProfitEvent = {
   shockedPrice: number
   durationMs: number
   tickCount: number
+  // 유지(hold) 구간에서 목표가 ±0.05 안에서 움직이는 틱 수(0 = 랜덤). 별도 DB 컬럼 없이 tick_count 숫자 안에 (이동 틱 + 유지 틱 × 1000)으로 같이 저장한다.
+  holdTickCount: number
   holdMs: number
   createdAt: string
 }
@@ -32,7 +34,8 @@ function rowToProfitEvent(row: any): ProfitEvent {
     shockedPrice: Number(row.shocked_price),
     durationMs: Number.isFinite(Number(row.duration_ms)) && Number(row.duration_ms) > 0 ? Number(row.duration_ms) : DEFAULT_DURATION_MS,
     // 0은 "자동"(틱 수 미지정, 자연스럽게 움직임)을 뜻하므로 그대로 보존한다.
-    tickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) >= 0 ? Number(row.tick_count) : DEFAULT_TICK_COUNT,
+    tickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) >= 0 ? Number(row.tick_count) % 1000 : DEFAULT_TICK_COUNT,
+    holdTickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) >= 0 ? Math.floor(Number(row.tick_count) / 1000) : 0,
     holdMs: Number.isFinite(Number(row.hold_ms)) && Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS,
     createdAt: String(row.created_at)
   }
@@ -46,6 +49,7 @@ export async function createProfitEvent(input: {
   shockedPrice: number
   durationMs?: number
   tickCount?: number
+  holdTickCount?: number
   holdMs?: number
 }): Promise<ProfitEvent> {
   const createdAt = new Date().toISOString()
@@ -54,6 +58,8 @@ export async function createProfitEvent(input: {
   // 0은 "자동"을 뜻하므로(&&로 걸러지면 falsy라 기본값으로 바뀌어버림) undefined일 때만 기본값을 쓴다.
   const tickCount = input.tickCount !== undefined && input.tickCount !== null ? Math.max(0, Math.round(input.tickCount)) : DEFAULT_TICK_COUNT
   const holdMs = input.holdMs && input.holdMs > 0 ? Math.round(input.holdMs) : DEFAULT_HOLD_MS
+  const holdTickCount = Math.min(200, Math.max(0, Math.round(Number(input.holdTickCount || 0))))
+  const storedTickCount = tickCount + holdTickCount * 1000 // DB에는 합쳐서 저장(컬럼 추가 불필요)
 
   if (supabaseAppDbEnabled()) {
     const id = Date.now() * 1000 + Math.floor(Math.random() * 1000)
@@ -66,7 +72,7 @@ export async function createProfitEvent(input: {
       base_price: input.basePrice,
       shocked_price: input.shockedPrice,
       duration_ms: durationMs,
-      tick_count: tickCount,
+      tick_count: storedTickCount,
       hold_ms: holdMs,
       created_at: createdAt
     }
@@ -79,7 +85,7 @@ export async function createProfitEvent(input: {
       error = retry.error
     }
     if (error) throw error
-    return { id, symbol, direction: input.direction, percent: input.percent, basePrice: input.basePrice, shockedPrice: input.shockedPrice, durationMs, tickCount, holdMs, createdAt }
+    return { id, symbol, direction: input.direction, percent: input.percent, basePrice: input.basePrice, shockedPrice: input.shockedPrice, durationMs, tickCount, holdTickCount, holdMs, createdAt }
   }
 
   const db = getDb()
@@ -87,7 +93,7 @@ export async function createProfitEvent(input: {
     .prepare(
       'INSERT INTO profit_events (symbol, direction, percent, base_price, shocked_price, duration_ms, tick_count, hold_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
-    .run(symbol, input.direction, input.percent, input.basePrice, input.shockedPrice, durationMs, tickCount, holdMs, createdAt)
+    .run(symbol, input.direction, input.percent, input.basePrice, input.shockedPrice, durationMs, storedTickCount, holdMs, createdAt)
   return {
     id: Number(result.lastInsertRowid),
     symbol,
@@ -97,6 +103,7 @@ export async function createProfitEvent(input: {
     shockedPrice: input.shockedPrice,
     durationMs,
     tickCount,
+    holdTickCount,
     holdMs,
     createdAt
   }

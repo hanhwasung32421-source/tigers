@@ -12,7 +12,8 @@ const FEE_RATE = 0.04
 
 const BodySchema = z.object({
   symbol: z.string().min(1),
-  direction: z.enum(['up', 'down']),
+  // (예전 요청 호환용) 방향은 서버가 목표가와 현재가를 비교해서 정한다.
+  direction: z.enum(['up', 'down']).optional(),
   // 도달시킬 목표 금액(가격). 현재가에서 이 금액까지 움직인 뒤 정확히 그 금액에 멈춘다.
   targetPrice: z.coerce.number().positive().optional(),
   // (예전 방식) 레버리지 100배 기준 몇 % 수익/손실이 나는 움직임인지(0.1~90). targetPrice가 없을 때만 사용.
@@ -22,7 +23,9 @@ const BodySchema = z.object({
   // 0은 "자동"(틱 수를 지정하지 않고 자연스럽게 움직임)을 의미한다.
   tickCount: z.coerce.number().int().min(0).max(20).optional(),
   // 목표가에 도달한 뒤 몇 초 동안 그 상태를 유지할지(0.1~120초)
-  holdSeconds: z.coerce.number().min(0.1).max(120).optional()
+  holdSeconds: z.coerce.number().min(0.1).max(120).optional(),
+  // 유지 시간 동안 목표가 ±0.05 안에서 움직이는 틱 수. 0은 "랜덤".
+  holdTickCount: z.coerce.number().int().min(0).max(200).optional()
 })
 
 function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
@@ -52,8 +55,8 @@ export default defineEventHandler(async (event) => {
   if (body.targetPrice != null) {
     // 목표 금액 방식: 입력한 금액이 그대로 목표가다.
     shockedPrice = body.targetPrice
-    if (body.direction === 'up' ? shockedPrice <= basePrice : shockedPrice >= basePrice) {
-      throw createError({ statusCode: 400, statusMessage: body.direction === 'up' ? '상승STOP은 현재가보다 높은 목표 금액이어야 합니다.' : '하락STOP은 현재가보다 낮은 목표 금액이어야 합니다.' })
+    if (shockedPrice === basePrice) {
+      throw createError({ statusCode: 400, statusMessage: '현재가와 다른 목표 금액을 입력해주세요.' })
     }
     const movePct = (Math.abs(shockedPrice - basePrice) / basePrice) * 100
     if (movePct > 50) {
@@ -65,10 +68,13 @@ export default defineEventHandler(async (event) => {
     // (예전 방식) 입력값(percent)은 "레버리지 100배 포지션 기준 몇 % 수익/손실이 나는 움직임인지"를 뜻한다. 가격변동% = percent / 100.
     percent = body.percent
     const pricePercent = percent / 100
-    shockedPrice = body.direction === 'up' ? basePrice * (1 + pricePercent / 100) : basePrice * (1 - pricePercent / 100)
+    shockedPrice = (body.direction ?? 'up') === 'up' ? basePrice * (1 + pricePercent / 100) : basePrice * (1 - pricePercent / 100)
   } else {
     throw createError({ statusCode: 400, statusMessage: '목표 금액을 입력해주세요.' })
   }
+
+  // 방향(상승/하락)은 목표가와 현재가를 비교해서 정한다.
+  const direction: 'up' | 'down' = shockedPrice > basePrice ? 'up' : 'down'
 
   const liquidationRoe = await getLiquidationRoe()
   let liquidatedCount = 0
@@ -131,12 +137,13 @@ export default defineEventHandler(async (event) => {
   try {
     const profitEvent = await createProfitEvent({
       symbol,
-      direction: body.direction,
+      direction,
       percent,
       basePrice,
       shockedPrice,
       durationMs: body.durationSeconds ? Math.round(body.durationSeconds * 1000) : undefined,
       tickCount: body.tickCount,
+      holdTickCount: body.holdTickCount,
       holdMs: body.holdSeconds ? Math.round(body.holdSeconds * 1000) : undefined
     })
     await logAdminAction(event, {
@@ -144,7 +151,7 @@ export default defineEventHandler(async (event) => {
       action: 'profit_card_create',
       targetType: 'profit_card',
       targetId: profitEvent?.id ?? null,
-      detail: { symbol, direction: body.direction, percent, targetPrice: shockedPrice, durationSeconds: body.durationSeconds, tickCount: body.tickCount, holdSeconds: body.holdSeconds, liquidatedCount }
+      detail: { symbol, direction, holdTickCount: body.holdTickCount, percent, targetPrice: shockedPrice, durationSeconds: body.durationSeconds, tickCount: body.tickCount, holdSeconds: body.holdSeconds, liquidatedCount }
     })
     return { ok: true, event: profitEvent, liquidatedCount }
   } catch (e: any) {
