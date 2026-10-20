@@ -1137,73 +1137,63 @@
       class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
       @click.self="closeProfitModal"
     >
-      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
+      <div class="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
           <h3 class="text-xl font-semibold tracking-tight text-slate-100">
-            {{ t('STOP 실행', 'Run STOP') }}
+            {{ t('RUN STOP', 'RUN STOP') }}
           </h3>
           <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeProfitModal">
             ✕
           </button>
         </div>
-        <p class="mt-2 text-sm text-slate-400">
-          {{ t(
-            '현재가에서 아래 목표 금액까지(높든 낮든) 정확히 입력한 틱 수로 움직여 그 금액에 도달하고, 유지 시간 동안 목표가 ±0.05 안에서 위아래로 움직인 뒤 실제 시세로 복귀합니다.',
-            'The price moves from the current price to the target price (higher or lower) in exactly the number of ticks you enter, then jitters within ±0.05 of the target during the hold time, and finally reverts to the live price.'
-          ) }}
-        </p>
-        <div class="mt-5 flex items-center gap-2">
-          <input
-            v-model.number="profitTargetDraft"
-            type="number"
-            min="0"
-            step="any"
-            class="w-40 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
-          />
-          <span class="text-sm text-slate-400">{{ t('목표 금액 (USDT)', 'Target price (USDT)') }}</span>
+        <div class="mt-5">
+          <div class="text-xs font-semibold text-slate-300">{{ t('목표가격', 'Target price') }}</div>
+          <div class="mt-2 flex items-center gap-2">
+            <input
+              v-model.number="profitTargetDraft"
+              type="number"
+              min="0"
+              step="any"
+              class="w-40 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            />
+            <span class="text-sm text-slate-400">USDT</span>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">{{ t('현재가', 'Current') }} {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}</p>
         </div>
-        <p class="mt-1 text-xs text-slate-500">{{ t('현재가', 'Current') }} {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}</p>
-        <div class="mt-3 flex items-center gap-2">
-          <input
-            v-model.number="profitDurationDraft"
-            type="number"
-            min="0.1"
-            max="10"
-            step="0.1"
-            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
-          />
-          <span class="text-sm text-slate-400">{{ t('초 동안', 'seconds') }}</span>
-          <input
-            v-model.number="profitTickCountDraft"
-            type="number"
-            min="0"
-            max="20"
-            step="1"
-            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
-          />
-          <span class="text-sm text-slate-400">{{ t('틱에 걸쳐 움직임 (0=자동)', 'ticks to move over (0=auto)') }}</span>
+
+        <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div class="text-xs font-semibold text-slate-300">{{ t('① 목표가로 가는 시간 및 움직임틱', '① Time & ticks to reach the target') }}</div>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <input v-model.number="profitDurationDraft" type="number" min="0.1" max="10" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
+            <input v-model.number="profitTickCountDraft" type="number" min="0" max="20" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <span class="text-sm text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
+          </div>
         </div>
-        <div class="mt-3 flex items-center gap-2">
-          <input
-            v-model.number="profitHoldDraft"
-            type="number"
-            min="0.1"
-            max="120"
-            step="0.1"
-            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
-          />
-          <span class="text-sm text-slate-400">{{ t('초 동안 유지 후 복귀', 'seconds, then revert') }}</span>
+
+        <div class="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div class="text-xs font-semibold text-slate-300">{{ t('② 목표가에서 머무르는 시간 및 움직임틱', '② Hold time & ticks at the target') }}</div>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <input v-model.number="profitHoldDraft" type="number" min="0.1" max="120" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
+            <input v-model.number="profitHoldTickDraft" type="number" min="0" max="200" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <span class="text-sm text-slate-400">{{ t('틱 (0=랜덤)', 'ticks (0=random)') }}</span>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span class="text-sm text-slate-400">{{ t('움직임금액', 'Move amount') }} ±</span>
+            <input v-model.number="profitHoldAmpDraft" type="number" min="0" step="any" class="w-28 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <span class="text-sm text-slate-400">USDT</span>
+          </div>
         </div>
-        <div class="mt-3 flex items-center gap-2">
-          <input
-            v-model.number="profitHoldTickDraft"
-            type="number"
-            min="0"
-            max="200"
-            step="1"
-            class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500"
-          />
-          <span class="text-sm text-slate-400">{{ t('틱: 유지 중 목표가 ±0.05 안에서 움직임 (0=랜덤)', 'ticks during the hold, within ±0.05 of the target (0=random)') }}</span>
+
+        <div class="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div class="text-xs font-semibold text-slate-300">{{ t('③ 다시 정상가로 돌아오는 시간 및 움직임틱', '③ Time & ticks to return to the normal price') }}</div>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <input v-model.number="profitRevertSecondsDraft" type="number" min="0.1" max="10" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
+            <input v-model.number="profitRevertTickDraft" type="number" min="0" max="20" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <span class="text-sm text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
+          </div>
         </div>
         <p v-if="profitError" class="mt-3 text-sm text-red-300">{{ profitError }}</p>
         <div class="mt-6 grid grid-cols-2 gap-3">
@@ -2160,6 +2150,9 @@ type ProfitEvent = {
   tickCount: number
   holdTickCount?: number
   holdMs: number
+  revertMs?: number
+  revertTickCount?: number
+  holdAmp?: number | null
   createdAt: string
 }
 const profitModalOpen = ref(false)
@@ -2169,6 +2162,9 @@ const profitTickCountDraft = ref(3)
 const profitTargetDraft = ref<number | null>(null)
 const profitHoldDraft = ref(3)
 const profitHoldTickDraft = ref(0)
+const profitHoldAmpDraft = ref(0.03)
+const profitRevertSecondsDraft = ref(1)
+const profitRevertTickDraft = ref(3)
 const profitError = ref<string | null>(null)
 let lastSeenProfitEventId = 0
 let profitPollTimer: any = null
@@ -3652,7 +3648,7 @@ function startKillResync() {
 
 const PROFIT_LAST_SETTINGS_KEY = 'bitduck_profit_last_settings'
 
-function loadLastProfitSettings(): { percent: number; duration: number; tickCount: number; hold: number; holdTicks: number } | null {
+function loadLastProfitSettings(): { percent: number; duration: number; tickCount: number; hold: number; holdTicks: number; holdAmp: number; revertSeconds: number; revertTicks: number } | null {
   if (!process.client) return null
   try {
     const raw = localStorage.getItem(PROFIT_LAST_SETTINGS_KEY)
@@ -3664,16 +3660,28 @@ function loadLastProfitSettings(): { percent: number; duration: number; tickCoun
     const hold = Number(parsed?.hold)
     if (![percent, duration, tickCount, hold].every(Number.isFinite)) return null
     const holdTicks = Number(parsed?.holdTicks)
-    return { percent, duration, tickCount, hold, holdTicks: Number.isFinite(holdTicks) ? holdTicks : 0 }
+    const holdAmp = Number(parsed?.holdAmp)
+    const revertSeconds = Number(parsed?.revertSeconds)
+    const revertTicks = Number(parsed?.revertTicks)
+    return {
+      percent,
+      duration,
+      tickCount,
+      hold,
+      holdTicks: Number.isFinite(holdTicks) ? holdTicks : 0,
+      holdAmp: Number.isFinite(holdAmp) && parsed?.holdAmp !== null ? holdAmp : 0.03,
+      revertSeconds: Number.isFinite(revertSeconds) && revertSeconds > 0 ? revertSeconds : duration,
+      revertTicks: Number.isFinite(revertTicks) ? revertTicks : tickCount
+    }
   } catch {
     return null
   }
 }
 
-function saveLastProfitSettings(percent: number, duration: number, tickCount: number, hold: number, holdTicks = 0) {
+function saveLastProfitSettings(percent: number, duration: number, tickCount: number, hold: number, holdTicks = 0, holdAmp = 0.03, revertSeconds = duration, revertTicks = tickCount) {
   if (!process.client) return
   try {
-    localStorage.setItem(PROFIT_LAST_SETTINGS_KEY, JSON.stringify({ percent, duration, tickCount, hold, holdTicks }))
+    localStorage.setItem(PROFIT_LAST_SETTINGS_KEY, JSON.stringify({ percent, duration, tickCount, hold, holdTicks, holdAmp, revertSeconds, revertTicks }))
   } catch {}
 }
 
@@ -3687,6 +3695,9 @@ function openProfitModal() {
   profitTickCountDraft.value = last?.tickCount ?? 3
   profitHoldDraft.value = last?.hold ?? 3
   profitHoldTickDraft.value = last?.holdTicks ?? 0
+  profitHoldAmpDraft.value = last?.holdAmp ?? 0.03
+  profitRevertSecondsDraft.value = last?.revertSeconds ?? 1
+  profitRevertTickDraft.value = last?.revertTicks ?? 3
   profitError.value = null
   profitModalOpen.value = true
 }
@@ -3729,14 +3740,29 @@ async function confirmProfitModal() {
     profitError.value = t('유지 시간은 0.1~120 사이로 입력해주세요.', 'Please enter a hold time between 0.1 and 120.')
     return
   }
+  const holdAmp = Number(profitHoldAmpDraft.value ?? 0)
+  if (!Number.isFinite(holdAmp) || holdAmp < 0) {
+    profitError.value = t('움직임금액은 0 이상으로 입력해주세요.', 'Please enter a move amount of 0 or more.')
+    return
+  }
+  const revertSeconds = Number(profitRevertSecondsDraft.value)
+  if (!Number.isFinite(revertSeconds) || revertSeconds < 0.1 || revertSeconds > 10) {
+    profitError.value = t('복귀 시간은 0.1~10 사이로 입력해주세요.', 'Please enter a return time between 0.1 and 10.')
+    return
+  }
+  const revertTickCount = Math.round(Number(profitRevertTickDraft.value || 0))
+  if (!Number.isFinite(revertTickCount) || revertTickCount < 0 || revertTickCount > 20) {
+    profitError.value = t('복귀 틱은 0~20 사이로 입력해주세요. (0 = 자동)', 'Please enter a return tick count between 0 and 20. (0 = auto)')
+    return
+  }
   adminProfitBusy.value = true
   profitError.value = null
   try {
     const res = await $fetch<{ ok: boolean; event: ProfitEvent; liquidatedCount: number }>('/api/admin/profit', {
       method: 'POST',
-      body: { symbol: symbol.value, direction: profitModalDirection.value, targetPrice, durationSeconds, tickCount, holdSeconds, holdTickCount }
+      body: { symbol: symbol.value, direction: profitModalDirection.value, targetPrice, durationSeconds, tickCount, holdSeconds, holdTickCount, holdAmp, revertSeconds, revertTickCount }
     })
-    saveLastProfitSettings(percent, durationSeconds, tickCount, holdSeconds, holdTickCount)
+    saveLastProfitSettings(percent, durationSeconds, tickCount, holdSeconds, holdTickCount, holdAmp, revertSeconds, revertTickCount)
     profitModalOpen.value = false
     if (res?.event) {
       lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
@@ -3831,11 +3857,15 @@ async function runProfitAnimation(ev: ProfitEvent) {
   const holdMs = Math.max(100, ev.holdMs || 3000)
   const steps = resolveWiggleSteps(userTickCount, durationMs)
   const stepMs = durationMs / steps
+  // 복귀 구간은 이동 구간과 별도의 시간/틱 수를 쓴다(예전 이벤트는 이동과 같게 복귀).
+  const revertMs = Math.max(100, ev.revertMs || durationMs)
+  const revertSteps = resolveWiggleSteps(ev.revertTickCount && ev.revertTickCount > 0 ? ev.revertTickCount : userTickCount, revertMs)
+  const revertStepMs = revertMs / revertSteps
 
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitBusy.value = true
   // 원위치로 되돌아갈 때도 비슷한 속도로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
-  adminProfitFreezeUntil = Date.now() + durationMs * 2 + holdMs + 300
+  adminProfitFreezeUntil = Date.now() + durationMs + revertMs + holdMs + 300
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
   const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
@@ -3854,13 +3884,13 @@ async function runProfitAnimation(ev: ProfitEvent) {
   }
 
   // 킬UP/킬DOWN과 같은 방식: path의 첫 틱은 바로 적용하고, 이후 stepMs 간격으로 한 틱씩 "파파팍" 움직인다. 마지막 틱 = 목표가.
-  const runPath = (path: number[], onDone: () => void) => {
+  const runPath = (path: number[], onDone: () => void, gapMs = stepMs) => {
     let i = 0
     const step = () => {
       applyPrice(path[i])
       i += 1
       if (i < path.length) {
-        adminProfitTimer = setTimeout(step, stepMs)
+        adminProfitTimer = setTimeout(step, gapMs)
       } else {
         onDone()
       }
@@ -3868,10 +3898,10 @@ async function runProfitAnimation(ev: ProfitEvent) {
     step()
   }
 
-  // 목표가 유지 구간: 목표가 ±0.05 안에서 위아래로 움직인다(가격이 아주 낮은 종목은 가격의 0.3%를 넘지 않게).
+  // 목표가 유지 구간: 목표가 ±(관리자가 입력한 움직임금액) 안에서 위아래로 움직인다(입력이 없던 예전 이벤트는 ±0.05, 아주 낮은 가격은 0.3% 이내).
   // 틱 수를 입력했으면 유지 시간 동안 그 수만큼(간격은 랜덤), 0이면 틱 수도 랜덤(3~10틱)으로 움직인다.
   let lastHoldPrice = ev.shockedPrice
-  const holdAmp = Math.min(0.05, Math.abs(ev.shockedPrice) * 0.003)
+  const holdAmp = ev.holdAmp != null && Number.isFinite(Number(ev.holdAmp)) ? Math.max(0, Number(ev.holdAmp)) : Math.min(0.05, Math.abs(ev.shockedPrice) * 0.003)
   const runHold = (onDone: () => void) => {
     const requested = Math.max(0, Math.round(ev.holdTickCount ?? 0))
     const n = requested > 0 ? requested : 3 + Math.floor(Math.random() * 8)
@@ -3903,8 +3933,8 @@ async function runProfitAnimation(ev: ProfitEvent) {
   // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 OKX 현재가로 되돌아간다.
   const startRevert = () => {
     const realPrice = Number(lastPrice.value || ev.shockedPrice)
-    const revertPath = buildLinearPath(lastHoldPrice, realPrice, steps)
-    runPath(revertPath, finish)
+    const revertPath = buildLinearPath(lastHoldPrice, realPrice, revertSteps)
+    runPath(revertPath, finish, revertStepMs)
   }
 
   const risePath = buildLinearPath(ev.basePrice, ev.shockedPrice, steps)

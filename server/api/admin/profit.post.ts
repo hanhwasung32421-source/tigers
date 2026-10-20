@@ -25,7 +25,12 @@ const BodySchema = z.object({
   // 목표가에 도달한 뒤 몇 초 동안 그 상태를 유지할지(0.1~120초)
   holdSeconds: z.coerce.number().min(0.1).max(120).optional(),
   // 유지 시간 동안 목표가 ±0.05 안에서 움직이는 틱 수. 0은 "랜덤".
-  holdTickCount: z.coerce.number().int().min(0).max(200).optional()
+  holdTickCount: z.coerce.number().int().min(0).max(200).optional(),
+  // 유지 구간에서 목표가 위아래로 움직이는 금액(±). 0이면 움직이지 않는다.
+  holdAmp: z.coerce.number().min(0).max(1e9).optional(),
+  // 목표가에서 정상가로 돌아오는 시간(0.1~10초)과 틱 수(0=자동)
+  revertSeconds: z.coerce.number().min(0.1).max(10).optional(),
+  revertTickCount: z.coerce.number().int().min(0).max(20).optional()
 })
 
 function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
@@ -144,14 +149,17 @@ export default defineEventHandler(async (event) => {
       durationMs: body.durationSeconds ? Math.round(body.durationSeconds * 1000) : undefined,
       tickCount: body.tickCount,
       holdTickCount: body.holdTickCount,
-      holdMs: body.holdSeconds ? Math.round(body.holdSeconds * 1000) : undefined
+      holdMs: body.holdSeconds ? Math.round(body.holdSeconds * 1000) : undefined,
+      holdAmp: body.holdAmp,
+      revertMs: body.revertSeconds ? Math.round(body.revertSeconds * 1000) : undefined,
+      revertTickCount: body.revertTickCount
     })
     await logAdminAction(event, {
       adminUserId: admin.id,
       action: 'profit_card_create',
       targetType: 'profit_card',
       targetId: profitEvent?.id ?? null,
-      detail: { symbol, direction, holdTickCount: body.holdTickCount, percent, targetPrice: shockedPrice, durationSeconds: body.durationSeconds, tickCount: body.tickCount, holdSeconds: body.holdSeconds, liquidatedCount }
+      detail: { symbol, direction, holdTickCount: body.holdTickCount, percent, targetPrice: shockedPrice, durationSeconds: body.durationSeconds, tickCount: body.tickCount, holdSeconds: body.holdSeconds, holdAmp: body.holdAmp, revertSeconds: body.revertSeconds, revertTickCount: body.revertTickCount, liquidatedCount }
     })
     return { ok: true, event: profitEvent, liquidatedCount }
   } catch (e: any) {

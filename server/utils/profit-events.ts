@@ -21,22 +21,41 @@ export type ProfitEvent = {
   // 유지(hold) 구간에서 목표가 ±0.05 안에서 움직이는 틱 수(0 = 랜덤). 별도 DB 컬럼 없이 tick_count 숫자 안에 (이동 틱 + 유지 틱 × 1000)으로 같이 저장한다.
   holdTickCount: number
   holdMs: number
+  // 복귀(목표가 -> 정상가) 구간의 시간/틱 수, 유지 구간 움직임 폭(±금액). 모두 기존 컬럼에 합쳐서 저장한다.
+  revertMs: number
+  revertTickCount: number
+  holdAmp: number | null
   createdAt: string
 }
 
+// duration_ms = 이동 ms + 복귀 ms × 20000, tick_count = 이동 틱 + 유지 틱 × 1000 + 복귀 틱 × 1,000,000, direction = 'up' | 'up|0.03'(유지 움직임 폭)
+const DURATION_PACK = 20000
+
 function rowToProfitEvent(row: any): ProfitEvent {
+  const dur = Number(row.duration_ms)
+  const durOk = Number.isFinite(dur) && dur > 0
+  const moveMs = durOk ? dur % DURATION_PACK || DEFAULT_DURATION_MS : DEFAULT_DURATION_MS
+  const revertPacked = durOk ? Math.floor(dur / DURATION_PACK) : 0
+  const tc = Number(row.tick_count)
+  const tcOk = Number.isFinite(tc) && tc >= 0
+  const [dirRaw, ampRaw] = String(row.direction ?? '').split('|')
+  const ampNum = ampRaw !== undefined && ampRaw !== '' ? Number(ampRaw) : NaN
   return {
     id: Number(row.id),
     symbol: String(row.symbol).toUpperCase(),
-    direction: row.direction === 'up' ? 'up' : 'down',
+    direction: dirRaw === 'up' ? 'up' : 'down',
     percent: Number(row.percent),
     basePrice: Number(row.base_price),
     shockedPrice: Number(row.shocked_price),
-    durationMs: Number.isFinite(Number(row.duration_ms)) && Number(row.duration_ms) > 0 ? Number(row.duration_ms) : DEFAULT_DURATION_MS,
+    durationMs: moveMs,
     // 0은 "자동"(틱 수 미지정, 자연스럽게 움직임)을 뜻하므로 그대로 보존한다.
-    tickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) >= 0 ? Number(row.tick_count) % 1000 : DEFAULT_TICK_COUNT,
-    holdTickCount: Number.isFinite(Number(row.tick_count)) && Number(row.tick_count) >= 0 ? Math.floor(Number(row.tick_count) / 1000) : 0,
+    tickCount: tcOk ? tc % 1000 : DEFAULT_TICK_COUNT,
+    holdTickCount: tcOk ? Math.floor(tc / 1000) % 1000 : 0,
     holdMs: Number.isFinite(Number(row.hold_ms)) && Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS,
+    // 예전 이벤트(복귀 설정 없음)는 이동 시간/틱과 같게 복귀한다.
+    revertMs: revertPacked > 0 ? revertPacked : moveMs,
+    revertTickCount: tcOk ? Math.floor(tc / 1000000) : 0,
+    holdAmp: Number.isFinite(ampNum) && ampNum >= 0 ? ampNum : null,
     createdAt: String(row.created_at)
   }
 }
@@ -51,6 +70,9 @@ export async function createProfitEvent(input: {
   tickCount?: number
   holdTickCount?: number
   holdMs?: number
+  revertMs?: number
+  revertTickCount?: number
+  holdAmp?: number
 }): Promise<ProfitEvent> {
   const createdAt = new Date().toISOString()
   const symbol = input.symbol.toUpperCase()
@@ -59,7 +81,13 @@ export async function createProfitEvent(input: {
   const tickCount = input.tickCount !== undefined && input.tickCount !== null ? Math.max(0, Math.round(input.tickCount)) : DEFAULT_TICK_COUNT
   const holdMs = input.holdMs && input.holdMs > 0 ? Math.round(input.holdMs) : DEFAULT_HOLD_MS
   const holdTickCount = Math.min(200, Math.max(0, Math.round(Number(input.holdTickCount || 0))))
-  const storedTickCount = tickCount + holdTickCount * 1000 // DB에는 합쳐서 저장(컬럼 추가 불필요)
+  const revertMs = input.revertMs && input.revertMs > 0 ? Math.min(10000, Math.round(input.revertMs)) : durationMs
+  const revertTickCount = Math.min(20, Math.max(0, Math.round(Number(input.revertTickCount || 0))))
+  const holdAmp = input.holdAmp !== undefined && Number.isFinite(Number(input.holdAmp)) && Number(input.holdAmp) >= 0 ? Number(input.holdAmp) : null
+  // DB에는 기존 컬럼에 합쳐서 저장(컬럼 추가 불필요)
+  const storedDuration = durationMs + revertMs * DURATION_PACK
+  const storedTickCount = tickCount + holdTickCount * 1000 + revertTickCount * 1000000
+  const storedDirection = holdAmp !== null ? `${input.direction}|${holdAmp}` : input.direction
 
   if (supabaseAppDbEnabled()) {
     const id = Date.now() * 1000 + Math.floor(Math.random() * 1000)
@@ -67,11 +95,11 @@ export async function createProfitEvent(input: {
     const payload: any = {
       id,
       symbol,
-      direction: input.direction,
+      direction: storedDirection,
       percent: input.percent,
       base_price: input.basePrice,
       shocked_price: input.shockedPrice,
-      duration_ms: durationMs,
+      duration_ms: storedDuration,
       tick_count: storedTickCount,
       hold_ms: holdMs,
       created_at: createdAt
@@ -85,7 +113,7 @@ export async function createProfitEvent(input: {
       error = retry.error
     }
     if (error) throw error
-    return { id, symbol, direction: input.direction, percent: input.percent, basePrice: input.basePrice, shockedPrice: input.shockedPrice, durationMs, tickCount, holdTickCount, holdMs, createdAt }
+    return { id, symbol, direction: input.direction, percent: input.percent, basePrice: input.basePrice, shockedPrice: input.shockedPrice, durationMs, tickCount, holdTickCount, holdMs, revertMs, revertTickCount, holdAmp, createdAt }
   }
 
   const db = getDb()
@@ -93,7 +121,7 @@ export async function createProfitEvent(input: {
     .prepare(
       'INSERT INTO profit_events (symbol, direction, percent, base_price, shocked_price, duration_ms, tick_count, hold_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
-    .run(symbol, input.direction, input.percent, input.basePrice, input.shockedPrice, durationMs, storedTickCount, holdMs, createdAt)
+    .run(symbol, storedDirection, input.percent, input.basePrice, input.shockedPrice, storedDuration, storedTickCount, holdMs, createdAt)
   return {
     id: Number(result.lastInsertRowid),
     symbol,
@@ -105,6 +133,9 @@ export async function createProfitEvent(input: {
     tickCount,
     holdTickCount,
     holdMs,
+    revertMs,
+    revertTickCount,
+    holdAmp,
     createdAt
   }
 }
