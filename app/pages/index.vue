@@ -2,7 +2,7 @@
   <div class="font-landing">
     <SplashScreen />
     <LandingPopup />
-    <section class="relative overflow-hidden px-6 py-10 sm:px-12 md:px-24 md:py-14">
+    <section class="snap-part relative overflow-hidden px-6 py-10 sm:px-12 md:px-24 md:py-14">
       <HeroVideo />
       <div class="relative z-10 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
         <div>
@@ -65,7 +65,7 @@
     </section>
 
     <!-- SECURITY & CONTROL -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 text-center md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 text-center md:px-24">
       <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">SECURITY &amp; CONTROL</div>
       <h2 class="mx-auto mt-4 max-w-xl text-[36px] font-black leading-tight text-white md:text-[43.2px]">{{ t('신뢰할 수 있는 거래 파트너', 'A Trading Partner You Can Trust') }}</h2>
       <div class="mx-auto mt-12 grid max-w-5xl gap-10 md:grid-cols-4">
@@ -98,32 +98,32 @@
     </section>
 
     <!-- MARKETS -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
       <PopularMarkets />
     </section>
 
     <!-- ASSET SECURITY -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
       <AssetSecurity />
     </section>
 
     <!-- 파트5: TOOLS FOR TRADERS -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
       <ToolsForTraders />
     </section>
 
     <!-- 파트6: TRADE ANYTIME, ANYWHERE -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
       <TradeAnywhere />
     </section>
 
     <!-- 파트7: SECURITY AUDIT -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
       <SecurityAudit />
     </section>
 
     <!-- PRODUCTS -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 text-center md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 text-center md:px-24">
       <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">PRODUCTS</div>
       <h2 class="mx-auto mt-4 max-w-2xl text-[36px] font-black leading-tight text-white md:text-[43.2px]">{{ t('거래의 모든 순간이', 'Every moment of trading,') }}<br />{{ t('한 번의 클릭으로', 'just one click away') }}</h2>
       <div class="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -144,7 +144,7 @@
     </section>
 
     <!-- FAQ -->
-    <section class="border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
+    <section class="snap-part border-t border-white/10 px-6 sm:px-12 py-14 md:px-24">
       <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_1.4fr]">
         <div>
           <div class="text-[14.4px] font-bold tracking-[0.3em] text-slate-500">FAQ</div>
@@ -177,6 +177,10 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const appName = config.public.appName
+// 스크롤을 내리면 파트(섹션)별로 한 칸씩 딱딱 맞춰 내려간다(CSS scroll-snap). 첫 화면에 있는 동안에만 켜고, 다른 화면으로 가면 끈다.
+onMounted(() => document.documentElement.classList.add('snap-landing'))
+onBeforeUnmount(() => document.documentElement.classList.remove('snap-landing'))
+
 // 종목 시세를 서버에서 먼저 받아 두면 첫 HTML에 카드가 들어 있어서, 접속 직후 빈 카드가 2~3초 보이는 일이 없다.
 await useMarketOverview().refresh(true)
 
