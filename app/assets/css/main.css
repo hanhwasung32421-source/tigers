@@ -605,19 +605,19 @@ html.theme-filter .lang-panel.lang-panel {
   transform: rotateY(180deg);
 }
 
-/* 첫 화면 파트4 픽셀 방패 모션그래픽(10초 반복) */
+/* 첫 화면 파트4 픽셀 방패 모션그래픽(약 6.7초 반복 = 기존 10초의 1.5배속) */
 .px-cell,
 .px-mark {
   transform-box: fill-box;
   transform-origin: center;
 }
 .px-cell {
-  animation: px-cycle 10s ease-out infinite, px-shine 10s linear infinite;
+  animation: px-cycle 6.667s ease-out infinite, px-shine 6.667s linear infinite;
   animation-delay: var(--d, 0s), var(--s, 0s);
   animation-fill-mode: backwards, none;
 }
 .px-mark {
-  animation: px-mark 10s ease-out infinite;
+  animation: px-mark 6.667s ease-out infinite;
   animation-delay: var(--d, 0s);
   animation-fill-mode: backwards;
 }

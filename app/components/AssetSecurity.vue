@@ -106,9 +106,11 @@ const MARK: Array<[number, number]> = [
 const COLS = 15
 const CELL = 18
 const GAP = 3
+// 애니메이션 배속(1.5배): CSS의 반복 시간(10s → 6.667s)과 같은 비율로 지연 시간도 줄인다
+const SPEED = 1.5
 // 노란 블록: 위 행부터 차례로 나타나고(delay), 빛이 대각선(행+열)으로 훑고 지나간다(shine)
 const cells = ROWS.flatMap((row, r) =>
-  row.split('').flatMap((ch, c) => (ch === '#' ? [{ x: c * CELL, y: r * CELL, delay: +(r * 0.1 + (c % 3) * 0.03).toFixed(2), shine: +((r + c) * 0.05).toFixed(2) }] : []))
+  row.split('').flatMap((ch, c) => (ch === '#' ? [{ x: c * CELL, y: r * CELL, delay: +((r * 0.1 + (c % 3) * 0.03) / SPEED).toFixed(2), shine: +(((r + c) * 0.05) / SPEED).toFixed(2) }] : []))
 )
-const markCells = MARK.map(([r, c], k) => ({ x: c * CELL, y: r * CELL, delay: +(k * 0.3).toFixed(2) }))
+const markCells = MARK.map(([r, c], k) => ({ x: c * CELL, y: r * CELL, delay: +((k * 0.3) / SPEED).toFixed(2) }))
 </script>
