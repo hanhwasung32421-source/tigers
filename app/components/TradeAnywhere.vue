@@ -8,9 +8,10 @@
 
       <div class="mt-12 flex flex-wrap items-start gap-8">
         <!-- QR 코드(사이트 주소) -->
-        <NuxtLink :to="target" class="flex h-[176px] w-[176px] shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#ffffff] p-3" aria-label="QR code">
-          <svg :viewBox="`-1 -1 ${QR_N + 2} ${QR_N + 2}`" class="h-full w-full" shape-rendering="crispEdges">
-            <rect x="-1" y="-1" :width="QR_N + 2" :height="QR_N + 2" fill="#ffffff" />
+        <NuxtLink :to="target" class="flex h-[176px] w-[176px] shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#ffffff] p-1" aria-label="QR code">
+          <!-- https://bittigers.vercel.app/ 로 연결되는 QR. 스캐너가 잘 읽도록 주변 흰 여백(quiet zone)을 4칸 둔다 -->
+          <svg :viewBox="`-4 -4 ${QR_N + 8} ${QR_N + 8}`" class="h-full w-full" shape-rendering="crispEdges">
+            <rect x="-4" y="-4" :width="QR_N + 8" :height="QR_N + 8" fill="#ffffff" />
             <path :d="QR_PATH" fill="#111111" />
           </svg>
         </NuxtLink>
