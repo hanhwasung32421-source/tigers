@@ -1667,3 +1667,11 @@ html.theme-filter .guest-chat .text-slate-400 {
 .tool-card:hover .t-cool {
   transform: translate(8px, 8px) rotate(20deg);
 }
+
+/* 수익 카드(청산/익절 카드) 팝업: 화이트(반전 필터) 테마에서도 반전 베일 위에 띄워서 로고/카드 색이 설계한 그대로 나오게 한다. */
+html.theme-filter .profit-card-layer.profit-card-layer {
+  z-index: 10040 !important;
+}
+html.theme-filter .profit-card-layer .bg-\[\#111923\] {
+  background-color: #111923 !important;
+}
