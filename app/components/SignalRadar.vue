@@ -8,7 +8,7 @@
         </div>
       </div>
       <div v-else class="flex">
-        <div v-for="n in 6" :key="n" class="mr-4 h-[112px] w-[270px] shrink-0 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+        <div v-for="n in 6" :key="n" class="mr-4 h-[112px] w-[270px] shrink-0 animate-pulse rounded-2xl border border-white/10 bg-[#0c1522]" />
       </div>
     </div>
   </section>

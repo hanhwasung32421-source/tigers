@@ -735,12 +735,15 @@ html.theme-filter .lang-panel.lang-panel {
 
 /* ───────── 화이트(native) 테마: 페이지별 색 클래스 자동 변환 ─────────
    첫 화면, 로그인/가입, 약관, 마켓 페이지가 쓰는 색 클래스를 흰 배경용 색으로 바꾼다.
-   (자동 생성: 88개 규칙 / 변환 스크립트: 작업 폴더의 gen_native.cjs) */
+   (자동 생성: 89개 규칙 / 변환 스크립트: 작업 폴더의 gen_native.cjs) */
 html.theme-native .bg-\[\#020817\]\/55 {
   background-color: rgba(255, 255, 255, 0.55) !important;
 }
 html.theme-native .bg-\[\#020b16\] {
   background-color: #ffffff !important;
+}
+html.theme-native .bg-\[\#020b16\]\/55 {
+  background-color: rgba(255, 255, 255, 0.55) !important;
 }
 html.theme-native .bg-\[\#020b16\]\/90 {
   background-color: rgba(255, 255, 255, 0.9) !important;
@@ -771,6 +774,9 @@ html.theme-native .bg-\[\#0b1220\] {
 }
 html.theme-native .bg-\[\#0b1220\]\/95 {
   background-color: rgba(255, 255, 255, 0.95) !important;
+}
+html.theme-native .bg-\[\#0c1522\] {
+  background-color: #ffffff !important;
 }
 html.theme-native .bg-cyan-400 {
   background-color: #f0b90b !important;
@@ -919,9 +925,6 @@ html.theme-native .hover\:bg-white\/\[0\.07\]:hover {
 html.theme-native .hover\:bg-white\/\[0\.09\]:hover {
   background-color: rgba(0, 0, 0, 0.063) !important;
 }
-html.theme-native .hover\:bg-white\/\[0\.12\]:hover {
-  background-color: rgba(0, 0, 0, 0.084) !important;
-}
 html.theme-native .hover\:border-cyan-400\/25:hover {
   border-color: #f0b90b !important;
 }
@@ -1012,7 +1015,7 @@ html.theme-native .text-white {
 /* ───────── END 화이트(native) 자동 변환 ───────── */
 
 /* ───────── 화이트(필터) 테마: 베일 위 영역(헤더/푸터/언어 패널/채팅) ─────────
-   반전 필터를 쓰는 페이지에서도 이 영역들은 베일 위(z-index)에 올려서 반전하지 않고, 첫 화면과 같은 규칙을 그대로 쓴다. (자동 생성: 112개) */
+   반전 필터를 쓰는 페이지에서도 이 영역들은 베일 위(z-index)에 올려서 반전하지 않고, 첫 화면과 같은 규칙을 그대로 쓴다. (자동 생성: 89개) */
 html.theme-filter .site-header,
 html.theme-filter .lang-panel,
 html.theme-filter .guest-chat {
@@ -1036,299 +1039,30 @@ html.theme-native,
 html.theme-native body {
   color: #1e2329 !important;
 }
-html.theme-filter .site-header .text-white,
-html.theme-filter .lang-panel .text-white,
-html.theme-filter .guest-chat .text-white {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-slate-100,
-html.theme-filter .lang-panel .text-slate-100,
-html.theme-filter .guest-chat .text-slate-100 {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-slate-200,
-html.theme-filter .lang-panel .text-slate-200,
-html.theme-filter .guest-chat .text-slate-200 {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-slate-300,
-html.theme-filter .lang-panel .text-slate-300,
-html.theme-filter .guest-chat .text-slate-300 {
-  color: #474d57 !important;
-}
-html.theme-filter .site-header .text-slate-400,
-html.theme-filter .lang-panel .text-slate-400,
-html.theme-filter .guest-chat .text-slate-400 {
-  color: #707a8a !important;
-}
-html.theme-filter .site-header .text-slate-500,
-html.theme-filter .lang-panel .text-slate-500,
-html.theme-filter .guest-chat .text-slate-500 {
-  color: #707a8a !important;
-}
-html.theme-filter .site-header .text-slate-600,
-html.theme-filter .lang-panel .text-slate-600,
-html.theme-filter .guest-chat .text-slate-600 {
-  color: #929aa5 !important;
-}
-html.theme-filter .site-header .text-amber-100,
-html.theme-filter .lang-panel .text-amber-100,
-html.theme-filter .guest-chat .text-amber-100 {
-  color: #1e2329 !important;
-}
-html.theme-filter .site-header .text-yellow-300,
-html.theme-filter .lang-panel .text-yellow-300,
-html.theme-filter .guest-chat .text-yellow-300 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .text-cyan-300,
-html.theme-filter .lang-panel .text-cyan-300,
-html.theme-filter .guest-chat .text-cyan-300 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .placeholder\:text-slate-500::placeholder,
-html.theme-filter .lang-panel .placeholder\:text-slate-500::placeholder,
-html.theme-filter .guest-chat .placeholder\:text-slate-500::placeholder {
-  color: #929aa5 !important;
-}
-html.theme-filter .site-header .hover\:text-white:hover,
-html.theme-filter .lang-panel .hover\:text-white:hover,
-html.theme-filter .guest-chat .hover\:text-white:hover {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .group:hover .group-hover\:text-cyan-200,
-html.theme-filter .lang-panel .group:hover .group-hover\:text-cyan-200,
-html.theme-filter .guest-chat .group:hover .group-hover\:text-cyan-200 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .font-brand,
-html.theme-filter .lang-panel .font-brand,
-html.theme-filter .guest-chat .font-brand {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .text-amber-400,
-html.theme-filter .lang-panel .text-amber-400,
-html.theme-filter .guest-chat .text-amber-400 {
-  color: #f0b90b !important;
-}
-html.theme-filter .site-header .border-amber-400,
-html.theme-filter .lang-panel .border-amber-400,
-html.theme-filter .guest-chat .border-amber-400 {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .border-amber-400\/20,
-html.theme-filter .lang-panel .border-amber-400\/20,
-html.theme-filter .guest-chat .border-amber-400\/20 {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .border-amber-400\/30,
-html.theme-filter .lang-panel .border-amber-400\/30,
-html.theme-filter .guest-chat .border-amber-400\/30 {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .bg-amber-400\/10,
-html.theme-filter .lang-panel .bg-amber-400\/10,
-html.theme-filter .guest-chat .bg-amber-400\/10 {
-  background-color: rgba(240, 185, 11, 0.12) !important;
-}
-html.theme-filter .site-header .bg-cyan-400,
-html.theme-filter .lang-panel .bg-cyan-400,
-html.theme-filter .guest-chat .bg-cyan-400 {
-  background-color: #f0b90b !important;
-}
-html.theme-filter .site-header .bg-white,
-html.theme-filter .lang-panel .bg-white,
-html.theme-filter .guest-chat .bg-white {
-  background-color: #f0b90b !important;
-  color: #383A3E !important;
-}
-html.theme-filter .site-header .bg-\[\#f0b90b\],
-html.theme-filter .lang-panel .bg-\[\#f0b90b\],
-html.theme-filter .guest-chat .bg-\[\#f0b90b\] {
-  background-color: #f0b90b !important;
-  color: #383A3E !important;
-}
-html.theme-filter .site-header .text-slate-950,
-html.theme-filter .lang-panel .text-slate-950,
-html.theme-filter .guest-chat .text-slate-950 {
-  color: #383A3E !important;
-}
-html.theme-filter .site-header .hover\:bg-slate-200:hover,
-html.theme-filter .lang-panel .hover\:bg-slate-200:hover,
-html.theme-filter .guest-chat .hover\:bg-slate-200:hover {
-  background-color: #f0b90b !important;
-  filter: brightness(0.94);
-}
-html.theme-filter .site-header .hover\:bg-\[\#d9a609\]:hover,
-html.theme-filter .lang-panel .hover\:bg-\[\#d9a609\]:hover,
-html.theme-filter .guest-chat .hover\:bg-\[\#d9a609\]:hover {
-  background-color: #f0b90b !important;
-  filter: brightness(0.94);
-}
-html.theme-filter .site-header .bg-white\/5,
-html.theme-filter .lang-panel .bg-white\/5,
-html.theme-filter .guest-chat .bg-white\/5 {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .bg-white\/10,
-html.theme-filter .lang-panel .bg-white\/10,
-html.theme-filter .guest-chat .bg-white\/10 {
-  background-color: rgba(0, 0, 0, 0.070) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.02\],
-html.theme-filter .lang-panel .bg-white\/\[0\.02\],
-html.theme-filter .guest-chat .bg-white\/\[0\.02\] {
-  background-color: rgba(0, 0, 0, 0.014) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.03\],
-html.theme-filter .lang-panel .bg-white\/\[0\.03\],
-html.theme-filter .guest-chat .bg-white\/\[0\.03\] {
-  background-color: rgba(0, 0, 0, 0.021) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.04\],
-html.theme-filter .lang-panel .bg-white\/\[0\.04\],
-html.theme-filter .guest-chat .bg-white\/\[0\.04\] {
-  background-color: rgba(0, 0, 0, 0.028) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.05\],
-html.theme-filter .lang-panel .bg-white\/\[0\.05\],
-html.theme-filter .guest-chat .bg-white\/\[0\.05\] {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .bg-white\/\[0\.06\],
-html.theme-filter .lang-panel .bg-white\/\[0\.06\],
-html.theme-filter .guest-chat .bg-white\/\[0\.06\] {
-  background-color: rgba(0, 0, 0, 0.042) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/5:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/5:hover,
-html.theme-filter .guest-chat .hover\:bg-white\/5:hover {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/10:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/10:hover,
-html.theme-filter .guest-chat .hover\:bg-white\/10:hover {
-  background-color: rgba(0, 0, 0, 0.070) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/15:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/15:hover,
-html.theme-filter .guest-chat .hover\:bg-white\/15:hover {
-  background-color: rgba(0, 0, 0, 0.105) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/20:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/20:hover,
-html.theme-filter .guest-chat .hover\:bg-white\/20:hover {
-  background-color: rgba(0, 0, 0, 0.140) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/\[0\.05\]:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/\[0\.05\]:hover,
-html.theme-filter .guest-chat .hover\:bg-white\/\[0\.05\]:hover {
-  background-color: rgba(0, 0, 0, 0.035) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/\[0\.07\]:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/\[0\.07\]:hover,
-html.theme-filter .guest-chat .hover\:bg-white\/\[0\.07\]:hover {
-  background-color: rgba(0, 0, 0, 0.049) !important;
-}
-html.theme-filter .site-header .hover\:bg-white\/\[0\.12\]:hover,
-html.theme-filter .lang-panel .hover\:bg-white\/\[0\.12\]:hover,
-html.theme-filter .guest-chat .hover\:bg-white\/\[0\.12\]:hover {
-  background-color: rgba(0, 0, 0, 0.084) !important;
-}
-html.theme-filter .site-header .hover\:bg-cyan-400\/10:hover,
-html.theme-filter .lang-panel .hover\:bg-cyan-400\/10:hover,
-html.theme-filter .guest-chat .hover\:bg-cyan-400\/10:hover {
-  background-color: rgba(240, 185, 11, 0.14) !important;
-}
-html.theme-filter .site-header .bg-cyan-500\/5,
-html.theme-filter .lang-panel .bg-cyan-500\/5,
-html.theme-filter .guest-chat .bg-cyan-500\/5 {
-  background-color: rgba(0, 0, 0, 0.04) !important;
-}
-html.theme-filter .site-header .border-white\/10,
-html.theme-filter .lang-panel .border-white\/10,
-html.theme-filter .guest-chat .border-white\/10 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .border-white\/5,
-html.theme-filter .lang-panel .border-white\/5,
-html.theme-filter .guest-chat .border-white\/5 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .border-cyan-500\/10,
-html.theme-filter .lang-panel .border-cyan-500\/10,
-html.theme-filter .guest-chat .border-cyan-500\/10 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .border-cyan-400\/15,
-html.theme-filter .lang-panel .border-cyan-400\/15,
-html.theme-filter .guest-chat .border-cyan-400\/15 {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .hover\:border-cyan-400\/25:hover,
-html.theme-filter .lang-panel .hover\:border-cyan-400\/25:hover,
-html.theme-filter .guest-chat .hover\:border-cyan-400\/25:hover {
-  border-color: #f0b90b !important;
-}
-html.theme-filter .site-header .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .lang-panel .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .guest-chat .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .lang-panel .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
-html.theme-filter .guest-chat .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
-  border-color: rgba(0, 0, 0, 0.09) !important;
-}
-html.theme-filter .site-header .bg-\[\#020b16\]\/90,
-html.theme-filter .lang-panel .bg-\[\#020b16\]\/90,
-html.theme-filter .guest-chat .bg-\[\#020b16\]\/90 {
-  background-color: rgba(255, 255, 255, 0.94) !important;
+html.theme-filter .site-header .bg-\[\#020817\]\/55,
+html.theme-filter .lang-panel .bg-\[\#020817\]\/55,
+html.theme-filter .guest-chat .bg-\[\#020817\]\/55 {
+  background-color: rgba(255, 255, 255, 0.55) !important;
 }
 html.theme-filter .site-header .bg-\[\#020b16\],
 html.theme-filter .lang-panel .bg-\[\#020b16\],
 html.theme-filter .guest-chat .bg-\[\#020b16\] {
   background-color: #ffffff !important;
 }
-html.theme-filter .site-header .bg-\[\#03101d\],
-html.theme-filter .lang-panel .bg-\[\#03101d\],
-html.theme-filter .guest-chat .bg-\[\#03101d\] {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .bg-\[\#0b1220\],
-html.theme-filter .lang-panel .bg-\[\#0b1220\],
-html.theme-filter .guest-chat .bg-\[\#0b1220\] {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .bg-\[\#0b1220\]\/95,
-html.theme-filter .lang-panel .bg-\[\#0b1220\]\/95,
-html.theme-filter .guest-chat .bg-\[\#0b1220\]\/95 {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .bg-\[\#07111b\]\/90,
-html.theme-filter .lang-panel .bg-\[\#07111b\]\/90,
-html.theme-filter .guest-chat .bg-\[\#07111b\]\/90 {
-  background-color: #ffffff !important;
-}
-html.theme-filter .site-header .ring-\[\#020b16\],
-html.theme-filter .lang-panel .ring-\[\#020b16\],
-html.theme-filter .guest-chat .ring-\[\#020b16\] {
-  --tw-ring-color: #ffffff !important;
-}
-html.theme-filter .site-header .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .site-header .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
-html.theme-filter .lang-panel .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .lang-panel .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\],
-html.theme-filter .guest-chat .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.45\)\], html.theme-filter .guest-chat .shadow-\[0_20px_40px_rgba\(0\,0\,0\,0\.35\)\] {
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14) !important;
-}
-html.theme-filter .site-header .bg-\[\#020817\]\/55,
-html.theme-filter .lang-panel .bg-\[\#020817\]\/55,
-html.theme-filter .guest-chat .bg-\[\#020817\]\/55 {
+html.theme-filter .site-header .bg-\[\#020b16\]\/55,
+html.theme-filter .lang-panel .bg-\[\#020b16\]\/55,
+html.theme-filter .guest-chat .bg-\[\#020b16\]\/55 {
   background-color: rgba(255, 255, 255, 0.55) !important;
 }
 html.theme-filter .site-header .bg-\[\#020b16\]\/90,
 html.theme-filter .lang-panel .bg-\[\#020b16\]\/90,
 html.theme-filter .guest-chat .bg-\[\#020b16\]\/90 {
   background-color: rgba(255, 255, 255, 0.9) !important;
+}
+html.theme-filter .site-header .bg-\[\#03101d\],
+html.theme-filter .lang-panel .bg-\[\#03101d\],
+html.theme-filter .guest-chat .bg-\[\#03101d\] {
+  background-color: #ffffff !important;
 }
 html.theme-filter .site-header .bg-\[\#050709\],
 html.theme-filter .lang-panel .bg-\[\#050709\],
@@ -1360,10 +1094,20 @@ html.theme-filter .lang-panel .bg-\[\#0b0f16\],
 html.theme-filter .guest-chat .bg-\[\#0b0f16\] {
   background-color: #ffffff !important;
 }
+html.theme-filter .site-header .bg-\[\#0b1220\],
+html.theme-filter .lang-panel .bg-\[\#0b1220\],
+html.theme-filter .guest-chat .bg-\[\#0b1220\] {
+  background-color: #ffffff !important;
+}
 html.theme-filter .site-header .bg-\[\#0b1220\]\/95,
 html.theme-filter .lang-panel .bg-\[\#0b1220\]\/95,
 html.theme-filter .guest-chat .bg-\[\#0b1220\]\/95 {
   background-color: rgba(255, 255, 255, 0.95) !important;
+}
+html.theme-filter .site-header .bg-\[\#0c1522\],
+html.theme-filter .lang-panel .bg-\[\#0c1522\],
+html.theme-filter .guest-chat .bg-\[\#0c1522\] {
+  background-color: #ffffff !important;
 }
 html.theme-filter .site-header .bg-cyan-400,
 html.theme-filter .lang-panel .bg-cyan-400,
@@ -1415,15 +1159,66 @@ html.theme-filter .lang-panel .bg-slate-600\/60,
 html.theme-filter .guest-chat .bg-slate-600\/60 {
   background-color: rgba(255, 255, 255, 0.6) !important;
 }
+html.theme-filter .site-header .bg-white,
+html.theme-filter .lang-panel .bg-white,
+html.theme-filter .guest-chat .bg-white {
+  background-color: #f0b90b !important;
+  color: #383A3E !important;
+}
+html.theme-filter .site-header .bg-white\/10,
+html.theme-filter .lang-panel .bg-white\/10,
+html.theme-filter .guest-chat .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-filter .site-header .bg-white\/5,
+html.theme-filter .lang-panel .bg-white\/5,
+html.theme-filter .guest-chat .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.02\],
+html.theme-filter .lang-panel .bg-white\/\[0\.02\],
+html.theme-filter .guest-chat .bg-white\/\[0\.02\] {
+  background-color: rgba(0, 0, 0, 0.014) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.03\],
+html.theme-filter .lang-panel .bg-white\/\[0\.03\],
+html.theme-filter .guest-chat .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.021) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.04\],
+html.theme-filter .lang-panel .bg-white\/\[0\.04\],
+html.theme-filter .guest-chat .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.028) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.05\],
+html.theme-filter .lang-panel .bg-white\/\[0\.05\],
+html.theme-filter .guest-chat .bg-white\/\[0\.05\] {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .bg-white\/\[0\.06\],
+html.theme-filter .lang-panel .bg-white\/\[0\.06\],
+html.theme-filter .guest-chat .bg-white\/\[0\.06\] {
+  background-color: rgba(0, 0, 0, 0.042) !important;
+}
 html.theme-filter .site-header .bg-white\/\[0\.08\],
 html.theme-filter .lang-panel .bg-white\/\[0\.08\],
 html.theme-filter .guest-chat .bg-white\/\[0\.08\] {
   background-color: rgba(0, 0, 0, 0.056) !important;
 }
+html.theme-filter .site-header .border-cyan-400\/15,
+html.theme-filter .lang-panel .border-cyan-400\/15,
+html.theme-filter .guest-chat .border-cyan-400\/15 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
 html.theme-filter .site-header .border-cyan-400\/25,
 html.theme-filter .lang-panel .border-cyan-400\/25,
 html.theme-filter .guest-chat .border-cyan-400\/25 {
   border-color: rgba(0, 0, 0, 0.16) !important;
+}
+html.theme-filter .site-header .border-cyan-500\/10,
+html.theme-filter .lang-panel .border-cyan-500\/10,
+html.theme-filter .guest-chat .border-cyan-500\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
 }
 html.theme-filter .site-header .border-cyan-500\/15,
 html.theme-filter .lang-panel .border-cyan-500\/15,
@@ -1445,6 +1240,11 @@ html.theme-filter .lang-panel .border-slate-950\/40,
 html.theme-filter .guest-chat .border-slate-950\/40 {
   border-color: rgba(0, 0, 0, 0.16) !important;
 }
+html.theme-filter .site-header .border-white\/10,
+html.theme-filter .lang-panel .border-white\/10,
+html.theme-filter .guest-chat .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
 html.theme-filter .site-header .border-white\/15,
 html.theme-filter .lang-panel .border-white\/15,
 html.theme-filter .guest-chat .border-white\/15 {
@@ -1460,10 +1260,30 @@ html.theme-filter .lang-panel .border-white\/40,
 html.theme-filter .guest-chat .border-white\/40 {
   border-color: rgba(0, 0, 0, 0.16) !important;
 }
+html.theme-filter .site-header .border-white\/5,
+html.theme-filter .lang-panel .border-white\/5,
+html.theme-filter .guest-chat .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .lang-panel .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .guest-chat .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+html.theme-filter .site-header .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .lang-panel .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.theme-filter .guest-chat .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
 html.theme-filter .site-header .focus\:border-cyan-500\/40:focus,
 html.theme-filter .lang-panel .focus\:border-cyan-500\/40:focus,
 html.theme-filter .guest-chat .focus\:border-cyan-500\/40:focus {
   border-color: #f0b90b !important;
+}
+html.theme-filter .site-header .group:hover .group-hover\:text-cyan-200,
+html.theme-filter .lang-panel .group:hover .group-hover\:text-cyan-200,
+html.theme-filter .guest-chat .group:hover .group-hover\:text-cyan-200 {
+  color: #f0b90b !important;
 }
 html.theme-filter .site-header .hover\:bg-cyan-400:hover,
 html.theme-filter .lang-panel .hover\:bg-cyan-400:hover,
@@ -1488,15 +1308,50 @@ html.theme-filter .guest-chat .hover\:bg-indigo-400:hover {
   background-color: #f0b90b !important;
   color: #383A3E !important;
 }
+html.theme-filter .site-header .hover\:bg-white\/10:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/10:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.070) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/15:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/15:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/15:hover {
+  background-color: rgba(0, 0, 0, 0.105) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/20:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/20:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.140) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/5:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/5:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
 html.theme-filter .site-header .hover\:bg-white\/\[0\.03\]:hover,
 html.theme-filter .lang-panel .hover\:bg-white\/\[0\.03\]:hover,
 html.theme-filter .guest-chat .hover\:bg-white\/\[0\.03\]:hover {
   background-color: rgba(0, 0, 0, 0.021) !important;
 }
+html.theme-filter .site-header .hover\:bg-white\/\[0\.05\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.05\]:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgba(0, 0, 0, 0.035) !important;
+}
+html.theme-filter .site-header .hover\:bg-white\/\[0\.07\]:hover,
+html.theme-filter .lang-panel .hover\:bg-white\/\[0\.07\]:hover,
+html.theme-filter .guest-chat .hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgba(0, 0, 0, 0.049) !important;
+}
 html.theme-filter .site-header .hover\:bg-white\/\[0\.09\]:hover,
 html.theme-filter .lang-panel .hover\:bg-white\/\[0\.09\]:hover,
 html.theme-filter .guest-chat .hover\:bg-white\/\[0\.09\]:hover {
   background-color: rgba(0, 0, 0, 0.063) !important;
+}
+html.theme-filter .site-header .hover\:border-cyan-400\/25:hover,
+html.theme-filter .lang-panel .hover\:border-cyan-400\/25:hover,
+html.theme-filter .guest-chat .hover\:border-cyan-400\/25:hover {
+  border-color: #f0b90b !important;
 }
 html.theme-filter .site-header .hover\:text-amber-300:hover,
 html.theme-filter .lang-panel .hover\:text-amber-300:hover,
@@ -1558,6 +1413,16 @@ html.theme-filter .lang-panel .text-amber-100,
 html.theme-filter .guest-chat .text-amber-100 {
   color: #f0b90b !important;
 }
+html.theme-filter .site-header .text-amber-400,
+html.theme-filter .lang-panel .text-amber-400,
+html.theme-filter .guest-chat .text-amber-400 {
+  color: #f0b90b !important;
+}
+html.theme-filter .site-header .text-cyan-300,
+html.theme-filter .lang-panel .text-cyan-300,
+html.theme-filter .guest-chat .text-cyan-300 {
+  color: #f0b90b !important;
+}
 html.theme-filter .site-header .text-emerald-300,
 html.theme-filter .lang-panel .text-emerald-300,
 html.theme-filter .guest-chat .text-emerald-300 {
@@ -1598,6 +1463,16 @@ html.theme-filter .lang-panel .text-rose-500,
 html.theme-filter .guest-chat .text-rose-500 {
   color: #f6465d !important;
 }
+html.theme-filter .site-header .text-slate-100,
+html.theme-filter .lang-panel .text-slate-100,
+html.theme-filter .guest-chat .text-slate-100 {
+  color: #1e2329 !important;
+}
+html.theme-filter .site-header .text-slate-200,
+html.theme-filter .lang-panel .text-slate-200,
+html.theme-filter .guest-chat .text-slate-200 {
+  color: #1e2329 !important;
+}
 html.theme-filter .site-header .text-slate-300,
 html.theme-filter .lang-panel .text-slate-300,
 html.theme-filter .guest-chat .text-slate-300 {
@@ -1608,70 +1483,14 @@ html.theme-filter .lang-panel .text-slate-400,
 html.theme-filter .guest-chat .text-slate-400 {
   color: #474d57 !important;
 }
+html.theme-filter .site-header .text-slate-500,
+html.theme-filter .lang-panel .text-slate-500,
+html.theme-filter .guest-chat .text-slate-500 {
+  color: #707a8a !important;
+}
+html.theme-filter .site-header .text-white,
+html.theme-filter .lang-panel .text-white,
+html.theme-filter .guest-chat .text-white {
+  color: #1e2329 !important;
+}
 /* ───────── END 베일 위 영역 ───────── */
-
-/* 첫 화면 파트5 Tools for Traders: 카드에 마우스를 올리면 안의 그래픽이 움직이고, 떼면 부드럽게 제자리로 돌아간다 */
-.tg {
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.tool-card:hover .t-coin-a {
-  transform: translate(-6px, -16px) rotate(-14deg);
-}
-.tool-card:hover .t-coin-b {
-  transform: translate(8px, -20px) rotate(16deg);
-}
-.tool-card:hover .t-wallet {
-  transform: translateY(3px) scale(1.04);
-}
-.tool-card:hover .t-clasp {
-  transform: rotate(180deg) scale(1.15);
-}
-.tool-card:hover .t-c1 {
-  transform: translateY(10px);
-}
-.tool-card:hover .t-c2 {
-  transform: translateY(-12px);
-}
-.tool-card:hover .t-c3 {
-  transform: translateY(12px);
-}
-.tool-card:hover .t-c4 {
-  transform: translateY(-10px);
-}
-.tool-card:hover .t-mcoin {
-  transform: translateY(-10px) rotate(360deg);
-}
-.tool-card:hover .t-panel {
-  transform: rotate(-4deg) scale(1.04);
-}
-.tool-card:hover .t-gline {
-  transform: translateY(-5px);
-}
-.tool-card:hover .t-rline {
-  transform: translateY(5px);
-}
-.tool-card:hover .t-yes {
-  transform: translate(4px, -6px) scale(1.12);
-}
-.tool-card:hover .t-no {
-  transform: translate(4px, 6px) scale(1.12);
-}
-.tool-card:hover .t-gcoin {
-  transform: rotate(14deg) scale(1.07);
-}
-.tool-card:hover .t-pepe {
-  transform: translate(-8px, -8px) rotate(-20deg);
-}
-.tool-card:hover .t-cool {
-  transform: translate(8px, 8px) rotate(20deg);
-}
-
-/* 수익 카드(청산/익절 카드) 팝업: 화이트(반전 필터) 테마에서도 반전 베일 위에 띄워서 로고/카드 색이 설계한 그대로 나오게 한다. */
-html.theme-filter .profit-card-layer.profit-card-layer {
-  z-index: 10040 !important;
-}
-html.theme-filter .profit-card-layer .bg-\[\#111923\] {
-  background-color: #111923 !important;
-}

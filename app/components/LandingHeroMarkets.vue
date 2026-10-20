@@ -7,7 +7,7 @@
           v-for="c in cards"
           :key="c.symbol"
           :to="`/exchange/${c.symbol}`"
-          class="block rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:bg-white/[0.07]"
+          class="block rounded-2xl border border-white/10 bg-[#0c1522] p-4 transition hover:brightness-95"
         >
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
@@ -29,12 +29,12 @@
         </NuxtLink>
       </template>
       <template v-else>
-        <div v-for="n in 3" :key="n" class="h-[112px] animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+        <div v-for="n in 3" :key="n" class="h-[112px] animate-pulse rounded-2xl border border-white/10 bg-[#0c1522]" />
       </template>
     </div>
 
     <!-- 오른쪽: 주식 선물 목록(미니 차트) -->
-    <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+    <div class="rounded-2xl border border-white/10 bg-[#0c1522] p-4">
       <div class="flex items-center justify-between">
         <h3 class="text-[17px] font-bold text-white">xStocks</h3>
         <NuxtLink to="/markets" class="text-[13px] text-slate-400 hover:text-white">{{ t('더보기', 'More') }} ›</NuxtLink>

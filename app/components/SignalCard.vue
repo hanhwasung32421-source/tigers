@@ -1,7 +1,7 @@
 <template>
   <NuxtLink
     :to="`/exchange/${item.symbol}`"
-    class="block w-[270px] shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:bg-white/[0.07]"
+    class="block w-[270px] shrink-0 rounded-2xl border border-white/10 bg-[#0c1522] p-4 transition hover:brightness-95"
   >
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2">
