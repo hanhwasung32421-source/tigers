@@ -27,6 +27,14 @@
             </div>
           </li>
         </ul>
+
+        <NuxtLink
+          to="/auth/register"
+          class="mt-12 inline-flex items-center justify-center rounded-full px-10 py-4 text-[18px] font-bold transition hover:opacity-90"
+          style="background-color: #f0b90b; color: #000000"
+        >
+          {{ t('KTX 시작하기', 'Get Started with KTX') }}
+        </NuxtLink>
       </div>
 
       <!-- 픽셀 방패: 로고(KTX)처럼 노란 네모 블록으로 만든다 -->
