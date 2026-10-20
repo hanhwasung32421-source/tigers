@@ -1,8 +1,9 @@
 <template>
   <div class="font-landing">
     <LandingPopup />
-    <section class="px-6 py-10 sm:px-12 md:px-24 md:py-14">
-      <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
+    <section class="relative overflow-hidden px-6 py-10 sm:px-12 md:px-24 md:py-14">
+      <HeroBackdrop />
+      <div class="relative z-10 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,780px)]">
         <div>
           <h1 class="text-[36px] font-bold leading-[1.15] tracking-tight text-white md:text-[44px] xl:text-[56px]">
             {{ t('더 안전하고, 더 강력한', 'Safer, more powerful,') }}<br />{{ t('디지털 자산 거래', 'digital asset trading') }}
@@ -57,7 +58,7 @@
       </div>
 
       <!-- 첫 화면 1파트 하단: 왼쪽으로 돌아가는 AI Trading Signal Radar -->
-      <div class="mt-10">
+      <div class="relative z-10 mt-10">
         <SignalRadar />
       </div>
     </section>
