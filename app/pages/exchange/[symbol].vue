@@ -191,23 +191,6 @@
                 >
                   {{ t('실행STOP', 'RUN STOP') }}
                 </button>
-                <div class="mx-1 h-4 w-px bg-white/10" />
-                <button
-                  type="button"
-                  class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
-                  :disabled="adminKillBusy || adminProfitBusy"
-                  @click="openKillModal('up')"
-                >
-                  {{ t('킬UP', 'KILL UP') }}
-                </button>
-                <button
-                  type="button"
-                  class="rounded bg-sky-500/15 px-2 py-1 font-semibold text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40"
-                  :disabled="adminKillBusy || adminProfitBusy"
-                  @click="openKillModal('down')"
-                >
-                  {{ t('킬DOWN', 'KILL DOWN') }}
-                </button>
               </div>
               <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
                 <span class="h-1.5 w-1.5 rounded-full" :class="wsStatus === 'open' ? 'bg-[#22ab94]' : 'bg-[#f23645]'" />
