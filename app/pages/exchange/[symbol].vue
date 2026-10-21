@@ -71,8 +71,10 @@
     <!-- 메인 영역 (차트 / 호가 / 주문하기) -->
     <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
     <div class="overflow-x-hidden">
+      <!-- 칸 비율(기준 화면 1906px 폭): 차트 1100 : 호가 406 : 주문 392, 위 줄 높이는 폭의 29.6%. 화면 폭이 변하면 비율대로 같이 변한다. -->
       <div
-        class="grid grid-cols-1 gap-1 lg:grid-cols-[minmax(0,calc((100%-520px)*0.9))_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[calc((100%-626px)*0.9)_280px_330px] xl:justify-start"
+        ref="mainGridEl"
+        class="grid grid-cols-1 gap-1 lg:grid-cols-[minmax(0,1100fr)_minmax(0,406fr)_minmax(0,392fr)]"
       >
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col overflow-hidden bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
@@ -662,7 +664,7 @@
       <!-- 호가(첨부 스타일) -->
       <section
         class="order-3 min-w-0 bg-[#131722] p-3 lg:order-none lg:col-start-2 lg:row-start-1"
-        :style="{ height: MATCHED_PANEL_HEIGHT + 'px' }"
+        :style="{ height: panelHeightPx + 'px' }"
       >
         <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
         <div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
@@ -2951,9 +2953,17 @@ const bolSelected = ref(false)
 // 실제 캔들 영역 높이로 쓴다. 보조지표 pane을 켜면 그만큼 더 늘어난다.
 // 위쪽 종목정보/툴바 높이는 고정값이 아니라(화면 폭에 따라 줄바꿈 여부가 달라져 실제 높이가 바뀐다),
 // chartHeaderEl의 실제 렌더링 높이를 측정해서 그만큼을 뺀 나머지를 캔들 영역 높이로 쓴다.
-const MATCHED_PANEL_HEIGHT = 621
+// 위 줄(차트/호가/주문) 높이 = 칸 영역 폭의 29.6%(기준 화면 1906px에서 565px). 주문 폼이 잘리지 않도록 최소 560px.
+const PANEL_HEIGHT_RATIO = 0.296
+const PANEL_MIN_HEIGHT = 560
+const mainGridEl = ref<HTMLElement | null>(null)
+const panelHeightPx = ref(PANEL_MIN_HEIGHT)
+function calcPanelHeight() {
+  const w = mainGridEl.value?.clientWidth || (process.client ? window.innerWidth : 1906)
+  return Math.max(PANEL_MIN_HEIGHT, Math.round(w * PANEL_HEIGHT_RATIO))
+}
 const OSCILLATOR_PANE_HEIGHT = 130
-const chartBaseHeight = ref(MATCHED_PANEL_HEIGHT - 118)
+const chartBaseHeight = ref(PANEL_MIN_HEIGHT - 118)
 const chartContainerHeightPx = ref(chartBaseHeight.value)
 function currentOscillatorCount() {
   return chartPrefs.indicators.extra.filter(
@@ -2972,7 +2982,8 @@ function onWindowResizeForChartHeight() {
 function syncChartBaseHeight() {
   if (!chartHeaderEl.value) return
   const headerHeight = chartHeaderEl.value.getBoundingClientRect().height
-  const base = Math.max(200, Math.round(MATCHED_PANEL_HEIGHT - headerHeight))
+  panelHeightPx.value = calcPanelHeight()
+  const base = Math.max(200, Math.round(panelHeightPx.value - headerHeight))
   if (base === chartBaseHeight.value) return
   chartBaseHeight.value = base
   const newHeight = base + currentOscillatorCount() * OSCILLATOR_PANE_HEIGHT
