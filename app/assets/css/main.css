@@ -1826,3 +1826,36 @@ html.theme-filter .ex-ptag-up,
 html.theme-filter .ex-ptag-down {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* ───────── 스크롤바: 어디서나 얇고 단순하게(화살표 없음) ─────────
+   어두운 테마: 배경에 가까운 어두운 회색 막대. 흰 테마(반전 필터): 같은 값이 반전되어 연한 회색 막대로 보인다.
+   필터 없이 그리는 화면(theme-native)은 실제 연한 회색을 쓴다. */
+html,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2e39 transparent;
+}
+html.theme-native,
+html.theme-native * {
+  scrollbar-color: #d4d6dc transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #2a2e39;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+html.theme-native ::-webkit-scrollbar-thumb {
+  background-color: #d4d6dc;
+}
