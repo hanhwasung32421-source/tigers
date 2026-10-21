@@ -79,12 +79,12 @@
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col overflow-hidden bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
-        <div class="flex items-center gap-6 bg-[#131722] px-3 text-[14px]">
+        <div class="flex h-[46px] items-center gap-6 bg-[#131722] px-3 text-[14px]">
           <button
             v-for="tb in chartTabs"
             :key="tb.id"
             type="button"
-            class="relative py-2.5 transition"
+            class="relative flex h-full items-center transition"
             :class="chartTab === tb.id ? ' text-white' : 'text-[#868993] hover:text-[#d1d4dc]'"
             @click="selectChartTab(tb.id)"
           >
@@ -663,12 +663,12 @@
 
       <!-- 호가(첨부 스타일) -->
       <section
-        class="order-3 min-w-0 bg-[#131722] p-3 lg:order-none lg:col-start-2 lg:row-start-1"
+        class="order-3 min-w-0 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-2 lg:row-start-1"
         :style="{ height: panelHeightPx + 'px' }"
       >
         <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
-        <div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
-          <div class="text-[15px] text-slate-100">{{ t('호가', 'Order Book') }}</div>
+        <div class="grid min-h-[46px] grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
+          <div class="text-[14px] text-slate-100">{{ t('호가', 'Order Book') }}</div>
           <template v-if="isSuperAdminUser">
             <template v-for="(pa, pi) in priceAlarms" :key="pa.id">
               <div v-if="pi > 0" />
@@ -737,44 +737,36 @@
           </template>
         </div>
 
-        <div class="mt-3 grid grid-cols-3 gap-2 text-[13px] text-slate-500">
+        <div class="grid grid-cols-3 gap-2 pb-1 text-[13px] text-slate-500">
           <div>{{ t('가격', 'Price') }}</div>
-          <div class="text-center">{{ t('수량', 'Quantity') }}</div>
+          <div class="text-right">{{ t('수량', 'Quantity') }}</div>
           <div class="text-right">{{ t('총금액', 'Total') }}</div>
         </div>
 
-        <div class="mt-2 rounded-lg bg-[#031019] p-2 ring-1 ring-cyan-500/10">
+        <div>
           <!-- 매도(위) -->
-          <div class="space-y-0.5">
-            <div v-for="(r, idx) in askRows" :key="'a' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[12px]">
-              <div class="text-[#f23645]">{{ r ? fmtPrice(r.price) : '—' }}</div>
-              <div class="relative overflow-hidden rounded-sm bg-[#3a1015] px-1.5 py-0.5 text-center text-slate-100">
-                {{ r ? r.qtyText : '—' }}
-              </div>
-              <div class="relative overflow-hidden rounded-sm px-1.5 py-0.5 text-right text-slate-100">
-                <div v-if="r" class="absolute inset-y-0 right-0 bg-[#7a1d25]/45" :style="{ width: r.depthPct + '%' }" />
-                <span class="relative">{{ r ? r.totalText : '—' }}</span>
-              </div>
+          <div>
+            <div v-for="(r, idx) in askRows" :key="'a' + idx" class="relative -mx-3 grid h-6 grid-cols-3 items-center gap-2 px-3 font-mono text-[12px]">
+              <div v-if="r" class="absolute inset-y-0.5 right-0 bg-[#7a1d25]/45" :style="{ width: r.depthPct + '%' }" />
+              <div class="relative text-[#f23645]">{{ r ? fmtPrice(r.price) : '—' }}</div>
+              <div class="relative text-right text-slate-100">{{ r ? r.qtyText : '—' }}</div>
+              <div class="relative text-right text-slate-100">{{ r ? r.totalText : '—' }}</div>
             </div>
           </div>
 
           <!-- 현재가 -->
-          <div class="my-2 flex items-center justify-end font-mono text-[17px] text-[#36f2c6]">
+          <div class="-mx-3 my-1 flex items-center border-y border-white/5 px-3 py-1.5 font-mono text-[17px] text-[#36f2c6]">
             <span>{{ lastPrice ? Number(lastPrice).toFixed(2) : '—' }}</span>
-            <span class="ml-1 text-[15px] text-slate-300">USDT</span>
+            <span class="ml-2 text-[12px] text-slate-400">≈ {{ lastPrice ? Number(lastPrice).toFixed(2) : '—' }} USD</span>
           </div>
 
           <!-- 매수(아래) -->
-          <div class="space-y-0.5">
-            <div v-for="(r, idx) in bidRows" :key="'b' + idx" class="grid h-6 grid-cols-3 items-center gap-1.5 font-mono text-[12px]">
-              <div class="text-[#22ab94]">{{ r ? fmtPrice(r.price) : '—' }}</div>
-              <div class="relative overflow-hidden rounded-sm bg-[#062a22] px-1.5 py-0.5 text-center text-slate-100">
-                {{ r ? r.qtyText : '—' }}
-              </div>
-              <div class="relative overflow-hidden rounded-sm px-1.5 py-0.5 text-right text-slate-100">
-                <div v-if="r" class="absolute inset-y-0 right-0 bg-[#0b6b59]/45" :style="{ width: r.depthPct + '%' }" />
-                <span class="relative">{{ r ? r.totalText : '—' }}</span>
-              </div>
+          <div>
+            <div v-for="(r, idx) in bidRows" :key="'b' + idx" class="relative -mx-3 grid h-6 grid-cols-3 items-center gap-2 px-3 font-mono text-[12px]">
+              <div v-if="r" class="absolute inset-y-0.5 right-0 bg-[#0b6b59]/45" :style="{ width: r.depthPct + '%' }" />
+              <div class="relative text-[#22ab94]">{{ r ? fmtPrice(r.price) : '—' }}</div>
+              <div class="relative text-right text-slate-100">{{ r ? r.qtyText : '—' }}</div>
+              <div class="relative text-right text-slate-100">{{ r ? r.totalText : '—' }}</div>
             </div>
           </div>
 
@@ -799,18 +791,18 @@
       </section>
 
       <!-- 보유자산/주문 -->
-      <section class="order-2 min-w-0 bg-[#131722] p-3 lg:order-none lg:col-start-3 lg:row-start-1">
-        <div v-if="!me" class="text-[15px] text-slate-100">{{ t('주문', 'Order') }}</div>
+      <section class="order-2 min-w-0 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-3 lg:row-start-1">
+        <div v-if="!me" class="flex h-[46px] items-center text-[14px] text-slate-100">{{ t('주문', 'Order') }}</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
           {{ t('주문하려면', 'You need to') }} <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">{{ t('로그인', 'log in') }}</NuxtLink>{{ t('이 필요합니다.', ' to place an order.') }}
         </div>
 
-        <div v-else class="mt-1 flex flex-col px-1 pt-2 pb-6">
+        <div v-else class="flex flex-col px-0 pt-0 pb-6">
           <div>
             <!-- 주문하기 + 마진 모드(격리/교차) + 시장가/지정가 -->
-            <div class="mb-3 flex items-center justify-between">
-              <div class="text-[18px] text-slate-100">{{ t('주문하기', 'Place Order') }}</div>
+            <div class="mb-1 flex h-[46px] items-center justify-between">
+              <div class="text-[14px] text-slate-100">{{ t('주문하기', 'Place Order') }}</div>
               <button
                 type="button"
                 class="rounded-md bg-[#1b2530] px-3 py-2 text-[14px] text-slate-100 ring-1 ring-white/10 hover:bg-[#25313f]"
