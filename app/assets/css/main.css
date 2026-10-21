@@ -1735,3 +1735,11 @@ html .reg-field-error-box {
   box-shadow: none !important;
   border: 1px solid #ef4444 !important;
 }
+
+/* 거래 화면: 칸(패널) 사이의 간격에 비치는 바탕색. 칸은 테두리 없이 이 색과의 차이로만 구분된다. */
+.ex-gutter {
+  background-color: #0b0e14;
+}
+html.theme-filter .ex-gutter {
+  background-color: #1f232e;
+}
