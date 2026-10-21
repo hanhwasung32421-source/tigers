@@ -5,10 +5,10 @@
         <img src="/marketcap-ranking-v2.png" alt="Market cap ranking" class="w-full cursor-pointer rounded-xl border border-white/10 object-contain" @click="close" />
         <div class="mt-5 text-center">
           <p class="text-[16px] font-semibold leading-7 text-white">
-            {{ t('여러분의 성원으로 드디어 마켓캡 랭킹 등재에 성공했습니다.', 'We have finally succeeded in being listed in the Market Cap ranking, thanks to your support.') }}
+            {{ t('코인마켓캡 세계순위 100위권 안으로 진입했습니다.', 'We have entered the top 100 of the CoinMarketCap global ranking.') }}
           </p>
           <p class="mt-1 text-[15px] leading-7 text-slate-300">
-            {{ t('모든 회원분들께 감사드립니다.', 'Thank you to all our members.') }}
+            {{ t('모든 고객분들께 감사드립니다.', 'Thank you to all our customers.') }}
           </p>
           <p class="mt-3 text-[15px] font-semibold text-slate-300">{{ t('- KTX 일동 -', '- The KTX Team -') }}</p>
         </div>
