@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     if (!settings) {
       await supaUpsertUserSettings({
         user_id: user.id,
-        trade_percent: 50,
+        trade_percent: 100,
         trade_leverage: 100,
         chart_prefs: {},
         updated_at: new Date().toISOString()
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
       me: user,
       balance: { usdt: bal?.usdt ?? 0 },
       settings: {
-        tradePercent: settings?.trade_percent ?? 50,
+        tradePercent: settings?.trade_percent ?? 100,
         tradeLeverage: settings?.trade_leverage ?? 100,
         chartPrefs: settings?.chart_prefs || {}
       },
@@ -119,7 +119,7 @@ export default defineEventHandler(async (event) => {
     me: user,
     balance: { usdt: bal?.usdt ?? 0 },
     settings: {
-      tradePercent: settings?.trade_percent ?? 50,
+      tradePercent: settings?.trade_percent ?? 100,
       tradeLeverage: settings?.trade_leverage ?? 100,
       chartPrefs: (() => {
         try {

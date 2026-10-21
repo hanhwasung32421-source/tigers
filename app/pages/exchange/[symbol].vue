@@ -1760,7 +1760,7 @@ async function selectFillsTab() {
 }
 
 // 주문 UI 상태(첨부 스타일)
-const percent = ref<number>(50)
+const percent = ref<number>(100)
 const showPercentTooltip = ref(false)
 const percentTooltipStyle = computed(() => ({
   left: `calc(${percent.value}% - ${(percent.value / 100) * 16}px)`
@@ -6357,9 +6357,8 @@ async function loadAccount() {
 
   if (!prefsHydrated.value && data?.settings) {
     // 다른 화면 이동/재로그인 후에도 이전 설정 복원
-    const p = Number(data.settings.tradePercent)
+    // 비중(%)은 설정에 저장된 값을 복원하지 않고 항상 기본 100%로 시작한다.
     const lev = Number(data.settings.tradeLeverage)
-    if (Number.isFinite(p)) percent.value = Math.max(0, Math.min(100, Math.round(p)))
     if (Number.isFinite(lev)) leverage.value = Math.max(1, Math.min(100, Math.round(lev)))
     prefsHydrated.value = true
   }
@@ -6917,7 +6916,7 @@ async function openPosition() {
         }
       })
       .catch(() => {})
-    percent.value = 50
+    percent.value = 100
   } catch (e: any) {
     // 실패 시 낙관적 업데이트 롤백
     removePendingOpenJob(openKey)

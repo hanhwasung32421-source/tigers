@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
     await supaUpsertStrict('bitduck_balances', { user_id: userId, usdt: 0 }, 'user_id')
     await supaUpsertUserSettings({
       user_id: userId,
-      trade_percent: 50,
+      trade_percent: 100,
       trade_leverage: 100,
       chart_prefs: {},
       updated_at: now

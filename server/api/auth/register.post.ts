@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
         'id'
       )
       await supaUpsertStrict('bitduck_balances', { user_id: userId, usdt: 0 }, 'user_id')
-      await supaUpsertUserSettings({ user_id: userId, trade_percent: 50, trade_leverage: 100, chart_prefs: {}, updated_at: now })
+      await supaUpsertUserSettings({ user_id: userId, trade_percent: 100, trade_leverage: 100, chart_prefs: {}, updated_at: now })
     } catch (e: any) {
       const msg = String(e?.message || e || '')
       if (msg.includes("Could not find the '") && msg.includes(" column")) {
