@@ -1782,7 +1782,7 @@
             borderStyle: 'solid',
             borderColor: profitCardStyle.borderColor,
             backgroundColor: profitCardStyle.bgColor,
-            backgroundImage: `repeating-conic-gradient(${profitCardStyle.gridColor} 0% 25%, transparent 0% 50%)`,
+            backgroundImage: profitCardStyle.bgImage ? 'none' : `repeating-conic-gradient(${profitCardStyle.gridColor} 0% 25%, transparent 0% 50%)`,
             backgroundSize: profitCardStyle.gridSize + 'px ' + profitCardStyle.gridSize + 'px',
             fontFamily: profitCardStyle.fontFamily
           }"
