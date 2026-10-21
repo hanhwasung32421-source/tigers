@@ -1928,6 +1928,9 @@ const liveLastCandle = shallowRef<CandlestickData | null>(null)
 const activeTool = ref<'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'circle'>('cursor')
 const pendingShapeStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
+// 추세선: 첫 점을 찍은 뒤 Shift를 누르고 있으면 끝점이 15° 단위(0°, 15°, 30°, 45°, 60° …)로 딱딱 맞춰진다.
+const trendShiftHeld = ref(false)
+const trendSnap = ref<{ x: number; y: number; time: any; price: number } | null>(null)
 const mouseCrosshair = reactive<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
 // 세로 크로스헤어 하단 시간 라벨: 라이브러리 기본 크로스헤어를 껐으므로 직접 계산해서 보여준다.
 // resolveTimeAtX는 마지막 봉 오른쪽 여백(아직 없는 미래 시간)에서도 값을 주므로 여기까지 따라간다.
@@ -1971,8 +1974,71 @@ const trendPreview = computed(() => {
   if (activeTool.value !== 'trend' || !pendingShapeStart.value || !liveDrawingPoint.value) return null
   const start = shapePreviewStartPx.value
   if (!start) return null
-  return { x1: start.x, y1: start.y, x2: mouseCrosshair.x, y2: mouseCrosshair.y }
+  const snap = trendSnap.value
+  return { x1: start.x, y1: start.y, x2: snap ? snap.x : mouseCrosshair.x, y2: snap ? snap.y : mouseCrosshair.y }
 })
+
+// Shift를 누른 추세선의 끝점: 시작점에서 마우스까지의 "화면상 각도"를 15° 단위로 반올림하고 길이는 그대로 둔다.
+// 0°/180°(수평)는 시작 가격 그대로, 90°/270°(수직)는 시작 시간 그대로 써서 정확히 일직선이 되게 한다.
+function computeTrendSnap(x: number, y: number): { x: number; y: number; time: any; price: number } | null {
+  if (activeTool.value !== 'trend' || !pendingShapeStart.value || !trendShiftHeld.value || !chart || !candleSeries) return null
+  const start = shapePreviewStartPx.value
+  if (!start) return null
+  const dx = x - start.x
+  const dy = y - start.y
+  const len = Math.hypot(dx, dy)
+  if (len < 1) return null
+  const angle = (Math.atan2(-dy, dx) * 180) / Math.PI
+  const snapped = Math.round(angle / 15) * 15
+  const norm = ((snapped % 360) + 360) % 360
+  const rad = (snapped * Math.PI) / 180
+  let nx = start.x + len * Math.cos(rad)
+  let ny = start.y - len * Math.sin(rad)
+  const horizontal = norm === 0 || norm === 180
+  const vertical = norm === 90 || norm === 270
+  let price: any
+  let time: any
+  if (horizontal) {
+    ny = start.y
+    price = pendingShapeStart.value.price
+  } else {
+    price = candleSeries.coordinateToPrice(ny)
+  }
+  if (vertical) {
+    nx = start.x
+    time = pendingShapeStart.value.time
+  } else {
+    time = resolveTimeAtX(null, nx)
+  }
+  if (!Number.isFinite(Number(price)) || time === null || time === undefined) return null
+  return { x: nx, y: ny, time, price: Number(price) }
+}
+
+// Shift를 눌렀다 뗄 때(마우스를 움직이지 않아도) 미리보기 선을 바로 갱신한다.
+function refreshTrendSnap() {
+  if (activeTool.value !== 'trend' || !pendingShapeStart.value || !lastChartMousePos.value || !candleSeries) return
+  const { x, y } = lastChartMousePos.value
+  const snap = computeTrendSnap(x, y)
+  trendSnap.value = snap
+  if (snap) {
+    liveDrawingPoint.value = { time: snap.time, price: snap.price }
+  } else {
+    const price = candleSeries.coordinateToPrice(y)
+    const time = resolveTimeAtX(null, x)
+    if (price !== null && time !== null) liveDrawingPoint.value = { time, price: Number(price) }
+  }
+  renderDrawingPreview()
+}
+function onTrendShiftKeyUp(e: KeyboardEvent) {
+  if (e.key !== 'Shift') return
+  trendShiftHeld.value = false
+  refreshTrendSnap()
+}
+function onTrendWindowBlur() {
+  if (!trendShiftHeld.value) return
+  trendShiftHeld.value = false
+  refreshTrendSnap()
+}
 
 function shapeBoxPreview(kind: 'rect' | 'circle') {
   if (activeTool.value !== kind || !pendingShapeStart.value || !liveDrawingPoint.value) return null
@@ -3158,6 +3224,10 @@ function priceAfterYOffset(price: number, dy: number): number | null {
 }
 
 function onDrawingKeydown(e: KeyboardEvent) {
+  if (e.key === 'Shift' && !trendShiftHeld.value) {
+    trendShiftHeld.value = true
+    refreshTrendSnap()
+  }
   if (e.key === 'Escape' && drawingEditor.open) {
     closeDrawingEditor()
     return
@@ -3273,6 +3343,7 @@ function onChartAreaMouseMove(e: MouseEvent) {
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
   lastChartMousePos.value = { x, y }
+  trendShiftHeld.value = e.shiftKey
 
   // 마지막 봉 오른쪽 여백처럼 lightweight-charts의 기본 크로스헤어(subscribeCrosshairMove)가
   // point를 못 주는 구간에서도, 이 raw DOM 이벤트 기준으로 커스텀 크로스헤어(점선+점)를
@@ -3299,7 +3370,12 @@ function onChartAreaMouseMove(e: MouseEvent) {
   ) {
     const price = candleSeries.coordinateToPrice(y)
     const time = resolveTimeAtX(null, x)
-    if (price !== null && time !== null) {
+    const snap = computeTrendSnap(x, y)
+    trendSnap.value = snap
+    if (snap) {
+      liveDrawingPoint.value = { time: snap.time, price: snap.price }
+      renderDrawingPreview()
+    } else if (price !== null && time !== null) {
       liveDrawingPoint.value = { time, price: Number(price) }
       renderDrawingPreview()
     }
@@ -5100,6 +5176,7 @@ function selectTool(tool: 'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'cir
   activeTool.value = tool
   pendingShapeStart.value = null
   liveDrawingPoint.value = null
+  trendSnap.value = null
   clearDrawingPreviewVisuals()
 }
 
@@ -5147,6 +5224,14 @@ function onChartClick(param: any) {
       renderDrawingPreview()
       return
     }
+    let endTime = time
+    let endPrice = Number(price)
+    const snap = computeTrendSnap(param.point.x, param.point.y)
+    if (snap) {
+      endTime = snap.time
+      endPrice = snap.price
+    }
+    trendSnap.value = null
     const shapeColors: Record<string, string> = { trend: '#facc15', rect: '#22c55e', circle: '#a855f7' }
     const shapeIdPrefix: Record<string, string> = { trend: 't', rect: 'r', circle: 'c' }
     chartPrefs.drawings.push({
@@ -5155,7 +5240,7 @@ function onChartClick(param: any) {
       color: shapeColors[activeTool.value],
       points: [
         { time: pendingShapeStart.value.time, price: pendingShapeStart.value.price },
-        { time, price: Number(price) }
+        { time: endTime, price: endPrice }
       ]
     })
     pendingShapeStart.value = null
@@ -5201,7 +5286,9 @@ function onCrosshairMove(param: any) {
   }
 
   if ((activeTool.value === 'trend' || activeTool.value === 'rect' || activeTool.value === 'circle') && pendingShapeStart.value) {
-    liveDrawingPoint.value = { time, price: Number(price) }
+    const snap = computeTrendSnap(param.point.x, param.point.y)
+    trendSnap.value = snap
+    liveDrawingPoint.value = snap ? { time: snap.time, price: snap.price } : { time, price: Number(price) }
     renderDrawingPreview()
     return
   }
@@ -5326,6 +5413,8 @@ function initChart() {
   chartEl.value.addEventListener('dblclick', onChartDoubleClick)
   // capture 단계에서 붙여서, 다른 요소의 키 핸들러가 먼저 stopPropagation 하더라도 놓치지 않게 한다.
   window.addEventListener('keydown', onDrawingKeydown, true)
+  window.addEventListener('keyup', onTrendShiftKeyUp, true)
+  window.addEventListener('blur', onTrendWindowBlur)
 
   // ResizeObserver: 콜백 안에서 바로 차트 크기를 바꾸면(그 자체가 또 레이아웃에 영향을 줄 수 있어서)
   // "ResizeObserver loop completed with undelivered notifications" 경고가 뜰 수 있다.
@@ -6822,6 +6911,8 @@ onBeforeUnmount(() => {
     chartEl.value.removeEventListener('dblclick', onChartDoubleClick)
   }
   window.removeEventListener('keydown', onDrawingKeydown, true)
+  window.removeEventListener('keyup', onTrendShiftKeyUp, true)
+  window.removeEventListener('blur', onTrendWindowBlur)
   drawingDragCleanup?.()
 })
 </script>
