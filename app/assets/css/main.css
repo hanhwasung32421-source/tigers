@@ -1764,3 +1764,11 @@ html.theme-filter .ex-tool-active,
 html.theme-filter .ex-yellow {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* 거래 화면: 제목 줄 아래의 칸 구분선(칸 사이 간격과 같은 4px, 흰 화면에서 #f6f6f6) */
+.ex-rule {
+  border-bottom: 4px solid #0b0e14;
+}
+html.theme-filter .ex-rule {
+  border-bottom-color: #090909;
+}

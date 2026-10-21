@@ -79,7 +79,7 @@
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col overflow-hidden bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
-        <div class="flex h-[46px] items-center gap-6 bg-[#131722] px-3 text-[14px]">
+        <div class="ex-rule flex h-[46px] items-center gap-6 bg-[#131722] px-3 text-[14px]">
           <button
             v-for="tb in chartTabs"
             :key="tb.id"
@@ -667,7 +667,7 @@
         :style="{ height: panelHeightPx + 'px' }"
       >
         <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
-        <div class="grid min-h-[46px] grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
+        <div class="ex-rule -mx-3 mb-1 grid min-h-[46px] grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 px-3">
           <div class="text-[14px] text-slate-100">{{ t('호가', 'Order Book') }}</div>
           <template v-if="isSuperAdminUser">
             <template v-for="(pa, pi) in priceAlarms" :key="pa.id">
@@ -792,7 +792,7 @@
 
       <!-- 보유자산/주문 -->
       <section class="order-2 min-w-0 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-3 lg:row-start-1">
-        <div v-if="!me" class="flex h-[46px] items-center text-[14px] text-slate-100">{{ t('주문', 'Order') }}</div>
+        <div v-if="!me" class="ex-rule -mx-3 flex h-[46px] items-center px-3 text-[14px] text-slate-100">{{ t('주문', 'Order') }}</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
           {{ t('주문하려면', 'You need to') }} <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">{{ t('로그인', 'log in') }}</NuxtLink>{{ t('이 필요합니다.', ' to place an order.') }}
@@ -801,7 +801,7 @@
         <div v-else class="flex flex-col px-0 pt-0 pb-6">
           <div>
             <!-- 주문하기 + 마진 모드(격리/교차) + 시장가/지정가 -->
-            <div class="mb-1 flex h-[46px] items-center justify-between">
+            <div class="ex-rule -mx-3 mb-2 flex h-[46px] items-center justify-between px-3">
               <div class="text-[14px] text-slate-100">{{ t('주문하기', 'Place Order') }}</div>
               <button
                 type="button"
@@ -950,7 +950,7 @@
     <!-- Account: 보유자산/사용가능 (하단 Assets와 같은 줄) -->
       <section class="order-5 min-w-0 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-3 lg:row-start-2">
           <div>
-            <div class="flex h-[46px] items-center text-[14px] text-slate-100">Account</div>
+            <div class="ex-rule -mx-3 flex h-[46px] items-center px-3 text-[14px] text-slate-100">{{ t('계정정보', 'Account') }}</div>
 
             <div class="mt-3">
               <div class="text-[13px] text-slate-400">{{ t('보유자산(증거금포함)', 'Holdings (incl. margin)') }}</div>
@@ -972,8 +972,8 @@
     <!-- 하단: 포지션 테이블 -->
       <section class="order-4 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-1 lg:col-span-2 lg:row-start-2">
       <div class="min-h-[360px]">
-        <div class="flex h-[46px] items-center justify-between">
-          <div class="flex items-center gap-6">
+        <div class="ex-rule -mx-3 flex h-[46px] items-center justify-between px-3">
+          <div class="flex h-full items-center gap-6">
             <button
               v-for="tb in bottomTabs"
               :key="tb.id"
