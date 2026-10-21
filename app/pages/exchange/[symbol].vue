@@ -3642,6 +3642,14 @@ function onChartAreaMouseMove(e: MouseEvent) {
 
 // 마우스가 차트 영역을 완전히 벗어나면 커스텀 크로스헤어를 숨긴다(위치는 onChartAreaMouseMove가 계속
 // 갱신하므로, 별도로 숨겨주지 않으면 벗어난 자리에 그대로 멈춰있는 것처럼 보인다).
+// 수평선 도구가 켜져 있을 때 마우스 오른쪽 클릭으로 도구를 끈다(메뉴는 띄우지 않음).
+function onChartContextMenu(e: MouseEvent) {
+  if (activeTool.value !== 'hline') return
+  e.preventDefault()
+  e.stopPropagation()
+  selectTool('cursor')
+}
+
 function onChartAreaMouseLeave() {
   mouseCrosshair.visible = false
   if (chartEl.value) chartEl.value.style.cursor = ''
@@ -5451,7 +5459,7 @@ function onChartClick(param: any) {
     clearDrawingPreviewVisuals()
     renderSavedDrawings()
     scheduleSaveChartPrefs()
-    activeTool.value = 'cursor'
+    // 수평선은 한 번 그린 뒤에도 꺼지지 않고 계속 그릴 수 있다. Esc 또는 마우스 오른쪽 클릭으로 끈다.
     return
   }
 
@@ -5665,6 +5673,7 @@ function initChart() {
   chartEl.value.addEventListener('mousedown', onChartMouseDown, true)
   chartEl.value.addEventListener('mousemove', onChartAreaMouseMove)
   chartEl.value.addEventListener('mouseleave', onChartAreaMouseLeave)
+  chartEl.value.addEventListener('contextmenu', onChartContextMenu, true)
   chartEl.value.addEventListener('dblclick', onChartDoubleClick)
   // capture 단계에서 붙여서, 다른 요소의 키 핸들러가 먼저 stopPropagation 하더라도 놓치지 않게 한다.
   window.addEventListener('keydown', onDrawingKeydown, true)
@@ -7163,6 +7172,7 @@ onBeforeUnmount(() => {
     chartEl.value.removeEventListener('mousedown', onChartMouseDown, true)
     chartEl.value.removeEventListener('mousemove', onChartAreaMouseMove)
     chartEl.value.removeEventListener('mouseleave', onChartAreaMouseLeave)
+    chartEl.value.removeEventListener('contextmenu', onChartContextMenu, true)
     chartEl.value.removeEventListener('dblclick', onChartDoubleClick)
   }
   window.removeEventListener('keydown', onDrawingKeydown, true)
