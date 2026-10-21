@@ -941,7 +941,9 @@
                 {{ tr.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}
               </td>
               <td class="px-3 py-3">
+                <span v-if="tr.kind === 'open'" class="text-slate-500">-</span>
                 <span
+                  v-else
                   class="rounded px-2 py-1 text-[14px] font-semibold ring-1"
                   :class="tradeResultBadgeClass(tr)"
                 >
@@ -949,10 +951,11 @@
                 </span>
               </td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.entry_price)) }}</td>
-              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.exit_price)) }}</td>
+              <td class="px-3 py-3 font-mono text-slate-200">{{ fmtPrice2(Number(tr.kind === 'open' ? tr.entry_price : tr.exit_price)) }}</td>
               <td class="px-3 py-3 font-mono text-slate-200">{{ fmtQty2(tr.symbol, Number(tr.qty)) }} {{ baseCoin(tr.symbol) }}</td>
               <td class="px-3 py-3 font-mono text-slate-300">{{ calcTradeFeeText(tr) }}</td>
-              <td class="px-3 py-3">
+              <td v-if="tr.kind === 'open'" class="px-3 py-3 text-slate-500">-</td>
+              <td v-else class="px-3 py-3">
                 <div class="flex items-center justify-between gap-2">
                   <div class="font-mono" :class="Number(tr.pnl) >= 0 ? 'text-emerald-300' : 'text-rose-300'">
                     {{ Number(tr.pnl) >= 0 ? '+' : '' }}{{ Number(tr.pnl).toFixed(2) }} USDT
@@ -4223,8 +4226,9 @@ function calcTradeFeeText(t: any) {
   if (![entryPrice, qty, lev].every(Number.isFinite) || entryPrice <= 0 || qty <= 0 || lev <= 0) return '—'
   const net = (entryPrice * qty) / lev
   const gross = net / (1 - TRADE_FEE_RATE)
-  const totalFee = gross * TRADE_FEE_RATE * 2
-  return `${totalFee.toFixed(2)} USDT`
+  // 매수 행은 매수 수수료, 매도(청산) 행은 매도 수수료만 보여준다(매수 4% + 매도 4%).
+  const fee = gross * TRADE_FEE_RATE
+  return `${fee.toFixed(2)} USDT`
 }
 
 function openProfitCardFromTrade(t: any) {
@@ -6556,6 +6560,8 @@ async function openPosition() {
       }
     })
     tradeMsg.value = null
+    // 매수도 거래내역에 바로 뜨도록 갱신
+    if (fills.value.length || bottomTab.value === 'fills') loadFills(true).catch(() => {})
     // 서버 데이터로 최종 동기화(백그라운드)
     loadAccount()
       .then(() => {
