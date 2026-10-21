@@ -387,6 +387,35 @@ async function notifyTelegramOfWalletRequest(memberId: number, kind: 'deposit' |
   await sendTelegramText(text)
 }
 
+// 새 회원이 가입하면 텔레그램 방으로 가입 정보를 한글로 알린다(입금/출금 요청 알림과 같은 형식). 비밀번호는 보내지 않는다.
+// 알림이 실패해도 가입 처리에는 영향이 없다.
+export async function notifyTelegramOfSignup(info: {
+  username: string
+  name: string
+  birthDate: string
+  bankName: string
+  bankAccount: string
+  accountHolder: string
+  referralCode: string
+}) {
+  try {
+    const dash = (v: any) => (String(v || '').trim() ? String(v).trim() : '-')
+    const nameWithId = info.name ? `${info.name}(${dash(info.username)})` : dash(info.username)
+    const text = [
+      '새로운 회원이 가입했습니다.',
+      '',
+      `이름 : ${nameWithId}`,
+      `생년월일 : ${dash(info.birthDate)}`,
+      `은행 : ${dash(info.bankName)}(${dash(info.bankAccount)})`,
+      `예금주 : ${dash(info.accountHolder)}`,
+      `추천코드 : ${dash(info.referralCode)}`
+    ].join('\n')
+    await sendTelegramText(text)
+  } catch (e: any) {
+    console.error('[signup-notice] telegram notify failed:', e?.message || e)
+  }
+}
+
 export async function notifyAdminOfWalletRequest(memberId: number, kind: 'deposit' | 'withdrawal', krwAmount: number) {
   // 텔레그램 알림은 쪽지 알림과 별개로 항상 시도한다(실패해도 요청 처리에는 영향 없음).
   await notifyTelegramOfWalletRequest(memberId, kind, krwAmount).catch((e) => {

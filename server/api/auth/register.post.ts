@@ -4,7 +4,7 @@ import { createSession, hashPassword } from '../../utils/auth'
 import { logAppUser, logLogin } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncUserSettingsToSupabase, syncUserToSupabase } from '../../utils/supa-appdb'
 import { supaSelectOne, supaUpsertStrict, supaUpsertUserSettings } from '../../utils/supabase'
-import { getOperatorAdminUser, insertMessages, threadKeyForUser } from '../../utils/messages'
+import { getOperatorAdminUser, insertMessages, notifyTelegramOfSignup, threadKeyForUser } from '../../utils/messages'
 
 const BodySchema = z.object({
   username: z.string().min(3).max(20),
@@ -106,6 +106,17 @@ export default defineEventHandler(async (event) => {
     await logAppUser({ id: userId as any, username: body.username, role: 'user' })
     await logLogin(event, { userId: userId as any, username: body.username, area: 'main', success: true })
 
+    // 새 회원 가입 알림(텔레그램)
+    await notifyTelegramOfSignup({
+      username: body.username,
+      name: body.name,
+      birthDate: body.birthDate,
+      bankName: body.bankName,
+      bankAccount: body.bankAccount,
+      accountHolder: body.accountHolder,
+      referralCode
+    })
+
     // 가입 환영 쪽지(기본 1개, 안읽음)
     try {
       const operator = await getOperatorAdminUser()
@@ -168,6 +179,17 @@ export default defineEventHandler(async (event) => {
   await createSession(event, user.id)
   await logAppUser({ id: user.id, username: body.username, role: 'user' })
   await logLogin(event, { userId: user.id, username: body.username, area: 'main', success: true })
+
+  // 새 회원 가입 알림(텔레그램)
+  await notifyTelegramOfSignup({
+    username: body.username,
+    name: body.name,
+    birthDate: body.birthDate,
+    bankName: body.bankName,
+    bankAccount: body.bankAccount,
+    accountHolder: body.accountHolder,
+    referralCode
+  })
 
   // 가입 환영 쪽지(기본 1개, 안읽음)
   try {
