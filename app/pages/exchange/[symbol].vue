@@ -6,15 +6,15 @@
         <div class="px-3 py-3">
           <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div class="flex items-center gap-3">
-              <SelectDropdown v-model="symbolSelect" :options="symbolOptions" searchable :search-placeholder="t('종목 검색', 'Search symbol')" @change="onChangeSymbol">
-                <template #trigger="{ toggle }">
+              <SymbolPicker :model-value="symbol" :items="ovItems || []" :favs="favSymbols" @select="onPickSymbol" @toggle-fav="toggleFavSymbolOf">
+                <template #default="{ toggle }">
                   <button type="button" class="flex items-center gap-2.5 rounded-md px-1 py-0.5 hover:bg-white/5" @click="toggle">
                     <CoinIcon :base="baseCoin(symbol)" :size="34" />
                     <span class="text-[16px] tracking-tight text-white">{{ baseCoin(symbol) }}/USDT</span>
-                    <span class="text-[10px] text-[#868993]">▼</span>
+                    <span class="flex h-4 w-4 items-center justify-center rounded-full bg-[#f0b90b]/20 text-[8px] text-[#f0b90b]">▼</span>
                   </button>
                 </template>
-              </SelectDropdown>
+              </SymbolPicker>
               <button
                 type="button"
                 class="text-[20px] leading-none transition"
@@ -72,7 +72,7 @@
     <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
     <div class="overflow-x-hidden">
       <div
-        class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_330px]"
+        class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,calc((100%-520px)*0.9))_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[calc((100%-626px)*0.9)_280px_330px] xl:justify-start"
       >
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
@@ -2095,8 +2095,15 @@ function loadFavSymbols() {
     favSymbols.value = []
   }
 }
+function onPickSymbol(sym: string) {
+  symbolSelect.value = sym
+  onChangeSymbol()
+}
 function toggleFavSymbol() {
-  const sym = String(symbol.value).toUpperCase()
+  toggleFavSymbolOf(symbol.value)
+}
+function toggleFavSymbolOf(symbolArg: string) {
+  const sym = String(symbolArg).toUpperCase()
   favSymbols.value = favSymbols.value.includes(sym) ? favSymbols.value.filter((x) => x !== sym) : favSymbols.value.concat([sym])
   try {
     localStorage.setItem('ktx_fav_symbols', JSON.stringify(favSymbols.value))
@@ -2941,7 +2948,7 @@ const bolSelected = ref(false)
 // 실제 캔들 영역 높이로 쓴다. 보조지표 pane을 켜면 그만큼 더 늘어난다.
 // 위쪽 종목정보/툴바 높이는 고정값이 아니라(화면 폭에 따라 줄바꿈 여부가 달라져 실제 높이가 바뀐다),
 // chartHeaderEl의 실제 렌더링 높이를 측정해서 그만큼을 뺀 나머지를 캔들 영역 높이로 쓴다.
-const MATCHED_PANEL_HEIGHT = 690
+const MATCHED_PANEL_HEIGHT = 621
 const OSCILLATOR_PANE_HEIGHT = 130
 const chartBaseHeight = ref(MATCHED_PANEL_HEIGHT - 118)
 const chartContainerHeightPx = ref(chartBaseHeight.value)
