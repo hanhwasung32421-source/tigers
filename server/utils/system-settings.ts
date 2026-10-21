@@ -66,6 +66,9 @@ export type ProfitCardStyle = {
   bgColor: string
   gridColor: string
   gridSize: number
+  // 카드 배경 그림(작게 줄인 이미지의 data URL, 없으면 빈 문자열)과 그 투명도(0~100%)
+  bgImage: string
+  bgImageOpacity: number
   // 수익/손실 공통 강조색
   positiveColor: string
   negativeColor: string
@@ -137,6 +140,8 @@ export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   bgColor: '#06121d',
   gridColor: '#04101a',
   gridSize: 28,
+  bgImage: '',
+  bgImageOpacity: 35,
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
   logoFontSize: 16,
@@ -162,7 +167,7 @@ export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   offsets: {}
 }
 
-type ProfitCardFieldDef = { kind: 'color' } | { kind: 'number'; min: number; max: number } | { kind: 'font' } | { kind: 'offsets' }
+type ProfitCardFieldDef = { kind: 'color' } | { kind: 'number'; min: number; max: number } | { kind: 'font' } | { kind: 'image' } | { kind: 'offsets' }
 
 const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> = {
   fontFamily: { kind: 'font' },
@@ -175,6 +180,8 @@ const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> 
   bgColor: { kind: 'color' },
   gridColor: { kind: 'color' },
   gridSize: { kind: 'number', min: 8, max: 48 },
+  bgImage: { kind: 'image' },
+  bgImageOpacity: { kind: 'number', min: 0, max: 100 },
   positiveColor: { kind: 'color' },
   negativeColor: { kind: 'color' },
   logoFontSize: { kind: 'number', min: 10, max: 28 },
@@ -221,6 +228,12 @@ function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_
       if (Number.isFinite(n)) (next as any)[key] = Math.max(def.min, Math.min(def.max, Math.round(n)))
     } else if (def.kind === 'font') {
       if (typeof v === 'string' && (PROFIT_CARD_FONT_FAMILIES as readonly string[]).includes(v)) (next as any)[key] = v
+    } else if (def.kind === 'image') {
+      // 배경 그림: 빈 문자열이면 삭제, 작게 줄인 png/jpeg/webp data URL만 허용(크기 제한)
+      if (typeof v === 'string') {
+        if (v === '') (next as any)[key] = ''
+        else if (v.length <= 400000 && /^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) (next as any)[key] = v
+      }
     } else if (def.kind === 'offsets') {
       if (v && typeof v === 'object') {
         const out: Record<string, { x: number; y: number; s?: number }> = {}

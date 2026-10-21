@@ -1585,7 +1585,7 @@
         @click.self="closeSummary = null"
       >
         <div
-          class="relative shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
+          class="relative isolate shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
           :style="{
             width: '100%',
             maxWidth: profitCardStyle.cardWidth + 'px',
@@ -1600,6 +1600,19 @@
             fontFamily: profitCardStyle.fontFamily
           }"
         >
+          <!-- 관리자 "카드 디자인"에서 넣은 배경 그림: 글자 뒤에 깔리고 투명도가 적용된다 -->
+          <div
+            v-if="profitCardStyle.bgImage"
+            class="pointer-events-none absolute inset-0"
+            :style="{
+              zIndex: -1,
+              borderRadius: profitCardStyle.cardRadius + 'px',
+              backgroundImage: 'url(' + profitCardStyle.bgImage + ')',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: (profitCardStyle.bgImageOpacity ?? 35) / 100
+            }"
+          />
           <button
             type="button"
             class="absolute right-4 top-4 z-10 rounded-full bg-white/6 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/10"
@@ -1967,6 +1980,8 @@ type ProfitCardStyle = {
   bgColor: string
   gridColor: string
   gridSize: number
+  bgImage?: string
+  bgImageOpacity?: number
   positiveColor: string
   negativeColor: string
   logoFontSize: number
@@ -2002,6 +2017,8 @@ const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   bgColor: '#06121d',
   gridColor: '#04101a',
   gridSize: 28,
+  bgImage: '',
+  bgImageOpacity: 35,
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
   logoFontSize: 16,
