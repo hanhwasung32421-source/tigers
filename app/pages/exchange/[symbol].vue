@@ -1,5 +1,5 @@
 <template>
-  <div class="ex-gutter space-y-2" :class="{ 'font-landing': isKrStockSymbol }">
+  <div class="ex-gutter space-y-1" :class="{ 'font-landing': isKrStockSymbol }">
     <!-- 종목 헤더: 화면 가로 한 줄을 모두 쓰고, 그 아래로 차트/호가/주문이 붙는다 -->
     <div class="bg-[#131722]">
         <!-- 새 헤더: 코인 아이콘 + 종목명(누르면 종목 목록) + 즐겨찾기 + 현재가 + 24시간 통계 -->
@@ -72,7 +72,7 @@
     <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
     <div class="overflow-x-hidden">
       <div
-        class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,calc((100%-520px)*0.9))_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[calc((100%-626px)*0.9)_280px_330px] xl:justify-start"
+        class="grid grid-cols-1 gap-1 lg:grid-cols-[minmax(0,calc((100%-520px)*0.9))_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[calc((100%-626px)*0.9)_280px_330px] xl:justify-start"
       >
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col overflow-hidden bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">

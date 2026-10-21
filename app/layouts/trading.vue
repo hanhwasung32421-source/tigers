@@ -18,7 +18,7 @@
         </div>
       </div>
     </Transition>
-    <header class="site-header font-landing sticky top-0 z-50 border-b border-cyan-500/10 bg-[#020b16]/90 backdrop-blur">
+    <header class="site-header font-landing sticky top-0 z-50 border-b-4 ex-header-line bg-[#020b16]/90 backdrop-blur">
       <div class="flex w-full items-center justify-between gap-3 px-4 py-3 md:px-5 md:py-4">
         <div class="flex items-center gap-1">
           <NuxtLink to="/" class="mr-4" @click="startNavLoading('/')">
@@ -146,7 +146,7 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-[1920px] px-3 py-3">
+    <main class="ex-gutter mx-auto max-w-[1920px] p-1">
       <slot />
     </main>
 

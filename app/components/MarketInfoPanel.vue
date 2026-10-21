@@ -53,6 +53,7 @@ type Info = {
   ath?: number | null
   atl?: number | null
   genesisDate?: string | null
+  issuePrice?: number | null
   homepage?: string | null
   whitepaper?: string | null
   explorer?: string | null
@@ -98,13 +99,14 @@ const leftRows = computed(() => [
   { label: t('최대 공급량', 'Max Supply'), value: coin(info.value?.maxSupply) },
   { label: t('현재 유통 공급량', 'Current Circulating Supply'), value: coin(info.value?.circulatingSupply) },
   { label: t('출시일', 'Launch Date'), value: info.value?.genesisDate || '—' },
-  { label: t('역대 최고가 (ATH)', 'All-Time High (ATH)'), value: price(info.value?.ath) },
-  { label: t('역대 최저가 (ATL)', 'All-Time Low (ATL)'), value: price(info.value?.atl) }
+  { label: t('발행가', 'Issuance Price'), value: price(info.value?.issuePrice) }
 ])
 const rightRows = computed(() => [
   { label: t('유통 시가총액', 'Circulating MCAP'), value: usdt(info.value?.marketCap) },
   { label: t('총 공급량', 'Total Supply'), value: coin(info.value?.totalSupply) },
   { label: t('시가총액 / 유통 시가총액', 'Market Cap/Circulating MCAP'), value: info.value?.marketCap || totalMcap.value ? `${usdt(totalMcap.value)} / ${usdt(info.value?.marketCap)}` : '—' },
-  { label: t('완전 희석 가치 (FDV)', 'FDV (Fully Diluted Valuation)'), value: usdt(info.value?.fdv) }
+  { label: t('완전 희석 가치 (FDV)', 'FDV (Fully Diluted Valuation)'), value: usdt(info.value?.fdv) },
+  { label: t('역대 최고가 (ATH)', 'All-Time High (ATH)'), value: price(info.value?.ath) },
+  { label: t('역대 최저가 (ATL)', 'All-Time Low (ATL)'), value: price(info.value?.atl) }
 ])
 </script>

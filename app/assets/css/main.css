@@ -1740,6 +1740,14 @@ html .reg-field-error-box {
 .ex-gutter {
   background-color: #0b0e14;
 }
+/* 흰 화면(반전 필터)에서는 반전 전 값이 #090909여야 화면에서 #f6f6f6으로 보인다. */
 html.theme-filter .ex-gutter {
-  background-color: #1f232e;
+  background-color: #090909;
+}
+/* 상단 메뉴와 거래 화면 사이의 4px 선(메뉴는 반전되지 않으므로 실제 색으로 칠한다) */
+.ex-header-line {
+  border-color: #0b0e14;
+}
+html.theme-filter .ex-header-line {
+  border-color: #f6f6f6;
 }
