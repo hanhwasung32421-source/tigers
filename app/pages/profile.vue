@@ -51,11 +51,11 @@
         <div class="mt-3 grid gap-4 md:grid-cols-2">
           <div>
             <label class="text-sm text-slate-300">{{ t('새 비밀번호', 'New Password') }}</label>
-            <input v-model="newPassword" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <input v-model="newPassword" type="password" name="new-password" autocomplete="new-password" :readonly="!pwEditable" @focus="pwEditable = true" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
           </div>
           <div>
             <label class="text-sm text-slate-300">{{ t('새 비밀번호 확인', 'Confirm New Password') }}</label>
-            <input v-model="newPasswordConfirm" type="password" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <input v-model="newPasswordConfirm" type="password" name="new-password-confirm" autocomplete="new-password" :readonly="!pwEditable" @focus="pwEditable = true" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
           </div>
         </div>
         <p class="mt-2 text-xs text-slate-500">{{ t('변경하지 않을 경우 비워두세요.', 'Leave blank if you do not want to change it.') }}</p>
@@ -94,6 +94,8 @@ const bankAccount = ref(me.value?.bank_account || '')
 const accountHolder = ref(me.value?.account_holder || '')
 const newPassword = ref('')
 const newPasswordConfirm = ref('')
+// 비밀번호 변경 칸은 처음에 항상 비어 있어야 한다: 브라우저가 저장된 비밀번호를 자동으로 채우지 못하게 처음에는 읽기 전용으로 두고, 클릭하면 입력할 수 있다.
+const pwEditable = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)
 const okText = ref<string | null>(null)
@@ -112,8 +114,12 @@ async function save() {
   error.value = null
   okText.value = null
   try {
-    if ((newPassword.value || newPasswordConfirm.value) && newPassword.value !== newPasswordConfirm.value) {
+    // 확인 칸을 채웠는데 다르면 막는다. 확인 칸이 비어 있는 경우는 서버가 판단한다(새 비밀번호 칸에 지금 비밀번호가 그대로 있으면 확인 없이 저장).
+    if (newPasswordConfirm.value && newPassword.value !== newPasswordConfirm.value) {
       throw new Error(t('새 비밀번호 확인이 일치하지 않습니다.', 'New password confirmation does not match.'))
+    }
+    if (!newPassword.value && newPasswordConfirm.value) {
+      throw new Error(t('새 비밀번호를 입력해주세요.', 'Please enter the new password.'))
     }
     await $fetch('/api/me/profile', {
       method: 'POST',
@@ -123,12 +129,14 @@ async function save() {
         bankName: bankName.value,
         bankAccount: bankAccount.value,
         accountHolder: accountHolder.value,
-        newPassword: newPassword.value || undefined
+        newPassword: newPassword.value || undefined,
+        newPasswordConfirm: newPasswordConfirm.value || undefined
       }
     })
     await refresh()
     newPassword.value = ''
     newPasswordConfirm.value = ''
+    pwEditable.value = false
     okText.value = t('회원정보를 저장했습니다.', 'Profile saved.')
   } catch (e: any) {
     error.value = e?.data?.statusMessage || t('회원정보 저장에 실패했습니다.', 'Failed to save profile.')

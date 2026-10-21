@@ -1,6 +1,6 @@
 import { readBody } from 'h3'
 import { z } from 'zod'
-import { hashPassword, requireUser } from '../../utils/auth'
+import { hashPassword, verifyPassword, requireUser } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled, syncUserToSupabase } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
@@ -20,8 +20,20 @@ const BodySchema = z.object({
   bankName: z.string().trim().max(40).optional().default(''),
   bankAccount: z.string().trim().max(80).optional().default(''),
   accountHolder: z.string().trim().max(40).optional().default(''),
-  newPassword: z.string().trim().min(4).max(50).optional()
+  newPassword: z.string().trim().min(4).max(50).optional(),
+  // 새 비밀번호 확인(비워서 보낼 수 있다: 새 비밀번호 칸에 지금 비밀번호가 그대로 적혀 있으면 확인 없이도 저장된다)
+  newPasswordConfirm: z.string().trim().max(50).optional()
 })
+
+async function currentPasswordHash(userId: number): Promise<string> {
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    const { data } = await supa.from('bitduck_users').select('password_hash').eq('id', userId).limit(1)
+    return String((data || [])[0]?.password_hash || '')
+  }
+  const row = getDb().prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as { password_hash?: string } | undefined
+  return String(row?.password_hash || '')
+}
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -31,6 +43,19 @@ export default defineEventHandler(async (event) => {
   }
   const body = parsed.data
   const now = new Date().toISOString()
+
+  // 새 비밀번호 칸에 지금 쓰는 비밀번호가 그대로 적혀 있고(브라우저 자동완성 등) 확인 칸이 비어 있으면, 비밀번호는 바꾸지 않고 나머지 정보만 저장한다.
+  // 확인 칸이 비어 있는데 지금 비밀번호와도 다르면 확인을 요구한다.
+  if (body.newPassword && !body.newPasswordConfirm) {
+    const hash = await currentPasswordHash(user.id)
+    if (hash && verifyPassword(body.newPassword, hash)) {
+      body.newPassword = undefined
+    } else {
+      throw createError({ statusCode: 400, statusMessage: '새 비밀번호 확인을 입력해주세요.' })
+    }
+  } else if (body.newPassword && body.newPassword !== body.newPasswordConfirm) {
+    throw createError({ statusCode: 400, statusMessage: '새 비밀번호 확인이 일치하지 않습니다.' })
+  }
 
   const patch: any = {
     name: body.name.trim(),
