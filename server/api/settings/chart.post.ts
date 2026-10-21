@@ -34,14 +34,17 @@ const ChartPrefsSchema = z.object({
   drawings: z.array(
     z.object({
       id: z.string(),
-      type: z.enum(['trend', 'hline', 'vline', 'rect', 'circle']),
+      // 기존 5개 도구 + 새 그리기 도구(피보나치/패턴/도형/텍스트 등) 종류 이름
+      type: z.string().min(1).max(40),
       color: z.string().optional(),
       width: z.coerce.number().min(1).max(8).optional(),
       price: z.coerce.number().optional(),
       time: z.any().optional(),
-      points: z.array(DrawingPointSchema).optional()
+      points: z.array(DrawingPointSchema).optional(),
+      // 새 도구의 추가 설정(글자 등)
+      opts: z.any().optional()
     })
-  ).max(100).default([])
+  ).max(300).default([])
 })
 
 // chart_prefs는 종목별 맵으로 저장한다: { [SYMBOL]: { indicators, drawings } }.

@@ -203,87 +203,226 @@
         </div>
 
         <div class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
-          <div class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2">
+          <div class="flex w-[52px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
+              class="flex h-8 w-8 items-center justify-center rounded transition"
               :class="activeTool === 'cursor' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('커서', 'Cursor')"
-              :key="`tool-cursor-${locale}`"
               @click="selectTool('cursor')"
             >
-              ✛
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="SIDE_ICONS.cursor"></svg>
+            </button>
+            <div v-for="g in TOOL_GROUPS" :key="g.id" class="xt-group group relative">
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded transition"
+                :class="xtGroupActive(g) ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+                :title="t(g.ko, g.en)"
+                @click="xtOnGroupMain(g)"
+              >
+                <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="xtGroupDefault(g).icon"></svg>
+              </button>
+              <button
+                type="button"
+                class="absolute -right-1 top-1/2 z-10 flex h-6 w-3 -translate-y-1/2 items-center justify-center rounded-sm bg-[#2a2e39] text-[10px] leading-none text-[#d1d4dc] transition hover:bg-[#363c4e]"
+                :class="xtOpenGroup === g.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                :title="t('도구 더보기', 'More tools')"
+                @click.stop="xtOnChevron(g.id, $event)"
+              >
+                {{ xtOpenGroup === g.id ? '‹' : '›' }}
+              </button>
+            </div>
+            <div class="xt-group group relative">
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded transition"
+                :class="activeTool === 'extra' && xtTool?.id === 'emoji' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+                :title="t('이모지/아이콘', 'Emoji & Icons')"
+                @click="xt.toggleFlyout('emoji', ($event.currentTarget as HTMLElement).closest('.xt-group') as HTMLElement)"
+              >
+                <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="EMOJI_TOOL_ICON"></svg>
+              </button>
+              <button
+                type="button"
+                class="absolute -right-1 top-1/2 z-10 flex h-6 w-3 -translate-y-1/2 items-center justify-center rounded-sm bg-[#2a2e39] text-[10px] leading-none text-[#d1d4dc] transition hover:bg-[#363c4e]"
+                :class="xtOpenGroup === 'emoji' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                @click.stop="xtOnChevron('emoji', $event)"
+              >
+                {{ xtOpenGroup === 'emoji' ? '‹' : '›' }}
+              </button>
+            </div>
+            <div class="my-1 h-px w-7 bg-[#2a2e39]" />
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded transition"
+              :class="xtMeasure ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :title="t('측정 (수익률 측정)', 'Measure')"
+              @click="xt.selectMeasure()"
+            >
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="SIDE_ICONS.ruler"></svg>
             </button>
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
-              :class="activeTool === 'trend' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              :title="t('추세선 (Alt+T)', 'Trend Line (Alt+T)')"
-              :key="`tool-trend-${locale}`"
-              @click="selectTool('trend')"
+              class="flex h-8 w-8 items-center justify-center rounded transition"
+              :class="xtZoom ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :title="t('확대 (드래그한 영역으로 확대)', 'Zoom In')"
+              @click="xt.selectZoom()"
             >
-              ／
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="SIDE_ICONS.zoom"></svg>
+            </button>
+            <div class="my-1 h-px w-7 bg-[#2a2e39]" />
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded transition"
+              :class="xtMagnet ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :title="t('자석 모드 (봉의 시가/고가/저가/종가에 붙임)', 'Magnet Mode')"
+              @click="xt.toggleMagnet()"
+            >
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="SIDE_ICONS.magnet"></svg>
             </button>
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
-              :class="activeTool === 'hline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              :title="t('수평선 (Alt+H / Alt+G / Alt+J)', 'Horizontal Line (Alt+H / Alt+G / Alt+J)')"
-              :key="`tool-hline-${locale}`"
-              @click="selectTool('hline')"
+              class="flex h-8 w-8 items-center justify-center rounded transition"
+              :class="xtStay ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :title="t('그리기 모드 유지', 'Stay in Drawing Mode')"
+              @click="xt.toggleStay()"
             >
-              ㅡ
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="SIDE_ICONS.stay"></svg>
             </button>
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
-              :class="activeTool === 'vline' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              :title="t('수직선 (Alt+I)', 'Vertical Line (Alt+I)')"
-              :key="`tool-vline-${locale}`"
-              @click="selectTool('vline')"
+              class="flex h-8 w-8 items-center justify-center rounded transition"
+              :class="xtLocked ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :title="t('모든 도구 잠금', 'Lock All Drawings')"
+              @click="xt.toggleLocked()"
             >
-              │
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="xtLocked ? SIDE_ICONS.lock : SIDE_ICONS.unlock"></svg>
             </button>
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
-              :class="activeTool === 'circle' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              :title="t('원 (Alt+O)', 'Circle (Alt+O)')"
-              :key="`tool-circle-${locale}`"
-              @click="selectTool('circle')"
+              class="flex h-8 w-8 items-center justify-center rounded transition"
+              :class="xtHidden ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :title="t('모든 도구 숨기기', 'Hide All Drawings')"
+              @click="xt.toggleHidden()"
             >
-              ○
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="xtHidden ? SIDE_ICONS.eyeOff : SIDE_ICONS.eye"></svg>
             </button>
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[11px] transition"
-              :class="activeTool === 'rect' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
-              :title="t('사각형 (Alt+P)', 'Rectangle (Alt+P)')"
-              :key="`tool-rect-${locale}`"
-              @click="selectTool('rect')"
+              class="flex h-8 w-8 items-center justify-center rounded transition text-[#b2b5be] hover:bg-[#1e222d] hover:text-white"
+              :title="t('도구삭제', 'Clear Drawings')"
+              @click="clearAllDrawings"
             >
-              ▭
+              <svg viewBox="0 0 28 28" class="h-[22px] w-[22px]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="SIDE_ICONS.trash"></svg>
             </button>
             <div class="my-1 h-px w-7 bg-[#2a2e39]" />
             <button
               ref="toolIndicatorBtnRoot"
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded text-[10px] transition"
+              class="flex h-8 w-8 items-center justify-center rounded text-[10px] transition"
               :class="indicatorMenuOpen ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('보조지표', 'Indicators')"
-              :key="`tool-indicator-${locale}`"
+              :key="'tool-indicator-' + locale"
               @click="toggleIndicatorMenu($event, 'right')"
             >
               {{ t('지표', 'IND') }}
             </button>
-            <div class="mt-auto flex flex-col gap-1">
-              <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" :title="t('전체보기', 'Fit Content')" :key="`tool-fit-${locale}`" @click="fitChartContent">
-                ⤢
-              </button>
-              <button class="flex h-9 w-9 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" :title="t('도구삭제', 'Clear Drawings')" :key="`tool-clear-${locale}`" @click="clearAllDrawings">
-                ⌫
+            <button class="flex h-8 w-8 items-center justify-center rounded text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white" :title="t('전체보기', 'Fit Content')" :key="'tool-fit-' + locale" @click="fitChartContent">
+              ⤢
+            </button>
+          </div>
+
+          <!-- 도구 펼침 메뉴(트레이딩뷰 방식): 선택한 그룹의 도구들을 소제목별로 보여준다 -->
+          <div v-if="xtOpenGroup" class="fixed inset-0 z-[74]" @mousedown="xtOpenGroup = null" />
+          <div
+            v-if="xtOpenGroup && xtOpenGroup !== 'emoji'"
+            class="fixed z-[75] w-[300px] overflow-y-auto rounded-md bg-[#1e222d] py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
+            :style="{ left: xtFlyoutPos.left + 'px', top: xtFlyoutPos.top + 'px', maxHeight: 'calc(100vh - ' + (xtFlyoutPos.top + 12) + 'px)' }"
+            @mousedown.stop
+          >
+            <template v-for="g in TOOL_GROUPS.filter((x) => x.id === xtOpenGroup)" :key="g.id">
+              <template v-for="sec in g.sections" :key="sec.ko">
+                <div class="px-4 pb-1 pt-3 text-[11px] font-semibold text-[#868993]">{{ t(sec.ko, sec.en) }}</div>
+                <button
+                  v-for="tl in sec.tools"
+                  :key="tl.id"
+                  type="button"
+                  class="flex w-full items-center gap-3 px-4 py-1.5 text-left text-[13px] transition hover:bg-[#2a2e39]"
+                  :class="xtToolActive(tl) ? 'text-white' : 'text-[#d1d4dc]'"
+                  @click="xtOnPick(g, tl)"
+                >
+                  <svg viewBox="0 0 28 28" class="h-[20px] w-[20px] shrink-0 text-[#b2b5be]" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="tl.icon"></svg>
+                  <span class="flex-1 truncate">{{ t(tl.ko, tl.en) }}</span>
+                  <span v-if="tl.shortcut" class="text-[11px] text-[#868993]">{{ tl.shortcut }}</span>
+                </button>
+              </template>
+            </template>
+          </div>
+          <div
+            v-if="xtOpenGroup === 'emoji'"
+            class="fixed z-[75] w-[300px] overflow-y-auto rounded-md bg-[#1e222d] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
+            :style="{ left: xtFlyoutPos.left + 'px', top: xtFlyoutPos.top + 'px', maxHeight: 'calc(100vh - ' + (xtFlyoutPos.top + 12) + 'px)' }"
+            @mousedown.stop
+          >
+            <div class="pb-2 text-[11px] font-semibold text-[#868993]">{{ t('이모지', 'Emoji') }}</div>
+            <div class="grid grid-cols-6 gap-1">
+              <button v-for="em in EMOJI_LIST" :key="em" type="button" class="flex h-9 items-center justify-center rounded text-[20px] hover:bg-[#2a2e39]" @click="xt.pickEmoji(em)">{{ em }}</button>
+            </div>
+            <div class="pb-2 pt-4 text-[11px] font-semibold text-[#868993]">{{ t('아이콘', 'Icons') }}</div>
+            <div class="grid grid-cols-6 gap-1">
+              <button v-for="ic in ICON_LIST" :key="ic" type="button" class="flex h-9 items-center justify-center rounded text-[18px] text-[#d1d4dc] hover:bg-[#2a2e39]" @click="xt.pickEmoji(ic)">{{ ic }}</button>
+            </div>
+          </div>
+
+          <!-- 새 도구 도형 편집창(도형을 더블클릭하면 뜸) -->
+          <div
+            v-if="xtEditor.open && xtEditing"
+            class="fixed z-[80] w-[240px] rounded-lg bg-[#1e222d] p-3 text-[12px] text-[#d1d4dc] shadow-[0_12px_40px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
+            :style="{ left: xtEditor.left + 'px', top: xtEditor.top + 'px' }"
+            @mousedown.stop
+          >
+            <div class="mb-2 flex items-center justify-between">
+              <span class="font-semibold">{{ xtEditingTool ? t(xtEditingTool.ko, xtEditingTool.en) : '' }}</span>
+              <button type="button" class="rounded px-1.5 text-[#868993] hover:bg-white/10 hover:text-white" @click="xt.closeEditor()">✕</button>
+            </div>
+            <textarea
+              v-if="xtEditingTool?.text === 'ask'"
+              ref="xtTextArea"
+              :value="xtEditing.opts?.text || ''"
+              rows="3"
+              class="mb-3 w-full resize-none rounded-md bg-[#131722] px-2 py-1.5 text-[13px] text-white outline-none ring-1 ring-white/10 focus:ring-[#2962ff]"
+              :placeholder="t('내용을 입력하세요', 'Enter text')"
+              @input="xt.setText(($event.target as HTMLTextAreaElement).value)"
+            />
+            <div class="mb-1 text-[11px] text-[#868993]">{{ t('색상', 'Color') }}</div>
+            <div class="mb-3 flex flex-wrap gap-1.5">
+              <button
+                v-for="c in DRAWING_COLOR_PRESETS"
+                :key="c"
+                type="button"
+                class="h-5 w-5 rounded-full ring-1 ring-white/20"
+                :class="(xtEditing.color || '').toLowerCase() === c ? 'ring-2 ring-white' : ''"
+                :style="{ background: c }"
+                @click="xt.setColor(c)"
+              />
+            </div>
+            <div class="mb-1 text-[11px] text-[#868993]">{{ t('굵기', 'Width') }}</div>
+            <div class="mb-3 flex gap-1.5">
+              <button
+                v-for="w in DRAWING_WIDTH_OPTIONS"
+                :key="w"
+                type="button"
+                class="flex h-7 w-9 items-center justify-center rounded bg-[#131722] ring-1 ring-white/10 hover:bg-[#2a2e39]"
+                :class="Number(xtEditing.width || 2) === w ? 'ring-[#2962ff]' : ''"
+                @click="xt.setWidth(w)"
+              >
+                <span class="block w-5 rounded bg-current" :style="{ height: w + 'px' }" />
               </button>
             </div>
+            <button type="button" class="w-full rounded-md bg-[#3a1015] px-3 py-1.5 text-[12px] font-semibold text-rose-300 hover:bg-[#4a1820]" @click="xt.deleteEditing()">
+              {{ t('삭제', 'Delete') }}
+            </button>
           </div>
 
           <div class="relative min-w-0 flex-1 overflow-hidden bg-[#131722]">
@@ -295,6 +434,19 @@
               <div class="flex items-center gap-3">
                 <span>{{ t('고가', 'High') }} {{ visibleHigh ? fmtPrice(visibleHigh) : '—' }}</span>
                 <span>{{ t('저가', 'Low') }} {{ visibleLow ? fmtPrice(visibleLow) : '—' }}</span>
+              </div>
+            </div>
+            <div v-if="xtHint && activeTool === 'extra'" class="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
+              <div class="pointer-events-auto flex items-center gap-2 rounded-md bg-[#1e222d]/95 px-3 py-2 text-[12px] text-[#d1d4dc] shadow-[0_10px_30px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
+                <span class="text-[#2962ff]">+</span>
+                <span>{{ xtHint }}</span>
+                <button
+                  type="button"
+                  class="ml-1 rounded bg-white/10 px-2 py-1 text-[11px] text-[#b2b5be] hover:bg-white/15 hover:text-white"
+                  @click="selectTool('cursor')"
+                >
+                  {{ t('취소 [Esc]', 'Cancel [Esc]') }}
+                </button>
               </div>
             </div>
             <div v-if="drawingHintVisible" class="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
@@ -1502,6 +1654,8 @@ import { RectanglePrimitive } from '../../utils/chart/rectanglePrimitive'
 import { CirclePrimitive } from '../../utils/chart/circlePrimitive'
 import { calculateBollingerBands } from '../../utils/chart/movingAverage'
 import { INDICATOR_LIST } from '../../utils/chart/indicatorList'
+import { useChartDrawTools } from '../../utils/chart/drawTools'
+import { TOOL_GROUPS, TOOL_BY_ID, EMOJI_LIST, ICON_LIST, EMOJI_TOOL_ICON, SIDE_ICONS, type ToolDef, type ToolGroup } from '../../utils/chart/toolCatalog'
 import {
   calcMA,
   calcEMA,
@@ -1925,7 +2079,7 @@ const circlePrimitives: CirclePrimitive[] = []
 const candleData = ref<CandlestickData[]>([])
 const volumeData = ref<HistogramData[]>([])
 const liveLastCandle = shallowRef<CandlestickData | null>(null)
-const activeTool = ref<'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'circle'>('cursor')
+const activeTool = ref<'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'circle' | 'extra'>('cursor')
 const pendingShapeStart = ref<{ time: any; price: number } | null>(null)
 const liveDrawingPoint = ref<{ time: any; price: number } | null>(null)
 // 추세선: 첫 점을 찍은 뒤 Shift를 누르고 있으면 끝점이 15° 단위(0°, 15°, 30°, 45°, 60° …)로 딱딱 맞춰진다.
@@ -2250,11 +2404,101 @@ function defaultBolPrefs(): BolPrefs {
 
 const chartPrefs = reactive<{
   indicators: { bol: BolPrefs; extra: string[] }
-  drawings: Array<{ id: string; type: 'trend' | 'hline' | 'vline' | 'rect' | 'circle'; color?: string; width?: number; price?: number; time?: any; points?: Array<{ time: any; price: number }> }>
+  drawings: Array<{ id: string; type: string; color?: string; width?: number; price?: number; time?: any; points?: Array<{ time: any; price: number }>; opts?: any }>
 }>({
   indicators: { bol: defaultBolPrefs(), extra: [] },
   drawings: []
 })
+
+// 새 그리기 도구(트레이딩뷰 방식 메뉴: 선/피보나치/패턴/예측/도형/텍스트/이모지 등). 기존 도구(추세선/수평선/수직선/사각형/원)는 그대로 두고,
+// 새 도구만 별도 캔버스 레이어(utils/chart/drawTools.ts)가 그린다.
+const xt = useChartDrawTools({
+  chartPrefs,
+  getChart: () => chart,
+  getSeries: () => candleSeries,
+  getChartEl: () => chartEl.value,
+  resolveX: (time: any) => resolveXForTime(time),
+  resolveTime: (x: number) => resolveTimeAtX(null, x),
+  getCandles: () => candleData.value as any[],
+  getVolumes: () => volumeData.value as any[],
+  toUnix: (t: any) => timeToUnixSeconds(t),
+  barSeconds: () => barSeconds(timeframe.value),
+  fmtPrice: (v: number) => fmtPrice(v),
+  selectedDrawingId,
+  scheduleSave: () => scheduleSaveChartPrefs(),
+  enterExtraMode: () => {
+    selectTool('cursor')
+    activeTool.value = 'extra'
+  },
+  leaveExtraMode: () => selectTool('cursor'),
+  startMeasure: (x: number, y: number) => {
+    if (!candleSeries) return
+    const price = candleSeries.coordinateToPrice(y)
+    const time = resolveTimeAtX(null, x)
+    if (price === null || time === null) return
+    measureBox.value = { startX: x, startY: y, startPrice: Number(price), startTime: time, endX: x, endY: y, endPrice: Number(price) }
+    measureBoxFrozen.value = false
+  },
+  selectExisting: (tool) => selectTool(tool),
+  onSelectionChanged: () => renderSavedDrawings(),
+  isCursorMode: () => activeTool.value === 'cursor',
+  t: (ko: string, en: string) => t(ko, en)
+})
+const {
+  extraTool: xtTool,
+  openGroup: xtOpenGroup,
+  flyoutPos: xtFlyoutPos,
+  groupLast: xtGroupLast,
+  magnet: xtMagnet,
+  stayInDrawing: xtStay,
+  locked: xtLocked,
+  hidden: xtHidden,
+  measureMode: xtMeasure,
+  zoomMode: xtZoom,
+  hintText: xtHint,
+  editor: xtEditor,
+  editingDrawing: xtEditing,
+  editingTool: xtEditingTool
+} = xt
+const xtTextArea = ref<HTMLTextAreaElement | null>(null)
+const xtEmojiGroup = { id: 'emoji', ko: '이모지', en: 'Emoji' }
+
+function xtGroupTools(g: ToolGroup): ToolDef[] {
+  return g.sections.flatMap((sec) => sec.tools)
+}
+function xtGroupDefault(g: ToolGroup): ToolDef {
+  const id = xtGroupLast.value[g.id]
+  return (id && TOOL_BY_ID[id]) || xtGroupTools(g)[0]
+}
+function xtToolActive(tl: ToolDef) {
+  return tl.existing ? activeTool.value === tl.existing : activeTool.value === 'extra' && xtTool.value?.id === tl.id
+}
+function xtGroupActive(g: ToolGroup) {
+  return xtGroupTools(g).some((tl) => xtToolActive(tl))
+}
+function xtOnGroupMain(g: ToolGroup) {
+  const def = xtGroupDefault(g)
+  xtGroupLast.value = { ...xtGroupLast.value, [g.id]: def.id }
+  xt.pickTool(def)
+}
+function xtOnPick(g: ToolGroup, tl: ToolDef) {
+  xtGroupLast.value = { ...xtGroupLast.value, [g.id]: tl.id }
+  xt.pickTool(tl)
+}
+function xtOnChevron(gid: string, e: MouseEvent) {
+  const wrap = (e.currentTarget as HTMLElement | null)?.closest('.xt-group') as HTMLElement | null
+  xt.toggleFlyout(gid, wrap)
+}
+watch(
+  () => xtEditor.value.open,
+  async (open) => {
+    if (open && xtEditingTool.value?.text === 'ask') {
+      await nextTick()
+      xtTextArea.value?.focus()
+      xtTextArea.value?.select()
+    }
+  }
+)
 
 // 서버에 저장된 종목별 지표/선 설정(symbol -> {indicators, drawings}). 로그인 시 한 번 받아와서,
 // 이 기기에 아직 로컬 캐시가 없는 종목으로 넘어갈 때 그 종목의 서버 저장값으로 대체하기 위함.
@@ -2978,6 +3222,7 @@ function distToSegment(px: number, py: number, x1: number, y1: number, x2: numbe
 
 function hitTestDrawings(x: number, y: number): DrawingHit | null {
   if (!chart || !candleSeries) return null
+  if (xt.locked.value) return null
   const HANDLE_R = 9
   const LINE_TOL = 6
   for (let i = chartPrefs.drawings.length - 1; i >= 0; i--) {
@@ -3227,6 +3472,10 @@ function onDrawingKeydown(e: KeyboardEvent) {
   if (e.key === 'Shift' && !trendShiftHeld.value) {
     trendShiftHeld.value = true
     refreshTrendSnap()
+  }
+  if (e.key === 'Escape' && xt.editor.value.open) {
+    xt.closeEditor()
+    return
   }
   if (e.key === 'Escape' && drawingEditor.open) {
     closeDrawingEditor()
@@ -5053,6 +5302,7 @@ function renderDrawingPreview() {}
 function renderSavedDrawings() {
   if (!chart || !candleSeries) return
   clearDrawingVisuals()
+  if (xt.hidden.value) return
   for (const d of chartPrefs.drawings) {
     const isSelected = d.id === selectedDrawingId.value
     // 사용자가 팝업에서 고른 색/굵기(없으면 도구별 기본값). 선택된 상태는 시각적 강조로 1px 더 굵게 보인다.
@@ -5173,6 +5423,7 @@ function clearAllIndicators() {
 }
 
 function selectTool(tool: 'cursor' | 'trend' | 'hline' | 'vline' | 'rect' | 'circle') {
+  xt.reset()
   activeTool.value = tool
   pendingShapeStart.value = null
   liveDrawingPoint.value = null
@@ -5407,6 +5658,8 @@ function initChart() {
 
   // 선 선택/끝점 드래그/삭제 + Shift+클릭 수익률 측정 박스
   // capture 단계에서 붙여서, 선/핸들을 잡았을 때 차트 자체의 팬(pan) 동작보다 먼저 가로챈다.
+  // 새 그리기 도구: 기존 mousedown 처리보다 먼저 실행되어야 하므로 기존 리스너 등록 전에 연결한다.
+  xt.attach()
   chartEl.value.addEventListener('mousedown', onChartMouseDown, true)
   chartEl.value.addEventListener('mousemove', onChartAreaMouseMove)
   chartEl.value.addEventListener('mouseleave', onChartAreaMouseLeave)
@@ -6900,6 +7153,7 @@ onBeforeUnmount(() => {
   if (saveChartPrefsTimer) clearTimeout(saveChartPrefsTimer)
   clearIndicatorSeries()
   clearDrawingVisuals()
+  xt.detach()
   if (chart) {
     try { chart.unsubscribeClick(onChartClick) } catch {}
     try { chart.unsubscribeCrosshairMove(onCrosshairMove as any) } catch {}
