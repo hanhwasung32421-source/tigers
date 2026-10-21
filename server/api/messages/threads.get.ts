@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   return {
     items: summaries.map((t) => ({
       ...t,
-      username: users.get(Number(t.userId))?.username || (isAdmin ? `회원 #${t.userId}` : '운영자')
+      username: users.get(Number(t.userId))?.username || (isAdmin ? `회원 #${t.userId}` : '고객센터')
     })),
     unreadTotal,
     operatorId: operator?.id ?? null,

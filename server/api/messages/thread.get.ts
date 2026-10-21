@@ -1,6 +1,6 @@
 import { getQuery } from 'h3'
 import { requireUser } from '../../utils/auth'
-import { WALLET_NOTICE_SUBJECT, ensureAdminThreadAccess, getOperatorAdminUser, getThreadMessages, listUsersByIds } from '../../utils/messages'
+import { WALLET_NOTICE_SENDER_NAME, WALLET_NOTICE_SUBJECT, ensureAdminThreadAccess, getOperatorAdminUser, getThreadMessages, listUsersByIds } from '../../utils/messages'
 import { getPendingResetRequestForUser } from '../../utils/password-reset'
 
 export default defineEventHandler(async (event) => {
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
       const senderIsAdmin = senderInfo ? senderInfo.role !== 'user' : Number(m.sender_id) === operator?.id
       const senderName =
         m.subject === WALLET_NOTICE_SUBJECT
-          ? WALLET_NOTICE_SUBJECT
+          ? WALLET_NOTICE_SENDER_NAME
           : viewerIsMember && senderIsAdmin
             ? '관리자'
             : senderUsername

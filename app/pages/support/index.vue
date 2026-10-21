@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
       <h1 class="text-xl font-semibold">{{ t('고객센터', 'Support') }}</h1>
-      <p class="mt-2 text-sm text-slate-400">{{ t('운영자(admin)와 쪽지를 주고받을 수 있습니다.', 'Exchange messages with an admin.') }}</p>
+      <p class="mt-2 text-sm text-slate-400">{{ t('고객센터와 쪽지를 주고받을 수 있습니다.', 'Exchange messages with Support.') }}</p>
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
@@ -21,7 +21,7 @@
             @click="openThread(thread)"
           >
             <div class="flex items-center justify-between gap-3">
-              <div class="font-medium text-slate-100">{{ t('운영자', 'Admin') }}</div>
+              <div class="font-medium text-slate-100">{{ t('고객센터', 'Support') }}</div>
               <span v-if="thread.unreadCount" class="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-slate-900">
                 {{ thread.unreadCount }}
               </span>
@@ -37,7 +37,7 @@
 
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="border-b border-white/10 pb-4">
-          <div class="text-base font-semibold text-slate-100">{{ t('운영자(admin)', 'Admin') }}</div>
+          <div class="text-base font-semibold text-slate-100">{{ t('고객센터', 'Support') }}</div>
           <div class="mt-1 text-sm text-slate-400">{{ t('문의 내용과 답장을 이곳에서 확인할 수 있습니다.', 'View your inquiries and replies here.') }}</div>
         </div>
 
@@ -68,7 +68,7 @@
             v-model.trim="body"
             rows="5"
             class="w-full rounded-md border border-white/10 bg-[#06101b] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-500/40"
-            :placeholder="t('운영자에게 보낼 내용을 입력하세요', 'Enter the message you want to send to the admin')"
+            :placeholder="t('고객센터에 보낼 내용을 입력하세요', 'Enter the message you want to send to Support')"
             :key="`support-body-${locale}`"
           />
           <div class="mt-3 flex items-center justify-end">

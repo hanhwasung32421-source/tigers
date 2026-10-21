@@ -348,6 +348,8 @@ export async function countUnreadMessages(userIds: number | number[]) {
 //   보이지 않게 한다(회원 화면에서는 sender_id === 내 id 여야 "내가 보낸 말풍선"으로 표시됨).
 // - 화면 표시용 발신자 이름은 subject 마커("입출금센터")로 구분해 실제 계정명 대신 보여준다.
 export const WALLET_NOTICE_SUBJECT = '입출금센터'
+// 화면에 보이는 발신자 이름(저장된 subject 마커는 그대로 두고 표시만 바꾸므로, 예전에 나간 알림도 함께 바뀐다).
+export const WALLET_NOTICE_SENDER_NAME = '고객센터'
 
 async function getMemberProfileForNotice(memberId: number) {
   try {
