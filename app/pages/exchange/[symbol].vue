@@ -2735,7 +2735,9 @@ const currentCandleMeta = computed(() => {
 
 function fmtPrice(v: number) {
   if (!Number.isFinite(v)) return '—'
-  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 })
+  // 1 이상인 가격은 소수점 2자리까지만(165.555 → 165.56, 165.5 → 165.50). 1 미만의 아주 작은 가격은 값이 0.00으로 보이지 않게 최대 5자리까지 보여준다.
+  const digits = Math.abs(v) >= 1 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { minimumFractionDigits: 2, maximumFractionDigits: 5 }
+  return v.toLocaleString('en-US', digits)
 }
 // 포지션 테이블 전용: 소수점 2자리까지만 표시
 function fmtPrice2(v: number) {
