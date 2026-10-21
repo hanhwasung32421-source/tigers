@@ -10,7 +10,7 @@
                 <template #trigger="{ toggle }">
                   <button type="button" class="flex items-center gap-2.5 rounded-md px-1 py-0.5 hover:bg-white/5" @click="toggle">
                     <CoinIcon :base="baseCoin(symbol)" :size="34" />
-                    <span class="text-[20px] font-bold tracking-tight text-white">{{ baseCoin(symbol) }}/USDT</span>
+                    <span class="text-[16px] tracking-tight text-white">{{ baseCoin(symbol) }}/USDT</span>
                     <span class="text-[10px] text-[#868993]">▼</span>
                   </button>
                 </template>
@@ -27,32 +27,32 @@
             </div>
             <div class="h-10 w-px bg-[#2a2e39]" />
             <div>
-              <div class="font-mono text-[26px] font-semibold leading-tight" :class="headerStats.up ? 'text-[#22ab94]' : 'text-[#f23645]'">
+              <div class="text-[20px] leading-none" :class="headerStats.up ? 'text-[#22ab94]' : 'text-[#f23645]'">
                 {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}
               </div>
-              <div class="font-mono text-[12px] text-[#868993]">≈{{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }} USD</div>
+              <div class="mt-1 text-[12px] text-[#868993]">≈{{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }} USD</div>
             </div>
             <div class="text-[12px] text-[#868993]">
               <div>{{ t('24시간 변동률', '24H Price Change') }}</div>
-              <div class="mt-1 font-mono text-[14px] font-semibold" :class="headerStats.up ? 'text-[#22ab94]' : 'text-[#f23645]'">{{ headerStats.changeText }}</div>
+              <div class="mt-1 text-[12px]" :class="headerStats.up ? 'text-[#22ab94]' : 'text-[#f23645]'">{{ headerStats.changeText }}</div>
             </div>
             <div class="text-[12px] text-[#868993]">
               <div>{{ t('24시간 최고가', '24H High') }}</div>
-              <div class="mt-1 font-mono text-[14px] text-[#d1d4dc]">{{ headerStats.high }}</div>
+              <div class="mt-1 text-[12px] text-[#d1d4dc]">{{ headerStats.high }}</div>
             </div>
             <div class="text-[12px] text-[#868993]">
               <div>{{ t('24시간 최저가', '24H Low') }}</div>
-              <div class="mt-1 font-mono text-[14px] text-[#d1d4dc]">{{ headerStats.low }}</div>
+              <div class="mt-1 text-[12px] text-[#d1d4dc]">{{ headerStats.low }}</div>
             </div>
             <div class="text-[12px] text-[#868993]">
               <div>{{ t('24시간 거래대금(USDT)', '24H Vol(USDT)') }}</div>
-              <div class="mt-1 font-mono text-[14px] text-[#d1d4dc]">{{ headerStats.vol }}</div>
+              <div class="mt-1 text-[12px] text-[#d1d4dc]">{{ headerStats.vol }}</div>
             </div>
             <div class="ml-auto flex items-center gap-2 text-[11px]">
               <div v-if="isSuperAdminUser" class="mr-2 flex items-center gap-1">
                 <button
                   type="button"
-                  class="rounded bg-emerald-500/15 px-2 py-1 font-semibold text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40"
+                  class="rounded bg-emerald-500/15 px-2 py-1 text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40"
                   :disabled="adminProfitBusy || adminKillBusy"
                   @click="openProfitModal()"
                 >
@@ -77,16 +77,16 @@
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
-        <div class="flex items-center gap-6 border-b border-[#2a2e39] bg-[#131722] px-3 text-[15px]">
+        <div class="flex items-center gap-6 border-b border-[#2a2e39] bg-[#131722] px-3 text-[14px]">
           <button
             v-for="tb in chartTabs"
             :key="tb.id"
             type="button"
             class="relative py-2.5 transition"
-            :class="chartTab === tb.id ? 'font-semibold text-white' : 'text-[#868993] hover:text-[#d1d4dc]'"
+            :class="chartTab === tb.id ? ' text-white' : 'text-[#868993] hover:text-[#d1d4dc]'"
             @click="selectChartTab(tb.id)"
           >
-            <span v-if="tb.id === 'ai'" class="mr-1 inline-block rounded bg-[#f0b90b] px-1 text-[10px] font-bold text-[#131722]">AI</span>{{ tb.label }}
+            <span v-if="tb.id === 'ai'" class="mr-1 inline-block rounded bg-[#f0b90b] px-1 text-[10px] text-[#131722]">AI</span>{{ tb.label }}
             <span v-if="chartTab === tb.id" class="absolute inset-x-0 bottom-0 h-[2px] bg-[#f0b90b]" />
           </button>
         </div>
@@ -147,7 +147,7 @@
                     class="mb-2 w-full rounded bg-[#131722] px-2 py-1.5 text-[11px] text-white placeholder:text-[#5d6472] focus:outline-none"
                   />
                   <div class="max-h-72 overflow-y-auto overscroll-contain pr-1">
-                    <div v-if="filteredOverlayIndicators.length" class="mb-1 px-1 pt-1 text-[10px] font-semibold text-[#868993]">{{ t('상단 지표', 'Overlay indicators') }}</div>
+                    <div v-if="filteredOverlayIndicators.length" class="mb-1 px-1 pt-1 text-[10px] text-[#868993]">{{ t('상단 지표', 'Overlay indicators') }}</div>
                     <button
                       v-for="ind in filteredOverlayIndicators"
                       :key="ind.id"
@@ -162,7 +162,7 @@
                       <span class="truncate">{{ ind.labelKo }}</span>
                       <span class="ml-auto truncate text-[9px] text-[#5d6472]">{{ ind.labelEn }}</span>
                     </button>
-                    <div v-if="filteredOscillatorIndicators.length" class="mb-1 mt-2 px-1 pt-1 text-[10px] font-semibold text-[#868993]">{{ t('하단 지표', 'Oscillator indicators') }}</div>
+                    <div v-if="filteredOscillatorIndicators.length" class="mb-1 mt-2 px-1 pt-1 text-[10px] text-[#868993]">{{ t('하단 지표', 'Oscillator indicators') }}</div>
                     <button
                       v-for="ind in filteredOscillatorIndicators"
                       :key="ind.id"
@@ -195,7 +195,7 @@
                     :style="{ top: drawingEditor.top + 'px', left: drawingEditor.left + 'px' }"
                     @mousedown.stop
                   >
-                    <div class="mb-2 text-[12px] font-semibold text-slate-100">{{ t('선 설정', 'Line settings') }}</div>
+                    <div class="mb-2 text-[12px] text-slate-100">{{ t('선 설정', 'Line settings') }}</div>
                     <div class="mb-1 text-[11px] text-[#868993]">{{ t('색상', 'Color') }}</div>
                     <div class="mb-3 flex flex-wrap items-center gap-1.5">
                       <button
@@ -394,7 +394,7 @@
           >
             <template v-for="g in TOOL_GROUPS.filter((x) => x.id === xtOpenGroup)" :key="g.id">
               <template v-for="sec in g.sections" :key="sec.ko">
-                <div class="px-4 pb-1 pt-3 text-[11px] font-semibold text-[#868993]">{{ t(sec.ko, sec.en) }}</div>
+                <div class="px-4 pb-1 pt-3 text-[11px] text-[#868993]">{{ t(sec.ko, sec.en) }}</div>
                 <button
                   v-for="tl in sec.tools"
                   :key="tl.id"
@@ -416,11 +416,11 @@
             :style="{ left: xtFlyoutPos.left + 'px', top: xtFlyoutPos.top + 'px', maxHeight: 'calc(100vh - ' + (xtFlyoutPos.top + 12) + 'px)' }"
             @mousedown.stop
           >
-            <div class="pb-2 text-[11px] font-semibold text-[#868993]">{{ t('이모지', 'Emoji') }}</div>
+            <div class="pb-2 text-[11px] text-[#868993]">{{ t('이모지', 'Emoji') }}</div>
             <div class="grid grid-cols-6 gap-1">
               <button v-for="em in EMOJI_LIST" :key="em" type="button" class="flex h-9 items-center justify-center rounded text-[20px] hover:bg-[#2a2e39]" @click="xt.pickEmoji(em)">{{ em }}</button>
             </div>
-            <div class="pb-2 pt-4 text-[11px] font-semibold text-[#868993]">{{ t('아이콘', 'Icons') }}</div>
+            <div class="pb-2 pt-4 text-[11px] text-[#868993]">{{ t('아이콘', 'Icons') }}</div>
             <div class="grid grid-cols-6 gap-1">
               <button v-for="ic in ICON_LIST" :key="ic" type="button" class="flex h-9 items-center justify-center rounded text-[18px] text-[#d1d4dc] hover:bg-[#2a2e39]" @click="xt.pickEmoji(ic)">{{ ic }}</button>
             </div>
@@ -434,7 +434,7 @@
             @mousedown.stop
           >
             <div class="mb-2 flex items-center justify-between">
-              <span class="font-semibold">{{ xtEditingTool ? t(xtEditingTool.ko, xtEditingTool.en) : '' }}</span>
+              <span class="">{{ xtEditingTool ? t(xtEditingTool.ko, xtEditingTool.en) : '' }}</span>
               <button type="button" class="rounded px-1.5 text-[#868993] hover:bg-white/10 hover:text-white" @click="xt.closeEditor()">✕</button>
             </div>
             <textarea
@@ -471,7 +471,7 @@
                 <span class="block w-5 rounded bg-current" :style="{ height: w + 'px' }" />
               </button>
             </div>
-            <button type="button" class="w-full rounded-md bg-[#3a1015] px-3 py-1.5 text-[12px] font-semibold text-rose-300 hover:bg-[#4a1820]" @click="xt.deleteEditing()">
+            <button type="button" class="w-full rounded-md bg-[#3a1015] px-3 py-1.5 text-[12px] text-rose-300 hover:bg-[#4a1820]" @click="xt.deleteEditing()">
               {{ t('삭제', 'Delete') }}
             </button>
           </div>
@@ -534,7 +534,7 @@
                 :style="{ top: mouseCrosshair.y + 'px' }"
               />
               <div
-                class="absolute flex h-4 w-4 items-center justify-center rounded bg-[#131722]/80 text-[12px] font-bold leading-none text-[#d1d4dc] ring-1 ring-white/10"
+                class="absolute flex h-4 w-4 items-center justify-center rounded bg-[#131722]/80 text-[12px] leading-none text-[#d1d4dc] ring-1 ring-white/10"
                 :style="{ left: mouseCrosshair.x - 8 + 'px', top: mouseCrosshair.y - 8 + 'px' }"
               >
                 +
@@ -582,7 +582,7 @@
               />
               <div
                 v-if="rectPreview || circlePreview"
-                class="absolute whitespace-nowrap text-center text-[11px] font-bold leading-tight"
+                class="absolute whitespace-nowrap text-center text-[11px] leading-tight"
                 :style="{
                   left: ((rectPreview || circlePreview)!.x1 + (rectPreview || circlePreview)!.width / 2) + 'px',
                   top: ((rectPreview || circlePreview)!.y1 - 32) + 'px',
@@ -606,7 +606,7 @@
             </div>
             <template v-if="measureBoxView">
               <div
-                class="pointer-events-none absolute z-30 flex flex-col items-center gap-0.5 whitespace-nowrap rounded px-3 py-1.5 text-sm font-bold text-white"
+                class="pointer-events-none absolute z-30 flex flex-col items-center gap-0.5 whitespace-nowrap rounded px-3 py-1.5 text-sm text-white"
                 :class="measureBoxView.positive ? 'bg-[#2962ff]' : 'bg-[#f23645]'"
                 :style="{
                   left: measureBoxView.left + measureBoxView.width / 2 + 'px',
@@ -642,13 +642,13 @@
               :style="{ top: b.y + 'px' }"
             >
               <span
-                class="whitespace-nowrap px-1.5 py-0.5 text-[11px] font-bold"
+                class="whitespace-nowrap px-1.5 py-0.5 text-[11px]"
                 :class="b.isLong ? 'bg-rose-950 text-rose-300' : 'bg-blue-950 text-blue-300'"
               >
                 {{ b.label }}
               </span>
               <span
-                class="whitespace-nowrap px-1.5 py-0.5 text-[11px] font-bold"
+                class="whitespace-nowrap px-1.5 py-0.5 text-[11px]"
                 :class="b.positive ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'"
               >
                 {{ b.pctText }}
@@ -666,7 +666,7 @@
       >
         <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
         <div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
-          <div class="text-[15px] font-semibold text-slate-100">{{ t('호가', 'Order Book') }}</div>
+          <div class="text-[15px] text-slate-100">{{ t('호가', 'Order Book') }}</div>
           <template v-if="isSuperAdminUser">
             <template v-for="(pa, pi) in priceAlarms" :key="pa.id">
               <div v-if="pi > 0" />
@@ -693,7 +693,7 @@
                 <div v-if="pa.enabled" class="flex overflow-hidden rounded ring-1 ring-white/10">
                   <button
                     type="button"
-                    class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
+                    class="px-1.5 py-0.5 text-[11px] transition-colors"
                     :class="pa.autoSide === 'long' ? 'bg-[#0aa37f] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
                     :title="t('도달하면 자동으로 구매/롱', 'Auto Buy/Long on reach')"
                     @click="onPriceAlarmAutoSide(pi, 'long')"
@@ -702,7 +702,7 @@
                   </button>
                   <button
                     type="button"
-                    class="px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
+                    class="px-1.5 py-0.5 text-[11px] transition-colors"
                     :class="pa.autoSide === 'short' ? 'bg-[#d6293b] text-white' : 'bg-black/30 text-slate-400 hover:text-slate-200'"
                     :title="t('도달하면 자동으로 판매/숏', 'Auto Sell/Short on reach')"
                     @click="onPriceAlarmAutoSide(pi, 'short')"
@@ -710,12 +710,12 @@
                     {{ t('숏', 'Short') }}
                   </button>
                 </div>
-                <span v-if="pa.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
+                <span v-if="pa.triggered" class="text-[11px] text-amber-300">{{ t('울림', 'Ringing') }}</span>
               </div>
               <button
                 v-if="pi === 0 && priceAlarms.length < PRICE_ALARM_MAX_ROWS"
                 type="button"
-                class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
                 :title="t('알람 줄 추가', 'Add alarm row')"
                 @click="addPriceAlarmRow"
               >
@@ -724,7 +724,7 @@
               <button
                 v-else-if="pi > 0"
                 type="button"
-                class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
                 :title="t('이 알람 줄 삭제', 'Remove this alarm row')"
                 @click="removePriceAlarmRow(pi)"
               >
@@ -789,8 +789,8 @@
               <div class="font-mono text-[#f23645]">{{ (100 - buyPct).toFixed(0) }}%</div>
             </div>
             <div class="mt-1 flex items-center justify-between text-[13px] text-slate-400">
-              <div class="font-semibold text-[#22ab94]">BUY</div>
-              <div class="font-semibold text-[#f23645]">SELL</div>
+              <div class="text-[#22ab94]">BUY</div>
+              <div class="text-[#f23645]">SELL</div>
             </div>
           </div>
         </div>
@@ -798,7 +798,7 @@
 
       <!-- 보유자산/주문 -->
       <section class="order-2 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
-        <div v-if="!me" class="text-[15px] font-semibold text-slate-100">{{ t('주문', 'Order') }}</div>
+        <div v-if="!me" class="text-[15px] text-slate-100">{{ t('주문', 'Order') }}</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
           {{ t('주문하려면', 'You need to') }} <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">{{ t('로그인', 'log in') }}</NuxtLink>{{ t('이 필요합니다.', ' to place an order.') }}
@@ -808,10 +808,10 @@
           <div>
             <!-- 주문하기 + 마진 모드(격리/교차) + 시장가/지정가 -->
             <div class="mb-3 flex items-center justify-between">
-              <div class="text-[18px] font-semibold text-slate-100">{{ t('주문하기', 'Place Order') }}</div>
+              <div class="text-[18px] text-slate-100">{{ t('주문하기', 'Place Order') }}</div>
               <button
                 type="button"
-                class="rounded-md bg-[#1b2530] px-3 py-2 text-[14px] font-semibold text-slate-100 ring-1 ring-white/10 hover:bg-[#25313f]"
+                class="rounded-md bg-[#1b2530] px-3 py-2 text-[14px] text-slate-100 ring-1 ring-white/10 hover:bg-[#25313f]"
                 :title="t('눌러서 격리/교차 전환 (보유 포지션이 없을 때만)', 'Click to switch Isolated / Cross (only with no open positions)')"
                 @click="toggleMarginMode"
               >
@@ -821,7 +821,7 @@
             <div class="mb-4 grid grid-cols-2 rounded-lg bg-[#1a232d] p-1">
               <button
                 type="button"
-                class="rounded-md py-2 text-[15px] font-semibold transition"
+                class="rounded-md py-2 text-[15px] transition"
                 :class="orderType === 'market' ? 'bg-[#03070d] text-white' : 'text-slate-400 hover:text-slate-200'"
                 @click="setOrderType('market')"
               >
@@ -829,7 +829,7 @@
               </button>
               <button
                 type="button"
-                class="rounded-md py-2 text-[15px] font-semibold transition"
+                class="rounded-md py-2 text-[15px] transition"
                 :class="orderType === 'limit' ? 'bg-[#03070d] text-white' : 'text-slate-400 hover:text-slate-200'"
                 @click="setOrderType('limit')"
               >
@@ -839,7 +839,7 @@
             <!-- 레버리지 (첨부2 스타일) -->
             <div class="overflow-hidden rounded-lg border border-white/10 bg-[#071722] p-2.5">
               <div class="flex items-center justify-between">
-                <div class="text-[15px] font-semibold text-slate-100">{{ t('레버리지', 'Leverage') }}</div>
+                <div class="text-[15px] text-slate-100">{{ t('레버리지', 'Leverage') }}</div>
                 <button type="button" class="font-mono text-[15px] text-slate-200 hover:text-white" @click="openLeverageModal">x{{ leverage }} ▸</button>
               </div>
               <div class="mt-2 flex items-center justify-between text-[13px] text-slate-300">
@@ -856,7 +856,7 @@
               <!-- 구매가격 -->
               <div>
                 <div class="flex items-center justify-between text-[13px] text-slate-300">
-                  <span class="font-medium whitespace-nowrap">{{ t('구매가격', 'Purchase Price') }}</span>
+                  <span class="whitespace-nowrap">{{ t('구매가격', 'Purchase Price') }}</span>
                   <span class="font-mono text-slate-400">USDT</span>
                 </div>
                 <div class="mt-2 flex items-center justify-between gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-slate-100">
@@ -875,7 +875,7 @@
 
             <!-- 수량/비중 -->
             <div class="flex items-center justify-between text-[13px] text-slate-300">
-              <span class="font-medium whitespace-nowrap">{{ t('비중/수량', 'Ratio/Quantity') }}</span>
+              <span class="whitespace-nowrap">{{ t('비중/수량', 'Ratio/Quantity') }}</span>
               <span class="font-mono text-slate-400">{{ coinUnit }}</span>
             </div>
 
@@ -885,7 +885,7 @@
             <div class="relative mt-2">
               <div
                 v-if="showPercentTooltip"
-                class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[12px] font-semibold text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
+                class="pointer-events-none absolute -top-7 -translate-x-1/2 rounded bg-[#0c9f8e] px-2 py-1 text-[12px] text-white shadow-[0_6px_20px_rgba(12,159,142,0.35)]"
                 :style="percentTooltipStyle"
               >
                 {{ percent }}%
@@ -918,7 +918,7 @@
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-[15px] text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('long')"
                 >
@@ -928,7 +928,7 @@
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-[15px] text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('short')"
                 >
@@ -952,7 +952,7 @@
 
           <!-- 하단: 보유자산/사용가능 -->
           <div class="mt-9">
-            <div class="text-[15px] font-semibold text-slate-100">{{ t('보유자산', 'Holdings') }}</div>
+            <div class="text-[15px] text-slate-100">{{ t('보유자산', 'Holdings') }}</div>
 
             <div class="mt-3">
               <div class="text-[13px] text-slate-400">{{ t('보유자산(증거금포함)', 'Holdings (incl. margin)') }}</div>
@@ -982,7 +982,7 @@
               :key="tb.id"
               type="button"
               class="relative py-3 text-[15px] transition"
-              :class="bottomTab === tb.id ? 'font-semibold text-white' : 'text-slate-400 hover:text-slate-200'"
+              :class="bottomTab === tb.id ? ' text-white' : 'text-slate-400 hover:text-slate-200'"
               @click="selectBottomTab(tb.id)"
             >
               {{ tb.label }}
@@ -995,7 +995,7 @@
           </label>
         </div>
         <aside class="hidden">
-          <div class="flex flex-col gap-2 text-sm font-semibold">
+          <div class="flex flex-col gap-2 text-sm">
             <button
               type="button"
               class="rounded-md px-3 py-2 text-center text-sm ring-1 transition"
@@ -1180,11 +1180,11 @@
                         :checked="al.enabled"
                         @change="onToggleAlarm(p.id, ai, ($event.target as HTMLInputElement).checked)"
                       />
-                      <span v-if="al.triggered" class="text-[11px] font-semibold text-amber-300">{{ t('울림', 'Ringing') }}</span>
+                      <span v-if="al.triggered" class="text-[11px] text-amber-300">{{ t('울림', 'Ringing') }}</span>
                       <button
                         v-if="ai === 0 && getPositionAlarmRows(p.id).length < POSITION_ALARM_MAX_ROWS"
                         type="button"
-                        class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                        class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
                         :title="t('알람 줄 추가', 'Add alarm row')"
                         @click="addPositionAlarmRow(p.id)"
                       >
@@ -1193,7 +1193,7 @@
                       <button
                         v-else-if="ai > 0"
                         type="button"
-                        class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] font-bold leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
+                        class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/30 text-[14px] leading-none text-slate-300 ring-1 ring-white/10 hover:text-white"
                         :title="t('이 알람 줄 삭제', 'Remove this alarm row')"
                         @click="removePositionAlarmRow(p.id, ai)"
                       >
@@ -1267,7 +1267,7 @@
                 <span v-if="tr.kind === 'open'" class="text-slate-500">-</span>
                 <span
                   v-else
-                  class="rounded px-2 py-1 text-[14px] font-semibold ring-1"
+                  class="rounded px-2 py-1 text-[14px] ring-1"
                   :class="tradeResultBadgeClass(tr)"
                 >
                   {{ tradeResultLabel(tr) }}
