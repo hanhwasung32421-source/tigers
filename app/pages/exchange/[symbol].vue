@@ -739,7 +739,7 @@
 
       <!-- 보유자산/주문 -->
       <section class="order-2 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
-        <div class="text-[15px] font-semibold text-slate-100">{{ t('주문', 'Order') }}</div>
+        <div v-if="!me" class="text-[15px] font-semibold text-slate-100">{{ t('주문', 'Order') }}</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
           {{ t('주문하려면', 'You need to') }} <NuxtLink to="/auth/login" class="text-indigo-300 hover:underline">{{ t('로그인', 'log in') }}</NuxtLink>{{ t('이 필요합니다.', ' to place an order.') }}
@@ -747,6 +747,36 @@
 
         <div v-else class="mt-3 flex flex-col rounded-lg bg-[#031019] px-4 pt-4 pb-[40px] ring-1 ring-cyan-500/10">
           <div>
+            <!-- 주문하기 + 마진 모드(격리/교차) + 시장가/지정가 -->
+            <div class="mb-3 flex items-center justify-between">
+              <div class="text-[18px] font-semibold text-slate-100">{{ t('주문하기', 'Place Order') }}</div>
+              <button
+                type="button"
+                class="rounded-md bg-[#1b2530] px-3 py-2 text-[14px] font-semibold text-slate-100 ring-1 ring-white/10 hover:bg-[#25313f]"
+                :title="t('눌러서 격리/교차 전환 (보유 포지션이 없을 때만)', 'Click to switch Isolated / Cross (only with no open positions)')"
+                @click="toggleMarginMode"
+              >
+                {{ marginMode === 'cross' ? t('교차', 'Cross') : t('격리', 'Isolated') }}
+              </button>
+            </div>
+            <div class="mb-4 grid grid-cols-2 rounded-lg bg-[#1a232d] p-1">
+              <button
+                type="button"
+                class="rounded-md py-2 text-[15px] font-semibold transition"
+                :class="orderType === 'market' ? 'bg-[#03070d] text-white' : 'text-slate-400 hover:text-slate-200'"
+                @click="setOrderType('market')"
+              >
+                {{ t('시장가', 'Market') }}
+              </button>
+              <button
+                type="button"
+                class="rounded-md py-2 text-[15px] font-semibold transition"
+                :class="orderType === 'limit' ? 'bg-[#03070d] text-white' : 'text-slate-400 hover:text-slate-200'"
+                @click="setOrderType('limit')"
+              >
+                {{ t('지정가', 'Limit') }}
+              </button>
+            </div>
             <!-- 레버리지 (첨부2 스타일) -->
             <div class="overflow-hidden rounded-lg border border-white/10 bg-[#071722] p-2.5">
               <div class="flex items-center justify-between">
@@ -770,8 +800,16 @@
                   <span class="font-medium whitespace-nowrap">{{ t('구매가격', 'Purchase Price') }}</span>
                   <span class="font-mono text-slate-400">USDT</span>
                 </div>
-                <div class="mt-2 flex items-center justify-between rounded-md border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-slate-100">
-                  <span>{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</span>
+                <div class="mt-2 flex items-center justify-between gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-slate-100">
+                  <span v-if="orderType === 'market'">{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</span>
+                  <input
+                    v-else
+                    v-model="limitPriceDraft"
+                    type="text"
+                    inputmode="decimal"
+                    :placeholder="t('가격을 입력하세요', 'Enter price')"
+                    class="w-full bg-transparent font-mono text-slate-100 outline-none placeholder:text-slate-500"
+                  />
                   <span class="text-slate-400">USDT</span>
                 </div>
               </div>
@@ -822,7 +860,7 @@
                 <button
                   type="button"
                   class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="isTradeSyncing || openClickCooldown"
+                  :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('long')"
                 >
                   {{ t('구매 / 롱', 'Buy / Long') }}
@@ -832,11 +870,19 @@
                 <button
                   type="button"
                   class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-[15px] font-semibold text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="isTradeSyncing || openClickCooldown"
+                  :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('short')"
                 >
                   {{ t('판매 / 숏', 'Sell / Short') }}
                 </button>
+              </div>
+            </div>
+
+            <div v-if="pendingLimitOpenOrders.length" class="space-y-1 rounded-md bg-white/[0.04] p-2 text-[12px] text-amber-300">
+              <div class="text-[11px] text-slate-400">{{ t('대기 중인 지정가 주문', 'Pending limit orders') }}</div>
+              <div v-for="o in pendingLimitOpenOrders" :key="o.id" class="flex items-center justify-between gap-2">
+                <span class="font-mono">{{ o.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }} {{ fmtPrice(o.price) }} · {{ o.percent }}% · x{{ o.leverage }}</span>
+                <button type="button" class="rounded px-1 text-slate-300 hover:bg-white/10 hover:text-white" :title="t('주문 취소', 'Cancel order')" @click="cancelLimitOpen(o.id)">✕</button>
               </div>
             </div>
 
@@ -852,19 +898,16 @@
             <div class="mt-3">
               <div class="text-[13px] text-slate-400">{{ t('보유자산(증거금포함)', 'Holdings (incl. margin)') }}</div>
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ totalAssetsDisplay }} USDT</div>
-              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ totalAssetsWonText }} {{ t('원', 'KRW') }}</div>
             </div>
 
             <div class="mt-3">
               <div class="text-[13px] text-slate-400">{{ t('매매포지션(증거금)', 'Position Margin') }}</div>
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ positionsMarginDisplay }} USDT</div>
-              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ positionsMarginWonText }} {{ t('원', 'KRW') }}</div>
             </div>
 
             <div class="mt-4">
               <div class="text-[13px] text-slate-400">{{ t('사용가능 금액', 'Available Balance') }}</div>
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ balanceDisplay }} USDT</div>
-              <div class="mt-0.5 font-mono text-[13px] text-slate-500">{{ availableWonText }} {{ t('원', 'KRW') }}</div>
             </div>
           </div>
         </div>
@@ -1835,7 +1878,7 @@ const timeframeOptions = computed(() => [
 ])
 const chartMode = ref<'built'>('built')
 // 요구사항: 주문 UI는 시장가만 사용(지정가/예약 삭제)
-const orderType = ref<'market'>('market')
+const orderType = ref<'market' | 'limit'>('market')
 // 요구사항: 포지션테이블에서 지정가/예약 탭 삭제
 const bottomTab = ref<'positions' | 'fills'>('positions')
 
@@ -2050,6 +2093,19 @@ const positionEditModal = reactive<{
   value: '',
   saving: false
 })
+// 주문 방식(시장가/지정가)과 마진 모드(격리/교차)
+const limitPriceDraft = ref('')
+const marginMode = ref<'isolated' | 'cross'>('isolated')
+const isCross = computed(() => marginMode.value === 'cross')
+const limitPriceValid = computed(() => {
+  const n = Number(String(limitPriceDraft.value).replace(/,/g, ''))
+  return Number.isFinite(n) && n > 0
+})
+// 교차 마진에서 증거금 외에 손실에 쓸 수 있는 사용가능 잔고
+const crossAvail = () => Math.max(0, Number(balance.value || 0))
+// 대기 중인 지정가 "진입" 주문: 롱은 현재가가 지정가 이하로 내려오면, 숏은 이상으로 올라오면 그 가격으로 진입한다.
+type LimitOpenOrder = { id: string; symbol: string; side: 'long' | 'short'; price: number; percent: number; leverage: number; createdAt: string; fail?: number }
+const limitOpenOrders = ref<LimitOpenOrder[]>([])
 // 지정가 청산 주문: 포지션을 지정한 가격(롱=그 가격 이상, 숏=그 가격 이하)에 도달하면 그 가격으로 청산한다.
 // 주문은 이 기기(브라우저)에 저장되고, 차트 화면이 열려 있는 동안 시세를 보다가 도달하면 실행된다.
 type LimitCloseOrder = { id: string; positionId: number; symbol: string; side: 'long' | 'short'; price: number; qty: number; createdAt: string; fail?: number }
@@ -2878,6 +2934,7 @@ async function refreshMarks() {
     updateEntryBadges()
     await checkAutoLiquidations().catch(() => {})
     await checkLimitCloseOrders().catch(() => {})
+    await checkLimitOpenOrders().catch(() => {})
     checkPositionAlarms()
   } finally {
     markPolling = false
@@ -3055,7 +3112,8 @@ async function processPendingCloseJob(positionId: number) {
         positionId: job.positionId,
         // 클릭 순간 가격을 끝까지 유지
         exitPrice: job.exitPrice,
-        liquidation: Boolean(job.liquidation)
+        liquidation: Boolean(job.liquidation),
+        ...((job as any).cross ? { cross: true } : {})
       }
     })
     // 요구사항: 내부 처리. 사용자에게 "청산 완료" 같은 토스트/문구를 추가로 노출하지 않음.
@@ -4700,6 +4758,15 @@ function calcLiqPrice(p: any) {
   const lev = Number(p.leverage || 1)
   if (!Number.isFinite(entry) || !Number.isFinite(lev) || lev <= 0) return 0
   // 관리자 설정 ROE(기본 -40%)에서 전액 강제청산 기준
+  if (isCross.value) {
+    // 교차: 증거금 + 사용가능 잔고만큼 손실이 나는 가격
+    const qty = Number(p.qty)
+    const net = netMarginFromGross(Number(p.margin || 0))
+    if (Number.isFinite(qty) && qty > 0 && net > 0) {
+      const room = (net + crossAvail()) / qty
+      return p.side === 'short' ? entry + room : Math.max(0, entry - room)
+    }
+  }
   if (p.side === 'short') return entry * (1 + LIQUIDATION_TRIGGER_FRACTION / lev)
   return entry * (1 - LIQUIDATION_TRIGGER_FRACTION / lev)
 }
@@ -4718,6 +4785,12 @@ function unrealized(p: any) {
   const raw = (mark - entry) * qty
   const pnl = p.side === 'short' ? -raw : raw
   const roeRaw = (pnl / margin) * 100
+  if (isCross.value) {
+    // 교차: 손실이 증거금 + 사용가능 잔고를 넘을 때만 전액 손실(그 전에는 ROE가 -40%를 넘어도 유지)
+    const floor = -(margin + crossAvail())
+    if (pnl <= floor) return { pnl: floor, roe: (floor / margin) * 100 }
+    return { pnl, roe: roeRaw }
+  }
   const hitLiquidation = roeRaw <= LIQUIDATION_TRIGGER_ROE
   const roe = hitLiquidation ? LIQUIDATION_TRIGGER_ROE : roeRaw
   const pnlClamped = hitLiquidation ? -margin : pnl
@@ -4871,6 +4944,7 @@ const KR_STOCK_TICKERS = new Set(['SAMSUNG', 'SKHYNIX', 'SKHY', 'EWY', 'KORU', '
 const isKrStockSymbol = computed(() => KR_STOCK_TICKERS.has(baseCoin(symbol.value)))
 
 const entryCalcPrice = computed(() => {
+  if (orderType.value === 'limit' && limitPriceValid.value) return Number(String(limitPriceDraft.value).replace(/,/g, ''))
   return lastPrice.value ?? 0
 })
 
@@ -6666,13 +6740,16 @@ async function executeLimitClose(order: LimitCloseOrder) {
     const full = qty >= posQty * 0.99999
     const entry = Number(pos.entry_price || 0)
     const isShort = pos.side === 'short'
+    // 지정가보다 유리한 현재가면 현재가로 체결한다(롱 청산=높은 쪽, 숏 청산=낮은 쪽).
+    const mk = Number(markOf(order.symbol) || 0)
+    const fillPrice = mk > 0 ? (isShort ? Math.min(order.price, mk) : Math.max(order.price, mk)) : order.price
     const grossPart = Number(pos.margin || 0) * (qty / posQty)
     const netPart = netMarginFromGross(grossPart)
-    let pnl = (order.price - entry) * qty * (isShort ? -1 : 1)
-    if (netPart > 0) pnl = Math.max(-netPart, pnl)
+    let pnl = (fillPrice - entry) * qty * (isShort ? -1 : 1)
+    if (netPart > 0) pnl = Math.max(isCross.value ? -(netPart + crossAvail()) : -netPart, pnl)
     await $fetch('/api/trade/close', {
       method: 'POST',
-      body: { positionId: Number(pos.id), exitPrice: order.price, ...(full ? {} : { qty }) }
+      body: { positionId: Number(pos.id), exitPrice: fillPrice, ...(full ? {} : { qty }), ...(isCross.value ? { cross: true } : {}) }
     })
     cancelLimitClose(order.positionId)
     const roe = netPart > 0 ? (pnl / netPart) * 100 : 0
@@ -6681,7 +6758,7 @@ async function executeLimitClose(order: LimitCloseOrder) {
       side: isShort ? 'short' : 'long',
       leverage: Number(pos.leverage || 1),
       entryPrice: entry,
-      exitPrice: order.price,
+      exitPrice: fillPrice,
       pnl,
       roe: Math.max(LIQUIDATION_TRIGGER_ROE, roe),
       wonText: Math.round(pnl * (limitKrwRate.value > 0 ? limitKrwRate.value : 1350)).toLocaleString()
@@ -6722,6 +6799,15 @@ async function checkAutoLiquidations() {
     if (autoLiquidatingIds.value.includes(id)) return false
     if (pendingCloseJobIds.value.includes(id)) return false
     if (hiddenClosingPositionIds.value.includes(id)) return false
+    if (isCross.value) {
+      const margin = netMarginFromGross(Number(p.margin || 0))
+      const mark = Number(markOf(p.symbol) || 0)
+      const entry = Number(p.entry_price || 0)
+      const qty = Number(p.qty || 0)
+      if (!(mark > 0 && entry > 0 && qty > 0 && margin > 0)) return false
+      const raw = (mark - entry) * qty
+      return (p.side === 'short' ? -raw : raw) <= -(margin + crossAvail())
+    }
     return unrealized(p).roe <= LIQUIDATION_TRIGGER_ROE
   })
 
@@ -7036,8 +7122,113 @@ async function onOpen(s: 'long' | 'short') {
     openClickCooldown.value = false
   }, TRADE_CLICK_COOLDOWN_MS)
   await new Promise((resolve) => setTimeout(resolve, TRADE_CLICK_COOLDOWN_MS))
+  if (orderType.value === 'limit') {
+    placeLimitOpen(s)
+    return
+  }
   side.value = s
   await openPosition()
+}
+
+// ----- 주문 방식 / 마진 모드 / 지정가 진입 주문 -----
+function marginModeStorageKey() {
+  return `ktx_margin_mode:${Number((me.value as any)?.id || 0)}`
+}
+function limitOpenStorageKey() {
+  return `ktx_limit_open_orders:${Number((me.value as any)?.id || 0)}`
+}
+function loadOrderPanelPrefs() {
+  if (!process.client) return
+  try {
+    marginMode.value = localStorage.getItem(marginModeStorageKey()) === 'cross' ? 'cross' : 'isolated'
+  } catch {}
+  try {
+    const arr = JSON.parse(localStorage.getItem(limitOpenStorageKey()) || '[]')
+    limitOpenOrders.value = Array.isArray(arr) ? arr.filter((o: any) => o && Number(o.price) > 0 && o.symbol) : []
+  } catch {
+    limitOpenOrders.value = []
+  }
+}
+function saveLimitOpenOrders() {
+  if (!process.client) return
+  try {
+    localStorage.setItem(limitOpenStorageKey(), JSON.stringify(limitOpenOrders.value))
+  } catch {}
+}
+function toggleMarginMode() {
+  // 거래소처럼 포지션이 있는 동안에는 격리/교차를 바꿀 수 없다.
+  if (positions.value.length) {
+    error.value = t('보유 포지션이 있을 때는 격리/교차를 바꿀 수 없습니다.', 'You cannot switch Isolated/Cross while you hold positions.')
+    return
+  }
+  error.value = null
+  marginMode.value = marginMode.value === 'cross' ? 'isolated' : 'cross'
+  try {
+    localStorage.setItem(marginModeStorageKey(), marginMode.value)
+  } catch {}
+  tradeMsg.value =
+    marginMode.value === 'cross'
+      ? t('교차 마진: 손실이 증거금과 사용가능 잔고를 함께 사용합니다.', 'Cross margin: losses can use your margin and available balance.')
+      : t('격리 마진: 손실은 해당 포지션 증거금까지만입니다.', 'Isolated margin: losses are limited to the position margin.')
+}
+function setOrderType(t0: 'market' | 'limit') {
+  orderType.value = t0
+  error.value = null
+  tradeMsg.value = null
+  // 지정가로 바꾸면 구매가격을 비워두고, 가격을 쓴 뒤에 롱/숏 버튼이 활성화된다.
+  if (t0 === 'limit') limitPriceDraft.value = ''
+}
+const pendingLimitOpenOrders = computed(() => limitOpenOrders.value.filter((o) => String(o.symbol).toUpperCase() === String(symbol.value).toUpperCase()))
+function cancelLimitOpen(id: string) {
+  limitOpenOrders.value = limitOpenOrders.value.filter((o) => o.id !== id)
+  saveLimitOpenOrders()
+}
+function placeLimitOpen(s: 'long' | 'short') {
+  const price = Number(String(limitPriceDraft.value).replace(/,/g, ''))
+  if (!Number.isFinite(price) || price <= 0) {
+    error.value = t('구매가격을 입력해주세요.', 'Please enter a price.')
+    return
+  }
+  const wantPercent = Math.max(0, Math.min(100, Number(percent.value || 0)))
+  if (!(wantPercent > 0)) {
+    error.value = t('비중을 1~100%로 설정해주세요.', 'Please set the ratio between 1 and 100%.')
+    return
+  }
+  error.value = null
+  const order: LimitOpenOrder = {
+    id: `lo-${Date.now()}`,
+    symbol: String(symbol.value),
+    side: s,
+    price,
+    percent: wantPercent,
+    leverage: Math.max(1, Math.min(100, Math.round(Number(leverage.value || 1)))),
+    createdAt: new Date().toISOString()
+  }
+  limitOpenOrders.value = limitOpenOrders.value.concat([order])
+  saveLimitOpenOrders()
+  tradeMsg.value = t('지정가 주문이 등록되었습니다. 가격에 도달하면 체결됩니다.', 'Limit order placed. It fills when the price is reached.')
+  checkLimitOpenOrders().catch(() => {})
+}
+let executingLimitOpen = false
+async function checkLimitOpenOrders() {
+  if (executingLimitOpen || !limitOpenOrders.value.length || isTradeSyncing.value) return
+  const cur = Number(lastPrice.value || 0)
+  if (!(cur > 0)) return
+  const order = limitOpenOrders.value.find((o) => {
+    if (String(o.symbol).toUpperCase() !== String(symbol.value).toUpperCase()) return false
+    return o.side === 'short' ? cur >= o.price : cur <= o.price
+  })
+  if (!order) return
+  executingLimitOpen = true
+  try {
+    // 체결: 주문을 지우고 그 가격으로 진입(롱/숏 방향, 비중, 레버리지는 주문 때 값)
+    limitOpenOrders.value = limitOpenOrders.value.filter((o) => o.id !== order.id)
+    saveLimitOpenOrders()
+    const fillPrice = order.side === 'short' ? Math.max(order.price, cur) : Math.min(order.price, cur)
+    await openPosition({ side: order.side, price: fillPrice, percent: order.percent, leverage: order.leverage })
+  } finally {
+    executingLimitOpen = false
+  }
 }
 
 async function onClosePositionClick(positionId: number, pos: any) {
@@ -7050,19 +7241,22 @@ async function onClosePositionClick(positionId: number, pos: any) {
   await closePosition(positionId, 'market', pos)
 }
 
-async function openPosition() {
+async function openPosition(ov?: { side: 'long' | 'short'; price: number; percent: number; leverage: number }) {
   if (!me.value) return
+  // 지정가 주문이 체결될 때는 주문에 적어둔 방향/가격/비중/레버리지로 진입한다.
+  const sideV = ov?.side ?? side.value
+  const levV = ov?.leverage ?? leverage.value
 
   // 비중(%) 자체의 유효성만 먼저 확인한다. 실제 USDT 금액(wantMargin)은 반대 포지션을
   // 정산해서 잔고에 반영한 "이후"에 다시 계산해야, 롱 50%로 잡고 있다가 숏으로 전환할 때
   // 잔고가 반토막난 상태(청산 전 가용잔고) 기준으로 계산돼서 절반(25%)만 잡히는 문제가 없다.
-  const wantPercent = Math.max(0, Math.min(100, Number(percent.value || 0)))
+  const wantPercent = Math.max(0, Math.min(100, Number(ov?.percent ?? percent.value ?? 0)))
   if (!Number.isFinite(wantPercent) || wantPercent <= 0) {
     error.value = t('비중을 1~100%로 설정해주세요.', 'Please set the ratio between 1 and 100%.')
     return
   }
 
-  const price = Number(entryCalcPrice.value)
+  const price = ov ? Number(ov.price) : Number(entryCalcPrice.value)
   if (!Number.isFinite(price) || price <= 0) {
     error.value = t('가격 정보를 가져올 수 없습니다.', 'Unable to retrieve price information.')
     return
@@ -7076,14 +7270,14 @@ async function openPosition() {
   // 2) 같은 방향으로 추가 진입하면 새 포지션이 아니라 기존 포지션에 합산(가중평균 평단)
   const prevBalance = Number(balance.value || 0)
   const prevPositions = positions.value.map((p: any) => ({ ...p }))
-  const openKey = pendingOpenKey(String(symbol.value), side.value)
+  const openKey = pendingOpenKey(String(symbol.value), sideV)
 
   // 현재 심볼에서 기존 포지션(1개 기준)
   const existingIdx = positions.value.findIndex((p: any) => String(p.symbol) === String(symbol.value))
   const existing = existingIdx >= 0 ? positions.value[existingIdx] : null
 
   // 2) 반대 포지션이면, 클릭 순간 가격으로 기존 포지션을 즉시 정산하고 제거(내부적으로는 서버가 최종 확정)
-  if (existing && String(existing.side) !== String(side.value)) {
+  if (existing && String(existing.side) !== String(sideV)) {
     const entry0 = Number(existing.entry_price || 0)
     const qty0 = Number(existing.qty || 0)
     const gross0 = Number(existing.margin || 0)
@@ -7132,8 +7326,8 @@ async function openPosition() {
   }
 
   // 4) 같은 방향이면 합산(가중평균), 아니면 새 포지션 생성
-  const mergeTarget = positions.value.find((p: any) => String(p.symbol) === String(symbol.value) && String(p.side) === String(side.value))
-  const leverageForQty = mergeTarget ? Number(mergeTarget.leverage || 1) : Number(leverage.value || 1)
+  const mergeTarget = positions.value.find((p: any) => String(p.symbol) === String(symbol.value) && String(p.side) === String(sideV))
+  const leverageForQty = mergeTarget ? Number(mergeTarget.leverage || 1) : Number(levV || 1)
   const qtyNew = (usedNet * leverageForQty) / price
 
   let tempId: number | null = null
@@ -7154,10 +7348,10 @@ async function openPosition() {
     optimisticPositionSnapshot = {
       id: tempId,
       symbol: symbol.value,
-      side: side.value,
+      side: sideV,
       qty: qtyNew,
       entry_price: price,
-      leverage: Number(leverage.value || 1),
+      leverage: Number(levV || 1),
       margin: usedGross,
       created_at: new Date().toISOString(),
       _optimistic: true
@@ -7169,7 +7363,7 @@ async function openPosition() {
     upsertPendingOpenJob({
       key: openKey,
       symbol: String(symbol.value),
-      side: side.value,
+      side: sideV,
       optimisticPosition: { ...optimisticPositionSnapshot },
       createdAt: new Date().toISOString()
     })
@@ -7185,10 +7379,10 @@ async function openPosition() {
       method: 'POST',
       body: {
         symbol: symbol.value,
-        side: side.value,
+        side: sideV,
         // 서버도 동일 정책 적용: margin은 사용자가 투입한 금액(gross)
         margin: usedGross,
-        leverage: leverage.value,
+        leverage: levV,
         // 요구사항: 누르는 순간의 가격으로 서버에도 동일하게 반영
         price
       }
@@ -7207,7 +7401,7 @@ async function openPosition() {
         }
       })
       .catch(() => {})
-    percent.value = 100
+    if (!ov) percent.value = 100
   } catch (e: any) {
     // 실패 시 낙관적 업데이트 롤백
     removePendingOpenJob(openKey)
@@ -7243,7 +7437,7 @@ async function closePosition(
       const net0 = netMarginFromGross(gross0)
       // 강제청산 하한: 최대 손실은 net(매수 수수료 제외 후 실제 진입금) 100%
       if (Number.isFinite(net0) && net0 > 0) {
-        pnlCalc = Math.max(-net0, pnlCalc)
+        pnlCalc = Math.max(isCross.value ? -(net0 + crossAvail()) : -net0, pnlCalc)
       }
       const roeCalc = net0 > 0 ? (pnlCalc / net0) * 100 : 0
       if (!suppressSummary) {
@@ -7272,9 +7466,10 @@ async function closePosition(
       const gross0 = Number(removed.margin ?? 0)
       const pnl0 = Number(pnlCalc || 0)
       const net0 = netMarginFromGross(gross0)
-      const pnlClamped = Number.isFinite(net0) && net0 > 0 ? Math.max(-net0, pnl0) : pnl0
+      const pnlClamped = Number.isFinite(net0) && net0 > 0 ? Math.max(isCross.value ? -(net0 + crossAvail()) : -net0, pnl0) : pnl0
       const { settlementAfterFee } = calcSettlementAfterFee(gross0, pnlClamped)
-      balance.value = Math.max(0, Number(balance.value || 0) + settlementAfterFee)
+      const settle = isCross.value ? net0 + pnlClamped - (gross0 > 0 ? gross0 * TRADE_FEE_RATE : 0) : settlementAfterFee
+      balance.value = Math.max(0, Number(balance.value || 0) + settle)
     }
 
     // 내부 재시도 큐에 넣고(클릭 순간 가격을 고정) 처리
@@ -7290,9 +7485,10 @@ async function closePosition(
         qty: Number(removed.qty || 0),
         margin: Number(removed.margin || 0),
         liquidation: Boolean(isLiquidation),
+        cross: isCross.value,
         createdAt: new Date().toISOString(),
         retryCount: 0
-      })
+      } as any)
       // 즉시 한 번 처리하고 실패하면 백오프 재시도
       processPendingCloseJob(Number(removed.id)).catch(() => {
         schedulePendingCloseRetry(Number(removed.id), 1500)
@@ -7335,7 +7531,10 @@ watch(
 
 watch(
   () => (me.value as any)?.id,
-  () => loadLimitCloseOrders(),
+  () => {
+    loadLimitCloseOrders()
+    loadOrderPanelPrefs()
+  },
   { immediate: true }
 )
 
@@ -7391,6 +7590,7 @@ watch(
     updateEntryBadges()
     checkAutoLiquidations().catch(() => {})
     checkLimitCloseOrders().catch(() => {})
+    checkLimitOpenOrders().catch(() => {})
     checkPositionAlarms()
   }
 )

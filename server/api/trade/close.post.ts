@@ -15,7 +15,9 @@ const BodySchema = z.object({
   // 자동 강제청산(시스템) 여부: 거래내역에서 "청산/강제청산" 구분용
   liquidation: z.boolean().optional(),
   // 지정가 청산 등으로 포지션의 일부만 청산할 때의 수량(없거나 포지션 수량 이상이면 전량 청산)
-  qty: z.number().positive().optional()
+  qty: z.number().positive().optional(),
+  // 교차(cross) 마진 모드: 손실이 증거금뿐 아니라 사용가능 잔고까지 쓸 수 있다(증거금+잔고를 넘으면 전액 손실)
+  cross: z.boolean().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -73,13 +75,12 @@ export default defineEventHandler(async (event) => {
     const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
     const gross = partial ? grossTotal * (closeQty / posQty) : grossTotal
     const net = netMarginFromGross(gross)
-    // 관리자 설정 ROE 도달 시 전액 강제청산(증거금 전액 손실)
-    const pnl = clampPnlToLiquidation(pnlUnclamped, net)
-
     const balRow = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })
     const usdt = Number(balRow?.usdt ?? 0)
-    const { settlementAfterFee } = calcSettlementAfterFee(gross, pnl)
-    const newUsdt = usdt + settlementAfterFee
+    // 격리: 관리자 설정 ROE 도달 시 전액 강제청산(증거금 전액 손실). 교차: 증거금 + 사용가능 잔고까지 손실 가능.
+    const pnl = body.cross ? Math.max(pnlUnclamped, -(net + usdt)) : clampPnlToLiquidation(pnlUnclamped, net)
+    const settlementAfterFee = body.cross ? net + pnl - (gross > 0 ? gross * FEE_RATE : 0) : calcSettlementAfterFee(gross, pnl).settlementAfterFee
+    const newUsdt = Math.max(0, usdt + settlementAfterFee)
 
     // 포지션 제거(일부 청산이면 남은 수량/증거금으로 갱신)
     const supa = getSupabaseAdminClient()
@@ -146,12 +147,14 @@ export default defineEventHandler(async (event) => {
   const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
   const gross = partial ? grossTotal * (closeQty / posQty) : grossTotal
   const net = netMarginFromGross(gross)
-  const pnl = clampPnlToLiquidation(pnlUnclamped, net)
-  const { settlementAfterFee } = calcSettlementAfterFee(gross, pnl)
-
-  // 잔고: 증거금 반환 + 손익 반영
   db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(user.id, 0)
-  db.prepare('UPDATE balances SET usdt = usdt + ? WHERE user_id = ?').run(settlementAfterFee, user.id)
+  const balBefore = db.prepare('SELECT usdt FROM balances WHERE user_id = ?').get(user.id) as any
+  const usdtBefore = Number(balBefore?.usdt ?? 0)
+  const pnl = body.cross ? Math.max(pnlUnclamped, -(net + usdtBefore)) : clampPnlToLiquidation(pnlUnclamped, net)
+  const settlementAfterFee = body.cross ? net + pnl - (gross > 0 ? gross * FEE_RATE : 0) : calcSettlementAfterFee(gross, pnl).settlementAfterFee
+
+  // 잔고: 증거금 반환 + 손익 반영(0 미만으로는 내려가지 않음)
+  db.prepare('UPDATE balances SET usdt = MAX(0, usdt + ?) WHERE user_id = ?').run(settlementAfterFee, user.id)
 
   if (partial) {
     db.prepare('UPDATE positions SET qty = ?, margin = ? WHERE id = ? AND user_id = ?').run(posQty - closeQty, grossTotal - gross, pos.id, user.id)
