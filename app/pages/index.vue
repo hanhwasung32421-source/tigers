@@ -29,27 +29,27 @@
 
           <div class="mt-12 text-[16px] text-slate-400"><BrandText :text="t(`${appName} 앱 다운로드`, `Download ${appName} APP`)" /></div>
           <div class="mt-4 flex items-center gap-3">
-            <NuxtLink :to="appButtonTarget" aria-label="Google Play" class="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#0c1522] hover:brightness-95">
+            <a href="#" aria-label="Google Play" @click.prevent="onAppButton" class="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#0c1522] hover:brightness-95">
               <svg viewBox="0 0 24 24" class="h-7 w-7" aria-hidden="true">
                 <path fill="#00d2ff" d="M3.6 2.3c-.3.3-.5.8-.5 1.4v16.6c0 .6.2 1.1.5 1.4l.1.1 9.3-9.3v-.2L3.7 2.2z" />
                 <path fill="#ffce00" d="m16.1 15.4-3.1-3.1v-.2l3.1-3.1.1.1 3.7 2.1c1 .6 1 1.6 0 2.2l-3.7 2z" />
                 <path fill="#f43d54" d="m16.2 15.3-3.2-3.2-9.4 9.4c.4.4.9.4 1.6.1l11-6.3" />
                 <path fill="#00e07d" d="M16.2 8.9 5.2 2.6c-.7-.4-1.2-.3-1.6.1l9.4 9.4 3.2-3.2z" />
               </svg>
-            </NuxtLink>
-            <NuxtLink :to="appButtonTarget" aria-label="App Store" class="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#0c1522] hover:brightness-95">
+            </a>
+            <a href="#" aria-label="App Store" @click.prevent="onAppButton" class="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#0c1522] hover:brightness-95">
               <svg viewBox="0 0 24 24" class="h-7 w-7 text-white" fill="currentColor" aria-hidden="true">
                 <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
               </svg>
-            </NuxtLink>
-            <NuxtLink :to="appButtonTarget" aria-label="QR code" class="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#0c1522] hover:brightness-95">
+            </a>
+            <a href="#" aria-label="QR code" @click.prevent="onAppButton" class="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-[#0c1522] hover:brightness-95">
               <svg viewBox="0 0 24 24" class="h-7 w-7 text-white" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true">
                 <rect x="3.5" y="3.5" width="7" height="7" rx="1" />
                 <rect x="13.5" y="3.5" width="7" height="7" rx="1" />
                 <rect x="3.5" y="13.5" width="7" height="7" rx="1" />
                 <path d="M14 14h2.500v2.500H14zM18 14h2.500M14 18.500h2.500M18 18v2.500h2.500" stroke-linecap="round" />
               </svg>
-            </NuxtLink>
+            </a>
           </div>
         </div>
 
@@ -194,6 +194,15 @@ const { me: landingMe } = useMe()
 // 고객지원 바로가기: 로그인 전에는 로그인 화면으로, 로그인했다면 고객지원(관리자는 쪽지관리)으로 이동한다.
 const supportLinkTarget = computed(() => (!landingMe.value ? '/auth/login' : landingMe.value.role !== 'user' ? '/admin/messages' : '/support'))
 const appButtonTarget = computed(() => (landingMe.value ? '/exchange/SAMSUNGUSDT' : '/auth/login'))
+// 앱 버튼: 로그인 전에는 로그인 화면으로, 로그인한 뒤에는 "27년 2월 출시 예정" 안내를 띄운다.
+const launchNotice = useLaunchNotice()
+function onAppButton() {
+  if (!landingMe.value) {
+    navigateTo('/auth/login')
+    return
+  }
+  launchNotice.show()
+}
 function getStarted() {
   // 회원가입 화면에는 이메일 입력칸이 없어서(아이디 기반) 여기서는 가입 화면으로만 이동한다. 이메일은 주소창/서버로 보내지 않는다.
   navigateTo('/auth/register')

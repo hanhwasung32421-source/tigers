@@ -192,7 +192,7 @@
           <div class="mb-3 font-semibold text-slate-300">{{ t('서비스', 'Services') }}</div>
           <ul class="space-y-2">
             <li><NuxtLink :to="supportTarget" class="hover:text-white" @click="startNavLoading(supportTarget)">{{ t('고객센터', 'Support Center') }}</NuxtLink></li>
-            <li><NuxtLink to="/exchange/SAMSUNGUSDT" class="hover:text-white" @click="startNavLoading('/exchange/SAMSUNGUSDT')">{{ t('앱 설치', 'Install App') }}</NuxtLink></li>
+            <li><a href="#" class="hover:text-white" @click.prevent="onInstallApp">{{ t('앱 설치', 'Install App') }}</a></li>
           </ul>
         </div>
         <div>
@@ -219,6 +219,7 @@
 
     <AdminErrorConsole />
     <GuestChatWidget />
+    <LaunchNotice />
   </div>
 </template>
 
@@ -260,6 +261,16 @@ onBeforeUnmount(() => {
 const isAdmin = computed(() => !!me.value?.role && me.value.role !== 'user')
 // 상단/모바일 메뉴의 "관리자" 항목 표시 여부. 지금은 숨김(false). 다시 보이게 하려면 true로 바꾸면 된다(기능은 그대로 남아 있음).
 const SHOW_ADMIN_MENU = false
+// 하단 메뉴 "앱 설치": 로그인 전에는 로그인 화면으로, 로그인한 뒤에는 출시 예정 안내를 띄운다.
+const launchNotice = useLaunchNotice()
+function onInstallApp() {
+  if (!me.value) {
+    startNavLoading('/auth/login')
+    navigateTo('/auth/login')
+    return
+  }
+  launchNotice.show()
+}
 // 관리자 대시보드(/admin)는 총관리자 전용. 부관리자는 회원 목록으로 바로 이동.
 const adminHomeTarget = computed(() => (me.value?.role === 'super_admin' ? '/admin' : '/admin/members'))
 function canViewAdminMenu(key: string) {
