@@ -35,7 +35,7 @@
                 {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
               </NuxtLink>
             </template>
-            <div v-if="isAdmin" class="group relative">
+            <div v-if="isAdmin && SHOW_ADMIN_MENU" class="group relative">
               <NuxtLink :to="adminHomeTarget" class="whitespace-nowrap rounded-md px-3 py-1.5 hover:bg-cyan-400/10 hover:text-white" @click="startNavLoading(adminHomeTarget)">{{ t('관리자', 'Admin') }}</NuxtLink>
               <div class="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100">
                 <div class="min-w-[160px] rounded-xl border border-cyan-500/10 bg-[#03101d] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
@@ -107,7 +107,7 @@
             {{ t(MAIN_NAV_LABELS[key], MAIN_NAV_LABELS_EN[key]) }}
           </NuxtLink>
 
-          <template v-if="isAdmin">
+          <template v-if="isAdmin && SHOW_ADMIN_MENU">
             <div class="my-2 h-px bg-white/10" />
             <div class="px-3 py-1 text-[13px] font-semibold uppercase tracking-wide text-slate-500">{{ t('관리자', 'Admin') }}</div>
             <NuxtLink :to="adminHomeTarget" class="rounded-md px-3 py-2.5 hover:bg-cyan-400/10 hover:text-white" @click="onMobileNavClick(adminHomeTarget)">
@@ -207,6 +207,8 @@ onBeforeUnmount(() => {
 })
 
 const isAdmin = computed(() => !!me.value?.role && me.value.role !== 'user')
+// 상단/모바일 메뉴의 "관리자" 항목 표시 여부. 지금은 숨김(false). 다시 보이게 하려면 true로 바꾸면 된다(기능은 그대로 남아 있음).
+const SHOW_ADMIN_MENU = false
 // 관리자 대시보드(/admin)는 총관리자 전용. 부관리자는 회원 목록으로 바로 이동.
 const adminHomeTarget = computed(() => (me.value?.role === 'super_admin' ? '/admin' : '/admin/members'))
 function canViewAdminMenu(key: string) {
