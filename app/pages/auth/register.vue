@@ -7,53 +7,70 @@
       <div>
         <label class="text-sm text-slate-300">{{ t('아이디', 'Username') }}<span class="text-rose-400">*</span></label>
         <input
+          id="reg-username"
           v-model.trim="username"
           inputmode="latin"
           autocomplete="off"
           class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          :class="errors.username ? 'reg-field-error' : ''"
         />
-        <p v-if="username && !usernameValid" class="mt-1 text-xs text-rose-400">{{ t('한글은 사용할 수 없습니다', 'Korean characters are not allowed') }}</p>
+        <p v-if="username && !usernameValid && !errors.username" class="mt-1 text-xs text-rose-400">{{ t('한글은 사용할 수 없습니다', 'Korean characters are not allowed') }}</p>
+        <p v-if="errors.username" class="mt-1 text-xs font-medium text-rose-400">{{ errors.username }}</p>
+
       </div>
 
       <div>
         <label class="text-sm text-slate-300">{{ t('이름', 'Name') }}<span class="text-rose-400">*</span></label>
-        <input v-model.trim="name" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
-        <p v-if="name && !nameValid" class="mt-1 text-xs text-rose-400">{{ t('한국어만 사용 가능합니다', 'Only Korean characters are allowed') }}</p>
+        <input id="reg-name" v-model.trim="name" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" :class="errors.name ? 'reg-field-error' : ''" />
+        <p v-if="name && !nameValid && !errors.name" class="mt-1 text-xs text-rose-400">{{ t('한국어만 사용 가능합니다', 'Only Korean characters are allowed') }}</p>
+        <p v-if="errors.name" class="mt-1 text-xs font-medium text-rose-400">{{ errors.name }}</p>
+
       </div>
 
       <div>
         <div class="flex items-center justify-between gap-2">
           <label class="text-sm text-slate-300">{{ t('생년월일 yyyy-mm-dd', 'Date of Birth YYYY-MM-DD') }}<span class="text-rose-400">*</span></label>
-          <span v-if="birthDate && !birthDateValid" class="text-xs text-rose-400">{{ t('날짜가 정확하지 않습니다.', 'The date is not valid.') }}</span>
+          <span v-if="birthDate && !birthDateValid && !errors.birthDate" class="text-xs text-rose-400">{{ t('날짜가 정확하지 않습니다.', 'The date is not valid.') }}</span>
         </div>
         <input
+          id="reg-birthDate"
           v-model="birthDate"
           inputmode="numeric"
           placeholder="YYYY-MM-DD"
           class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+          :class="errors.birthDate ? 'reg-field-error' : ''"
           @input="onBirthInput"
         />
+        <p v-if="errors.birthDate" class="mt-1 text-xs font-medium text-rose-400">{{ errors.birthDate }}</p>
+
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
         <div>
           <label class="text-sm text-slate-300">{{ t('비밀번호', 'Password') }}<span class="text-rose-400">*</span></label>
           <input
+            id="reg-password"
             :value="password"
             type="password"
             class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            :class="errors.password ? 'reg-field-error' : ''"
             @input="onPasswordInput"
           />
-          <p v-if="password && password.length < 4" class="mt-1 text-xs text-rose-400">{{ t('비밀번호는 4글자 이상만 가능합니다', 'Password must be at least 4 characters') }}</p>
+          <p v-if="errors.password" class="mt-1 text-xs font-medium text-rose-400">{{ errors.password }}</p>
+          <p v-if="password && password.length < 4 && !errors.password" class="mt-1 text-xs text-rose-400">{{ t('비밀번호는 4글자 이상만 가능합니다', 'Password must be at least 4 characters') }}</p>
         </div>
         <div>
           <label class="text-sm text-slate-300">{{ t('비밀번호확인', 'Confirm Password') }}<span class="text-rose-400">*</span></label>
           <input
+            id="reg-passwordConfirm"
             :value="passwordConfirm"
             type="password"
             class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500"
+            :class="errors.passwordConfirm ? 'reg-field-error' : ''"
             @input="onPasswordConfirmInput"
           />
+          <p v-if="errors.passwordConfirm" class="mt-1 text-xs font-medium text-rose-400">{{ errors.passwordConfirm }}</p>
+
         </div>
       </div>
 
@@ -61,32 +78,42 @@
         <label class="text-sm text-slate-300">{{ t('은행계좌', 'Bank Account') }}<span class="text-rose-400">*</span></label>
         <div class="mt-1 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
           <input
+            id="reg-bankAccount"
             :key="`bank-account-${locale}`"
             v-model="bankAccount"
             inputmode="numeric"
             :placeholder="t('은행계좌', 'Bank Account')"
             class="w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
+            :class="errors.bankAccount ? 'reg-field-error' : ''"
             @input="onBankAccountInput"
           />
           <select
+            id="reg-bankName"
             v-model="bankName"
             class="w-full rounded-lg bg-black/70 px-3 py-2 text-white outline-none ring-1 ring-white/20 focus:ring-indigo-500"
+            :class="errors.bankName ? 'reg-field-error' : ''"
           >
             <option disabled value="">{{ t('선택(아래화살표)', 'Select (dropdown below)') }}</option>
             <option v-for="bank in banks" :key="bank.ko" :value="bank.ko">{{ t(bank.ko, bank.en) }}</option>
           </select>
         </div>
+        <p v-if="errors.bankAccount" class="mt-1 text-xs font-medium text-rose-400">{{ errors.bankAccount }}</p>
+        <p v-if="errors.bankName" class="mt-1 text-xs font-medium text-rose-400">{{ errors.bankName }}</p>
       </div>
 
       <div>
         <label class="text-sm text-slate-300">{{ t('예금주', 'Account Holder') }}<span class="text-rose-400">*</span></label>
         <input
+          id="reg-accountHolder"
           :key="`account-holder-${locale}`"
           v-model.trim="accountHolder"
           :placeholder="t('예금주를 입력해 주세요', 'Enter the account holder name')"
           class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
+          :class="errors.accountHolder ? 'reg-field-error' : ''"
         />
-        <p v-if="accountHolder && !accountHolderValid" class="mt-1 text-xs text-rose-400">{{ t('한국어만 사용 가능합니다', 'Only Korean characters are allowed') }}</p>
+        <p v-if="accountHolder && !accountHolderValid && !errors.accountHolder" class="mt-1 text-xs text-rose-400">{{ t('한국어만 사용 가능합니다', 'Only Korean characters are allowed') }}</p>
+        <p v-if="errors.accountHolder" class="mt-1 text-xs font-medium text-rose-400">{{ errors.accountHolder }}</p>
+
       </div>
 
       <div>
@@ -94,17 +121,18 @@
         <input v-model.trim="referralCode" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+      <div class="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3" :class="errors.terms ? 'reg-field-error reg-field-error-box' : ''">
         <label class="flex items-center gap-3 text-sm text-slate-200">
-          <input v-model="agreedToTerms" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
+          <input id="reg-terms" v-model="agreedToTerms" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-white/5" />
           <span>{{ t('약관에 동의합니다.', 'I agree to the Terms of Service.') }} <span class="text-rose-400">*</span></span>
           <button type="button" class="text-indigo-300 underline underline-offset-2 hover:text-indigo-200" @click="termsOpen = true">{{ t('이용약관', 'Terms of Service') }}</button>
         </label>
+        <p v-if="errors.terms" class="mt-2 text-xs font-medium text-rose-400">{{ errors.terms }}</p>
       </div>
 
       <button
         class="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-70"
-        :disabled="loading || !canSubmit"
+        :disabled="loading"
       >
         <span v-if="loading" class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
         <span>{{ loading ? t('가입 처리 중...', 'Signing up...') : t('회원가입', 'Sign Up') }}</span>
@@ -178,6 +206,14 @@ const loadingDesc = ref('계정을 만들고 있습니다.')
 const loadingTitleEn = ref('Signing up...')
 const loadingDescEn = ref('Creating your account.')
 
+// 가입 버튼은 항상 눌러볼 수 있고, 누르면 비었거나 틀린 칸을 빨간색으로 표시하고 첫 번째 칸으로 이동한다.
+type FieldKey = 'username' | 'name' | 'birthDate' | 'password' | 'passwordConfirm' | 'bankAccount' | 'bankName' | 'accountHolder' | 'terms'
+const FIELD_ORDER: FieldKey[] = ['username', 'name', 'birthDate', 'password', 'passwordConfirm', 'bankAccount', 'bankName', 'accountHolder', 'terms']
+const errors = reactive<Partial<Record<FieldKey, string>>>({})
+const submitted = ref(false)
+// 서버가 "이미 사용 중"이라고 알려준 아이디(같은 아이디로 다시 가입을 누르면 계속 빨간색으로 표시)
+const takenUsername = ref('')
+
 const banks = [
   { ko: '국민은행', en: 'KB Kookmin Bank' }, { ko: '신한은행', en: 'Shinhan Bank' }, { ko: '우리은행', en: 'Woori Bank' }, { ko: '하나은행', en: 'Hana Bank' },
   { ko: '농협은행', en: 'NH Nonghyup Bank' }, { ko: '기업은행', en: 'IBK Industrial Bank' }, { ko: '카카오뱅크', en: 'Kakao Bank' }, { ko: '토스뱅크', en: 'Toss Bank' },
@@ -242,6 +278,50 @@ const canSubmit = computed(() => {
   if (!accountHolderValid.value) return false
   if (!agreedToTerms.value) return false
   return true
+})
+
+function collectErrors(): Partial<Record<FieldKey, string>> {
+  const out: Partial<Record<FieldKey, string>> = {}
+  const u = username.value.trim()
+  if (!u) out.username = t('아이디를 입력해 주세요.', 'Please enter a username.')
+  else if (!usernameValid.value) out.username = t('아이디는 영문/숫자만 사용할 수 있습니다.', 'Username may only contain letters and numbers.')
+  else if (u.length < 3 || u.length > 20) out.username = t('아이디는 3~20자로 입력해 주세요.', 'Username must be 3-20 characters.')
+  else if (takenUsername.value && u === takenUsername.value) out.username = t('이미 사용 중인 아이디입니다. 다른 아이디를 입력해 주세요.', 'This username is already taken. Please enter a different one.')
+  if (!name.value.trim()) out.name = t('이름을 입력해 주세요.', 'Please enter your name.')
+  else if (!nameValid.value) out.name = t('한국어만 사용 가능합니다', 'Only Korean characters are allowed')
+  if (!birthDate.value.trim()) out.birthDate = t('생년월일을 입력해 주세요.', 'Please enter your date of birth.')
+  else if (!birthDateValid.value) out.birthDate = t('날짜가 정확하지 않습니다.', 'The date is not valid.')
+  if (!password.value) out.password = t('비밀번호를 입력해 주세요.', 'Please enter a password.')
+  else if (password.value.length < 4) out.password = t('비밀번호는 4글자 이상만 가능합니다', 'Password must be at least 4 characters')
+  if (!passwordConfirm.value) out.passwordConfirm = t('비밀번호 확인을 입력해 주세요.', 'Please confirm your password.')
+  else if (!passwordsMatch.value) out.passwordConfirm = t('비밀번호가 일치하지 않습니다.', 'Passwords do not match.')
+  if (!bankAccount.value.trim()) out.bankAccount = t('은행계좌를 입력해 주세요.', 'Please enter your bank account number.')
+  if (!bankName.value) out.bankName = t('은행을 선택해 주세요.', 'Please select your bank.')
+  if (!accountHolder.value.trim()) out.accountHolder = t('예금주를 입력해 주세요.', 'Please enter the account holder name.')
+  else if (!accountHolderValid.value) out.accountHolder = t('한국어만 사용 가능합니다', 'Only Korean characters are allowed')
+  if (!agreedToTerms.value) out.terms = t('약관에 동의해 주세요.', 'Please agree to the Terms of Service.')
+  return out
+}
+
+function applyErrors() {
+  for (const k of FIELD_ORDER) delete errors[k]
+  Object.assign(errors, collectErrors())
+}
+
+function focusField(key: FieldKey) {
+  const el = document.getElementById(`reg-${key}`) as HTMLElement | null
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  try {
+    el.focus({ preventScroll: true })
+  } catch {
+    el.focus()
+  }
+}
+
+// 한 번 가입을 눌러본 뒤에는, 고치는 즉시 해당 칸의 빨간색이 풀리고 아직 틀린 칸만 남는다.
+watch([username, name, birthDate, password, passwordConfirm, bankAccount, bankName, accountHolder, agreedToTerms], () => {
+  if (submitted.value) applyErrors()
 })
 
 function onBankAccountInput(e: Event) {
@@ -349,15 +429,18 @@ function onPasswordConfirmInput(e: Event) {
 }
 
 async function onSubmit() {
-  loading.value = true
   error.value = null
+  submitted.value = true
+  applyErrors()
+  const first = FIELD_ORDER.find((k) => errors[k])
+  if (first) {
+    error.value = t('빨간색으로 표시된 항목을 확인해 주세요.', 'Please check the fields marked in red.')
+    await nextTick()
+    focusField(first)
+    return
+  }
+  loading.value = true
   try {
-    if (!canSubmit.value) {
-      throw new Error(t('필수 항목을 모두 올바르게 입력해 주세요.', 'Please fill in all required fields correctly.'))
-    }
-    if (password.value !== passwordConfirm.value) {
-      throw new Error(t('비밀번호 확인이 일치하지 않습니다.', 'Password confirmation does not match.'))
-    }
     loadingTitle.value = '가입 처리 중입니다...'
     loadingDesc.value = '계정을 생성하고 있습니다.'
     loadingTitleEn.value = 'Signing up...'
@@ -389,7 +472,17 @@ async function onSubmit() {
     loadingDescEn.value = 'Please wait a moment.'
     await navigateTo('/exchange/SAMSUNGUSDT')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || e?.message || t('회원가입에 실패했습니다.', 'Sign up failed.')
+    const status = Number(e?.statusCode || e?.status || e?.response?.status || 0)
+    if (status === 409) {
+      // 아이디 중복: 아이디 칸을 빨간색으로 표시하고 다시 쓰게 한다.
+      takenUsername.value = username.value.trim()
+      applyErrors()
+      error.value = null
+      await nextTick()
+      focusField('username')
+    } else {
+      error.value = e?.data?.statusMessage || e?.message || t('회원가입에 실패했습니다.', 'Sign up failed.')
+    }
   } finally {
     loading.value = false
   }

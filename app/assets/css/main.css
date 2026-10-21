@@ -1724,3 +1724,14 @@ html.theme-native select option {
 html.theme-native select option:disabled {
   color: #9ca3af !important;
 }
+
+/* 회원가입: 비었거나 틀린 칸을 빨간색으로 표시(테마와 상관없이 항상 보이게 !important) */
+html .reg-field-error {
+  box-shadow: 0 0 0 2px #ef4444 !important;
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: #ef4444 !important;
+}
+html .reg-field-error-box {
+  box-shadow: none !important;
+  border: 1px solid #ef4444 !important;
+}
