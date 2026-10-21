@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-2" :class="{ 'font-landing': isKrStockSymbol }">
     <!-- 종목 헤더: 화면 가로 한 줄을 모두 쓰고, 그 아래로 차트/호가/주문이 붙는다 -->
-    <div class="rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)]">
+    <div class="border border-[#2a2e39] bg-[#131722]">
         <!-- 새 헤더: 코인 아이콘 + 종목명(누르면 종목 목록) + 즐겨찾기 + 현재가 + 24시간 통계 -->
         <div class="px-3 py-3">
           <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -75,7 +75,7 @@
         class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,calc((100%-520px)*0.9))_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[calc((100%-626px)*0.9)_280px_330px] xl:justify-start"
       >
       <!-- 차트 -->
-      <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
+      <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden border border-[#2a2e39] bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
         <div class="flex items-center gap-6 border-b border-[#2a2e39] bg-[#131722] px-3 text-[14px]">
           <button
@@ -661,7 +661,7 @@
 
       <!-- 호가(첨부 스타일) -->
       <section
-        class="order-3 min-w-0 self-start rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-2 lg:row-start-1"
+        class="order-3 min-w-0 self-start border border-cyan-500/10 bg-[#06121d] p-3 lg:order-none lg:col-start-2 lg:row-start-1"
         :style="{ height: MATCHED_PANEL_HEIGHT + 'px' }"
       >
         <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
@@ -797,7 +797,7 @@
       </section>
 
       <!-- 보유자산/주문 -->
-      <section class="order-2 min-w-0 rounded-xl border border-cyan-500/10 bg-[#06121d] p-3 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
+      <section class="order-2 min-w-0 border border-cyan-500/10 bg-[#06121d] p-3 lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
         <div v-if="!me" class="text-[15px] text-slate-100">{{ t('주문', 'Order') }}</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
@@ -973,7 +973,7 @@
       </section>
 
     <!-- 하단: 포지션 테이블 -->
-      <section class="order-4 rounded-xl border border-cyan-500/10 bg-[#06121d] p-1.5 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-1 lg:col-span-2 lg:row-start-2">
+      <section class="order-4 border border-cyan-500/10 bg-[#06121d] p-1.5 lg:order-none lg:col-start-1 lg:col-span-2 lg:row-start-2">
       <div class="min-h-[360px]">
         <div class="flex items-center justify-between border-b border-white/10 px-1">
           <div class="flex items-center gap-6">
