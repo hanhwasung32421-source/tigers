@@ -698,12 +698,24 @@
 
       <!-- 호가(첨부 스타일) -->
       <section
-        class="order-3 min-w-0 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-2 lg:row-start-1"
+        class="order-3 flex min-w-0 flex-col overflow-hidden bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-2 lg:row-start-1"
         :style="{ height: panelHeightPx + 'px' }"
       >
         <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
         <div class="ex-rule -mx-3 mb-1 grid min-h-[46px] grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 px-3">
-          <div class="text-[14px] text-slate-100">{{ t('호가', 'Order Book') }}</div>
+          <div class="flex h-[46px] shrink-0 items-center gap-5 whitespace-nowrap text-[14px]">
+            <button
+              v-for="tb in obTabs"
+              :key="tb.id"
+              type="button"
+              class="relative flex h-full items-center transition"
+              :class="obTab === tb.id ? 'text-white' : 'text-[#868993] hover:text-[#d1d4dc]'"
+              @click="selectObTab(tb.id)"
+            >
+              {{ tb.label }}
+              <span v-if="obTab === tb.id" class="ex-yellow absolute inset-x-0 bottom-0 h-[2px]" />
+            </button>
+          </div>
           <template v-if="isSuperAdminUser">
             <template v-for="(pa, pi) in priceAlarms" :key="pa.id">
               <div v-if="pi > 0" />
@@ -772,6 +784,7 @@
           </template>
         </div>
 
+        <template v-if="obTab === 'book'">
         <div class="grid grid-cols-3 gap-2 pb-1 text-[13px] text-slate-500">
           <div>{{ t('가격', 'Price') }}</div>
           <div class="text-right">{{ t('수량', 'Quantity') }}</div>
@@ -823,6 +836,22 @@
             </div>
           </div>
         </div>
+        </template>
+        <template v-else>
+          <div class="grid grid-cols-3 gap-2 pb-1 text-[13px] text-slate-500">
+            <div>{{ t('가격', 'Price') }}(USDT)</div>
+            <div class="text-right">{{ t('수량', 'Amount') }}</div>
+            <div class="text-right">{{ t('시간', 'Time') }}</div>
+          </div>
+          <div class="-mx-3 min-h-0 flex-1 overflow-y-auto px-3">
+            <div v-if="recentTrades.length === 0" class="py-8 text-center text-[13px] text-slate-500">—</div>
+            <div v-for="tr in recentTrades" :key="tr.id" class="grid h-6 grid-cols-3 items-center gap-2 text-[12px]" :class="tr.buy ? 'text-[#22ab94]' : 'text-[#f23645]'">
+              <div>{{ fmtPrice(tr.price) }}</div>
+              <div class="text-right">{{ fmtTradeQty(tr.qty) }}</div>
+              <div class="text-right text-slate-300">{{ fmtTradeClock(tr.ts) }}</div>
+            </div>
+          </div>
+        </template>
       </section>
 
       <!-- 보유자산/주문 -->
@@ -3175,6 +3204,67 @@ function toggleChartGrid() {
   chart?.applyOptions({ grid: { horzLines: { visible: showGrid.value } } })
 }
 // 차트 위 범례(OHLCV): 마우스가 가리키는 봉이 있으면 그 봉, 없으면 마지막 봉
+// 호가 칸 탭(호가 / 최근 체결). 최근 체결은 이 탭이 열려 있는 동안 1초마다 가져오고, 최근 1분 것만 남긴다.
+const obTab = ref<'book' | 'trades'>('book')
+const obTabs = computed(() => [
+  { id: 'book' as const, label: t('호가', 'Order Book') },
+  { id: 'trades' as const, label: t('최근 체결', 'Latest Trades') }
+])
+type TradeRow = { id: string; price: number; qty: number; buy: boolean; ts: number }
+const recentTrades = ref<TradeRow[]>([])
+const TRADES_WINDOW_MS = 60_000
+let tradesTimer: any = null
+let tradesBusy = false
+async function pollTrades() {
+  if (tradesBusy || obTab.value !== 'trades') return
+  tradesBusy = true
+  const sym = symbol.value
+  try {
+    const rows = await $fetch<TradeRow[]>('/api/markets/trades', { query: { symbol: sym } })
+    if (sym !== symbol.value || !Array.isArray(rows)) return
+    const cutoff = Date.now() - TRADES_WINDOW_MS
+    const seen = new Set<string>()
+    const merged: TradeRow[] = []
+    for (const r of rows.concat(recentTrades.value)) {
+      if (!r || seen.has(r.id) || !(r.ts >= cutoff)) continue
+      seen.add(r.id)
+      merged.push(r)
+    }
+    merged.sort((a, b) => b.ts - a.ts)
+    recentTrades.value = merged
+  } catch {
+    // 일시적 실패는 다음 주기에 다시 시도
+  } finally {
+    tradesBusy = false
+  }
+}
+function startTradesPolling() {
+  stopTradesPolling()
+  pollTrades()
+  tradesTimer = setInterval(pollTrades, 1000)
+}
+function stopTradesPolling() {
+  if (tradesTimer) clearInterval(tradesTimer)
+  tradesTimer = null
+}
+function selectObTab(id: 'book' | 'trades') {
+  obTab.value = id
+  if (id === 'trades') startTradesPolling()
+  else stopTradesPolling()
+}
+watch(
+  () => symbol.value,
+  () => {
+    recentTrades.value = []
+    if (obTab.value === 'trades') startTradesPolling()
+  }
+)
+const fmtTradeQty = (q: number) => String(Number(Number(q).toFixed(6)))
+function fmtTradeClock(ts: number) {
+  const d = new Date(ts)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
 const hoverBar = ref<null | { open: number; high: number; low: number; close: number; volume: number }>(null)
 const ohlcLegend = computed(() => {
   const h = hoverBar.value
@@ -8055,6 +8145,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   if (overviewTimer) clearInterval(overviewTimer)
   if (lastTagTimer) clearInterval(lastTagTimer)
+  stopTradesPolling()
   window.removeEventListener('resize', onWindowResizeForChartHeight)
   stopAlarmLoop()
   chartResizeObserver?.disconnect()
