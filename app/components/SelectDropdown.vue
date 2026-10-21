@@ -1,13 +1,16 @@
 <template>
   <div ref="root" class="relative inline-block">
-    <button
-      type="button"
-      class="flex items-center gap-2 rounded-md bg-slate-950/60 px-3 py-1 text-xs text-slate-100 ring-1 ring-emerald-400/40 hover:bg-slate-950/75"
-      @click="toggle"
-    >
-      <span class="truncate">{{ selectedLabel }}</span>
-      <span class="text-slate-300">▼</span>
-    </button>
+    <!-- trigger 슬롯으로 열기 버튼 모양을 바꿀 수 있다(기본은 아래 버튼) -->
+    <slot name="trigger" :toggle="toggle" :open="open" :label="selectedLabel">
+      <button
+        type="button"
+        class="flex items-center gap-2 rounded-md bg-slate-950/60 px-3 py-1 text-xs text-slate-100 ring-1 ring-emerald-400/40 hover:bg-slate-950/75"
+        @click="toggle"
+      >
+        <span class="truncate">{{ selectedLabel }}</span>
+        <span class="text-slate-300">▼</span>
+      </button>
+    </slot>
 
     <div
       v-if="open"

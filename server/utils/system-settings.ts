@@ -232,7 +232,7 @@ function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_
       // 배경 그림: 빈 문자열이면 삭제, 작게 줄인 png/jpeg/webp data URL만 허용(크기 제한)
       if (typeof v === 'string') {
         if (v === '') (next as any)[key] = ''
-        else if (v.length <= 400000 && /^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) (next as any)[key] = v
+        else if (v.length <= 400000 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) (next as any)[key] = v
       }
     } else if (def.kind === 'offsets') {
       if (v && typeof v === 'object') {

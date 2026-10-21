@@ -9,9 +9,86 @@
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
-        <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
+        <!-- 새 헤더: 코인 아이콘 + 종목명(누르면 종목 목록) + 즐겨찾기 + 현재가 + 24시간 통계 -->
+        <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-3">
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div class="flex items-center gap-3">
+              <SelectDropdown v-model="symbolSelect" :options="symbolOptions" searchable :search-placeholder="t('종목 검색', 'Search symbol')" @change="onChangeSymbol">
+                <template #trigger="{ toggle }">
+                  <button type="button" class="flex items-center gap-2.5 rounded-md px-1 py-0.5 hover:bg-white/5" @click="toggle">
+                    <CoinIcon :base="baseCoin(symbol)" :size="34" />
+                    <span class="text-[20px] font-bold tracking-tight text-white">{{ baseCoin(symbol) }}/USDT</span>
+                    <span class="text-[10px] text-[#868993]">▼</span>
+                  </button>
+                </template>
+              </SelectDropdown>
+              <button
+                type="button"
+                class="text-[20px] leading-none transition"
+                :class="isFavSymbol ? 'text-[#f0b90b]' : 'text-[#868993] hover:text-white'"
+                :title="t('즐겨찾기', 'Favorite')"
+                @click="toggleFavSymbol"
+              >
+                {{ isFavSymbol ? '★' : '☆' }}
+              </button>
+            </div>
+            <div class="h-10 w-px bg-[#2a2e39]" />
+            <div>
+              <div class="font-mono text-[26px] font-semibold leading-tight" :class="headerStats.up ? 'text-[#22ab94]' : 'text-[#f23645]'">
+                {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}
+              </div>
+              <div class="font-mono text-[12px] text-[#868993]">≈{{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }} USD</div>
+            </div>
+            <div class="text-[12px] text-[#868993]">
+              <div>{{ t('24시간 변동률', '24H Price Change') }}</div>
+              <div class="mt-1 font-mono text-[14px] font-semibold" :class="headerStats.up ? 'text-[#22ab94]' : 'text-[#f23645]'">{{ headerStats.changeText }}</div>
+            </div>
+            <div class="text-[12px] text-[#868993]">
+              <div>{{ t('24시간 최고가', '24H High') }}</div>
+              <div class="mt-1 font-mono text-[14px] text-[#d1d4dc]">{{ headerStats.high }}</div>
+            </div>
+            <div class="text-[12px] text-[#868993]">
+              <div>{{ t('24시간 최저가', '24H Low') }}</div>
+              <div class="mt-1 font-mono text-[14px] text-[#d1d4dc]">{{ headerStats.low }}</div>
+            </div>
+            <div class="text-[12px] text-[#868993]">
+              <div>{{ t('24시간 거래대금(USDT)', '24H Vol(USDT)') }}</div>
+              <div class="mt-1 font-mono text-[14px] text-[#d1d4dc]">{{ headerStats.vol }}</div>
+            </div>
+            <div class="ml-auto flex items-center gap-2 text-[11px]">
+              <div v-if="isSuperAdminUser" class="mr-2 flex items-center gap-1">
+                <button
+                  type="button"
+                  class="rounded bg-emerald-500/15 px-2 py-1 font-semibold text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40"
+                  :disabled="adminProfitBusy || adminKillBusy"
+                  @click="openProfitModal()"
+                >
+                  {{ t('실행STOP', 'RUN STOP') }}
+                </button>
+              </div>
+              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
+                <span class="h-1.5 w-1.5 rounded-full" :class="wsStatus === 'open' ? 'bg-[#22ab94]' : 'bg-[#f23645]'" />
+                {{ wsStatus === 'open' ? t('실시간', 'Live') : t('끊김', 'Disconnected') }}
+              </span>
+              <span class="text-[#868993]">{{ chartClockDisplay }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-6 border-b border-[#2a2e39] bg-[#131722] px-3 text-[15px]">
+          <button
+            v-for="tb in chartTabs"
+            :key="tb.id"
+            type="button"
+            class="relative py-2.5 transition"
+            :class="chartTab === tb.id ? 'font-semibold text-white' : 'text-[#868993] hover:text-[#d1d4dc]'"
+            @click="selectChartTab(tb.id)"
+          >
+            <span v-if="tb.id === 'ai'" class="mr-1 inline-block rounded bg-[#f0b90b] px-1 text-[10px] font-bold text-[#131722]">AI</span>{{ tb.label }}
+            <span v-if="chartTab === tb.id" class="absolute inset-x-0 bottom-0 h-[2px] bg-[#f0b90b]" />
+          </button>
+        </div>
+        <div v-show="chartTab === 'chart'" class="border-b border-[#2a2e39] bg-[#131722] px-3 py-1.5">
           <div class="flex min-w-0 items-center gap-3">
-              <SelectDropdown v-model="symbolSelect" :options="symbolOptions" searchable :search-placeholder="t('종목 검색', 'Search symbol')" @change="onChangeSymbol" />
               <div class="ml-auto flex items-center gap-2">
               <div ref="timeframeMenuRoot" class="relative hidden md:block">
                 <button
@@ -166,43 +243,14 @@
           </div>
         </div>
 
-        <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-2">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-            <div class="flex items-center gap-2">
-              <span class="text-base font-semibold text-white">{{ symbol }}</span>
-              <span class="font-mono text-base font-semibold" :class="currentCandleMeta.up ? 'text-[#22ab94]' : 'text-[#f23645]'">
-                {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}
-              </span>
-              <span class="font-mono" :class="currentCandleMeta.up ? 'text-[#22ab94]' : 'text-[#f23645]'">
-                {{ currentCandleMeta.changeText }}
-              </span>
-            </div>
-            <div class="text-[#868993]">{{ t('시가', 'Open') }} <span class="ml-1 font-mono text-[#d1d4dc]">{{ currentCandleMeta.open }}</span></div>
-            <div class="text-[#868993]">{{ t('고가', 'High') }} <span class="ml-1 font-mono text-[#22ab94]">{{ currentCandleMeta.high }}</span></div>
-            <div class="text-[#868993]">{{ t('저가', 'Low') }} <span class="ml-1 font-mono text-[#f23645]">{{ currentCandleMeta.low }}</span></div>
-            <div class="text-[#868993]">{{ t('거래량', 'Volume') }} <span class="ml-1 font-mono text-[#d1d4dc]">{{ vol24 ? fmtNum(vol24) : '—' }}</span></div>
-            <div class="ml-auto flex items-center gap-2 text-[11px]">
-              <div v-if="isSuperAdminUser" class="mr-2 flex items-center gap-1">
-                <button
-                  type="button"
-                  class="rounded bg-emerald-500/15 px-2 py-1 font-semibold text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40"
-                  :disabled="adminProfitBusy || adminKillBusy"
-                  @click="openProfitModal()"
-                >
-                  {{ t('실행STOP', 'RUN STOP') }}
-                </button>
-              </div>
-              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
-                <span class="h-1.5 w-1.5 rounded-full" :class="wsStatus === 'open' ? 'bg-[#22ab94]' : 'bg-[#f23645]'" />
-                {{ wsStatus === 'open' ? t('실시간', 'Live') : t('끊김', 'Disconnected') }}
-              </span>
-              <span class="text-[#868993]">{{ chartClockDisplay }}</span>
-            </div>
-          </div>
-        </div>
         </div>
 
-        <div class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
+        <!-- Information 탭: 코인 기본 정보 -->
+        <MarketInfoPanel v-if="chartTab === 'info'" :symbol="symbol" :item="headerItem" class="max-h-[640px] overflow-auto bg-[#131722]" />
+        <div v-if="chartTab === 'ai'" class="flex min-h-[320px] items-center justify-center bg-[#131722] px-6 text-center text-[14px] text-[#868993]">
+          {{ t('AI 분석은 준비 중입니다.', 'AI Analysis is coming soon.') }}
+        </div>
+        <div v-show="chartTab === 'chart'" class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
@@ -465,6 +513,14 @@
             <ClientOnly>
               <div ref="chartEl" class="h-full w-full" />
             </ClientOnly>
+            <!-- 거래량 pane 범례: VOL(5,10,20) V / MA5 / MA10 / MA20 -->
+            <div v-if="volLegend" class="pointer-events-none absolute left-2 z-10 flex flex-wrap items-center gap-x-2 text-[12px] leading-none" :style="{ top: volLegendTop + 'px' }">
+              <span class="text-[#868993]">VOL(5,10,20)</span>
+              <span class="text-[#22ab94]">V: {{ volLegend.v }}</span>
+              <span class="text-[#2962ff]">MA5: {{ volLegend.ma5 }}</span>
+              <span class="text-[#ff9800]">MA10: {{ volLegend.ma10 }}</span>
+              <span class="text-[#9c27b0]">MA20: {{ volLegend.ma20 }}</span>
+            </div>
             <div v-show="mouseCrosshair.visible" class="pointer-events-none absolute inset-0 z-20">
               <div
                 class="absolute top-0 bottom-0 w-px border-l border-dashed border-[#868993]/60"
@@ -915,8 +971,27 @@
 
     <!-- 하단: 포지션 테이블 -->
       <section class="order-4 rounded-xl border border-cyan-500/10 bg-[#06121d] p-1.5 shadow-[0_10px_32px_rgba(0,0,0,0.24)] lg:order-none lg:col-start-1 lg:col-span-2 lg:row-start-2">
-      <div class="grid grid-cols-1 gap-1.5 lg:grid-cols-[110px_minmax(0,1fr)]">
-        <aside class="self-start rounded-lg border border-cyan-500/10 bg-[#031019] p-2">
+      <div class="min-h-[360px]">
+        <div class="flex items-center justify-between border-b border-white/10 px-1">
+          <div class="flex items-center gap-6">
+            <button
+              v-for="tb in bottomTabs"
+              :key="tb.id"
+              type="button"
+              class="relative py-3 text-[15px] transition"
+              :class="bottomTab === tb.id ? 'font-semibold text-white' : 'text-slate-400 hover:text-slate-200'"
+              @click="selectBottomTab(tb.id)"
+            >
+              {{ tb.label }}
+              <span v-if="bottomTab === tb.id" class="absolute inset-x-0 bottom-0 h-[2px] bg-[#f0b90b]" />
+            </button>
+          </div>
+          <label class="flex items-center gap-2 text-[13px] text-slate-300">
+            <input v-model="currentPairOnly" type="checkbox" class="h-3.5 w-3.5 rounded border-white/30 bg-transparent" />
+            {{ t('현재 종목', 'Current Pair') }}
+          </label>
+        </div>
+        <aside class="hidden">
           <div class="flex flex-col gap-2 text-sm font-semibold">
             <button
               type="button"
@@ -941,8 +1016,14 @@
           </div>
         </aside>
 
-        <div>
-      <div v-if="bottomTab === 'positions'" class="overflow-x-auto">
+        <div class="pt-2">
+      <div v-if="!me" class="flex min-h-[260px] items-center justify-center text-[14px] text-slate-400">
+        <NuxtLink to="/auth/login" class="mx-1 text-[#f0b90b] hover:underline">{{ t('로그인', 'Login') }}</NuxtLink>
+        {{ t('또는', 'or') }}
+        <NuxtLink to="/auth/register" class="mx-1 text-[#f0b90b] hover:underline">{{ t('회원가입', 'Register') }}</NuxtLink>
+        {{ t('후 거래를 시작하세요', 'Start Trading') }}
+      </div>
+      <div v-else-if="bottomTab === 'positions'" class="overflow-x-auto">
         <table class="w-full min-w-[720px] text-[14px]" style="table-layout: fixed">
           <colgroup>
             <col style="width: 10.7%" />
@@ -969,11 +1050,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="visiblePositions.length === 0" class="border-t border-cyan-500/10">
+            <tr v-if="shownPositions.length === 0" class="border-t border-cyan-500/10">
               <td colspan="9" class="py-1.5 text-slate-400">{{ t('데이터가 없습니다.', 'No data available.') }}</td>
             </tr>
             <!-- 포지션 테이블은 통합: 어떤 차트로 이동해도 전체 포지션이 유지되어야 함 -->
-            <tr v-for="p in visiblePositions" :key="p.id" class="border-t border-cyan-500/10">
+            <tr v-for="p in shownPositions" :key="p.id" class="border-t border-cyan-500/10">
               <td class="py-1">
                 <div class="flex items-center gap-2">
                   <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[12px] ring-1 ring-amber-400/40">
@@ -1123,7 +1204,38 @@
           </tbody>
         </table>
       </div>
-      <div v-else-if="bottomTab === 'fills'" ref="fillsWrap" class="max-h-[360px] overflow-auto rounded-lg bg-black/10" @scroll="onFillsScroll">
+      <div v-else-if="bottomTab === 'orders'" class="overflow-x-auto">
+        <table class="w-full min-w-[640px] text-[14px]">
+          <thead class="text-[13px] text-slate-500">
+            <tr class="text-left">
+              <th class="py-1.5 pr-3">{{ t('시간', 'Time') }}</th>
+              <th class="py-1.5 pr-3">{{ t('종목', 'Symbol') }}</th>
+              <th class="py-1.5 pr-3">{{ t('유형', 'Type') }}</th>
+              <th class="py-1.5 pr-3">{{ t('방향', 'Side') }}</th>
+              <th class="py-1.5 pr-3">{{ t('지정가격', 'Limit Price') }}</th>
+              <th class="py-1.5 pr-3">{{ t('수량/비중', 'Qty / Ratio') }}</th>
+              <th class="py-1.5 text-right">{{ t('취소', 'Cancel') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="pendingOrderRows.length === 0" class="border-t border-cyan-500/10">
+              <td colspan="7" class="py-3 text-slate-400">{{ t('대기 중인 주문이 없습니다.', 'No open orders.') }}</td>
+            </tr>
+            <tr v-for="o in pendingOrderRows" :key="o.key" class="border-t border-cyan-500/10">
+              <td class="py-2 pr-3 font-mono text-slate-300">{{ formatTradeTime(o.time) }}</td>
+              <td class="py-2 pr-3 font-mono">{{ o.symbol }}</td>
+              <td class="py-2 pr-3">{{ o.kind === 'open' ? t('지정가 진입', 'Limit Entry') : t('지정가 청산', 'Limit Close') }}</td>
+              <td class="py-2 pr-3" :class="o.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">{{ o.side === 'long' ? t('롱', 'Long') : t('숏', 'Short') }}</td>
+              <td class="py-2 pr-3 font-mono">{{ fmtPrice2(o.price) }}</td>
+              <td class="py-2 pr-3 font-mono">{{ o.qtyText }}</td>
+              <td class="py-2 text-right">
+                <button type="button" class="rounded-md bg-[#20262f] px-2 py-1 text-[13px] text-white ring-1 ring-white/10 hover:bg-[#2a313b]" @click="cancelPendingRow(o)">{{ t('취소', 'Cancel') }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else-if="bottomTab === 'fills' || bottomTab === 'orderHistory'" ref="fillsWrap" class="max-h-[360px] overflow-auto rounded-lg bg-black/10" @scroll="onFillsScroll">
         <table class="w-full text-[14px]">
           <thead class="sticky top-0 bg-slate-950/95 text-slate-400">
             <tr class="text-left">
@@ -1139,10 +1251,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="fills.length === 0 && !fillsLoading" class="border-t border-white/10">
+            <tr v-if="fillsShown.length === 0 && !fillsLoading" class="border-t border-white/10">
               <td colspan="9" class="px-3 py-4 text-slate-400">{{ t('거래내역이 없습니다.', 'No trade history.') }}</td>
             </tr>
-            <tr v-for="tr in fills" :key="`fill-${tr.id}`" class="border-t border-white/10">
+            <tr v-for="tr in fillsShown" :key="`fill-${tr.id}`" class="border-t border-white/10">
               <td class="px-3 py-3 font-mono text-slate-300">{{ formatTradeTime(tr.created_at) }}</td>
               <td class="px-3 py-3 text-slate-100">{{ shortSymbol(tr.symbol) }}</td>
               <td class="px-3 py-3" :class="tr.side === 'long' ? 'text-emerald-300' : 'text-rose-300'">
@@ -1893,7 +2005,100 @@ const chartMode = ref<'built'>('built')
 // 요구사항: 주문 UI는 시장가만 사용(지정가/예약 삭제)
 const orderType = ref<'market' | 'limit'>('market')
 // 요구사항: 포지션테이블에서 지정가/예약 탭 삭제
-const bottomTab = ref<'positions' | 'fills'>('positions')
+// 하단 탭: positions=자산(보유 포지션), orders=현재 주문, orderHistory=주문 내역(매수·매도 전체), fills=거래 내역(청산 체결)
+const bottomTab = ref<'positions' | 'orders' | 'orderHistory' | 'fills'>('positions')
+const currentPairOnly = ref(false)
+const bottomTabs = computed(() => [
+  { id: 'positions' as const, label: t('자산', 'Assets') },
+  { id: 'orders' as const, label: t('현재 주문', 'Current Orders') },
+  { id: 'orderHistory' as const, label: t('주문 내역', 'Order History') },
+  { id: 'fills' as const, label: t('거래 내역', 'Trade History') }
+])
+async function selectBottomTab(id: 'positions' | 'orders' | 'orderHistory' | 'fills') {
+  bottomTab.value = id
+  if ((id === 'fills' || id === 'orderHistory') && fills.value.length === 0) {
+    await loadFills(true).catch(() => {})
+  }
+}
+const shownPositions = computed(() =>
+  currentPairOnly.value ? visiblePositions.value.filter((p: any) => String(p.symbol).toUpperCase() === String(symbol.value).toUpperCase()) : visiblePositions.value
+)
+const fillsShown = computed(() => {
+  let list = fills.value as any[]
+  if (bottomTab.value === 'fills') list = list.filter((x) => x.kind !== 'open')
+  if (currentPairOnly.value) list = list.filter((x) => String(x.symbol).toUpperCase() === String(symbol.value).toUpperCase())
+  return list
+})
+// 현재 주문: 대기 중인 지정가 진입/청산 주문
+const pendingOrderRows = computed(() => {
+  const rows: Array<{ key: string; kind: 'open' | 'close'; time: string; symbol: string; side: 'long' | 'short'; price: number; qtyText: string; ref: string | number }> = []
+  for (const o of limitOpenOrders.value) {
+    rows.push({ key: `o-${o.id}`, kind: 'open', time: o.createdAt, symbol: o.symbol, side: o.side, price: o.price, qtyText: `${o.percent}% · x${o.leverage}`, ref: o.id })
+  }
+  for (const o of limitCloseOrders.value) {
+    rows.push({ key: `c-${o.id}`, kind: 'close', time: o.createdAt, symbol: o.symbol, side: o.side, price: o.price, qtyText: fmtQtyShort(o.qty), ref: o.positionId })
+  }
+  const list = currentPairOnly.value ? rows.filter((r) => String(r.symbol).toUpperCase() === String(symbol.value).toUpperCase()) : rows
+  return list.sort((a, b) => String(b.time).localeCompare(String(a.time)))
+})
+function cancelPendingRow(r: { kind: 'open' | 'close'; ref: string | number }) {
+  if (r.kind === 'open') cancelLimitOpen(String(r.ref))
+  else cancelLimitClose(Number(r.ref))
+}
+
+// 차트 상단 탭: Chart / Information / AI Analysis
+const chartTab = ref<'chart' | 'info' | 'ai'>('chart')
+const chartTabs = computed(() => [
+  { id: 'chart' as const, label: t('차트', 'Chart') },
+  { id: 'info' as const, label: t('정보', 'Information') },
+  { id: 'ai' as const, label: t('AI 분석', 'AI Analysis') }
+])
+async function selectChartTab(id: 'chart' | 'info' | 'ai') {
+  chartTab.value = id
+  if (id === 'chart') {
+    // 숨겨져 있던 차트가 다시 보이면 크기를 다시 맞춘다.
+    await nextTick()
+    const width = chartEl.value?.clientWidth || 0
+    if (chart && width) chart.resize(width, chartContainerHeightPx.value)
+  }
+}
+// 24시간 통계: 마켓 시세(overview)에서 가져오고, 없으면 현재 봉 정보로 대신한다.
+const { items: ovItems, refresh: refreshOverview } = useMarketOverview()
+const headerItem = computed(() => (ovItems.value || []).find((i: any) => String(i.symbol).toUpperCase() === String(symbol.value).toUpperCase()) || null)
+const headerStats = computed(() => {
+  const it: any = headerItem.value
+  const pct = Number(it?.changePct)
+  const hasPct = Number.isFinite(pct) && it
+  const up = hasPct ? pct >= 0 : currentCandleMeta.value.up
+  const fmtOpt = (v: any) => (Number.isFinite(Number(v)) && Number(v) > 0 ? fmtPrice(Number(v)) : '—')
+  return {
+    up,
+    changeText: hasPct ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : currentCandleMeta.value.changeText || '—',
+    high: fmtOpt(it?.high24h) !== '—' ? fmtOpt(it?.high24h) : visibleHigh.value ? fmtPrice(visibleHigh.value) : '—',
+    low: fmtOpt(it?.low24h) !== '—' ? fmtOpt(it?.low24h) : visibleLow.value ? fmtPrice(visibleLow.value) : '—',
+    vol: it?.volUsd ? fmtMarketVolume(Number(it.volUsd)) : vol24.value ? fmtNum(vol24.value) : '—'
+  }
+})
+let overviewTimer: any = null
+// 즐겨찾기(별): 이 기기에 저장
+const favSymbols = ref<string[]>([])
+const isFavSymbol = computed(() => favSymbols.value.includes(String(symbol.value).toUpperCase()))
+function loadFavSymbols() {
+  if (!process.client) return
+  try {
+    const arr = JSON.parse(localStorage.getItem('ktx_fav_symbols') || '[]')
+    favSymbols.value = Array.isArray(arr) ? arr.map((x: any) => String(x).toUpperCase()) : []
+  } catch {
+    favSymbols.value = []
+  }
+}
+function toggleFavSymbol() {
+  const sym = String(symbol.value).toUpperCase()
+  favSymbols.value = favSymbols.value.includes(sym) ? favSymbols.value.filter((x) => x !== sym) : favSymbols.value.concat([sym])
+  try {
+    localStorage.setItem('ktx_fav_symbols', JSON.stringify(favSymbols.value))
+  } catch {}
+}
 
 async function selectFillsTab() {
   bottomTab.value = 'fills'
@@ -2239,6 +2444,45 @@ let chartHeaderResizeObserver: ResizeObserver | null = null
 let chartHeaderResizeRaf = 0
 let candleSeries: ISeriesApi<'Candlestick'> | null = null
 let volumeSeries: ISeriesApi<'Histogram'> | null = null
+const VOL_MA_PERIODS = [5, 10, 20]
+const VOL_MA_COLORS = ['#2962ff', '#ff9800', '#9c27b0']
+let volMaSeries: ISeriesApi<'Line'>[] = []
+const volLegend = ref<null | { v: string; ma5: string; ma10: string; ma20: string }>(null)
+const volLegendTop = ref(0)
+function fmtVolShort(n: number) {
+  const v = Number(n)
+  if (!Number.isFinite(v)) return '—'
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M'
+  if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K'
+  return v.toFixed(v < 10 ? 2 : 0)
+}
+// 거래량 데이터를 넣고, 이동평균선과 범례(맨 마지막 봉 기준)도 같이 갱신한다.
+function setVolumeData(vols: HistogramData[]) {
+  volumeSeries?.setData(vols)
+  const values = vols.map((x) => Number((x as any).value) || 0)
+  const maLast: number[] = []
+  VOL_MA_PERIODS.forEach((n, i) => {
+    const data: Array<{ time: any; value: number }> = []
+    for (let k = n - 1; k < vols.length; k++) {
+      let sum = 0
+      for (let j = k - n + 1; j <= k; j++) sum += values[j]
+      data.push({ time: (vols[k] as any).time, value: sum / n })
+    }
+    try {
+      volMaSeries[i]?.setData(data as any)
+    } catch {}
+    maLast[i] = data.length ? data[data.length - 1].value : 0
+  })
+  const lastV = values.length ? values[values.length - 1] : 0
+  volLegend.value = { v: fmtVolShort(lastV), ma5: fmtVolShort(maLast[0] || 0), ma10: fmtVolShort(maLast[1] || 0), ma20: fmtVolShort(maLast[2] || 0) }
+  updateVolLegendPos()
+}
+function updateVolLegendPos() {
+  try {
+    const h0 = chart?.panes()[0]?.getHeight()
+    if (h0 && h0 > 0) volLegendTop.value = h0 + 6
+  } catch {}
+}
 // 마지막 봉 오른쪽 여백에 미래 시간축 눈금을 미리 표시하기 위한, 화면엔 안 보이는 전용 시리즈.
 // candleSeries에 직접 whitespace를 섞으면 실시간 틱(update()) 갱신과 충돌할 수 있어 분리했다.
 let futureAxisSeries: ISeriesApi<'Line'> | null = null
@@ -2705,6 +2949,7 @@ function currentOscillatorCount() {
 }
 // 브라우저 창 크기 변경(줄바꿈 여부 변화)에도 ResizeObserver와 별개로 한 번 더 재계산한다(이중 안전장치).
 function onWindowResizeForChartHeight() {
+  setTimeout(updateVolLegendPos, 50)
   if (chartHeaderResizeRaf) cancelAnimationFrame(chartHeaderResizeRaf)
   chartHeaderResizeRaf = requestAnimationFrame(() => {
     chartHeaderResizeRaf = 0
@@ -3136,7 +3381,7 @@ async function processPendingCloseJob(positionId: number) {
     // 요구사항: 내부 처리. 사용자에게 "청산 완료" 같은 토스트/문구를 추가로 노출하지 않음.
     await loadAccount().catch(() => {})
     removePendingCloseJob(job.positionId)
-    if (fills.value.length || bottomTab.value === 'fills') {
+    if (fills.value.length || (bottomTab.value === 'fills' || bottomTab.value === 'orderHistory')) {
       await loadFills(true).catch(() => {})
     }
     // 요구사항: 수익카드(청산카드)도 "한 번만" 뜨게. (이미 closePosition에서 즉시 띄움)
@@ -3150,7 +3395,7 @@ async function processPendingCloseJob(positionId: number) {
     if (!stillExists) {
       removePendingCloseJob(job.positionId)
       unhideClosingPosition(job.positionId)
-      if (fills.value.length || bottomTab.value === 'fills') {
+      if (fills.value.length || (bottomTab.value === 'fills' || bottomTab.value === 'orderHistory')) {
         await loadFills(true).catch(() => {})
       }
       return
@@ -5369,7 +5614,7 @@ function renderExtraIndicators() {
   oscillatorIds.forEach((id, idx) => {
     const spec = buildIndicatorSpec(id, candles, intervalSeconds)
     if (!spec) return
-    const paneIndex = idx + 1
+    const paneIndex = idx + 2
     const created: ISeriesApi<any>[] = []
     for (const line of spec.series) {
       const s =
@@ -5394,7 +5639,7 @@ function renderExtraIndicators() {
     if (width) chart.resize(width, newHeight)
   }
   oscillatorIds.forEach((_, idx) => {
-    try { chart!.panes()[idx + 1]?.setHeight(OSCILLATOR_PANE_HEIGHT) } catch {}
+    try { chart!.panes()[idx + 2]?.setHeight(OSCILLATOR_PANE_HEIGHT) } catch {}
   })
 }
 
@@ -5826,13 +6071,28 @@ function initChart() {
   })
   applyPriceFormatForSymbol(symbol.value)
 
-  volumeSeries = chart.addSeries(HistogramSeries, {
-    priceFormat: { type: 'volume' },
-    priceScaleId: '',
-    priceLineVisible: false,
-    lastValueVisible: false
-  })
-  volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } })
+  // 거래량은 가격 차트와 분리된 아래쪽 pane(1번)에 그린다. 5/10/20 이동평균선도 같이 그린다.
+  volumeSeries = chart.addSeries(
+    HistogramSeries,
+    {
+      priceFormat: { type: 'volume' },
+      priceLineVisible: false,
+      lastValueVisible: false
+    },
+    1
+  )
+  volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.12, bottom: 0 } })
+  volMaSeries = VOL_MA_PERIODS.map((_, i) =>
+    chart!.addSeries(
+      LineSeries,
+      { color: VOL_MA_COLORS[i], lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false },
+      1
+    )
+  )
+  try {
+    chart.panes()[0]?.setStretchFactor(3)
+    chart.panes()[1]?.setStretchFactor(1)
+  } catch {}
 
   // 화면엔 안 보이지만(완전 투명), whitespace 데이터로 시간축에 미래 눈금을 미리 그려주는 시리즈.
   futureAxisSeries = chart.addSeries(LineSeries, {
@@ -6165,7 +6425,7 @@ async function loadOlderHistory() {
     const ts = chart.timeScale()
     const before = ts.getVisibleLogicalRange()
     candleSeries.setData(candles)
-    volumeSeries?.setData(vols)
+    setVolumeData(vols)
     candleData.value = candles
     volumeData.value = vols
     if (before) {
@@ -6233,7 +6493,7 @@ async function fetchCandles(opts: { finalizePrevious?: boolean } = {}) {
   chainCandleOpens(candles)
 
   candleSeries?.setData(candles)
-  volumeSeries?.setData(vols)
+  setVolumeData(vols)
   futureAxisSeries?.setData(buildFutureWhitespace(candles[candles.length - 1], intervalSeconds))
   // fitContent()는 여기서 호출하지 않는다 — 20초마다 도는 백그라운드 재동기화(startKillResync)에서도
   // 이 함수가 호출되는데, 그때마다 줌/스크롤이 리셋되면 그려둔 선이 어긋나 보이는 문제가 있었다.
@@ -6781,7 +7041,7 @@ async function executeLimitClose(order: LimitCloseOrder) {
       wonText: Math.round(pnl * (limitKrwRate.value > 0 ? limitKrwRate.value : 1350)).toLocaleString()
     })
     await loadAccount().catch(() => {})
-    if (fills.value.length || bottomTab.value === 'fills') await loadFills(true).catch(() => {})
+    if (fills.value.length || (bottomTab.value === 'fills' || bottomTab.value === 'orderHistory')) await loadFills(true).catch(() => {})
   } catch {
     // 일시적 실패는 다음 시세 확인 때 다시 시도하고, 계속 실패하면(3회) 주문을 취소한다.
     const cur = limitCloseOrders.value.find((o) => o.id === order.id)
@@ -7406,7 +7666,7 @@ async function openPosition(ov?: { side: 'long' | 'short'; price: number; percen
     })
     tradeMsg.value = null
     // 매수도 거래내역에 바로 뜨도록 갱신
-    if (fills.value.length || bottomTab.value === 'fills') loadFills(true).catch(() => {})
+    if (fills.value.length || (bottomTab.value === 'fills' || bottomTab.value === 'orderHistory')) loadFills(true).catch(() => {})
     // 서버 데이터로 최종 동기화(백그라운드)
     loadAccount()
       .then(() => {
@@ -7540,7 +7800,7 @@ watch([() => symbol.value, timeframe], async () => {
 watch(
   () => bottomTab.value,
   async (v) => {
-    if (v === 'fills' && fills.value.length === 0) {
+    if ((v === 'fills' || v === 'orderHistory') && fills.value.length === 0) {
       await loadFills(true)
     }
   }
@@ -7556,6 +7816,9 @@ watch(
 )
 
 onMounted(async () => {
+  loadFavSymbols()
+  refreshOverview(true).catch(() => {})
+  overviewTimer = setInterval(() => refreshOverview(true).catch(() => {}), 30000)
   document.addEventListener('click', onDropdownMenuDocClick, { capture: true })
   window.addEventListener('resize', onWindowResizeForChartHeight)
   chartClockTimer = setInterval(() => {
@@ -7627,6 +7890,7 @@ watch(symbol, () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
+  if (overviewTimer) clearInterval(overviewTimer)
   window.removeEventListener('resize', onWindowResizeForChartHeight)
   stopAlarmLoop()
   chartResizeObserver?.disconnect()
