@@ -75,7 +75,7 @@
         class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,calc((100%-520px)*0.9))_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[calc((100%-626px)*0.9)_280px_330px] xl:justify-start"
       >
       <!-- 차트 -->
-      <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden border border-[#2a2e39] bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
+      <section class="order-1 flex min-w-0 flex-col overflow-hidden border border-[#2a2e39] bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
         <div class="flex items-center gap-6 border-b border-[#2a2e39] bg-[#131722] px-3 text-[14px]">
           <button
@@ -661,7 +661,7 @@
 
       <!-- 호가(첨부 스타일) -->
       <section
-        class="order-3 min-w-0 self-start border border-cyan-500/10 bg-[#06121d] p-3 lg:order-none lg:col-start-2 lg:row-start-1"
+        class="order-3 min-w-0 border border-cyan-500/10 bg-[#06121d] p-3 lg:order-none lg:col-start-2 lg:row-start-1"
         :style="{ height: MATCHED_PANEL_HEIGHT + 'px' }"
       >
         <!-- 제목 + (총관리자만) 가격 도달 알람 2줄. 일반 회원은 제목 한 줄만 있어서 높이가 늘지 않는다. -->
@@ -797,7 +797,7 @@
       </section>
 
       <!-- 보유자산/주문 -->
-      <section class="order-2 min-w-0 border border-cyan-500/10 bg-[#06121d] p-3 lg:order-none lg:col-start-3 lg:row-start-1 lg:row-span-2">
+      <section class="order-2 min-w-0 border border-cyan-500/10 bg-[#06121d] p-3 lg:order-none lg:col-start-3 lg:row-start-1">
         <div v-if="!me" class="text-[15px] text-slate-100">{{ t('주문', 'Order') }}</div>
 
         <div v-if="!me" class="mt-4 rounded-lg bg-[#031019] p-3 text-[15px] text-slate-300 ring-1 ring-cyan-500/10">
@@ -950,9 +950,13 @@
           </form>
           </div>
 
-          <!-- 하단: 보유자산/사용가능 -->
-          <div class="mt-9">
-            <div class="text-[15px] text-slate-100">{{ t('보유자산', 'Holdings') }}</div>
+        </div>
+      </section>
+
+    <!-- Account: 보유자산/사용가능 (하단 Assets와 같은 줄) -->
+      <section class="order-5 min-w-0 border border-cyan-500/10 bg-[#06121d] p-3 lg:order-none lg:col-start-3 lg:row-start-2">
+          <div>
+            <div class="text-[16px] text-slate-100">Account</div>
 
             <div class="mt-3">
               <div class="text-[13px] text-slate-400">{{ t('보유자산(증거금포함)', 'Holdings (incl. margin)') }}</div>
@@ -969,7 +973,6 @@
               <div class="mt-1 font-mono text-[15px] text-slate-100">{{ balanceDisplay }} USDT</div>
             </div>
           </div>
-        </div>
       </section>
 
     <!-- 하단: 포지션 테이블 -->
