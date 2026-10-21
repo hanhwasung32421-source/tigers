@@ -1,16 +1,9 @@
 <template>
   <div class="space-y-2" :class="{ 'font-landing': isKrStockSymbol }">
-    <!-- 메인 영역 (차트 / 호가 / 주문하기) -->
-    <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
-    <div class="overflow-x-hidden">
-      <div
-        class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_330px]"
-      >
-      <!-- 차트 -->
-      <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
-        <div ref="chartHeaderEl">
+    <!-- 종목 헤더: 화면 가로 한 줄을 모두 쓰고, 그 아래로 차트/호가/주문이 붙는다 -->
+    <div class="rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)]">
         <!-- 새 헤더: 코인 아이콘 + 종목명(누르면 종목 목록) + 즐겨찾기 + 현재가 + 24시간 통계 -->
-        <div class="border-b border-[#2a2e39] bg-[#131722] px-3 py-3">
+        <div class="px-3 py-3">
           <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div class="flex items-center gap-3">
               <SelectDropdown v-model="symbolSelect" :options="symbolOptions" searchable :search-placeholder="t('종목 검색', 'Search symbol')" @change="onChangeSymbol">
@@ -74,6 +67,16 @@
             </div>
           </div>
         </div>
+    </div>
+    <!-- 메인 영역 (차트 / 호가 / 주문하기) -->
+    <!-- 화면 폭에 맞춰 축소(가로 스크롤 금지). lg 미만은 모바일(세로 스택) -->
+    <div class="overflow-x-hidden">
+      <div
+        class="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.55fr)_minmax(286px,0.66fr)] xl:grid-cols-[minmax(0,1.3fr)_280px_330px]"
+      >
+      <!-- 차트 -->
+      <section class="order-1 flex min-w-0 flex-col self-start overflow-hidden rounded-xl border border-[#2a2e39] bg-[#131722] shadow-[0_12px_32px_rgba(0,0,0,0.28)] lg:order-none lg:col-start-1 lg:row-start-1">
+        <div ref="chartHeaderEl">
         <div class="flex items-center gap-6 border-b border-[#2a2e39] bg-[#131722] px-3 text-[15px]">
           <button
             v-for="tb in chartTabs"
@@ -6005,7 +6008,7 @@ function initChart() {
   chart = createChart(chartEl.value, {
     width: Math.max(300, Math.floor(rect.width)),
     height: Math.max(400, Math.floor(rect.height)),
-    layout: { background: { color: 'transparent' }, textColor: '#cbd5e1' },
+    layout: { background: { color: 'transparent' }, textColor: '#cbd5e1', attributionLogo: false },
     localization: {
       locale: 'ko-KR',
       timeFormatter: (businessDayOrTimestamp: any) => formatCrosshairTime(businessDayOrTimestamp)
