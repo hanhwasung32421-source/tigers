@@ -77,7 +77,7 @@
       <!-- 차트 -->
       <section class="order-1 flex min-w-0 flex-col overflow-hidden bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
-        <div class="flex items-center gap-6 border-b border-[#2a2e39] bg-[#131722] px-3 text-[14px]">
+        <div class="flex items-center gap-6 bg-[#131722] px-3 text-[14px]">
           <button
             v-for="tb in chartTabs"
             :key="tb.id"
@@ -90,7 +90,7 @@
             <span v-if="chartTab === tb.id" class="absolute inset-x-0 bottom-0 h-[2px] bg-[#f0b90b]" />
           </button>
         </div>
-        <div v-show="chartTab === 'chart'" class="border-b border-[#2a2e39] bg-[#131722] px-3 py-1.5">
+        <div v-show="chartTab === 'chart'" class="bg-[#131722] px-3 py-1.5">
           <div class="flex min-w-0 items-center gap-3">
               <div class="ml-auto flex items-center gap-2">
               <div ref="timeframeMenuRoot" class="relative hidden md:block">
@@ -6023,7 +6023,7 @@ function initChart() {
       locale: 'ko-KR',
       timeFormatter: (businessDayOrTimestamp: any) => formatCrosshairTime(businessDayOrTimestamp)
     },
-    grid: { vertLines: { color: 'rgba(255,255,255,0.06)' }, horzLines: { color: 'rgba(255,255,255,0.06)' } },
+    grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,0.035)' } },
     rightPriceScale: { borderColor: 'rgba(255,255,255,0.12)', scaleMargins: { top: 0.1, bottom: 0.2 } },
     timeScale: {
       borderColor: 'rgba(255,255,255,0.12)',
