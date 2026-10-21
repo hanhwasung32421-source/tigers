@@ -94,14 +94,25 @@
         </div>
         <div v-show="chartTab === 'chart'" class="bg-[#131722] px-3 py-1.5">
           <div class="flex min-w-0 items-center gap-3">
-              <div class="ml-auto flex items-center gap-2">
-              <div ref="timeframeMenuRoot" class="relative hidden md:block">
+              <div class="flex items-center gap-1">
+              <div ref="timeframeMenuRoot" class="relative hidden items-center gap-0.5 md:flex">
+                <button
+                  v-for="q in quickTimeframes"
+                  :key="q.value"
+                  type="button"
+                  class="rounded px-2 py-1 text-[13px] transition"
+                  :class="timeframe === q.value ? 'ex-tool-active' : 'text-[#868993] hover:text-[#d1d4dc]'"
+                  @click="selectTimeframe(q.value as TimeframeValue)"
+                >
+                  {{ q.label }}
+                </button>
                 <button
                   type="button"
-                  class="flex items-center gap-1 rounded px-2 py-1 text-[12px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
+                  class="flex items-center gap-1 rounded px-1.5 py-1 text-[13px] transition"
+                  :class="extraTimeframeActive ? 'ex-tool-active' : 'text-[#868993] hover:text-[#d1d4dc]'"
                   @click="timeframeMenuOpen = !timeframeMenuOpen; indicatorMenuOpen = false"
                 >
-                  <span>{{ currentTimeframeLabel }}</span>
+                  <span v-if="extraTimeframeActive">{{ currentTimeframeLabel }}</span>
                   <span class="text-[9px]">▾</span>
                 </button>
                 <div
@@ -115,7 +126,7 @@
                       :key="opt.value"
                       type="button"
                       class="block w-full px-3 py-1.5 text-left text-[11px] transition"
-                      :class="timeframe === opt.value ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-white/5 hover:text-white'"
+                      :class="timeframe === opt.value ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-white/5 hover:text-white'"
                       @click="selectTimeframe(opt.value as TimeframeValue)"
                     >
                       {{ opt.label }}
@@ -123,15 +134,15 @@
                   </template>
                 </div>
               </div>
-              <div class="hidden h-5 w-px bg-[#2a2e39] md:block" />
               <div ref="indicatorMenuRoot" class="relative hidden md:block">
                 <button
                   type="button"
-                  class="flex items-center gap-1 rounded px-2 py-1 text-[12px] text-[#b2b5be] transition hover:bg-[#1e222d] hover:text-white"
+                  class="flex items-center rounded p-1.5 transition"
+                  :class="indicatorMenuOpen ? 'ex-tool-active' : 'text-[#868993] hover:text-[#d1d4dc]'"
+                  :title="t('보조지표', 'Indicators')"
                   @click="toggleIndicatorMenu($event, 'below')"
                 >
-                  <span>{{ t('보조지표', 'Indicators') }}</span>
-                  <span class="text-[9px]">▾</span>
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M5.5 3v14M5.5 6H3.5v7h4V6h-2M14.5 3v14M14.5 8h-2v6h4V8h-2" /></svg>
                 </button>
               </div>
               <Teleport to="body">
@@ -241,9 +252,26 @@
                   </div>
                 </div>
               </Teleport>
-              <button class="hidden rounded px-2 py-1 text-[12px] text-[#b2b5be] hover:bg-[#1e222d] hover:text-white md:inline-flex" @click="clearAllIndicators">
-                {{ t('지표모두삭제', 'Clear all indicators') }}
-              </button>
+              <div ref="gearMenuRoot" class="relative hidden md:block">
+                <button
+                  type="button"
+                  class="flex items-center rounded p-1.5 transition"
+                  :class="gearMenuOpen ? 'ex-tool-active' : 'text-[#868993] hover:text-[#d1d4dc]'"
+                  :title="t('차트 설정', 'Chart settings')"
+                  @click="gearMenuOpen = !gearMenuOpen; timeframeMenuOpen = false; indicatorMenuOpen = false"
+                >
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><circle cx="10" cy="10" r="2.6" /><path d="M10 2.5l1.3 2 2.3-.5.9 2.2 2.2.9-.5 2.3 2 1.3-2 1.3.5 2.3-2.2.9-.9 2.2-2.3-.5-1.3 2-1.3-2-2.3.5-.9-2.2-2.2-.9.5-2.3-2-1.3 2-1.3-.5-2.3 2.2-.9.9-2.2 2.3.5z" /></svg>
+                </button>
+                <div v-if="gearMenuOpen" class="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[170px] rounded-md border border-white/10 bg-[#1e222d] py-1 text-[12px] shadow-lg">
+                  <button type="button" class="flex w-full items-center justify-between px-3 py-1.5 text-left text-[#b2b5be] hover:bg-white/5 hover:text-white" @click="toggleChartGrid">
+                    <span>{{ t('격자선', 'Grid lines') }}</span>
+                    <span :class="showGrid ? 'ex-tool-active' : 'text-[#5d6472]'">{{ showGrid ? 'ON' : 'OFF' }}</span>
+                  </button>
+                  <button type="button" class="block w-full px-3 py-1.5 text-left text-[#b2b5be] hover:bg-white/5 hover:text-white" @click="clearAllIndicators(); gearMenuOpen = false">
+                    {{ t('지표모두삭제', 'Clear all indicators') }}
+                  </button>
+                </div>
+              </div>
               </div>
           </div>
         </div>
@@ -479,15 +507,13 @@
           </div>
 
           <div class="relative min-w-0 flex-1 overflow-hidden bg-[#131722]">
-            <div class="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-2 text-[11px] text-[#868993]">
-              <div class="flex items-center gap-3">
-                <span>USDT Perpetual</span>
-                <span>{{ timeframe }}</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <span>{{ t('고가', 'High') }} {{ visibleHigh ? fmtPrice(visibleHigh) : '—' }}</span>
-                <span>{{ t('저가', 'Low') }} {{ visibleLow ? fmtPrice(visibleLow) : '—' }}</span>
-              </div>
+            <!-- 시가/고가/저가/종가/거래량: 마우스가 가리키는 봉 기준, 없으면 마지막 봉 -->
+            <div class="pointer-events-none absolute left-3 top-1.5 z-10 flex flex-wrap items-center gap-x-3 text-[12px] leading-none text-[#868993]">
+              <span>Open:{{ ohlcLegend.open }}</span>
+              <span>High:{{ ohlcLegend.high }}</span>
+              <span>Low:{{ ohlcLegend.low }}</span>
+              <span :class="ohlcLegend.up ? 'text-[#22ab94]' : 'text-[#f23645]'">Close:{{ ohlcLegend.close }}</span>
+              <span :class="ohlcLegend.up ? 'text-[#22ab94]' : 'text-[#f23645]'">Volume:{{ ohlcLegend.volume }}</span>
             </div>
             <div v-if="xtHint && activeTool === 'extra'" class="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
               <div class="pointer-events-auto flex items-center gap-2 rounded-md bg-[#1e222d]/95 px-3 py-2 text-[12px] text-[#d1d4dc] shadow-[0_10px_30px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
@@ -1997,15 +2023,17 @@ function onChangeSymbol() {
   router.push(`/exchange/${symbolSelect.value}`)
 }
 
-type TimeframeValue = '1m' | '5m' | '15m' | '30m' | '1H' | '1D' | '1W' | '1M'
+type TimeframeValue = '1s' | '1m' | '5m' | '15m' | '30m' | '1H' | '4H' | '1D' | '1W' | '1M'
 
 const timeframe = ref<TimeframeValue>('1m')
 const timeframeOptions = computed(() => [
+  { value: '1s' as const, label: t('1초', '1s') },
   { value: '1m' as const, label: t('1분', '1m') },
   { value: '5m' as const, label: t('5분', '5m') },
   { value: '15m' as const, label: t('15분', '15m') },
   { value: '30m' as const, label: t('30분', '30m') },
   { value: '1H' as const, label: t('1시간', '1H') },
+  { value: '4H' as const, label: t('4시간', '4H') },
   { value: '1D' as const, label: t('1일', '1D') },
   { value: '1W' as const, label: t('1주', '1W') },
   { value: '1M' as const, label: t('월', '1M') }
@@ -3078,6 +3106,9 @@ function onDropdownMenuDocClick(e: MouseEvent) {
   if (timeframeMenuOpen.value && timeframeMenuRoot.value && !(t && timeframeMenuRoot.value.contains(t))) {
     timeframeMenuOpen.value = false
   }
+  if (gearMenuOpen.value && gearMenuRoot.value && !(t && gearMenuRoot.value.contains(t))) {
+    gearMenuOpen.value = false
+  }
   const insideIndicatorMenu = Boolean(
     t &&
       (indicatorMenuRoot.value?.contains(t) ||
@@ -3114,11 +3145,55 @@ function toggleExtraIndicator(id: string) {
   scheduleSaveChartPrefs()
 }
 
+// 상단에 바로 나열하는 시간봉 버튼(1S 1M 5M 15M 1H 4H 1D 1W). 나머지(30분, 월봉)는 ▾ 메뉴에 둔다.
+const QUICK_TIMEFRAMES: Array<{ value: TimeframeValue; label: string }> = [
+  { value: '1s', label: '1S' },
+  { value: '1m', label: '1M' },
+  { value: '5m', label: '5M' },
+  { value: '15m', label: '15M' },
+  { value: '1H', label: '1H' },
+  { value: '4H', label: '4H' },
+  { value: '1D', label: '1D' },
+  { value: '1W', label: '1W' }
+]
+// 1초봉은 OKX 종목만 지원(바이낸스 기반 종목은 숨긴다)
+const quickTimeframes = computed(() => QUICK_TIMEFRAMES.filter((q) => q.value !== '1s' || !usesBinanceFeed(symbol.value)))
+const extraTimeframeActive = computed(() => !QUICK_TIMEFRAMES.some((q) => q.value === timeframe.value))
 const timeframeGroups = computed(() => [
-  timeframeOptions.value.filter((o) => ['1m', '5m', '15m', '30m'].includes(o.value)),
-  timeframeOptions.value.filter((o) => o.value === '1H'),
-  timeframeOptions.value.filter((o) => ['1D', '1W', '1M'].includes(o.value))
+  timeframeOptions.value.filter((o) => o.value === '30m'),
+  timeframeOptions.value.filter((o) => o.value === '1M')
 ])
+// 톱니 메뉴(차트 설정)
+const gearMenuOpen = ref(false)
+const gearMenuRoot = ref<HTMLElement | null>(null)
+const showGrid = ref(true)
+function toggleChartGrid() {
+  showGrid.value = !showGrid.value
+  try {
+    localStorage.setItem('ktx_chart_grid', showGrid.value ? '1' : '0')
+  } catch {}
+  chart?.applyOptions({ grid: { horzLines: { visible: showGrid.value } } })
+}
+// 차트 위 범례(OHLCV): 마우스가 가리키는 봉이 있으면 그 봉, 없으면 마지막 봉
+const hoverBar = ref<null | { open: number; high: number; low: number; close: number; volume: number }>(null)
+const ohlcLegend = computed(() => {
+  const h = hoverBar.value
+  let open: number, high: number, low: number, close: number, volume: number
+  if (h) {
+    ;({ open, high, low, close, volume } = h)
+  } else {
+    const c: any = liveLastCandle.value || candleData.value[candleData.value.length - 1]
+    if (!c) return { open: '—', high: '—', low: '—', close: '—', volume: '—', up: true }
+    open = Number(c.open)
+    high = Number(c.high)
+    low = Number(c.low)
+    close = Number(c.close)
+    const vs = volumeData.value
+    volume = vs.length ? Number((vs[vs.length - 1] as any).value) || 0 : 0
+  }
+  const fmtVol = (v: number) => (v >= 1000 ? Math.round(v).toLocaleString('en-US') : String(Number(v.toFixed(v < 10 ? 4 : 2))))
+  return { open: fmtPrice(open), high: fmtPrice(high), low: fmtPrice(low), close: fmtPrice(close), volume: fmtVol(volume), up: close >= open }
+})
 const currentTimeframeLabel = computed(() => timeframeOptions.value.find((o) => o.value === timeframe.value)?.label || timeframe.value)
 function selectTimeframe(v: TimeframeValue) {
   timeframe.value = v
@@ -3518,7 +3593,9 @@ function barSeconds(tf: TimeframeValue) {
   if (tf === '5m') return 300
   if (tf === '15m') return 900
   if (tf === '30m') return 1800
+  if (tf === '1s') return 1
   if (tf === '1H') return 3600
+  if (tf === '4H') return 14400
   if (tf === '1D') return 86400
   if (tf === '1W') return 604800
   return 2592000
@@ -5301,6 +5378,7 @@ function usesBinanceFeed(sym: string) {
 
 function toBinanceInterval(bar: TimeframeValue): string {
   if (bar === '1H') return '1h'
+  if (bar === '4H') return '4h'
   if (bar === '1D') return '1d'
   if (bar === '1W') return '1w'
   if (bar === '1M') return '1M'
@@ -6013,6 +6091,18 @@ function onChartClick(param: any) {
 }
 
 function onCrosshairMove(param: any) {
+  try {
+    const bar: any = param?.time && candleSeries ? param.seriesData?.get(candleSeries) : null
+    if (bar && Number.isFinite(Number(bar.close))) {
+      const vs = volumeData.value as any[]
+      const vol = vs.find((x) => x.time === param.time)
+      hoverBar.value = { open: Number(bar.open), high: Number(bar.high), low: Number(bar.low), close: Number(bar.close), volume: Number(vol?.value) || 0 }
+    } else {
+      hoverBar.value = null
+    }
+  } catch {
+    hoverBar.value = null
+  }
   if (!param || !param.point) {
     // 차트 오른쪽 여백처럼 실제 캔들 데이터가 없는 영역에서는 lightweight-charts가 point를 안 준다.
     // 그렇다고 여기서 liveDrawingPoint/커스텀 크로스헤어를 지우면, 그 값을 계속 최신으로 유지해주는
@@ -6068,7 +6158,7 @@ function initChart() {
       locale: 'ko-KR',
       timeFormatter: (businessDayOrTimestamp: any) => formatCrosshairTime(businessDayOrTimestamp)
     },
-    grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,0.035)' } },
+    grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,0.035)', visible: showGrid.value } },
     rightPriceScale: { borderColor: 'rgba(255,255,255,0.12)', scaleMargins: { top: 0.1, bottom: 0.2 } },
     timeScale: {
       borderColor: 'rgba(255,255,255,0.12)',
@@ -7887,6 +7977,9 @@ watch(
 )
 onMounted(async () => {
   loadFavSymbols()
+  try {
+    showGrid.value = localStorage.getItem('ktx_chart_grid') !== '0'
+  } catch {}
   refreshOverview(true).catch(() => {})
   overviewTimer = setInterval(() => refreshOverview(true).catch(() => {}), 30000)
   document.addEventListener('click', onDropdownMenuDocClick, { capture: true })
