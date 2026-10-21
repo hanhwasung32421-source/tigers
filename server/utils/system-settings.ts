@@ -69,6 +69,9 @@ export type ProfitCardStyle = {
   // 카드 배경 그림(작게 줄인 이미지의 data URL, 없으면 빈 문자열)과 그 투명도(0~100%)
   bgImage: string
   bgImageOpacity: number
+  // 그림 위에 씌우는 색 필터(색과 투명도 0~100%). 투명도 0이면 필터 없음.
+  bgFilterColor: string
+  bgFilterOpacity: number
   // 수익/손실 공통 강조색
   positiveColor: string
   negativeColor: string
@@ -142,6 +145,8 @@ export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   gridSize: 28,
   bgImage: '',
   bgImageOpacity: 35,
+  bgFilterColor: '#000000',
+  bgFilterOpacity: 0,
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
   logoFontSize: 16,
@@ -182,6 +187,8 @@ const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> 
   gridSize: { kind: 'number', min: 8, max: 48 },
   bgImage: { kind: 'image' },
   bgImageOpacity: { kind: 'number', min: 0, max: 100 },
+  bgFilterColor: { kind: 'color' },
+  bgFilterOpacity: { kind: 'number', min: 0, max: 100 },
   positiveColor: { kind: 'color' },
   negativeColor: { kind: 'color' },
   logoFontSize: { kind: 'number', min: 10, max: 28 },

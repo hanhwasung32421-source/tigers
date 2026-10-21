@@ -1800,6 +1800,17 @@
               opacity: (profitCardStyle.bgImageOpacity ?? 35) / 100
             }"
           />
+          <!-- 그림 위에 씌우는 색 필터(글자는 이 위에 써진다) -->
+          <div
+            v-if="profitCardStyle.bgImage && (profitCardStyle.bgFilterOpacity ?? 0) > 0"
+            class="pointer-events-none absolute inset-0"
+            :style="{
+              zIndex: -1,
+              borderRadius: profitCardStyle.cardRadius + 'px',
+              backgroundColor: profitCardStyle.bgFilterColor || '#000000',
+              opacity: (profitCardStyle.bgFilterOpacity ?? 0) / 100
+            }"
+          />
           <button
             type="button"
             class="absolute right-4 top-4 z-10 rounded-full bg-white/6 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/10"
@@ -2271,6 +2282,8 @@ type ProfitCardStyle = {
   gridSize: number
   bgImage?: string
   bgImageOpacity?: number
+  bgFilterColor?: string
+  bgFilterOpacity?: number
   positiveColor: string
   negativeColor: string
   logoFontSize: number
@@ -2308,6 +2321,8 @@ const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   gridSize: 28,
   bgImage: '',
   bgImageOpacity: 35,
+  bgFilterColor: '#000000',
+  bgFilterOpacity: 0,
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
   logoFontSize: 16,
