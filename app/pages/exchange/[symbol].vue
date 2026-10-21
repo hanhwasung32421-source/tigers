@@ -867,14 +867,25 @@
             <!-- 주문하기 + 마진 모드(격리/교차) + 시장가/지정가 -->
             <div class="ex-rule -mx-3 mb-2 flex h-[46px] items-center justify-between px-3">
               <div class="text-[14px] text-slate-100">{{ t('주문하기', 'Place Order') }}</div>
-              <button
-                type="button"
-                class="rounded-md bg-[#1b2530] px-3 py-2 text-[14px] text-slate-100 ring-1 ring-white/10 hover:bg-[#25313f]"
-                :title="t('눌러서 격리/교차 전환 (보유 포지션이 없을 때만)', 'Click to switch Isolated / Cross (only with no open positions)')"
-                @click="toggleMarginMode"
-              >
-                {{ marginMode === 'cross' ? t('교차', 'Cross') : t('격리', 'Isolated') }}
-              </button>
+              <!-- 격리 / 교차 스위치(기본 격리) -->
+              <div class="ex-seg grid grid-cols-2 overflow-hidden rounded text-[13px]" :title="t('보유 포지션이 없을 때만 바꿀 수 있습니다', 'Can only be switched with no open positions')">
+                <button
+                  type="button"
+                  class="px-3 py-1.5 transition"
+                  :class="marginMode === 'isolated' ? 'ex-seg-on font-semibold' : 'text-[#868993] hover:text-[#d1d4dc]'"
+                  @click="setMarginMode('isolated')"
+                >
+                  {{ t('격리', 'Isolated') }}
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-1.5 transition"
+                  :class="marginMode === 'cross' ? 'ex-seg-on font-semibold' : 'text-[#868993] hover:text-[#d1d4dc]'"
+                  @click="setMarginMode('cross')"
+                >
+                  {{ t('교차', 'Cross') }}
+                </button>
+              </div>
             </div>
             <div class="ex-seg mb-4 grid grid-cols-2 overflow-hidden rounded">
               <button
@@ -7674,6 +7685,10 @@ function saveLimitOpenOrders() {
     localStorage.setItem(limitOpenStorageKey(), JSON.stringify(limitOpenOrders.value))
   } catch {}
 }
+function setMarginMode(mode: 'isolated' | 'cross') {
+  if (marginMode.value === mode) return
+  toggleMarginMode()
+}
 function toggleMarginMode() {
   // 거래소처럼 포지션이 있는 동안에는 격리/교차를 바꿀 수 없다.
   if (positions.value.length) {
@@ -7694,8 +7709,8 @@ function setOrderType(t0: 'market' | 'limit') {
   orderType.value = t0
   error.value = null
   tradeMsg.value = null
-  // 지정가로 바꾸면 구매가격을 비워두고, 가격을 쓴 뒤에 롱/숏 버튼이 활성화된다.
-  if (t0 === 'limit') limitPriceDraft.value = ''
+  // 지정가로 바꾸면 구매가격에 현재 가격이 들어간다(고쳐 쓸 수 있다).
+  if (t0 === 'limit') limitPriceDraft.value = lastPrice.value ? String(Number(lastPrice.value)) : ''
 }
 const pendingLimitOpenOrders = computed(() => limitOpenOrders.value.filter((o) => String(o.symbol).toUpperCase() === String(symbol.value).toUpperCase()))
 function cancelLimitOpen(id: string) {
