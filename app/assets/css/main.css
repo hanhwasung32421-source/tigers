@@ -1803,3 +1803,26 @@ html.theme-filter .ex-btn-long,
 html.theme-filter .ex-btn-short {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* 거래 화면의 숫자(monospace로 쓰던 부분)는 모두 같은 글꼴 목록으로 통일 */
+.ex-gutter .font-mono,
+.ex-gutter input,
+.ex-gutter table {
+  font-family: Inter, 'PingFang SC', 'PingFang TC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Microsoft JhengHei', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important;
+}
+
+/* 차트 현재가 태그: 상승=초록, 하락=빨강 바탕 + 흰 글씨(흰 화면에서는 한 번 더 반전해서 색을 그대로 낸다) */
+.ex-ptag-up,
+.ex-ptag-down {
+  color: #ffffff;
+}
+.ex-ptag-up {
+  background-color: #1fa588;
+}
+.ex-ptag-down {
+  background-color: #e5484d;
+}
+html.theme-filter .ex-ptag-up,
+html.theme-filter .ex-ptag-down {
+  filter: invert(1) hue-rotate(180deg);
+}

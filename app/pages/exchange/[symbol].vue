@@ -637,6 +637,15 @@
                 <div class="pointer-events-none absolute top-1/2 left-0 right-0 h-px border-t border-dashed border-white/50" />
               </div>
             </template>
+            <!-- 현재가 태그(우측 가격축 위): 상승=초록, 하락=빨강 바탕에 흰 글씨 -->
+            <div
+              v-if="lastTag"
+              class="pointer-events-none absolute right-0 z-[24] -translate-y-1/2 px-1.5 py-[3px] text-center text-[12px] leading-none"
+              :class="lastTag.up ? 'ex-ptag-up' : 'ex-ptag-down'"
+              :style="{ top: lastTag.y + 'px', minWidth: lastTag.w + 'px' }"
+            >
+              {{ lastTag.text }}
+            </div>
             <div
               v-for="b in entryBadges"
               :key="b.id"
@@ -2497,6 +2506,39 @@ let bolBasisSeries: ISeriesApi<'Line'> | null = null
 let bolUpperSeries: ISeriesApi<'Line'> | null = null
 let bolLowerSeries: ISeriesApi<'Line'> | null = null
 const priceLines: any[] = []
+// 차트 우측 현재가 태그(가격축 위에 겹쳐 그린다). 위치는 주기적으로 다시 계산한다.
+const lastTag = ref<null | { y: number; text: string; up: boolean; w: number }>(null)
+let lastTagTimer: any = null
+function updateLastTag() {
+  if (!candleSeries || !chart) {
+    lastTag.value = null
+    return
+  }
+  const c: any = liveLastCandle.value || candleData.value[candleData.value.length - 1]
+  const price = Number(c?.close)
+  if (!c || !Number.isFinite(price)) {
+    lastTag.value = null
+    return
+  }
+  const y = candleSeries.priceToCoordinate(price)
+  let paneH = 0
+  try {
+    paneH = chart.panes()[0]?.getHeight() || 0
+  } catch {}
+  if (y === null || (paneH && y > paneH)) {
+    lastTag.value = null
+    return
+  }
+  let w = 0
+  try {
+    w = chart.priceScale('right').width()
+  } catch {}
+  const text = fmtPrice(price)
+  const up = Number(c.close) >= Number(c.open)
+  const prev = lastTag.value
+  if (prev && prev.y === y && prev.text === text && prev.up === up && prev.w === w) return
+  lastTag.value = { y, text, up, w }
+}
 const entryBadges = ref<Array<{ id: number; y: number; isLong: boolean; label: string; pctText: string; positive: boolean }>>([])
 const drawingPriceLines: any[] = []
 const trendLinePrimitives: TrendLinePrimitive[] = []
@@ -6021,7 +6063,7 @@ function initChart() {
   chart = createChart(chartEl.value, {
     width: Math.max(300, Math.floor(rect.width)),
     height: Math.max(400, Math.floor(rect.height)),
-    layout: { background: { color: 'transparent' }, textColor: '#cbd5e1', attributionLogo: false },
+    layout: { background: { color: 'transparent' }, textColor: '#cbd5e1', attributionLogo: false, fontFamily: "Inter, 'PingFang SC', 'PingFang TC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Microsoft JhengHei', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" },
     localization: {
       locale: 'ko-KR',
       timeFormatter: (businessDayOrTimestamp: any) => formatCrosshairTime(businessDayOrTimestamp)
@@ -6082,9 +6124,11 @@ function initChart() {
     borderDownColor: '#ef4444',
     wickUpColor: '#10b981',
     wickDownColor: '#ef4444',
-    // 현재가 태그(우측 가격축)는 직전 봉이 상승/하락했는지와 무관하게 항상 짙은회색+흰 글씨로 고정.
-    priceLineColor: '#4b5563'
+    // 현재가 태그(우측 가격축)는 라이브러리 라벨 대신 직접 그린 태그(lastTag)를 쓴다. 가격선 색은 아래 watch가 상승/하락에 맞춰 바꾼다.
+    lastValueVisible: false,
+    priceLineColor: '#10b981'
   })
+  candleSeries.applyOptions({ priceLineColor: currentCandleMeta.value.up ? '#10b981' : '#ef4444' })
   applyPriceFormatForSymbol(symbol.value)
 
   // 거래량은 가격 차트와 분리된 아래쪽 pane(1번)에 그린다. 5/10/20 이동평균선도 같이 그린다.
@@ -6121,6 +6165,8 @@ function initChart() {
 
   chart.subscribeClick(onChartClick)
   chart.subscribeCrosshairMove(onCrosshairMove)
+  if (lastTagTimer) clearInterval(lastTagTimer)
+  lastTagTimer = setInterval(updateLastTag, 100)
   // 확대/축소/스크롤로 가격축 스케일이 바뀔 때도 진입가 뱃지 위치를 다시 계산
   chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
     updateEntryBadges()
@@ -7831,6 +7877,14 @@ watch(
   { immediate: true }
 )
 
+watch(
+  () => currentCandleMeta.value.up,
+  (up) => {
+    try {
+      candleSeries?.applyOptions({ priceLineColor: up ? '#10b981' : '#ef4444' })
+    } catch {}
+  }
+)
 onMounted(async () => {
   loadFavSymbols()
   refreshOverview(true).catch(() => {})
@@ -7907,6 +7961,7 @@ watch(symbol, () => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   if (overviewTimer) clearInterval(overviewTimer)
+  if (lastTagTimer) clearInterval(lastTagTimer)
   window.removeEventListener('resize', onWindowResizeForChartHeight)
   stopAlarmLoop()
   chartResizeObserver?.disconnect()
