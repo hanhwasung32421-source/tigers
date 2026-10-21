@@ -1710,3 +1710,17 @@ html.snap-landing {
     stroke-dashoffset: 0;
   }
 }
+
+/* 화이트 테마(실제 색상 모드)의 드롭다운(예: 회원가입 은행 목록): 흰 배경 + 검은 글씨 */
+html.theme-native select {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #d1d5db;
+}
+html.theme-native select option {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+}
+html.theme-native select option:disabled {
+  color: #9ca3af !important;
+}

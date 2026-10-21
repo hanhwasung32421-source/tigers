@@ -72,8 +72,8 @@
             v-model="bankName"
             class="w-full rounded-lg bg-black/70 px-3 py-2 text-white outline-none ring-1 ring-white/20 focus:ring-indigo-500"
           >
-            <option disabled value="" class="bg-black text-white">{{ t('선택(아래화살표)', 'Select (dropdown below)') }}</option>
-            <option v-for="bank in banks" :key="bank.ko" :value="bank.ko" class="bg-black text-white">{{ t(bank.ko, bank.en) }}</option>
+            <option disabled value="">{{ t('선택(아래화살표)', 'Select (dropdown below)') }}</option>
+            <option v-for="bank in banks" :key="bank.ko" :value="bank.ko">{{ t(bank.ko, bank.en) }}</option>
           </select>
         </div>
       </div>
