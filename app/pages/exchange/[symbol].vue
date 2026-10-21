@@ -1013,13 +1013,26 @@
               </td>
               <td class="py-1">
                 <div class="flex flex-col items-start gap-1">
-                  <button
-                    class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
-                    :disabled="isTradeSyncing || closeClickCooldown.has(p.id)"
-                    @click="onClosePositionClick(p.id, p)"
-                  >
-                    {{ t('시장가청산', 'Market Close') }}
-                  </button>
+                  <div class="flex items-center gap-1">
+                    <button
+                      class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
+                      :disabled="isTradeSyncing || closeClickCooldown.has(p.id) || Number(p.id) <= 0"
+                      @click="openLimitCloseModal(p)"
+                    >
+                      {{ t('지정가청산', 'Limit Close') }}
+                    </button>
+                    <button
+                      class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
+                      :disabled="isTradeSyncing || closeClickCooldown.has(p.id)"
+                      @click="onClosePositionClick(p.id, p)"
+                    >
+                      {{ t('시장가청산', 'Market Close') }}
+                    </button>
+                  </div>
+                  <div v-if="limitOrderOf(p.id)" class="flex items-center gap-1 text-[12px] text-amber-300">
+                    <span class="font-mono">{{ t('지정가', 'Limit') }} {{ fmtPrice2(limitOrderOf(p.id)!.price) }} · {{ fmtQtyShort(limitOrderOf(p.id)!.qty) }}</span>
+                    <button type="button" class="rounded px-1 text-slate-300 hover:bg-white/10 hover:text-white" :title="t('지정가 청산 주문 취소', 'Cancel limit close order')" @click="cancelLimitClose(p.id)">✕</button>
+                  </div>
                   <div v-if="isSuperAdminUser" class="flex w-full flex-col gap-1">
                     <div v-for="(al, ai) in getPositionAlarmRows(p.id)" :key="al.uid" class="flex items-center gap-1">
                       <input
@@ -1265,6 +1278,83 @@
             @click="confirmKillModal"
           >
             {{ t('실행', 'Run') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 지정가 청산 팝업 -->
+    <div
+      v-if="limitModal.open && limitModal.pos"
+      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+      @click.self="closeLimitCloseModal"
+      @keydown.esc="closeLimitCloseModal"
+    >
+      <div class="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1220] p-6 shadow-2xl">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="text-xl font-semibold tracking-tight text-slate-100">{{ limitModal.pos.symbol }} {{ t('지정가 청산', 'Limit Close') }}</h3>
+            <p class="mt-2 text-sm text-slate-400">{{ t('보유 포지션을 지정한 가격에 청산하는 주문을 넣습니다.', 'Place an order to close your position at the price you set.') }}</p>
+          </div>
+          <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeLimitCloseModal">✕</button>
+        </div>
+        <div class="mt-3 space-y-0.5 text-sm">
+          <div class="font-semibold text-[#f23645]">{{ t('현재 가격', 'Current Price') }} : {{ limitMark ? fmtPrice(limitMark) : '—' }}</div>
+          <div class="text-xs text-slate-400">{{ t('진입가격', 'Entry Price') }}: {{ fmtPrice(Number(limitModal.pos.entry_price)) }}</div>
+          <div class="text-xs text-slate-400">{{ t('청산 가능 수량', 'Closable Quantity') }}: {{ fmtQtyShort(Number(limitModal.pos.qty)) }}</div>
+        </div>
+
+        <div class="mt-5 flex items-center gap-4">
+          <label class="w-16 shrink-0 text-sm font-semibold text-slate-200">{{ t('지정가격', 'Limit Price') }}</label>
+          <input
+            v-model="limitModal.priceDraft"
+            type="text"
+            inputmode="decimal"
+            class="w-full rounded-md bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/20 focus:ring-indigo-400"
+            @keydown.enter.prevent="confirmLimitClose"
+          />
+        </div>
+        <div class="mt-3 flex items-center gap-4">
+          <label class="w-16 shrink-0 text-sm font-semibold text-slate-200">{{ t('수량', 'Quantity') }}</label>
+          <input
+            v-model="limitModal.qtyDraft"
+            type="text"
+            inputmode="decimal"
+            class="w-full rounded-md bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-white/10 focus:ring-indigo-400"
+            @input="onLimitQtyInput"
+            @keydown.enter.prevent="confirmLimitClose"
+          />
+        </div>
+
+        <div class="mt-5 px-1">
+          <input v-model.number="limitModal.percent" type="range" min="0" max="100" step="1" class="w-full accent-[#3b82f6]" @input="onLimitPercentInput" />
+          <div class="mt-1 flex justify-between text-xs text-slate-300">
+            <button v-for="pc in [10, 25, 50, 75, 100]" :key="pc" type="button" class="rounded px-1.5 py-0.5 hover:bg-white/10" @click="setLimitPercent(pc)">{{ pc }}%</button>
+          </div>
+        </div>
+
+        <div class="mt-5 flex items-start justify-between text-sm">
+          <div class="font-semibold text-slate-100">{{ t('계약 수익', 'Contract Profit') }}</div>
+          <div class="text-right">
+            <div class="font-mono text-lg font-semibold" :class="limitCalc.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">{{ limitCalc.pnl.toFixed(2) }} USDT</div>
+            <div class="text-xs text-slate-400">{{ limitCalc.krw }} {{ t('원', 'KRW') }}</div>
+          </div>
+        </div>
+        <p class="mt-4 text-center text-sm text-slate-200">
+          <span class="font-semibold text-white">{{ limitCalc.qtyText }}</span>
+          {{ t('의 보유 포지션이 지정 가격에 청산됩니다.', 'of your position will be closed at the limit price.') }}
+        </p>
+        <p class="mt-1 text-center text-sm" :class="limitCalc.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+          {{ t('계약 수익은', 'Contract profit is') }} {{ limitCalc.pnl.toFixed(2) }} USDT {{ t('입니다.', '.') }}
+        </p>
+        <div class="mt-5 flex items-center justify-between text-sm">
+          <div class="font-semibold text-slate-100">{{ t('수수료', 'Fee') }}</div>
+          <div class="font-mono font-semibold text-slate-100">{{ limitCalc.fee.toFixed(2) }} USDT</div>
+        </div>
+        <p v-if="limitModal.error" class="mt-3 text-sm text-red-300">{{ limitModal.error }}</p>
+        <div class="mt-5 flex justify-end">
+          <button type="button" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-200 disabled:opacity-60" :disabled="limitModal.busy" @click="confirmLimitClose">
+            {{ t('청산 주문', 'Place Close Order') }}
           </button>
         </div>
       </div>
@@ -1960,6 +2050,20 @@ const positionEditModal = reactive<{
   value: '',
   saving: false
 })
+// 지정가 청산 주문: 포지션을 지정한 가격(롱=그 가격 이상, 숏=그 가격 이하)에 도달하면 그 가격으로 청산한다.
+// 주문은 이 기기(브라우저)에 저장되고, 차트 화면이 열려 있는 동안 시세를 보다가 도달하면 실행된다.
+type LimitCloseOrder = { id: string; positionId: number; symbol: string; side: 'long' | 'short'; price: number; qty: number; createdAt: string; fail?: number }
+const limitCloseOrders = ref<LimitCloseOrder[]>([])
+const limitModal = reactive<{ open: boolean; pos: any | null; priceDraft: string; qtyDraft: string; percent: number; error: string; busy: boolean }>({
+  open: false,
+  pos: null,
+  priceDraft: '',
+  qtyDraft: '',
+  percent: 100,
+  error: '',
+  busy: false
+})
+const limitKrwRate = ref(0)
 const closeSummary = ref<null | {
   symbol: string
   side: 'long' | 'short'
@@ -2773,6 +2877,7 @@ async function refreshMarks() {
     markPrices.value = { ...(markPrices.value || {}), ...(res?.prices || {}) }
     updateEntryBadges()
     await checkAutoLiquidations().catch(() => {})
+    await checkLimitCloseOrders().catch(() => {})
     checkPositionAlarms()
   } finally {
     markPolling = false
@@ -6430,6 +6535,183 @@ function onFillsScroll(e: Event) {
   }
 }
 
+// ----- 지정가 청산 -----
+function limitCloseStorageKey() {
+  return `ktx_limit_close_orders:${Number((me.value as any)?.id || 0)}`
+}
+function loadLimitCloseOrders() {
+  if (!process.client) return
+  try {
+    const arr = JSON.parse(localStorage.getItem(limitCloseStorageKey()) || '[]')
+    limitCloseOrders.value = Array.isArray(arr) ? arr.filter((o: any) => o && Number(o.positionId) > 0 && Number(o.price) > 0 && Number(o.qty) > 0) : []
+  } catch {
+    limitCloseOrders.value = []
+  }
+}
+function saveLimitCloseOrders() {
+  if (!process.client) return
+  try {
+    localStorage.setItem(limitCloseStorageKey(), JSON.stringify(limitCloseOrders.value))
+  } catch {}
+}
+function limitOrderOf(positionId: number) {
+  return limitCloseOrders.value.find((o) => Number(o.positionId) === Number(positionId)) || null
+}
+function cancelLimitClose(positionId: number) {
+  limitCloseOrders.value = limitCloseOrders.value.filter((o) => Number(o.positionId) !== Number(positionId))
+  saveLimitCloseOrders()
+}
+function fmtQtyShort(q: number) {
+  const n = Number(q)
+  if (!Number.isFinite(n)) return '—'
+  return String(Number(n.toFixed(5)))
+}
+const limitMark = computed(() => (limitModal.pos ? Number(markOf(limitModal.pos.symbol) || 0) : 0))
+// 입력한 지정가격/수량 기준 계약 수익, 수수료(매도 수수료: 청산하는 증거금의 4%), 원화 환산
+const limitCalc = computed(() => {
+  const p = limitModal.pos
+  if (!p) return { pnl: 0, fee: 0, krw: '0', qty: 0, qtyText: '0' }
+  const price = Number(String(limitModal.priceDraft).replace(/,/g, ''))
+  const qty = Number(String(limitModal.qtyDraft).replace(/,/g, ''))
+  const posQty = Number(p.qty || 0)
+  if (!(price > 0) || !(qty > 0) || !(posQty > 0)) return { pnl: 0, fee: 0, krw: '0', qty: 0, qtyText: '0' }
+  const q = Math.min(qty, posQty)
+  const raw = (price - Number(p.entry_price || 0)) * q * (p.side === 'short' ? -1 : 1)
+  const grossPart = Number(p.margin || 0) * (q / posQty)
+  const netPart = netMarginFromGross(grossPart)
+  const pnl = netPart > 0 ? Math.max(-netPart, raw) : raw
+  const fee = grossPart > 0 ? grossPart * TRADE_FEE_RATE : 0
+  const krw = limitKrwRate.value > 0 ? Math.round(pnl * limitKrwRate.value).toLocaleString('ko-KR') : '—'
+  return { pnl, fee, krw, qty: q, qtyText: fmtQtyShort(q) }
+})
+async function openLimitCloseModal(p: any) {
+  if (!p || Number(p.id) <= 0) return
+  const mark = Number(markOf(p.symbol) || 0)
+  limitModal.pos = p
+  limitModal.priceDraft = mark > 0 ? String(Number(mark.toPrecision(8))) : ''
+  limitModal.percent = 100
+  limitModal.qtyDraft = fmtQtyShort(Number(p.qty))
+  limitModal.error = ''
+  limitModal.busy = false
+  limitModal.open = true
+  if (!(limitKrwRate.value > 0)) {
+    const res = await $fetch<{ rate: number }>('/api/settings/krw-rate').catch(() => null)
+    limitKrwRate.value = Number(res?.rate || 0)
+  }
+}
+function closeLimitCloseModal() {
+  limitModal.open = false
+}
+function setLimitPercent(pc: number) {
+  const p = limitModal.pos
+  if (!p) return
+  limitModal.percent = pc
+  limitModal.qtyDraft = fmtQtyShort(Math.floor(Number(p.qty) * (pc / 100) * 1e5) / 1e5 || Number(p.qty))
+}
+function onLimitPercentInput() {
+  setLimitPercent(Math.max(1, Math.min(100, Number(limitModal.percent) || 1)))
+}
+function onLimitQtyInput() {
+  const p = limitModal.pos
+  if (!p) return
+  const q = Number(String(limitModal.qtyDraft).replace(/,/g, ''))
+  if (q > 0) limitModal.percent = Math.max(0, Math.min(100, Math.round((q / Number(p.qty)) * 100)))
+}
+function confirmLimitClose() {
+  const p = limitModal.pos
+  if (!p) return
+  const price = Number(String(limitModal.priceDraft).replace(/,/g, ''))
+  const qty = Number(String(limitModal.qtyDraft).replace(/,/g, ''))
+  const posQty = Number(p.qty || 0)
+  if (!Number.isFinite(price) || price <= 0) {
+    limitModal.error = t('지정가격을 입력해주세요.', 'Please enter a limit price.')
+    return
+  }
+  if (!Number.isFinite(qty) || qty <= 0) {
+    limitModal.error = t('수량을 입력해주세요.', 'Please enter a quantity.')
+    return
+  }
+  if (qty > posQty * 1.00001) {
+    limitModal.error = t('청산 가능 수량을 넘을 수 없습니다.', 'Quantity cannot exceed the closable quantity.')
+    return
+  }
+  const order: LimitCloseOrder = {
+    id: `lc-${Date.now()}`,
+    positionId: Number(p.id),
+    symbol: String(p.symbol),
+    side: p.side === 'short' ? 'short' : 'long',
+    price,
+    qty: Math.min(qty, posQty),
+    createdAt: new Date().toISOString()
+  }
+  // 한 포지션에는 지정가 청산 주문을 하나만 둔다(새로 넣으면 이전 주문을 대체한다).
+  limitCloseOrders.value = limitCloseOrders.value.filter((o) => Number(o.positionId) !== order.positionId).concat([order])
+  saveLimitCloseOrders()
+  closeLimitCloseModal()
+  checkLimitCloseOrders().catch(() => {})
+}
+const executingLimitIds = new Set<string>()
+async function executeLimitClose(order: LimitCloseOrder) {
+  if (executingLimitIds.has(order.id)) return
+  executingLimitIds.add(order.id)
+  try {
+    const pos = positions.value.find((x: any) => Number(x.id) === Number(order.positionId))
+    if (!pos) {
+      // 포지션이 이미 없어졌으면(다른 방법으로 청산됨) 주문도 지운다.
+      cancelLimitClose(order.positionId)
+      return
+    }
+    const posQty = Number(pos.qty || 0)
+    const qty = Math.min(order.qty, posQty)
+    const full = qty >= posQty * 0.99999
+    const entry = Number(pos.entry_price || 0)
+    const isShort = pos.side === 'short'
+    const grossPart = Number(pos.margin || 0) * (qty / posQty)
+    const netPart = netMarginFromGross(grossPart)
+    let pnl = (order.price - entry) * qty * (isShort ? -1 : 1)
+    if (netPart > 0) pnl = Math.max(-netPart, pnl)
+    await $fetch('/api/trade/close', {
+      method: 'POST',
+      body: { positionId: Number(pos.id), exitPrice: order.price, ...(full ? {} : { qty }) }
+    })
+    cancelLimitClose(order.positionId)
+    const roe = netPart > 0 ? (pnl / netPart) * 100 : 0
+    showCloseSummary({
+      symbol: String(pos.symbol),
+      side: isShort ? 'short' : 'long',
+      leverage: Number(pos.leverage || 1),
+      entryPrice: entry,
+      exitPrice: order.price,
+      pnl,
+      roe: Math.max(LIQUIDATION_TRIGGER_ROE, roe),
+      wonText: Math.round(pnl * (limitKrwRate.value > 0 ? limitKrwRate.value : 1350)).toLocaleString()
+    })
+    await loadAccount().catch(() => {})
+    if (fills.value.length || bottomTab.value === 'fills') await loadFills(true).catch(() => {})
+  } catch {
+    // 일시적 실패는 다음 시세 확인 때 다시 시도하고, 계속 실패하면(3회) 주문을 취소한다.
+    const cur = limitCloseOrders.value.find((o) => o.id === order.id)
+    if (cur) {
+      cur.fail = Number(cur.fail || 0) + 1
+      if (cur.fail >= 3) cancelLimitClose(order.positionId)
+      else saveLimitCloseOrders()
+    }
+  } finally {
+    executingLimitIds.delete(order.id)
+  }
+}
+// 시세가 바뀔 때마다: 롱은 현재가가 지정가 이상, 숏은 이하가 되면 그 지정가로 청산한다.
+async function checkLimitCloseOrders() {
+  if (!limitCloseOrders.value.length) return
+  for (const order of limitCloseOrders.value.slice()) {
+    if (executingLimitIds.has(order.id)) continue
+    const mark = Number(markOf(order.symbol) || 0)
+    if (!(mark > 0)) continue
+    const hit = order.side === 'short' ? mark <= order.price : mark >= order.price
+    if (hit) await executeLimitClose(order)
+  }
+}
+
 async function checkAutoLiquidations() {
   const targets = visiblePositions.value.filter((p: any) => {
     const id = Number(p.id)
@@ -7051,6 +7333,12 @@ watch(
   }
 )
 
+watch(
+  () => (me.value as any)?.id,
+  () => loadLimitCloseOrders(),
+  { immediate: true }
+)
+
 onMounted(async () => {
   document.addEventListener('click', onDropdownMenuDocClick, { capture: true })
   window.addEventListener('resize', onWindowResizeForChartHeight)
@@ -7102,6 +7390,7 @@ watch(
     }
     updateEntryBadges()
     checkAutoLiquidations().catch(() => {})
+    checkLimitCloseOrders().catch(() => {})
     checkPositionAlarms()
   }
 )

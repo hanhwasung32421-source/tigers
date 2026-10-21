@@ -13,7 +13,9 @@ const BodySchema = z.object({
   // 요구사항: 버튼을 누른 순간의 가격으로 서버에도 동일하게 반영
   exitPrice: z.number().positive().optional(),
   // 자동 강제청산(시스템) 여부: 거래내역에서 "청산/강제청산" 구분용
-  liquidation: z.boolean().optional()
+  liquidation: z.boolean().optional(),
+  // 지정가 청산 등으로 포지션의 일부만 청산할 때의 수량(없거나 포지션 수량 이상이면 전량 청산)
+  qty: z.number().positive().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -62,9 +64,14 @@ export default defineEventHandler(async (event) => {
 
     const exit = clampToMarketPrice(body.exitPrice, (await getOkxLastPrice(pos.symbol)).last)
 
-    const pnlRaw = (exit - Number(pos.entry_price)) * Number(pos.qty)
+    // 일부 청산이면 청산하는 수량 비율만큼의 증거금/손익만 정산하고 포지션은 남긴다.
+    const posQty = Number(pos.qty)
+    const closeQty = body.qty && body.qty < posQty * 0.99999 ? body.qty : posQty
+    const partial = closeQty < posQty
+    const grossTotal = Number(pos.margin)
+    const pnlRaw = (exit - Number(pos.entry_price)) * closeQty
     const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
-    const gross = Number(pos.margin)
+    const gross = partial ? grossTotal * (closeQty / posQty) : grossTotal
     const net = netMarginFromGross(gross)
     // 관리자 설정 ROE 도달 시 전액 강제청산(증거금 전액 손실)
     const pnl = clampPnlToLiquidation(pnlUnclamped, net)
@@ -74,9 +81,17 @@ export default defineEventHandler(async (event) => {
     const { settlementAfterFee } = calcSettlementAfterFee(gross, pnl)
     const newUsdt = usdt + settlementAfterFee
 
-    // 포지션 제거
+    // 포지션 제거(일부 청산이면 남은 수량/증거금으로 갱신)
     const supa = getSupabaseAdminClient()
-    await supa.from('bitduck_positions').delete().eq('id', pos.id).eq('user_id', user.id)
+    if (partial) {
+      await supa
+        .from('bitduck_positions')
+        .update({ qty: posQty - closeQty, margin: grossTotal - gross })
+        .eq('id', pos.id)
+        .eq('user_id', user.id)
+    } else {
+      await supa.from('bitduck_positions').delete().eq('id', pos.id).eq('user_id', user.id)
+    }
 
     // 거래 내역 저장(bigint PK 직접 생성)
     const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
@@ -85,7 +100,7 @@ export default defineEventHandler(async (event) => {
       user_id: user.id,
       symbol: pos.symbol,
       side: pos.side,
-      qty: Number(pos.qty),
+      qty: closeQty,
       entry_price: Number(pos.entry_price),
       exit_price: exit,
       leverage: Number(pos.leverage),
@@ -123,9 +138,13 @@ export default defineEventHandler(async (event) => {
   const { last } = await getOkxLastPrice(pos.symbol)
   const exit = clampToMarketPrice(body.exitPrice, last)
 
-  const pnlRaw = (exit - pos.entry_price) * pos.qty
+  const posQty = Number(pos.qty)
+  const closeQty = body.qty && body.qty < posQty * 0.99999 ? body.qty : posQty
+  const partial = closeQty < posQty
+  const grossTotal = Number(pos.margin)
+  const pnlRaw = (exit - pos.entry_price) * closeQty
   const pnlUnclamped = pos.side === 'long' ? pnlRaw : -pnlRaw
-  const gross = Number(pos.margin)
+  const gross = partial ? grossTotal * (closeQty / posQty) : grossTotal
   const net = netMarginFromGross(gross)
   const pnl = clampPnlToLiquidation(pnlUnclamped, net)
   const { settlementAfterFee } = calcSettlementAfterFee(gross, pnl)
@@ -134,7 +153,11 @@ export default defineEventHandler(async (event) => {
   db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(user.id, 0)
   db.prepare('UPDATE balances SET usdt = usdt + ? WHERE user_id = ?').run(settlementAfterFee, user.id)
 
-  db.prepare('DELETE FROM positions WHERE id = ? AND user_id = ?').run(pos.id, user.id)
+  if (partial) {
+    db.prepare('UPDATE positions SET qty = ?, margin = ? WHERE id = ? AND user_id = ?').run(posQty - closeQty, grossTotal - gross, pos.id, user.id)
+  } else {
+    db.prepare('DELETE FROM positions WHERE id = ? AND user_id = ?').run(pos.id, user.id)
+  }
 
   db.prepare(
     'INSERT INTO trades (user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, liquidation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -142,7 +165,7 @@ export default defineEventHandler(async (event) => {
     user.id,
     pos.symbol,
     pos.side,
-    pos.qty,
+    closeQty,
     pos.entry_price,
     exit,
     pos.leverage,
