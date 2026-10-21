@@ -89,7 +89,7 @@
             @click="selectChartTab(tb.id)"
           >
             <span v-if="tb.id === 'ai'" class="mr-1 inline-block rounded bg-[#f0b90b] px-1 text-[10px] text-[#131722]">AI</span>{{ tb.label }}
-            <span v-if="chartTab === tb.id" class="absolute inset-x-0 bottom-0 h-[2px] bg-[#f0b90b]" />
+            <span v-if="chartTab === tb.id" class="ex-yellow absolute inset-x-0 bottom-0 h-[2px]" />
           </button>
         </div>
         <div v-show="chartTab === 'chart'" class="bg-[#131722] px-3 py-1.5">
@@ -256,11 +256,11 @@
           {{ t('AI 분석은 준비 중입니다.', 'AI Analysis is coming soon.') }}
         </div>
         <div v-show="chartTab === 'chart'" class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
-          <div class="flex w-[52px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-r border-[#2a2e39] bg-[#131722] px-1.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div class="flex w-[52px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto bg-[#131722] px-1.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded transition"
-              :class="activeTool === 'cursor' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="activeTool === 'cursor' ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('커서', 'Cursor')"
               @click="selectTool('cursor')"
             >
@@ -270,7 +270,7 @@
               <button
                 type="button"
                 class="flex h-8 w-8 items-center justify-center rounded transition"
-                :class="xtGroupActive(g) ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+                :class="xtGroupActive(g) ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
                 :title="t(g.ko, g.en)"
                 @click="xtOnGroupMain(g)"
               >
@@ -290,7 +290,7 @@
               <button
                 type="button"
                 class="flex h-8 w-8 items-center justify-center rounded transition"
-                :class="activeTool === 'extra' && xtTool?.id === 'emoji' ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+                :class="activeTool === 'extra' && xtTool?.id === 'emoji' ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
                 :title="t('이모지/아이콘', 'Emoji & Icons')"
                 @click="xt.toggleFlyout('emoji', ($event.currentTarget as HTMLElement).closest('.xt-group') as HTMLElement)"
               >
@@ -309,7 +309,7 @@
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded transition"
-              :class="xtMeasure ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="xtMeasure ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('측정 (수익률 측정)', 'Measure')"
               @click="xt.selectMeasure()"
             >
@@ -318,7 +318,7 @@
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded transition"
-              :class="xtZoom ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="xtZoom ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('확대 (드래그한 영역으로 확대)', 'Zoom In')"
               @click="xt.selectZoom()"
             >
@@ -328,7 +328,7 @@
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded transition"
-              :class="xtMagnet ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="xtMagnet ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('자석 모드 (봉의 시가/고가/저가/종가에 붙임)', 'Magnet Mode')"
               @click="xt.toggleMagnet()"
             >
@@ -337,7 +337,7 @@
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded transition"
-              :class="xtStay ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="xtStay ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('그리기 모드 유지', 'Stay in Drawing Mode')"
               @click="xt.toggleStay()"
             >
@@ -346,7 +346,7 @@
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded transition"
-              :class="xtLocked ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="xtLocked ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('모든 도구 잠금', 'Lock All Drawings')"
               @click="xt.toggleLocked()"
             >
@@ -355,7 +355,7 @@
             <button
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded transition"
-              :class="xtHidden ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="xtHidden ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('모든 도구 숨기기', 'Hide All Drawings')"
               @click="xt.toggleHidden()"
             >
@@ -374,7 +374,7 @@
               ref="toolIndicatorBtnRoot"
               type="button"
               class="flex h-8 w-8 items-center justify-center rounded text-[10px] transition"
-              :class="indicatorMenuOpen ? 'bg-[#2962ff] text-white' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
+              :class="indicatorMenuOpen ? 'ex-tool-active' : 'text-[#b2b5be] hover:bg-[#1e222d] hover:text-white'"
               :title="t('보조지표', 'Indicators')"
               :key="'tool-indicator-' + locale"
               @click="toggleIndicatorMenu($event, 'right')"
@@ -948,9 +948,9 @@
       </section>
 
     <!-- Account: 보유자산/사용가능 (하단 Assets와 같은 줄) -->
-      <section class="order-5 min-w-0 bg-[#131722] p-3 lg:order-none lg:col-start-3 lg:row-start-2">
+      <section class="order-5 min-w-0 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-3 lg:row-start-2">
           <div>
-            <div class="text-[16px] text-slate-100">Account</div>
+            <div class="flex h-[46px] items-center text-[14px] text-slate-100">Account</div>
 
             <div class="mt-3">
               <div class="text-[13px] text-slate-400">{{ t('보유자산(증거금포함)', 'Holdings (incl. margin)') }}</div>
@@ -970,20 +970,20 @@
       </section>
 
     <!-- 하단: 포지션 테이블 -->
-      <section class="order-4 bg-[#131722] p-1.5 lg:order-none lg:col-start-1 lg:col-span-2 lg:row-start-2">
+      <section class="order-4 bg-[#131722] px-3 pb-3 pt-0 lg:order-none lg:col-start-1 lg:col-span-2 lg:row-start-2">
       <div class="min-h-[360px]">
-        <div class="flex items-center justify-between border-b border-white/10 px-1">
+        <div class="flex h-[46px] items-center justify-between">
           <div class="flex items-center gap-6">
             <button
               v-for="tb in bottomTabs"
               :key="tb.id"
               type="button"
-              class="relative py-3 text-[15px] transition"
+              class="relative flex h-full items-center text-[14px] transition"
               :class="bottomTab === tb.id ? ' text-white' : 'text-slate-400 hover:text-slate-200'"
               @click="selectBottomTab(tb.id)"
             >
               {{ tb.label }}
-              <span v-if="bottomTab === tb.id" class="absolute inset-x-0 bottom-0 h-[2px] bg-[#f0b90b]" />
+              <span v-if="bottomTab === tb.id" class="ex-yellow absolute inset-x-0 bottom-0 h-[2px]" />
             </button>
           </div>
           <label class="flex items-center gap-2 text-[13px] text-slate-300">

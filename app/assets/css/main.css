@@ -1751,3 +1751,16 @@ html.theme-filter .ex-gutter {
 html.theme-filter .ex-header-line {
   border-color: #f6f6f6;
 }
+
+/* 거래 화면 노란색(KTX 마크 색 #f0b90b): 흰 화면은 반전 필터라 색이 틀어지므로, 한 번 더 반전해서 원래 색으로 보이게 한다. */
+.ex-tool-active {
+  color: #f0b90b !important;
+  background: transparent !important;
+}
+.ex-yellow {
+  background-color: #f0b90b;
+}
+html.theme-filter .ex-tool-active,
+html.theme-filter .ex-yellow {
+  filter: invert(1) hue-rotate(180deg);
+}
