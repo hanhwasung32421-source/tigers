@@ -1772,3 +1772,34 @@ html.theme-filter .ex-yellow {
 html.theme-filter .ex-rule {
   border-bottom-color: #090909;
 }
+
+/* 거래 화면 주문 폼 버튼: 시장가/지정가 토글, 롱/숏, 비중(%) 버튼.
+   초록/빨강은 흰 화면(반전 필터)에서 색이 틀어지므로 한 번 더 반전해서 원래 색으로 보이게 한다. */
+.ex-seg {
+  background-color: #2a2e39;
+}
+.ex-pct {
+  background-color: #2a2e39;
+  color: #c9ccd3;
+}
+.ex-seg-on,
+.ex-btn-long,
+.ex-btn-short {
+  color: #ffffff;
+}
+.ex-seg-on,
+.ex-btn-long {
+  background-color: #3dbf8a;
+}
+.ex-btn-short {
+  background-color: #ff5f5f;
+}
+html.theme-filter .ex-seg,
+html.theme-filter .ex-pct {
+  background-color: #0d0d0d;
+}
+html.theme-filter .ex-seg-on,
+html.theme-filter .ex-btn-long,
+html.theme-filter .ex-btn-short {
+  filter: invert(1) hue-rotate(180deg);
+}

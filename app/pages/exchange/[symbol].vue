@@ -812,19 +812,19 @@
                 {{ marginMode === 'cross' ? t('교차', 'Cross') : t('격리', 'Isolated') }}
               </button>
             </div>
-            <div class="mb-4 grid grid-cols-2 rounded-lg bg-[#1a232d] p-1">
+            <div class="ex-seg mb-4 grid grid-cols-2 overflow-hidden rounded">
               <button
                 type="button"
-                class="rounded-md py-2 text-[15px] transition"
-                :class="orderType === 'market' ? 'bg-[#03070d] text-white' : 'text-slate-400 hover:text-slate-200'"
+                class="py-2 text-[14px] transition"
+                :class="orderType === 'market' ? 'ex-seg-on font-semibold' : 'text-[#868993] hover:text-[#d1d4dc]'"
                 @click="setOrderType('market')"
               >
                 {{ t('시장가', 'Market') }}
               </button>
               <button
                 type="button"
-                class="rounded-md py-2 text-[15px] transition"
-                :class="orderType === 'limit' ? 'bg-[#03070d] text-white' : 'text-slate-400 hover:text-slate-200'"
+                class="py-2 text-[14px] transition"
+                :class="orderType === 'limit' ? 'ex-seg-on font-semibold' : 'text-[#868993] hover:text-[#d1d4dc]'"
                 @click="setOrderType('limit')"
               >
                 {{ t('지정가', 'Limit') }}
@@ -901,18 +901,18 @@
             <!-- 요구사항: 수량 조절 바 아래 % 글자 제거 -->
 
             <div class="grid grid-cols-5 gap-2 pt-1">
-              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(10)">10%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(25)">25%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(50)">50%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(75)">75%</button>
-              <button type="button" class="rounded bg-[#222b34] py-1 text-[13px] text-slate-200 ring-1 ring-white/10 hover:bg-[#2c3944]" @click="setPercent(100)">100%</button>
+              <button type="button" class="ex-pct rounded py-1.5 text-[13px] transition hover:opacity-80" @click="setPercent(10)">10%</button>
+              <button type="button" class="ex-pct rounded py-1.5 text-[13px] transition hover:opacity-80" @click="setPercent(25)">25%</button>
+              <button type="button" class="ex-pct rounded py-1.5 text-[13px] transition hover:opacity-80" @click="setPercent(50)">50%</button>
+              <button type="button" class="ex-pct rounded py-1.5 text-[13px] transition hover:opacity-80" @click="setPercent(75)">75%</button>
+              <button type="button" class="ex-pct rounded py-1.5 text-[13px] transition hover:opacity-80" @click="setPercent(100)">100%</button>
             </div>
 
             <div class="grid grid-cols-2 gap-3 pt-2">
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#0aa37f] px-3 py-4 text-[15px] text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="ex-btn-long w-full rounded px-3 py-3 text-[15px] font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('long')"
                 >
@@ -922,7 +922,7 @@
               <div>
                 <button
                   type="button"
-                  class="w-full rounded-xl bg-[#c60f17] px-3 py-4 text-[15px] text-white hover:bg-[#d41821] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="ex-btn-short w-full rounded px-3 py-3 text-[15px] font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('short')"
                 >
