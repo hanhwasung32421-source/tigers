@@ -925,7 +925,7 @@
                   :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('long')"
                 >
-                  {{ t('구매 / 롱', 'Buy / Long') }}
+                  {{ t('롱', 'Long') }}
                 </button>
               </div>
               <div>
@@ -935,7 +935,7 @@
                   :disabled="isTradeSyncing || openClickCooldown || (orderType === 'limit' && !limitPriceValid)"
                   @click="onOpen('short')"
                 >
-                  {{ t('판매 / 숏', 'Sell / Short') }}
+                  {{ t('숏', 'Short') }}
                 </button>
               </div>
             </div>

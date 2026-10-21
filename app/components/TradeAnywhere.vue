@@ -72,7 +72,7 @@
             <div class="rounded border border-slate-200 px-2 py-1.5">65081.9</div>
             <div class="rounded border border-slate-200 px-2 py-1.5">Amount</div>
             <div class="h-1 rounded bg-slate-200" />
-            <div class="rounded bg-emerald-500/90 px-2 py-2 text-center font-bold text-white">Buy / Long</div>
+            <div class="rounded bg-emerald-500/90 px-2 py-2 text-center font-bold text-white">Long</div>
           </div>
         </div>
       </div>
