@@ -4759,10 +4759,26 @@ async function confirmProfitModal() {
   }
   adminProfitBusy.value = true
   profitError.value = null
+  // 틱을 0으로 적으면 적힌 초 × (3~5 사이 랜덤)만큼 틱을 쓴다(구간마다 따로 뽑는다).
+  const autoTicks = (seconds: number) => Math.max(1, Math.round(seconds * (3 + Math.random() * 2)))
+  const sendTickCount = tickCount > 0 ? tickCount : autoTicks(durationSeconds)
+  const sendHoldTickCount = holdTickCount > 0 ? holdTickCount : autoTicks(holdSeconds)
+  const sendRevertTickCount = revertTickCount > 0 ? revertTickCount : autoTicks(revertSeconds)
   try {
     const res = await $fetch<{ ok: boolean; event: ProfitEvent; liquidatedCount: number }>('/api/admin/profit', {
       method: 'POST',
-      body: { symbol: symbol.value, direction: profitModalDirection.value, targetPrice, durationSeconds, tickCount, holdSeconds, holdTickCount, holdAmp, revertSeconds, revertTickCount }
+      body: {
+        symbol: symbol.value,
+        direction: profitModalDirection.value,
+        targetPrice,
+        durationSeconds,
+        tickCount: sendTickCount,
+        holdSeconds,
+        holdTickCount: sendHoldTickCount,
+        holdAmp,
+        revertSeconds,
+        revertTickCount: sendRevertTickCount
+      }
     })
     saveLastProfitSettings(percent, durationSeconds, tickCount, holdSeconds, holdTickCount, holdAmp, revertSeconds, revertTickCount)
     profitModalOpen.value = false

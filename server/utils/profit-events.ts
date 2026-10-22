@@ -38,8 +38,31 @@ function rowToProfitEvent(row: any): ProfitEvent {
   const revertPacked = durOk ? Math.floor(dur / DURATION_PACK) : 0
   const tc = Number(row.tick_count)
   const tcOk = Number.isFinite(tc) && tc >= 0
-  const [dirRaw, ampRaw] = String(row.direction ?? '').split('|')
+  const dirParts = String(row.direction ?? '').split('|')
+  const [dirRaw, ampRaw] = dirParts
   const ampNum = ampRaw !== undefined && ampRaw !== '' ? Number(ampRaw) : NaN
+  // 확장 형식(direction = 'up|금액|이동ms|복귀ms|이동틱|유지틱|복귀틱'): 시간/틱 수가 큰 값(예: 300초, 1500틱)도 그대로 담는다.
+  // 예전 이벤트(위의 합쳐 저장한 숫자만 있는 것)는 아래 else 경로로 그대로 읽는다.
+  const ext = dirParts.length >= 7 ? dirParts.slice(2, 7).map(Number) : null
+  const extOk = !!ext && ext.every((n) => Number.isFinite(n) && n >= 0) && ext[0] > 0
+  if (extOk && ext) {
+    return {
+      id: Number(row.id),
+      symbol: String(row.symbol).toUpperCase(),
+      direction: dirRaw === 'up' ? 'up' : 'down',
+      percent: Number(row.percent),
+      basePrice: Number(row.base_price),
+      shockedPrice: Number(row.shocked_price),
+      durationMs: ext[0],
+      tickCount: ext[2],
+      holdTickCount: ext[3],
+      holdMs: Number.isFinite(Number(row.hold_ms)) && Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS,
+      revertMs: ext[1] > 0 ? ext[1] : ext[0],
+      revertTickCount: ext[4],
+      holdAmp: Number.isFinite(ampNum) && ampNum >= 0 ? ampNum : null,
+      createdAt: String(row.created_at)
+    }
+  }
   return {
     id: Number(row.id),
     symbol: String(row.symbol).toUpperCase(),
@@ -80,14 +103,16 @@ export async function createProfitEvent(input: {
   // 0은 "자동"을 뜻하므로(&&로 걸러지면 falsy라 기본값으로 바뀌어버림) undefined일 때만 기본값을 쓴다.
   const tickCount = input.tickCount !== undefined && input.tickCount !== null ? Math.max(0, Math.round(input.tickCount)) : DEFAULT_TICK_COUNT
   const holdMs = input.holdMs && input.holdMs > 0 ? Math.round(input.holdMs) : DEFAULT_HOLD_MS
-  const holdTickCount = Math.min(200, Math.max(0, Math.round(Number(input.holdTickCount || 0))))
-  const revertMs = input.revertMs && input.revertMs > 0 ? Math.min(10000, Math.round(input.revertMs)) : durationMs
-  const revertTickCount = Math.min(200, Math.max(0, Math.round(Number(input.revertTickCount || 0))))
+  const holdTickCount = Math.min(100000, Math.max(0, Math.round(Number(input.holdTickCount || 0))))
+  const revertMs = input.revertMs && input.revertMs > 0 ? Math.round(input.revertMs) : durationMs
+  const revertTickCount = Math.min(100000, Math.max(0, Math.round(Number(input.revertTickCount || 0))))
   const holdAmp = input.holdAmp !== undefined && Number.isFinite(Number(input.holdAmp)) && Number(input.holdAmp) >= 0 ? Number(input.holdAmp) : null
   // DB에는 기존 컬럼에 합쳐서 저장(컬럼 추가 불필요)
-  const storedDuration = durationMs + revertMs * DURATION_PACK
-  const storedTickCount = tickCount + holdTickCount * 1000 + revertTickCount * 1000000
-  const storedDirection = holdAmp !== null ? `${input.direction}|${holdAmp}` : input.direction
+  // 기존 숫자 컬럼에는 예전 합쳐 저장 방식으로 들어가는 범위까지만 넣고(옛 형식 호환/컬럼 크기 보호),
+  // 실제 값은 direction 컬럼의 확장 형식에 정확히 담는다.
+  const storedDuration = Math.min(durationMs, DURATION_PACK - 1) + Math.min(revertMs, 10000) * DURATION_PACK
+  const storedTickCount = Math.min(tickCount, 999) + Math.min(holdTickCount, 999) * 1000 + Math.min(revertTickCount, 999) * 1000000
+  const storedDirection = [input.direction, holdAmp !== null ? holdAmp : '', durationMs, revertMs, tickCount, holdTickCount, revertTickCount].join('|')
 
   if (supabaseAppDbEnabled()) {
     const id = Date.now() * 1000 + Math.floor(Math.random() * 1000)

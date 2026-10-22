@@ -21,16 +21,16 @@ const BodySchema = z.object({
   // 몇 초에 걸쳐 움직일지(0.1초 이상, 상한 없음), 몇 틱으로 나눠 움직일지(1~20틱)
   durationSeconds: z.coerce.number().min(0.1).optional(),
   // 0은 "자동"(틱 수를 지정하지 않고 자연스럽게 움직임)을 의미한다.
-  tickCount: z.coerce.number().int().min(0).max(200).optional(),
+  tickCount: z.coerce.number().int().min(0).max(100000).optional(),
   // 목표가에 도달한 뒤 몇 초 동안 그 상태를 유지할지(0.1~120초)
   holdSeconds: z.coerce.number().min(0.1).optional(),
   // 유지 시간 동안 목표가 ±0.05 안에서 움직이는 틱 수. 0은 "랜덤".
-  holdTickCount: z.coerce.number().int().min(0).max(200).optional(),
+  holdTickCount: z.coerce.number().int().min(0).max(100000).optional(),
   // 유지 구간에서 목표가 위아래로 움직이는 금액(±). 0이면 움직이지 않는다.
   holdAmp: z.coerce.number().min(0).max(1e9).optional(),
   // 목표가에서 정상가로 돌아오는 시간(0.1~10초)과 틱 수(0=자동)
   revertSeconds: z.coerce.number().min(0.1).optional(),
-  revertTickCount: z.coerce.number().int().min(0).max(200).optional()
+  revertTickCount: z.coerce.number().int().min(0).max(100000).optional()
 })
 
 function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
