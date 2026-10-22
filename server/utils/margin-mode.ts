@@ -28,9 +28,19 @@ export async function getUserMarginModes(userIds: number[]): Promise<Map<number,
   if (!ids.length) return out
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
+    // chart_prefs 전체(그림 등 큰 데이터)를 읽지 않고 마진 모드 값 하나만 JSON 경로로 읽는다(DB 읽기량 절약).
+    // chart_prefs가 JSON 타입이 아니어서 이 문법이 안 되는 경우에만 예전처럼 전체를 읽는다.
+    for (const id of ids) out.set(id, null)
+    const light = await supa.from('bitduck_user_settings').select('user_id, m:chart_prefs->>__marginMode').in('user_id', ids)
+    if (!light.error) {
+      for (const r of (light.data || []) as any[]) {
+        const m = r.m
+        out.set(Number(r.user_id), m === 'cross' || m === 'isolated' ? m : null)
+      }
+      return out
+    }
     const { data, error } = await supa.from('bitduck_user_settings').select('user_id, chart_prefs').in('user_id', ids)
     if (error) throw error
-    for (const id of ids) out.set(id, null)
     for (const r of data || []) out.set(Number((r as any).user_id), modeFromPrefs((r as any).chart_prefs))
     return out
   }

@@ -2,27 +2,43 @@ import { requireUser } from '../utils/auth'
 import { shouldRunSweep, sweepLiquidations } from '../utils/liquidation-sweep'
 import { getDb } from '../utils/db'
 import { supabaseAppDbEnabled } from '../utils/supa-appdb'
-import { supaSelectIn, supaSelectOne, supaSelectWhere, supaUpsertUserSettings } from '../utils/supabase'
+import { getSupabaseAdminClient, supaSelectIn, supaSelectOne, supaSelectWhere, supaUpsertUserSettings } from '../utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const useSupa = supabaseAppDbEnabled()
 
-  // 서버 자동 강제청산: 이 회원의 포지션은 응답 전에(2초 간격) 바로 점검하고, 전체 회원 점검은 10초 간격으로 응답과 별개로 돌린다.
-  // (접속해 있는 누군가가 있는 동안에는 화면을 닫은 회원의 포지션도 이 경로로 청산된다.)
+  // light=1: 화면이 주기적으로 갱신할 때 쓰는 가벼운 응답(잔고/포지션/거래 설정만). 거래 내역·수익카드·차트 설정(그림 등 큰 데이터)은 빼서 DB에서 읽는 양을 줄인다.
+  const light = String(getQuery(event).light || '') === '1'
+
+  // 서버 자동 강제청산: 접속해 있는 누군가의 요청이 있을 때 5초 간격으로 전체 회원 포지션을 점검한다(응답과 별개로 처리).
+  // (회원마다 따로 점검하면 같은 조회가 회원 수만큼 반복되므로, 전체 점검 한 번으로 모두 처리한다.)
   try {
-    if (shouldRunSweep(`u:${user.id}`, 2000)) {
-      // 시세 조회가 느려도 계정 조회 응답이 늦어지지 않게 최대 2.5초만 기다린다(점검은 뒤에서 계속 진행).
-      const own = sweepLiquidations({ userId: user.id }).catch(() => {})
-      await Promise.race([own, new Promise((r) => setTimeout(r, 2500))])
-      ;(event as any).waitUntil?.(own)
-    }
-    if (shouldRunSweep('all', 10000)) {
+    if (shouldRunSweep('all', 5000)) {
       const p = sweepLiquidations().catch(() => {})
       ;(event as any).waitUntil?.(p)
     }
   } catch {
     // 점검 실패가 계정 조회를 막으면 안 된다
+  }
+
+  if (useSupa && light) {
+    try {
+      const balL = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })
+      const st = await getSupabaseAdminClient().from('bitduck_user_settings').select('trade_percent, trade_leverage').eq('user_id', user.id).maybeSingle()
+      if (st.error) throw st.error
+      const positionsL = await supaSelectWhere<any>({ table: 'bitduck_positions', where: { user_id: user.id }, orderBy: 'id', ascending: false })
+      return {
+        me: user,
+        balance: { usdt: balL?.usdt ?? 0 },
+        settings: { tradePercent: (st.data as any)?.trade_percent ?? 100, tradeLeverage: (st.data as any)?.trade_leverage ?? 100 },
+        positions: positionsL,
+        trades: [],
+        cards: []
+      }
+    } catch {
+      // 가벼운 조회가 실패하면 아래의 전체 조회로 처리한다(안전망)
+    }
   }
 
   if (useSupa) {

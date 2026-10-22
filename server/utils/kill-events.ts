@@ -32,7 +32,16 @@ function rowToKillEvent(row: any): KillEvent {
   }
 }
 
-export async function createKillEvent(input: {
+export async function createKillEvent(input: Parameters<typeof createKillEventInner>[0]): Promise<KillEvent> {
+  latestKillCache.clear()
+  try {
+    return await createKillEventInner(input)
+  } finally {
+    latestKillCache.clear()
+  }
+}
+
+async function createKillEventInner(input: {
   symbol: string
   direction: 'up' | 'down'
   percent: number
@@ -91,7 +100,19 @@ export async function createKillEvent(input: {
   }
 }
 
+const latestKillCache = new Map<string, { at: number; value: KillEvent | null }>()
+const LATEST_TTL_MS = 1000
+
 export async function latestKillEvent(symbol: string): Promise<KillEvent | null> {
+  const sym = symbol.toUpperCase()
+  const hit = latestKillCache.get(sym)
+  if (hit && Date.now() - hit.at < LATEST_TTL_MS) return hit.value
+  const value = await latestKillEventUncached(symbol)
+  latestKillCache.set(sym, { at: Date.now(), value })
+  return value
+}
+
+async function latestKillEventUncached(symbol: string): Promise<KillEvent | null> {
   const sym = symbol.toUpperCase()
   if (supabaseAppDbEnabled()) {
     const rows = await supaSelectWhere<any>({ table: T_KILL_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit: 1 })
@@ -126,6 +147,7 @@ export async function listAllKillEvents(limit = 100): Promise<KillEvent[]> {
 }
 
 export async function deleteKillEvent(id: number): Promise<void> {
+  latestKillCache.clear()
   if (supabaseAppDbEnabled()) {
     await supaDelete(T_KILL_EVENTS, { id })
     return

@@ -1689,7 +1689,7 @@ const liquidationSettingMsg = ref<string | null>(null)
 
 async function loadLiquidationSetting() {
   try {
-    const data = await $fetch<{ liquidationRoe: number }>('/api/settings/system')
+    const data = await $fetch<{ liquidationRoe: number }>('/api/settings/system', { query: { lite: 1 } })
     const percent = Math.abs(Number(data.liquidationRoe) || 40)
     liquidationPercent.value = percent
     liquidationPercentDraft.value = percent

@@ -86,7 +86,16 @@ function rowToProfitEvent(row: any): ProfitEvent {
   }
 }
 
-export async function createProfitEvent(input: {
+export async function createProfitEvent(input: Parameters<typeof createProfitEventInner>[0]): Promise<ProfitEvent> {
+  invalidateLatestProfit()
+  try {
+    return await createProfitEventInner(input)
+  } finally {
+    invalidateLatestProfit()
+  }
+}
+
+async function createProfitEventInner(input: {
   symbol: string
   direction: 'up' | 'down'
   percent: number
@@ -170,6 +179,15 @@ export async function createProfitEvent(input: {
 
 // 진행 중인 이벤트를 지금 시각에서 중단한다(운영자 화면 새로고침). direction 컬럼의 확장 형식 8번째 값에 중단 시각(ms)을 기록한다.
 export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT: number | null }> {
+  invalidateLatestProfit()
+  try {
+    return await stopProfitEventInner(id)
+  } finally {
+    invalidateLatestProfit()
+  }
+}
+
+async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: number | null }> {
   const apply = (dirRaw: string, createdAt: string) => {
     const parts = String(dirRaw ?? '').split('|')
     if (parts.length < 7) return null // 예전 형식 이벤트는 중단 정보를 담을 수 없다
@@ -208,7 +226,23 @@ export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT:
   return { ok: true, stopT: Math.round(a.offset) }
 }
 
+// 모든 접속자 화면이 1.5초마다 같은 종목의 최신 이벤트를 조회하므로, 서버 인스턴스에서 1초간 결과를 공유해 DB 조회를 줄인다.
+const latestProfitCache = new Map<string, { at: number; value: ProfitEvent | null }>()
+const LATEST_TTL_MS = 1000
+function invalidateLatestProfit() {
+  latestProfitCache.clear()
+}
+
 export async function latestProfitEvent(symbol: string): Promise<ProfitEvent | null> {
+  const sym = symbol.toUpperCase()
+  const hit = latestProfitCache.get(sym)
+  if (hit && Date.now() - hit.at < LATEST_TTL_MS) return hit.value
+  const value = await latestProfitEventUncached(symbol)
+  latestProfitCache.set(sym, { at: Date.now(), value })
+  return value
+}
+
+async function latestProfitEventUncached(symbol: string): Promise<ProfitEvent | null> {
   const sym = symbol.toUpperCase()
   if (supabaseAppDbEnabled()) {
     try {
@@ -260,6 +294,7 @@ export async function listAllProfitEvents(limit = 100): Promise<ProfitEvent[]> {
 }
 
 export async function deleteProfitEvent(id: number): Promise<void> {
+  invalidateLatestProfit()
   if (supabaseAppDbEnabled()) {
     await supaDelete(T_PROFIT_EVENTS, { id })
     return

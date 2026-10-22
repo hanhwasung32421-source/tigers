@@ -1,3 +1,4 @@
+import { invalidateSystemSettingsCache } from '../../utils/system-settings'
 import { z } from 'zod'
 import { requireSuperAdmin } from '../../utils/auth'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
@@ -14,6 +15,7 @@ export default defineEventHandler(async (event) => {
   }
   try {
     await supaUpsertStrict('bitduck_system_settings', { id: 1, hero_wash_percent: body.percent, updated_at: new Date().toISOString() }, 'id')
+    invalidateSystemSettingsCache()
   } catch (e: any) {
     if (isMissingColumnError(e, 'hero_wash_percent')) {
       throw createError({

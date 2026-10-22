@@ -1,15 +1,85 @@
 import { getDb } from './db'
 import { supabaseAppDbEnabled } from './supa-appdb'
-import { supaSelectOne, supaUpsertStrict, isMissingColumnError } from './supabase'
+import { getSupabaseAdminClient, supaUpsertStrict, isMissingColumnError } from './supabase'
 
 const T_SYSTEM_SETTINGS = 'bitduck_system_settings'
 export const DEFAULT_LIQUIDATION_ROE = -40
+
+// ───────── Supabase 읽기량(egress) 절약 ─────────
+// system_settings 한 행에는 수익카드 배경 그림(profit_card_style.bgImage, 최대 약 400KB)이 같이 들어 있다.
+// 예전에는 청산/주문/환율/메뉴/첫 화면 등 거의 모든 곳이 이 행을 통째로 읽어서(select *), 요청 한 번에 수백 KB씩 Supabase에서 내려받았다.
+// 이제 일반 설정은 그림이 없는 컬럼만 읽고(10초 캐시), 수익카드 스타일(그림 포함)은 따로 30초 캐시로 읽는다.
+const LIGHT_COLUMNS =
+  'id, liquidation_roe, telegram_url, krw_per_usdt, loss_settlement_percent, referral_settlement_percent, menu_order, main_nav_order, main_nav_hidden, krw_auto_rate, krw_auto_rate_day, krw_auto_rate_updated_at, hero_wash_percent, updated_at'
+const LIGHT_TTL_MS = 10_000
+const STYLE_TTL_MS = 30_000
+let lightCache: { at: number; row: any } | null = null
+let styleCache: { at: number; value: any } | null = null
+
+export function invalidateSystemSettingsCache() {
+  lightCache = null
+  styleCache = null
+}
+
+// 그림(profit_card_style)을 뺀 설정 행. 컬럼 일부가 아직 없는 옛 스키마면 '*'로 읽되 그림은 버린다.
+export async function readSystemSettingsRowLight(): Promise<any | null> {
+  if (lightCache && Date.now() - lightCache.at < LIGHT_TTL_MS) return lightCache.row
+  const supa = getSupabaseAdminClient()
+  let row: any = null
+  const first = await supa.from(T_SYSTEM_SETTINGS).select(LIGHT_COLUMNS).eq('id', 1).maybeSingle()
+  if (!first.error) {
+    row = first.data
+  } else {
+    const fallback = await supa.from(T_SYSTEM_SETTINGS).select('*').eq('id', 1).maybeSingle()
+    if (fallback.error) throw fallback.error
+    row = fallback.data
+    if (row) delete row.profit_card_style
+  }
+  lightCache = { at: Date.now(), row }
+  return row
+}
+
+async function readProfitCardStyleRaw(): Promise<any> {
+  if (styleCache && Date.now() - styleCache.at < STYLE_TTL_MS) return styleCache.value
+  const supa = getSupabaseAdminClient()
+  const res = await supa.from(T_SYSTEM_SETTINGS).select('profit_card_style').eq('id', 1).maybeSingle()
+  const value = res.error ? null : (res.data as any)?.profit_card_style ?? null
+  styleCache = { at: Date.now(), value }
+  return value
+}
+
+// 수익카드 스타일과 그 "버전"(내용이 바뀌면 달라지는 짧은 값). 화면은 버전이 같으면 큰 스타일 데이터를 다시 받지 않는다.
+export async function getProfitCardStyleWithVersion(): Promise<{ style: ProfitCardStyle; version: string }> {
+  let raw: any = null
+  if (supabaseAppDbEnabled()) {
+    try {
+      raw = await readProfitCardStyleRaw()
+    } catch {
+      raw = null
+    }
+  } else {
+    const row = getDb().prepare('SELECT profit_card_style FROM system_settings WHERE id = 1').get() as any
+    raw = row?.profit_card_style ?? null
+  }
+  if (typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw)
+    } catch {
+      raw = null
+    }
+  }
+  const style = normalizeProfitCardStyle(raw)
+  const json = JSON.stringify(style)
+  let h = 5381
+  for (let i = 0; i < json.length; i++) h = ((h << 5) + h + json.charCodeAt(i)) | 0
+  return { style, version: `${json.length}-${(h >>> 0).toString(36)}` }
+}
 
 // 강제청산 기준 ROE(%). 관리자 대시보드에서 조정하며, 모든 유저의 실시간 청산 판정에 사용됩니다.
 export async function getLiquidationRoe(): Promise<number> {
   if (supabaseAppDbEnabled()) {
     try {
-      const row = await supaSelectOne<any>(T_SYSTEM_SETTINGS, { id: 1 })
+      const row = await readSystemSettingsRowLight()
       if (row && Number.isFinite(Number(row.liquidation_roe))) return Number(row.liquidation_roe)
     } catch {
       // 테이블이 아직 없을 수 있음(SQL 패치 미적용) → 기본값 사용
@@ -31,6 +101,7 @@ export async function setLiquidationRoe(value: number): Promise<number> {
 
   if (supabaseAppDbEnabled()) {
     await supaUpsertStrict(T_SYSTEM_SETTINGS, { id: 1, liquidation_roe: v, updated_at: now }, 'id')
+    invalidateSystemSettingsCache()
     return v
   }
 
@@ -375,11 +446,17 @@ function rowToExtra(row: any): SystemSettingsExtra {
 }
 
 // 텔레그램 링크/원-USDT 환율/정산 비율 등, 관리자가 조정하는 그 외 전역 설정
-export async function getSystemSettingsExtra(): Promise<SystemSettingsExtra> {
+// withStyle=true일 때만 수익카드 스타일(배경 그림 포함, 큰 데이터)을 같이 읽는다. 대부분의 호출(텔레그램/메뉴/환율/정산)은 필요 없다.
+export async function getSystemSettingsExtra(opts: { withStyle?: boolean } = {}): Promise<SystemSettingsExtra> {
   if (supabaseAppDbEnabled()) {
     try {
-      const row = await supaSelectOne<any>(T_SYSTEM_SETTINGS, { id: 1 })
-      return rowToExtra(row)
+      const row = await readSystemSettingsRowLight()
+      const extra = rowToExtra(row)
+      if (opts.withStyle) {
+        const { style } = await getProfitCardStyleWithVersion()
+        extra.profitCardStyle = style
+      }
+      return extra
     } catch {
       return { ...DEFAULT_EXTRA }
     }
@@ -396,7 +473,7 @@ export async function getSystemSettingsExtra(): Promise<SystemSettingsExtra> {
 export async function updateSystemSettingsExtra(
   patch: Partial<Omit<SystemSettingsExtra, 'profitCardStyle'>> & { profitCardStyle?: Record<string, any> }
 ): Promise<SystemSettingsExtra> {
-  const current = await getSystemSettingsExtra()
+  const current = await getSystemSettingsExtra({ withStyle: true })
   const next: SystemSettingsExtra = {
     ...current,
     ...patch,
@@ -420,6 +497,7 @@ export async function updateSystemSettingsExtra(
       profit_card_style: next.profitCardStyle,
       updated_at: now
     }
+    invalidateSystemSettingsCache()
     try {
       await supaUpsertStrict(T_SYSTEM_SETTINGS, payload, 'id')
     } catch (e: any) {
@@ -479,7 +557,7 @@ type DailyRateRow = { rate: number; day: string; updatedAt: string | null }
 async function readDailyRateRow(): Promise<DailyRateRow> {
   if (supabaseAppDbEnabled()) {
     try {
-      const row = await supaSelectOne<any>(T_SYSTEM_SETTINGS, { id: 1 })
+      const row = await readSystemSettingsRowLight()
       return {
         rate: Number(row?.krw_auto_rate || 0),
         day: String(row?.krw_auto_rate_day || ''),
@@ -502,6 +580,7 @@ async function writeDailyRateRow(rate: number, day: string): Promise<void> {
   const now = new Date().toISOString()
   if (supabaseAppDbEnabled()) {
     await supaUpsertStrict(T_SYSTEM_SETTINGS, { id: 1, krw_auto_rate: rate, krw_auto_rate_day: day, krw_auto_rate_updated_at: now }, 'id')
+    invalidateSystemSettingsCache()
     return
   }
   const db = getDb()

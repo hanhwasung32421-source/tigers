@@ -2378,15 +2378,21 @@ function cardOffset(key: string) {
 }
 const profitCardIconSize = computed(() => Math.round(profitCardStyle.value.logoFontSize * 1.5))
 
+let profitStyleVersion = ''
+let liquidationSettingsTick = 0
 async function refreshLiquidationSettings() {
   try {
-    const res = await $fetch<{ liquidationRoe: number; profitCardStyle?: Partial<ProfitCardStyle> }>('/api/settings/system')
+    const res = await $fetch<{ liquidationRoe: number; styleVersion?: string; profitCardStyle?: Partial<ProfitCardStyle> }>('/api/settings/system', {
+      query: profitStyleVersion ? { v: profitStyleVersion } : undefined
+    })
+    if (res?.styleVersion && res.profitCardStyle) profitStyleVersion = res.styleVersion
     const roe = Number(res?.liquidationRoe)
     if (Number.isFinite(roe) && roe < 0) {
       LIQUIDATION_TRIGGER_ROE = roe
       LIQUIDATION_TRIGGER_FRACTION = Math.abs(roe) / 100
     }
-    if (me.value) {
+    // 환율은 하루에 한 번 정해지는 값이라 1분에 한 번만 확인한다(처음 한 번 포함).
+    if (me.value && liquidationSettingsTick++ % 12 === 0) {
       const kr = await $fetch<{ rate: number }>('/api/settings/krw-rate').catch(() => null)
       if (Number(kr?.rate) > 0) limitKrwRate.value = Number(kr!.rate)
     }
@@ -7138,7 +7144,9 @@ async function loadAccount() {
   accountSyncing.value = true
   let data: any = null
   try {
-    data = await $fetch<any>('/api/account')
+    // 거래 설정과 차트 설정(그림 등 큰 데이터)이 이미 화면에 복원된 뒤에는 잔고/포지션만 가볍게 받는다(DB에서 읽는 양 절약).
+    const light = prefsHydrated.value && chartPrefsHydrated.value
+    data = await $fetch<any>('/api/account', light ? { query: { light: 1 } } : undefined)
     const hadPendingOpen = pendingOpenJobs.value.length > 0
     const hadPendingClose = pendingCloseJobs.value.length > 0
     const serverBalance = Number(data?.balance?.usdt || 0)
@@ -7213,10 +7221,10 @@ function startAccountAutoRefresh() {
     const need = positions.value.length > 0 || pendingCloseJobs.value.length > 0
     const silenceMs = Date.now() - Number(lastAccountTs || 0)
     if (!need) {
-      if (silenceMs > 5000 && pendingOpenJobs.value.length === 0) loadAccount().catch(() => {})
+      if (silenceMs > 15000 && pendingOpenJobs.value.length === 0) loadAccount().catch(() => {})
       return
     }
-    if (silenceMs > 1000) {
+    if (silenceMs > 3000) {
       loadAccount().catch(() => {})
     }
   }, 400)

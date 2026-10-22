@@ -86,6 +86,7 @@ export async function clearAuthSession(event: H3Event) {
   const impersonateToken = getHeader(event, IMPERSONATE_HEADER)
   const token = impersonateToken || getCookie(event, COOKIE_NAME)
   if (token) {
+    sessionCache.delete(token)
     if (supabaseAppDbEnabled()) {
       try {
         const supa = getSupabaseAdminClient()
@@ -104,11 +105,32 @@ export async function clearAuthSession(event: H3Event) {
   }
 }
 
+// 로그인 확인(세션 + 회원 조회)은 거의 모든 API 요청마다 DB를 2번 읽는다. 화면이 1~5초마다 여러 API를 부르므로 이 조회가 Supabase 로그/요청량의 큰 부분이었다.
+// 같은 세션은 서버 인스턴스 메모리에 20초만 기억해서 DB 조회를 크게 줄인다(로그아웃/세션 삭제는 그 인스턴스에서 즉시 반영, 권한 변경은 최대 20초 뒤 반영).
+const SESSION_CACHE_TTL_MS = 20_000
+const sessionCache = new Map<string, { at: number; user: SessionUser }>()
+
 export async function getSessionUser(event: H3Event): Promise<SessionUser | null> {
   const token = getHeader(event, IMPERSONATE_HEADER) || getCookie(event, COOKIE_NAME)
   if (!token) return null
 
   if (supabaseAppDbEnabled()) {
+    const cached = sessionCache.get(token)
+    if (cached && Date.now() - cached.at < SESSION_CACHE_TTL_MS) return cached.user
+    const fresh = await getSessionUserFromDb(token)
+    if (fresh) {
+      if (sessionCache.size > 2000) sessionCache.clear()
+      sessionCache.set(token, { at: Date.now(), user: fresh })
+    } else {
+      sessionCache.delete(token)
+    }
+    return fresh
+  }
+  return getSessionUserLocal(token)
+}
+
+async function getSessionUserFromDb(token: string): Promise<SessionUser | null> {
+  {
     try {
       const now = new Date().toISOString()
       const session = await supaSelectOne<any>('bitduck_sessions', { token })
@@ -136,7 +158,9 @@ export async function getSessionUser(event: H3Event): Promise<SessionUser | null
       return null
     }
   }
+}
 
+async function getSessionUserLocal(token: string): Promise<SessionUser | null> {
   const db = getDb()
   const row = db
     .prepare(
