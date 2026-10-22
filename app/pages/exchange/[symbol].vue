@@ -1622,7 +1622,7 @@
         <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <div class="text-xs font-semibold text-slate-300">{{ t('① 목표가로 가는 시간 및 움직임틱', '① Time & ticks to reach the target') }}</div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <input v-model.number="profitDurationDraft" type="number" min="0.1" max="10" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <input v-model.number="profitDurationDraft" type="number" min="0.1" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
             <input v-model.number="profitTickCountDraft" type="number" min="0" max="200" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
@@ -1632,7 +1632,7 @@
         <div class="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <div class="text-xs font-semibold text-slate-300">{{ t('② 목표가에서 머무르는 시간 및 움직임틱', '② Hold time & ticks at the target') }}</div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <input v-model.number="profitHoldDraft" type="number" min="0.1" max="120" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <input v-model.number="profitHoldDraft" type="number" min="0.1" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
             <input v-model.number="profitHoldTickDraft" type="number" min="0" max="200" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('틱 (0=랜덤)', 'ticks (0=random)') }}</span>
@@ -1647,7 +1647,7 @@
         <div class="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <div class="text-xs font-semibold text-slate-300">{{ t('③ 다시 정상가로 돌아오는 시간 및 움직임틱', '③ Time & ticks to return to the normal price') }}</div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <input v-model.number="profitRevertSecondsDraft" type="number" min="0.1" max="10" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+            <input v-model.number="profitRevertSecondsDraft" type="number" min="0.1" step="0.1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
             <input v-model.number="profitRevertTickDraft" type="number" min="0" max="200" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
             <span class="text-sm text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
@@ -4723,8 +4723,8 @@ async function confirmProfitModal() {
   profitModalDirection.value = curPrice > 0 && targetPrice < curPrice ? 'down' : 'up'
   const percent = curPrice > 0 ? Number((Math.abs(targetPrice - curPrice) / curPrice * 100 * 100).toFixed(4)) : 0
   const durationSeconds = Number(profitDurationDraft.value)
-  if (!Number.isFinite(durationSeconds) || durationSeconds < 0.1 || durationSeconds > 10) {
-    profitError.value = t('몇 초는 0.1~10 사이로 입력해주세요.', 'Please enter seconds between 0.1 and 10.')
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0.1) {
+    profitError.value = t('몇 초는 0.1 이상으로 입력해주세요.', 'Please enter seconds of 0.1 or more.')
     return
   }
   const tickCount = Math.round(Number(profitTickCountDraft.value))
@@ -4738,8 +4738,8 @@ async function confirmProfitModal() {
     return
   }
   const holdSeconds = Number(profitHoldDraft.value)
-  if (!Number.isFinite(holdSeconds) || holdSeconds < 0.1 || holdSeconds > 120) {
-    profitError.value = t('유지 시간은 0.1~120 사이로 입력해주세요.', 'Please enter a hold time between 0.1 and 120.')
+  if (!Number.isFinite(holdSeconds) || holdSeconds < 0.1) {
+    profitError.value = t('유지 시간은 0.1 이상으로 입력해주세요.', 'Please enter a hold time of 0.1 or more.')
     return
   }
   const holdAmp = Number(profitHoldAmpDraft.value ?? 0)
@@ -4748,8 +4748,8 @@ async function confirmProfitModal() {
     return
   }
   const revertSeconds = Number(profitRevertSecondsDraft.value)
-  if (!Number.isFinite(revertSeconds) || revertSeconds < 0.1 || revertSeconds > 10) {
-    profitError.value = t('복귀 시간은 0.1~10 사이로 입력해주세요.', 'Please enter a return time between 0.1 and 10.')
+  if (!Number.isFinite(revertSeconds) || revertSeconds < 0.1) {
+    profitError.value = t('복귀 시간은 0.1 이상으로 입력해주세요.', 'Please enter a return time of 0.1 or more.')
     return
   }
   const revertTickCount = Math.round(Number(profitRevertTickDraft.value || 0))
