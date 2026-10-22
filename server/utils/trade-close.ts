@@ -76,7 +76,15 @@ export async function executeClose(userId: number, body: CloseBody) {
     const balRow = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: userId })
     const usdt = Number(balRow?.usdt ?? 0)
     // 격리: 관리자 설정 ROE 도달 시 전액 강제청산(증거금 전액 손실). 교차: 증거금 + 사용가능 잔고까지 손실 가능.
-    const pnl = body.cross ? Math.max(pnlUnclamped, -(net + usdt)) : clampPnlToLiquidation(pnlUnclamped, net)
+    // 자동 강제청산(화면 또는 서버 점검이 청산 조건 도달을 확인하고 보낸 요청)은 체결 가격과 상관없이 정해진 규칙대로 정산한다:
+    // 격리 = 증거금 전액 손실, 교차 = 증거금 + 사용가능 잔고 전액 손실. (그래야 거래내역에 강제청산과 손실액이 정확히 남는다)
+    const pnl = body.liquidation
+      ? body.cross
+        ? -(net + usdt)
+        : -net
+      : body.cross
+        ? Math.max(pnlUnclamped, -(net + usdt))
+        : clampPnlToLiquidation(pnlUnclamped, net)
     const settlementAfterFee = body.cross ? net + pnl - (gross > 0 ? gross * FEE_RATE : 0) : calcSettlementAfterFee(gross, pnl).settlementAfterFee
     const newUsdt = Math.max(0, usdt + settlementAfterFee)
 
@@ -148,7 +156,13 @@ export async function executeClose(userId: number, body: CloseBody) {
   db.prepare('INSERT OR IGNORE INTO balances (user_id, usdt) VALUES (?, ?)').run(userId, 0)
   const balBefore = db.prepare('SELECT usdt FROM balances WHERE user_id = ?').get(userId) as any
   const usdtBefore = Number(balBefore?.usdt ?? 0)
-  const pnl = body.cross ? Math.max(pnlUnclamped, -(net + usdtBefore)) : clampPnlToLiquidation(pnlUnclamped, net)
+  const pnl = body.liquidation
+    ? body.cross
+      ? -(net + usdtBefore)
+      : -net
+    : body.cross
+      ? Math.max(pnlUnclamped, -(net + usdtBefore))
+      : clampPnlToLiquidation(pnlUnclamped, net)
   const settlementAfterFee = body.cross ? net + pnl - (gross > 0 ? gross * FEE_RATE : 0) : calcSettlementAfterFee(gross, pnl).settlementAfterFee
 
   // 잔고: 증거금 반환 + 손익 반영(0 미만으로는 내려가지 않음)

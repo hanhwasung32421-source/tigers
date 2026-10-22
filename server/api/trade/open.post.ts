@@ -4,7 +4,7 @@ import { getDb } from '../../utils/db'
 import { getOkxLastPrice, clampToMarketPrice } from '../../utils/okx'
 import { logBuy } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
-import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
+import { getSupabaseAdminClient, isMissingColumnError, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 import { getLiquidationRoe } from '../../utils/system-settings'
 import { applyUserMarginMode } from '../../utils/margin-mode'
 import { resolveClientPrice } from '../../utils/remote-price'
@@ -122,23 +122,26 @@ export default defineEventHandler(async (event) => {
 
       // 거래 내역 저장(bigint PK 직접 생성)
       const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
-      await supaUpsert(
-        'bitduck_trades',
-        {
-          id: tradeId,
-          user_id: user.id,
-          symbol,
-          side: existing.side,
-          qty: Number(existing.qty),
-          entry_price: Number(existing.entry_price),
-          exit_price: exit,
-          leverage: Number(existing.leverage),
-          // 수수료는 pnl/roe에 포함하지 않음(요구사항)
-          pnl,
-          created_at: new Date().toISOString()
-        },
-        ['id'] as any
-      )
+      // 반대 방향 진입으로 기존 포지션이 정리될 때, 손실이 강제청산 기준에 닿아 증거금 전액 손실로 정산됐다면 강제청산으로 기록한다.
+      const reversalPayload: any = {
+        id: tradeId,
+        user_id: user.id,
+        symbol,
+        side: existing.side,
+        qty: Number(existing.qty),
+        entry_price: Number(existing.entry_price),
+        exit_price: exit,
+        leverage: Number(existing.leverage),
+        // 수수료는 pnl/roe에 포함하지 않음(요구사항)
+        pnl,
+        created_at: new Date().toISOString()
+      }
+      if (pnl <= -net0 * 0.999) reversalPayload.liquidation = 1
+      const rev = await supa.from('bitduck_trades').upsert(reversalPayload, { onConflict: 'id' })
+      if (rev.error && isMissingColumnError(rev.error, 'liquidation')) {
+        delete reversalPayload.liquidation
+        await supa.from('bitduck_trades').upsert(reversalPayload, { onConflict: 'id' })
+      }
 
       // 잔고 반영(정산금 - 매도 수수료)
       usdt = usdt + settlementAfterFee
@@ -254,7 +257,7 @@ export default defineEventHandler(async (event) => {
       exit,
       Number(existing.leverage),
       pnl,
-      0,
+      pnl <= -net0 * 0.999 ? 1 : 0,
       new Date().toISOString()
     )
   }
