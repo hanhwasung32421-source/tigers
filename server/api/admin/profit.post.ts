@@ -84,61 +84,9 @@ export default defineEventHandler(async (event) => {
   const liquidationRoe = await getLiquidationRoe()
   let liquidatedCount = 0
 
-  if (useSupa) {
-    const positions = await supaSelectWhere<any>({ table: 'bitduck_positions', where: { symbol } })
-    const supa = getSupabaseAdminClient()
-    for (const pos of positions) {
-      const entry = Number(pos.entry_price)
-      const lev = Number(pos.leverage || 1)
-      const margin = Number(pos.margin || 0)
-      const liqPrice = calcLiqPrice(String(pos.side), entry, lev, liquidationRoe)
-      if (!isCrossed(String(pos.side), shockedPrice, liqPrice)) continue
-
-      const net = margin * (1 - FEE_RATE)
-      const pnl = -net
-      const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000) + liquidatedCount
-
-      await supa.from('bitduck_positions').delete().eq('id', pos.id)
-      await supaUpsert(
-        'bitduck_trades',
-        {
-          id: tradeId,
-          user_id: Number(pos.user_id),
-          symbol,
-          side: pos.side,
-          qty: Number(pos.qty),
-          entry_price: entry,
-          exit_price: liqPrice,
-          leverage: lev,
-          pnl,
-          liquidation: 1,
-          created_at: new Date().toISOString()
-        },
-        'id'
-      )
-      liquidatedCount += 1
-    }
-  } else {
-    const db = getDb()
-    const positions = db.prepare('SELECT * FROM positions WHERE symbol = ?').all(symbol) as any[]
-    for (const pos of positions) {
-      const entry = Number(pos.entry_price)
-      const lev = Number(pos.leverage || 1)
-      const margin = Number(pos.margin || 0)
-      const liqPrice = calcLiqPrice(String(pos.side), entry, lev, liquidationRoe)
-      if (!isCrossed(String(pos.side), shockedPrice, liqPrice)) continue
-
-      const net = margin * (1 - FEE_RATE)
-      const pnl = -net
-
-      db.prepare('DELETE FROM positions WHERE id = ?').run(pos.id)
-      db.prepare(
-        'INSERT INTO trades (user_id, symbol, side, qty, entry_price, exit_price, leverage, pnl, liquidation, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).run(pos.user_id, symbol, pos.side, pos.qty, entry, liqPrice, lev, pnl, 1, new Date().toISOString())
-      liquidatedCount += 1
-    }
-  }
-
+  // 강제청산은 이벤트를 만드는 순간에 한꺼번에 하지 않는다.
+  // 가격이 시간을 두고 목표가로 움직이므로, 포지션의 청산가에 "실제로 도달하는 순간"(화면이 열려 있으면 화면이, 닫혀 있으면 서버 점검이)
+  // 같은 가격 경로(shared/utils/profit-path.ts)를 보고 청산한다.
   try {
     const profitEvent = await createProfitEvent({
       symbol,

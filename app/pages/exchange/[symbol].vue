@@ -1978,6 +1978,8 @@
 </template>
 
 <script setup lang="ts">
+import { buildProfitPhaseA, buildProfitPhaseB, mulberry32, profitSeed } from '~~/shared/utils/profit-path'
+import type { ProfitPoint } from '~~/shared/utils/profit-path'
 import {
   createChart,
   CandlestickSeries,
@@ -4807,18 +4809,6 @@ async function initProfitEventBaseline() {
 
 // 킬UP/킬DOWN과 같은 직선 경로: start에서 end까지 steps번에 걸쳐 같은 폭으로 움직인다(k번째 값 = start + (end-start)×k/steps).
 // 마지막 값은 항상 정확히 end다. 틱마다 같은 폭으로 뚝뚝 움직여서 틱이 하나하나 눈에 보인다.
-// 리모콘 경로의 난수. 평소엔 Math.random이지만, 이벤트를 재생/복원할 때는 이벤트 번호로 고정한 난수열로 바꿔 끼운다.
-// (같은 이벤트면 새로고침 후에 다시 만들어도 화면에서 보던 것과 같은 경로가 나오게 하기 위함)
-let rngFn: () => number = Math.random
-function mulberry32(seed: number) {
-  let a = seed >>> 0
-  return () => {
-    a = (a + 0x6d2b79f5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
 function buildLinearPath(start: number, end: number, steps: number): number[] {
   const n = Math.max(1, Math.round(steps))
   const out: number[] = []
@@ -4827,193 +4817,10 @@ function buildLinearPath(start: number, end: number, steps: number): number[] {
   return out
 }
 
-// 이동/복귀용 랜덤 경로: 틱마다 올랐다 내렸다 하면서 움직이고, 마지막 틱은 정확히 end가 된다(브라운 브릿지).
-// 중간 편차는 이동폭의 약 35% 안으로 제한하고 start~end 범위를 벗어나지 않게 자른다.
-function buildRandomPath(start: number, end: number, steps: number): number[] {
-  const n = Math.max(1, Math.round(steps))
-  if (n === 1) return [end]
-  const move = end - start
-  const absMove = Math.abs(move)
-  const stepNoise = (absMove * 0.6) / Math.sqrt(n)
-  const walk: number[] = [0]
-  for (let i = 1; i <= n; i++) walk.push(walk[i - 1] + (rngFn() * 2 - 1) * stepNoise * 1.7)
-  const totalWalk = walk[n]
-  const maxDev = absMove * 0.35
-  const lo = Math.min(start, end)
-  const hi = Math.max(start, end)
-  const out: number[] = []
-  for (let i = 1; i <= n; i++) {
-    let bridge = walk[i] - (totalWalk * i) / n
-    bridge = Math.max(-maxDev, Math.min(maxDev, bridge))
-    out.push(Math.min(hi, Math.max(lo, start + (move * i) / n + bridge)))
-  }
-  out[n - 1] = end
-  return out
-}
-
-// n틱 사이의 (n-1)개 간격을 100~1000ms 안에서 랜덤하게 만들되, 합이 정확히 durationMs가 되게 맞춘다.
-// (예: 10초에 20틱 → 평균 약 500ms, 각 간격은 100~1000ms 사이 랜덤). 불가능한 조합(평균이 범위 밖)이면 비율만 유지하고 합을 맞춘다.
-const GAP_MIN_MS = 100
-const GAP_MAX_MS = 1000
-function buildRandomGaps(n: number, durationMs: number): number[] {
-  const count = Math.max(0, Math.round(n) - 1)
-  if (count === 0) return []
-  const gaps = Array.from({ length: count }, () => GAP_MIN_MS + rngFn() * (GAP_MAX_MS - GAP_MIN_MS))
-  const feasible = durationMs >= GAP_MIN_MS * count && durationMs <= GAP_MAX_MS * count
-  if (!feasible) {
-    const total = gaps.reduce((a, b) => a + b, 0)
-    return gaps.map((g) => (g / total) * durationMs)
-  }
-  // 합이 durationMs가 되도록 여유(상한/하한까지 남은 폭)에 비례해 나눠서 조정한다. 범위는 유지된다.
-  for (let iter = 0; iter < 50; iter++) {
-    const sum = gaps.reduce((a, b) => a + b, 0)
-    const diff = durationMs - sum
-    if (Math.abs(diff) < 0.01) break
-    const room = gaps.map((g) => (diff > 0 ? GAP_MAX_MS - g : g - GAP_MIN_MS))
-    const roomTotal = room.reduce((a, b) => a + b, 0)
-    if (roomTotal <= 0) break
-    const k = Math.min(1, Math.abs(diff) / roomTotal)
-    for (let i = 0; i < count; i++) gaps[i] += Math.sign(diff) * room[i] * k
-  }
-  // 부동소수점 오차는 마지막 간격에 흡수
-  const rest = durationMs - gaps.slice(0, -1).reduce((a, b) => a + b, 0)
-  gaps[count - 1] = Math.min(GAP_MAX_MS, Math.max(GAP_MIN_MS, rest))
-  return gaps
-}
-
-// 이동/복귀 경로: 앞쪽 90% 틱은 올랐다 내렸다 랜덤하게 움직이고, 마지막 10% 틱(최소 1틱)은 목표가를 향해 곧게 가서 반드시 목표가에 도착한다.
-function buildRandomPathToTarget(start: number, end: number, steps: number): number[] {
-  const n = Math.max(1, Math.round(steps))
-  if (n === 1) return [end]
-  const m = Math.max(1, Math.round(n * 0.1))
-  const free = n - m
-  const waypoint = start + ((end - start) * free) / n
-  const head = buildRandomPath(start, waypoint, free)
-  const out = head.slice()
-  for (let k = 1; k <= m; k++) out.push(waypoint + ((end - waypoint) * k) / m)
-  out[n - 1] = end
-  return out
-}
-
-// start~end를 잇는 가격 경로를 "위아래로 적당히 오르내리며" 만든다(브라운 브릿지 방식).
-// steps번째(마지막) 값은 항상 정확히 end와 같아서, 중간엔 자연스럽게 흔들리면서도 목표가엔 정확히 도달한다.
-function buildWigglePath(start: number, end: number, steps: number): number[] {
-  if (steps <= 1) return [end]
-  const totalMove = end - start
-  // 흔들림 폭은 항상 실제 이동폭(totalMove)의 1/10 아래로 제한한다(퍼센트가 레버리지100x 기준으로
-  // 바뀌면서 실제 가격 변동폭이 매우 작아졌는데, 흔들림이 그보다 커지면 목표%와 무관하게 크게
-  // 움직이는 문제가 있었다). 브릿지 편차(bridge)를 매 스텝마다 이 한도로 직접 clamp해서 보장한다.
-  const maxDeviation = Math.abs(totalMove) * 0.09
-  const noiseScale = (Math.abs(totalMove) / steps || Math.abs(end) * 0.0001) * 1.6
-  const walk: number[] = [0]
-  for (let i = 1; i <= steps; i++) {
-    walk.push(walk[i - 1] + (rngFn() * 2 - 1) * noiseScale)
-  }
-  const totalWalk = walk[steps]
-  const prices: number[] = []
-  for (let i = 1; i <= steps; i++) {
-    let bridge = walk[i] - (totalWalk * i) / steps
-    if (bridge > maxDeviation) bridge = maxDeviation
-    else if (bridge < -maxDeviation) bridge = -maxDeviation
-    prices.push(start + bridge + (totalMove * i) / steps)
-  }
-  // 흔들리면서 움직이더라도 start~end 범위를 벗어나지 않게(목표 금액을 넘어서 지나가지 않게) 자른다.
-  const lo = Math.min(start, end)
-  const hi = Math.max(start, end)
-  for (let k = 0; k < prices.length; k++) prices[k] = Math.min(hi, Math.max(lo, prices[k]))
-  prices[prices.length - 1] = end
-  return prices
-}
-
-// 흔들림 한 걸음의 최소 간격(너무 잦으면 부자연스럽게 떨려 보임).
-const WIGGLE_MIN_STEP_MS = 500
-
-// 관리자가 틱 수를 0(자동)으로 두면, duration에 맞춰 자연스러워 보이는 걸음 수를 알아서 정한다.
-// 걸음 간격은 항상 WIGGLE_MIN_STEP_MS 이상이 되도록(=너무 잘게 쪼개지지 않도록) 걸음 수 상한을 둔다.
-function resolveWiggleSteps(userTicks: number, durationMs: number): number {
-  // 틱 수를 직접 입력했으면(1 이상) 시간이 짧아도 입력한 틱 수만큼 정확히 움직인다(예: 1초에 10틱 = 0.1초마다 한 틱).
-  if (userTicks && userTicks > 0) return Math.max(1, Math.round(userTicks))
-  // 0(자동)이면 걸음 간격이 WIGGLE_MIN_STEP_MS 이상이 되게 자연스러운 걸음 수를 정한다.
-  return Math.max(1, Math.floor(durationMs / WIGGLE_MIN_STEP_MS))
-}
-
 // 킬 애니메이션과 동일하지만, 목표가에 도달한 뒤 잠깐(KILL_HOLD_MS)이 아니라
 // 관리자가 지정한 holdMs만큼 그 상태를 유지한 뒤 복귀한다.
 // 이동 경로는 직선이 아니라 위아래로 적당히 오르내리며 목표가에 도달하고(틱=0이면 자동으로 자연스럽게),
 // 유지하는 동안에도 목표가 주변에서 ±1~2% 흔들리며, 복귀는 A가 아니라 그 시점의 OKX 실시간가로 향한다.
-// 리모콘 경로 = (시각, 가격) 목록. 시각은 이벤트 시작 기준 ms.
-// 화면 재생과 새로고침 후 복원이 같은 함수를 써서 같은 경로가 나온다(난수는 이벤트 번호로 고정).
-type ProfitPoint = { t: number; price: number }
-const profitSeed = (ev: ProfitEvent) => Math.abs(Number(ev.id)) % 2147483647
-
-function profitHoldAmp(ev: ProfitEvent) {
-  return ev.holdAmp != null && Number.isFinite(Number(ev.holdAmp)) ? Math.max(0, Number(ev.holdAmp)) : Math.min(0.05, Math.abs(ev.shockedPrice) * 0.003)
-}
-
-// 1단계: 목표가로 이동 + 목표가 유지. (복귀 목표가는 복귀 시작 때의 실제 시세라서 2단계에서 따로 만든다.)
-function buildProfitPhaseA(ev: ProfitEvent, rng: () => number): { points: ProfitPoint[]; endT: number; lastHoldPrice: number } {
-  const prevRng = rngFn
-  rngFn = rng
-  try {
-    const userTickCount = Math.max(0, Math.round(ev.tickCount ?? 3))
-    const durationMs = Math.max(100, ev.durationMs || 1000)
-    const holdMs = Math.max(100, ev.holdMs || 3000)
-    const steps = resolveWiggleSteps(userTickCount, durationMs)
-    const risePath = buildRandomPathToTarget(ev.basePrice, ev.shockedPrice, steps)
-    const riseGaps = buildRandomGaps(steps, durationMs)
-    const points: ProfitPoint[] = []
-    let t = 0
-    points.push({ t, price: risePath[0] })
-    for (let i = 1; i < risePath.length; i++) {
-      t += riseGaps[i - 1] ?? 0
-      points.push({ t, price: risePath[i] })
-    }
-    // 목표가 유지: 목표가 ±(움직임금액) 안에서 위아래로. 틱 수를 입력했으면 그 수만큼, 0이면 랜덤(3~10틱).
-    const holdAmp = profitHoldAmp(ev)
-    const requested = Math.max(0, Math.round(ev.holdTickCount ?? 0))
-    const n = requested > 0 ? requested : 3 + Math.floor(rngFn() * 8)
-    const weights = Array.from({ length: n }, () => 0.3 + rngFn())
-    const total = weights.reduce((x, y) => x + y, 0)
-    const holdGaps = weights.map((w) => (w / total) * holdMs)
-    let lastHoldPrice = ev.shockedPrice
-    points.push({ t, price: ev.shockedPrice }) // 목표가에 도착한 순간
-    let ht = t
-    for (let i = 0; i < n; i++) {
-      ht += holdGaps[i]
-      const price = ev.shockedPrice + (rngFn() * 2 - 1) * holdAmp
-      lastHoldPrice = price
-      points.push({ t: ht, price })
-    }
-    return { points, endT: ht, lastHoldPrice }
-  } finally {
-    rngFn = prevRng
-  }
-}
-
-// 2단계: 목표가 유지가 끝난 가격에서 realTarget(그 시점의 실제 시세)으로 복귀.
-function buildProfitPhaseB(ev: ProfitEvent, rng: () => number, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
-  const prevRng = rngFn
-  rngFn = rng
-  try {
-    const userTickCount = Math.max(0, Math.round(ev.tickCount ?? 3))
-    const durationMs = Math.max(100, ev.durationMs || 1000)
-    const revertMs = Math.max(100, ev.revertMs || durationMs)
-    const revertSteps = resolveWiggleSteps(ev.revertTickCount && ev.revertTickCount > 0 ? ev.revertTickCount : userTickCount, revertMs)
-    const path = buildRandomPathToTarget(startPrice, realTarget, revertSteps)
-    const gaps = buildRandomGaps(revertSteps, revertMs)
-    const points: ProfitPoint[] = []
-    let t = startT
-    points.push({ t, price: path[0] })
-    for (let i = 1; i < path.length; i++) {
-      t += gaps[i - 1] ?? 0
-      points.push({ t, price: path[i] })
-    }
-    return points
-  } finally {
-    rngFn = prevRng
-  }
-}
-
 // 관리자가 지정한 시간 동안 목표가로 이동 → 목표가 유지 → 그 시점의 실시간가로 복귀.
 // 이동 경로는 직선이 아니라 위아래로 적당히 오르내리며 목표가에 도달한다.
 async function runProfitAnimation(ev: ProfitEvent) {

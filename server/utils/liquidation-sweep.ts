@@ -5,6 +5,9 @@ import { getSupabaseAdminClient } from './supabase'
 import { getLiquidationRoe } from './system-settings'
 import { getUserMarginModes } from './margin-mode'
 import { executeClose } from './trade-close'
+import { listProfitEvents } from './profit-events'
+import { buildProfitTimeline, profitPriceAt, profitRangeBetween } from '../../shared/utils/profit-path'
+import type { ProfitTimeline } from '../../shared/utils/profit-path'
 
 // 서버가 직접 하는 강제청산(회원이 화면을 닫고 있어도 실행).
 // - 격리: 손익이 증거금(net)의 관리자 설정 ROE(예: -42%) 이하이면 청산(증거금 전액 손실).
@@ -14,12 +17,12 @@ import { executeClose } from './trade-close'
 const FEE_RATE = 0.04
 const MAX_LIQUIDATIONS_PER_SWEEP = 50
 
-type PositionRow = { id: number; user_id: number; symbol: string; side: string; qty: number; entry_price: number; margin: number }
+type PositionRow = { id: number; user_id: number; symbol: string; side: string; qty: number; entry_price: number; margin: number; created_at?: string }
 
 async function loadPositions(userId?: number): Promise<PositionRow[]> {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    let q = supa.from('bitduck_positions').select('id, user_id, symbol, side, qty, entry_price, margin').limit(3000)
+    let q = supa.from('bitduck_positions').select('id, user_id, symbol, side, qty, entry_price, margin, created_at').limit(3000)
     if (userId) q = q.eq('user_id', userId)
     const { data, error } = await q
     if (error) throw error
@@ -27,8 +30,8 @@ async function loadPositions(userId?: number): Promise<PositionRow[]> {
   }
   const db = getDb()
   const rows = userId
-    ? db.prepare('SELECT id, user_id, symbol, side, qty, entry_price, margin FROM positions WHERE user_id = ?').all(userId)
-    : db.prepare('SELECT id, user_id, symbol, side, qty, entry_price, margin FROM positions').all()
+    ? db.prepare('SELECT id, user_id, symbol, side, qty, entry_price, margin, created_at FROM positions WHERE user_id = ?').all(userId)
+    : db.prepare('SELECT id, user_id, symbol, side, qty, entry_price, margin, created_at FROM positions').all()
   return rows as any
 }
 
@@ -70,6 +73,29 @@ export async function sweepLiquidations(opts: { userId?: number } = {}): Promise
     })
   )
 
+  // 리모콘(수익/손실) 이벤트: 가격이 시간을 두고 목표가로 움직이는 동안에는 화면에 보이는 가격(경로)을 기준으로 판정한다.
+  // 청산가에 "도달한 적이 있는지"를 경로로 확인하므로, 점검이 늦어도(가격이 이미 되돌아온 뒤여도) 놓치지 않는다.
+  type EventTimeline = { startMs: number; tl: ProfitTimeline }
+  const eventsBySymbol = new Map<string, EventTimeline[]>()
+  await Promise.all(
+    symbols.map(async (sym) => {
+      try {
+        const evs = await listProfitEvents(sym, 3)
+        const mark = marks.get(sym) ?? 0
+        const list: EventTimeline[] = []
+        for (const ev of evs) {
+          const startMs = new Date(ev.createdAt).getTime()
+          if (!Number.isFinite(startMs)) continue
+          list.push({ startMs, tl: buildProfitTimeline(ev, mark > 0 ? mark : ev.basePrice) })
+        }
+        eventsBySymbol.set(sym, list)
+      } catch {
+        eventsBySymbol.set(sym, [])
+      }
+    })
+  )
+  const nowMs = Date.now()
+
   for (const p of positions) {
     if (result.liquidated >= MAX_LIQUIDATIONS_PER_SWEEP) break
     const uid = Number(p.user_id)
@@ -78,7 +104,20 @@ export async function sweepLiquidations(opts: { userId?: number } = {}): Promise
       result.skippedUnknownMode++
       continue
     }
-    const mark = marks.get(String(p.symbol).toUpperCase())
+    const sym = String(p.symbol).toUpperCase()
+    const realMark = marks.get(sym)
+    const evTimelines = eventsBySymbol.get(sym) ?? []
+    const posStartMs = p.created_at ? new Date(p.created_at).getTime() : 0
+    // 지금 진행 중인 리모콘 이벤트가 있으면 화면에 보이는(경로상의) 가격이 현재가다.
+    let mark = realMark
+    for (const e of evTimelines) {
+      const t = nowMs - e.startMs
+      if (t >= 0 && t <= e.tl.endT + 1000) {
+        const px = profitPriceAt(e.tl, t)
+        if (px != null) mark = px
+        break
+      }
+    }
     const entry = Number(p.entry_price)
     const qty = Number(p.qty)
     const gross = Number(p.margin)
@@ -87,7 +126,23 @@ export async function sweepLiquidations(opts: { userId?: number } = {}): Promise
     const raw = (mark - entry) * qty
     const pnl = p.side === 'short' ? -raw : raw
 
-    const hit = mode === 'cross' ? pnl <= -(net + (balances.get(uid) ?? 0)) : (pnl / net) * 100 <= liquidationRoe
+    const lossLimit = mode === 'cross' ? net + (balances.get(uid) ?? 0) : (net * Math.abs(liquidationRoe)) / 100
+    let hit = -pnl >= lossLimit
+    // 이 포지션이 있는 동안 리모콘 경로가 청산가에 닿은 적이 있는지(점검 사이에 지나가 버린 경우 포함)
+    if (!hit && lossLimit > 0) {
+      const liqPrice = p.side === 'short' ? entry + lossLimit / qty : entry - lossLimit / qty
+      for (const e of evTimelines) {
+        const from = Math.max(0, posStartMs - e.startMs)
+        const to = Math.min(nowMs - e.startMs, e.tl.endT)
+        if (to < from) continue
+        const range = profitRangeBetween(e.tl, from, to)
+        if (!range) continue
+        if (p.side === 'short' ? range.high >= liqPrice : range.low <= liqPrice) {
+          hit = true
+          break
+        }
+      }
+    }
     if (!hit) continue
 
     try {
