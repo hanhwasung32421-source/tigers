@@ -7098,6 +7098,14 @@ async function loadAccount() {
     // 비중(%)은 설정에 저장된 값을 복원하지 않고 항상 기본 100%로 시작한다.
     const lev = Number(data.settings.tradeLeverage)
     if (Number.isFinite(lev)) leverage.value = Math.max(1, Math.min(100, Math.round(lev)))
+    // 마진 모드 기본값은 격리: 보유 포지션이 없으면 이전에 교차로 바꿔뒀어도 화면을 열 때마다 격리로 시작한다.
+    // (보유 포지션이 있으면 그 포지션의 모드를 유지해야 하므로 저장된 값을 그대로 쓴다.)
+    if (!positions.value.length && marginMode.value !== 'isolated') {
+      marginMode.value = 'isolated'
+      try {
+        localStorage.setItem(marginModeStorageKey(), 'isolated')
+      } catch {}
+    }
     prefsHydrated.value = true
   }
 
