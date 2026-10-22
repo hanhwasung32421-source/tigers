@@ -14,7 +14,7 @@ const LIGHT_COLUMNS =
 const LIGHT_TTL_MS = 10_000
 const STYLE_TTL_MS = 30_000
 let lightCache: { at: number; row: any } | null = null
-let styleCache: { at: number; value: any } | null = null
+let styleCache: { at: number; ver: string; value: any } | null = null
 
 export function invalidateSystemSettingsCache() {
   lightCache = null
@@ -39,12 +39,25 @@ export async function readSystemSettingsRowLight(): Promise<any | null> {
   return row
 }
 
+// 수익카드 스타일(배경 그림 포함)은 설정 행의 updated_at이 바뀔 때만 다시 읽는다(가벼운 행은 10초마다 확인).
+// 그래서 설정을 바꾸지 않는 동안에는 그림을 DB에서 거의 읽지 않고, 바꾸면 모든 서버 인스턴스가 10초 안에 새 값을 받는다.
+// updated_at을 못 읽는 경우에는 예전처럼 30초 캐시를 쓴다.
 async function readProfitCardStyleRaw(): Promise<any> {
-  if (styleCache && Date.now() - styleCache.at < STYLE_TTL_MS) return styleCache.value
+  let ver = ''
+  try {
+    ver = String((await readSystemSettingsRowLight())?.updated_at || '')
+  } catch {
+    ver = ''
+  }
+  if (styleCache) {
+    const age = Date.now() - styleCache.at
+    if (ver && styleCache.ver === ver && age < 6 * 3600_000) return styleCache.value
+    if (!ver && age < STYLE_TTL_MS) return styleCache.value
+  }
   const supa = getSupabaseAdminClient()
   const res = await supa.from(T_SYSTEM_SETTINGS).select('profit_card_style').eq('id', 1).maybeSingle()
   const value = res.error ? null : (res.data as any)?.profit_card_style ?? null
-  styleCache = { at: Date.now(), value }
+  styleCache = { at: Date.now(), ver, value }
   return value
 }
 
