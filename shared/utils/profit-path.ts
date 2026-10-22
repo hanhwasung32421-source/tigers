@@ -185,9 +185,9 @@ export function buildProfitPhaseB(ev: ProfitPathEvent, rng: () => number, startT
 
 export type ProfitTimeline = { points: ProfitPoint[]; endT: number }
 
-// 리모콘 정지 후 복귀: 지금 가격에서 실제 현재가로 1분 동안 50틱에 걸쳐 돌아온다.
+// 리모콘 정지 후 복귀: 지금 가격에서 실제 현재가로 1분 동안 200틱에 걸쳐 돌아온다.
 export const PROFIT_RETURN_MS = 60000
-export const PROFIT_RETURN_TICKS = 50
+export const PROFIT_RETURN_TICKS = 200
 
 // startT(이벤트 시작 기준 ms)부터 startPrice에서 realTarget까지 돌아오는 경로. 난수는 이벤트 번호로 고정(원래 경로와 다른 난수열).
 export function buildProfitReturnPath(ev: ProfitPathEvent, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
