@@ -4807,6 +4807,18 @@ async function initProfitEventBaseline() {
 
 // 킬UP/킬DOWN과 같은 직선 경로: start에서 end까지 steps번에 걸쳐 같은 폭으로 움직인다(k번째 값 = start + (end-start)×k/steps).
 // 마지막 값은 항상 정확히 end다. 틱마다 같은 폭으로 뚝뚝 움직여서 틱이 하나하나 눈에 보인다.
+// 리모콘 경로의 난수. 평소엔 Math.random이지만, 이벤트를 재생/복원할 때는 이벤트 번호로 고정한 난수열로 바꿔 끼운다.
+// (같은 이벤트면 새로고침 후에 다시 만들어도 화면에서 보던 것과 같은 경로가 나오게 하기 위함)
+let rngFn: () => number = Math.random
+function mulberry32(seed: number) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
 function buildLinearPath(start: number, end: number, steps: number): number[] {
   const n = Math.max(1, Math.round(steps))
   const out: number[] = []
@@ -4824,7 +4836,7 @@ function buildRandomPath(start: number, end: number, steps: number): number[] {
   const absMove = Math.abs(move)
   const stepNoise = (absMove * 0.6) / Math.sqrt(n)
   const walk: number[] = [0]
-  for (let i = 1; i <= n; i++) walk.push(walk[i - 1] + (Math.random() * 2 - 1) * stepNoise * 1.7)
+  for (let i = 1; i <= n; i++) walk.push(walk[i - 1] + (rngFn() * 2 - 1) * stepNoise * 1.7)
   const totalWalk = walk[n]
   const maxDev = absMove * 0.35
   const lo = Math.min(start, end)
@@ -4846,7 +4858,7 @@ const GAP_MAX_MS = 1000
 function buildRandomGaps(n: number, durationMs: number): number[] {
   const count = Math.max(0, Math.round(n) - 1)
   if (count === 0) return []
-  const gaps = Array.from({ length: count }, () => GAP_MIN_MS + Math.random() * (GAP_MAX_MS - GAP_MIN_MS))
+  const gaps = Array.from({ length: count }, () => GAP_MIN_MS + rngFn() * (GAP_MAX_MS - GAP_MIN_MS))
   const feasible = durationMs >= GAP_MIN_MS * count && durationMs <= GAP_MAX_MS * count
   if (!feasible) {
     const total = gaps.reduce((a, b) => a + b, 0)
@@ -4895,7 +4907,7 @@ function buildWigglePath(start: number, end: number, steps: number): number[] {
   const noiseScale = (Math.abs(totalMove) / steps || Math.abs(end) * 0.0001) * 1.6
   const walk: number[] = [0]
   for (let i = 1; i <= steps; i++) {
-    walk.push(walk[i - 1] + (Math.random() * 2 - 1) * noiseScale)
+    walk.push(walk[i - 1] + (rngFn() * 2 - 1) * noiseScale)
   }
   const totalWalk = walk[steps]
   const prices: number[] = []
@@ -4929,6 +4941,81 @@ function resolveWiggleSteps(userTicks: number, durationMs: number): number {
 // 관리자가 지정한 holdMs만큼 그 상태를 유지한 뒤 복귀한다.
 // 이동 경로는 직선이 아니라 위아래로 적당히 오르내리며 목표가에 도달하고(틱=0이면 자동으로 자연스럽게),
 // 유지하는 동안에도 목표가 주변에서 ±1~2% 흔들리며, 복귀는 A가 아니라 그 시점의 OKX 실시간가로 향한다.
+// 리모콘 경로 = (시각, 가격) 목록. 시각은 이벤트 시작 기준 ms.
+// 화면 재생과 새로고침 후 복원이 같은 함수를 써서 같은 경로가 나온다(난수는 이벤트 번호로 고정).
+type ProfitPoint = { t: number; price: number }
+const profitSeed = (ev: ProfitEvent) => Math.abs(Number(ev.id)) % 2147483647
+
+function profitHoldAmp(ev: ProfitEvent) {
+  return ev.holdAmp != null && Number.isFinite(Number(ev.holdAmp)) ? Math.max(0, Number(ev.holdAmp)) : Math.min(0.05, Math.abs(ev.shockedPrice) * 0.003)
+}
+
+// 1단계: 목표가로 이동 + 목표가 유지. (복귀 목표가는 복귀 시작 때의 실제 시세라서 2단계에서 따로 만든다.)
+function buildProfitPhaseA(ev: ProfitEvent, rng: () => number): { points: ProfitPoint[]; endT: number; lastHoldPrice: number } {
+  const prevRng = rngFn
+  rngFn = rng
+  try {
+    const userTickCount = Math.max(0, Math.round(ev.tickCount ?? 3))
+    const durationMs = Math.max(100, ev.durationMs || 1000)
+    const holdMs = Math.max(100, ev.holdMs || 3000)
+    const steps = resolveWiggleSteps(userTickCount, durationMs)
+    const risePath = buildRandomPathToTarget(ev.basePrice, ev.shockedPrice, steps)
+    const riseGaps = buildRandomGaps(steps, durationMs)
+    const points: ProfitPoint[] = []
+    let t = 0
+    points.push({ t, price: risePath[0] })
+    for (let i = 1; i < risePath.length; i++) {
+      t += riseGaps[i - 1] ?? 0
+      points.push({ t, price: risePath[i] })
+    }
+    // 목표가 유지: 목표가 ±(움직임금액) 안에서 위아래로. 틱 수를 입력했으면 그 수만큼, 0이면 랜덤(3~10틱).
+    const holdAmp = profitHoldAmp(ev)
+    const requested = Math.max(0, Math.round(ev.holdTickCount ?? 0))
+    const n = requested > 0 ? requested : 3 + Math.floor(rngFn() * 8)
+    const weights = Array.from({ length: n }, () => 0.3 + rngFn())
+    const total = weights.reduce((x, y) => x + y, 0)
+    const holdGaps = weights.map((w) => (w / total) * holdMs)
+    let lastHoldPrice = ev.shockedPrice
+    points.push({ t, price: ev.shockedPrice }) // 목표가에 도착한 순간
+    let ht = t
+    for (let i = 0; i < n; i++) {
+      ht += holdGaps[i]
+      const price = ev.shockedPrice + (rngFn() * 2 - 1) * holdAmp
+      lastHoldPrice = price
+      points.push({ t: ht, price })
+    }
+    return { points, endT: ht, lastHoldPrice }
+  } finally {
+    rngFn = prevRng
+  }
+}
+
+// 2단계: 목표가 유지가 끝난 가격에서 realTarget(그 시점의 실제 시세)으로 복귀.
+function buildProfitPhaseB(ev: ProfitEvent, rng: () => number, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
+  const prevRng = rngFn
+  rngFn = rng
+  try {
+    const userTickCount = Math.max(0, Math.round(ev.tickCount ?? 3))
+    const durationMs = Math.max(100, ev.durationMs || 1000)
+    const revertMs = Math.max(100, ev.revertMs || durationMs)
+    const revertSteps = resolveWiggleSteps(ev.revertTickCount && ev.revertTickCount > 0 ? ev.revertTickCount : userTickCount, revertMs)
+    const path = buildRandomPathToTarget(startPrice, realTarget, revertSteps)
+    const gaps = buildRandomGaps(revertSteps, revertMs)
+    const points: ProfitPoint[] = []
+    let t = startT
+    points.push({ t, price: path[0] })
+    for (let i = 1; i < path.length; i++) {
+      t += gaps[i - 1] ?? 0
+      points.push({ t, price: path[i] })
+    }
+    return points
+  } finally {
+    rngFn = prevRng
+  }
+}
+
+// 관리자가 지정한 시간 동안 목표가로 이동 → 목표가 유지 → 그 시점의 실시간가로 복귀.
+// 이동 경로는 직선이 아니라 위아래로 적당히 오르내리며 목표가에 도달한다.
 async function runProfitAnimation(ev: ProfitEvent) {
   if (!process.client) return
 
@@ -4938,13 +5025,9 @@ async function runProfitAnimation(ev: ProfitEvent) {
     return
   }
 
-  const userTickCount = Math.max(0, Math.round(ev.tickCount ?? 3))
   const durationMs = Math.max(100, ev.durationMs || 1000)
   const holdMs = Math.max(100, ev.holdMs || 3000)
-  const steps = resolveWiggleSteps(userTickCount, durationMs)
-  // 복귀 구간은 이동 구간과 별도의 시간/틱 수를 쓴다(예전 이벤트는 이동과 같게 복귀).
   const revertMs = Math.max(100, ev.revertMs || durationMs)
-  const revertSteps = resolveWiggleSteps(ev.revertTickCount && ev.revertTickCount > 0 ? ev.revertTickCount : userTickCount, revertMs)
 
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitBusy.value = true
@@ -4986,43 +5069,16 @@ async function runProfitAnimation(ev: ProfitEvent) {
     prevApplied = price
   }
 
-  // path의 첫 틱은 바로 적용하고, 이후 gaps(랜덤 간격, 합 = 구간 시간)마다 한 틱씩 움직인다. 마지막 틱 = 목표가.
-  const runPath = (path: number[], onDone: () => void, gaps: number[]) => {
+  // 타임라인의 점들을 시간 간격대로 하나씩 적용한다(첫 점은 바로).
+  const playPoints = (points: ProfitPoint[], onDone: () => void) => {
     let i = 0
     const step = () => {
-      applyPrice(path[i])
+      applyPrice(points[i].price)
       i += 1
-      if (i < path.length) {
-        adminProfitTimer = setTimeout(step, gaps[i - 1] ?? 0)
-      } else {
-        onDone()
-      }
-    }
-    step()
-  }
-
-  // 목표가 유지 구간: 목표가 ±(관리자가 입력한 움직임금액) 안에서 위아래로 움직인다(입력이 없던 예전 이벤트는 ±0.05, 아주 낮은 가격은 0.3% 이내).
-  // 틱 수를 입력했으면 유지 시간 동안 그 수만큼(간격은 랜덤), 0이면 틱 수도 랜덤(3~10틱)으로 움직인다.
-  let lastHoldPrice = ev.shockedPrice
-  const holdAmp = ev.holdAmp != null && Number.isFinite(Number(ev.holdAmp)) ? Math.max(0, Number(ev.holdAmp)) : Math.min(0.05, Math.abs(ev.shockedPrice) * 0.003)
-  const runHold = (onDone: () => void) => {
-    const requested = Math.max(0, Math.round(ev.holdTickCount ?? 0))
-    const n = requested > 0 ? requested : 3 + Math.floor(Math.random() * 8)
-    // 랜덤 간격: n개의 무작위 가중치를 유지 시간에 비례해 나눈다(합 = holdMs). 마지막 틱은 유지 시간이 끝나는 시점.
-    const weights = Array.from({ length: n }, () => 0.3 + Math.random())
-    const total = weights.reduce((a, b) => a + b, 0)
-    const gaps = weights.map((w) => (w / total) * holdMs)
-    let i = 0
-    const step = () => {
-      const price = ev.shockedPrice + (Math.random() * 2 - 1) * holdAmp
-      lastHoldPrice = price
-      applyPrice(price)
-      i += 1
-      if (i < n) adminProfitTimer = setTimeout(step, gaps[i])
+      if (i < points.length) adminProfitTimer = setTimeout(step, Math.max(0, points[i].t - points[i - 1].t))
       else onDone()
     }
-    applyPrice(ev.shockedPrice) // 목표가에 도착한 순간
-    adminProfitTimer = setTimeout(step, gaps[0])
+    step()
   }
 
   const finish = () => {
@@ -5033,15 +5089,93 @@ async function runProfitAnimation(ev: ProfitEvent) {
     loadAccount().catch(() => {})
   }
 
-  // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 OKX 현재가로 되돌아간다.
-  const startRevert = () => {
+  const rng = mulberry32(profitSeed(ev))
+  const phaseA = buildProfitPhaseA(ev, rng)
+  playPoints(phaseA.points, () => {
+    // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 현재가로 되돌아간다.
     const realPrice = Number(lastPrice.value || ev.shockedPrice)
-    const revertPath = buildRandomPathToTarget(lastHoldPrice, realPrice, revertSteps)
-    runPath(revertPath, finish, buildRandomGaps(revertSteps, revertMs))
-  }
+    const phaseB = buildProfitPhaseB(ev, rng, phaseA.endT, phaseA.lastHoldPrice, realPrice)
+    playPoints(phaseB, finish)
+  })
+}
 
-  const risePath = buildRandomPathToTarget(ev.basePrice, ev.shockedPrice, steps)
-  runPath(risePath, () => runHold(startRevert), buildRandomGaps(steps, durationMs))
+// 새로고침 후에도 리모콘으로 만들어진 봉(여러 봉에 걸친 것 포함)이 그대로 남도록, 저장된 이벤트로 경로를 다시 만들어 봉에 입힌다.
+// 실제 거래소 봉 위에, 이벤트 시간대에 걸친 봉들의 시가/고가/저가/종가를 화면에서 보던 경로대로 덮어쓴다(거래량은 그대로).
+function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[], intervalSeconds: number) {
+  if (!candles.length || !events.length || !intervalSeconds) return
+  const byTime = new Map<number, any>()
+  for (const c of candles) byTime.set(Number((c as any).time), c)
+  const firstT = Number((candles[0] as any).time)
+  const nowMs = Date.now()
+  const ordered = events.slice().sort((x, y) => Number(x.id) - Number(y.id))
+  for (const ev of ordered) {
+    const t0 = new Date(ev.createdAt).getTime()
+    if (!Number.isFinite(t0) || t0 > nowMs) continue
+    const durationMs = Math.max(100, ev.durationMs || 1000)
+    const holdMs = Math.max(100, ev.holdMs || 3000)
+    const revertMs = Math.max(100, ev.revertMs || durationMs)
+    const endMs = t0 + durationMs + holdMs + revertMs + 2000
+    if (Math.floor(endMs / 1000) < firstT) continue // 불러온 봉보다 더 과거 이벤트
+    const bucketOf = (ms: number) => barBucketStart(Math.floor(ms / 1000), intervalSeconds)
+
+    const rng = mulberry32(profitSeed(ev))
+    const phaseA = buildProfitPhaseA(ev, rng)
+    // 복귀 목표(=복귀 시작 시점의 실제 시세)는 그때 봉의 실제 종가로 대신한다.
+    const revertBar = byTime.get(bucketOf(t0 + phaseA.endT))
+    const realTarget = revertBar ? Number(revertBar.__rc ?? revertBar.close) : ev.basePrice
+    const phaseB = buildProfitPhaseB(ev, rng, phaseA.endT, phaseA.lastHoldPrice, Number.isFinite(realTarget) && realTarget > 0 ? realTarget : ev.basePrice)
+    const points = phaseA.points.concat(phaseB).filter((p) => t0 + p.t <= nowMs)
+    if (!points.length) continue
+
+    // 봉별로 경로 점을 모은다.
+    const perBar = new Map<number, { high: number; low: number; last: number }>()
+    for (const p of points) {
+      const key = bucketOf(t0 + p.t)
+      const cur = perBar.get(key)
+      if (!cur) perBar.set(key, { high: p.price, low: p.price, last: p.price })
+      else {
+        cur.high = Math.max(cur.high, p.price)
+        cur.low = Math.min(cur.low, p.price)
+        cur.last = p.price
+      }
+    }
+    const startKey = bucketOf(t0)
+    const endKey = bucketOf(t0 + points[points.length - 1].t)
+    const keys = Array.from(byTime.keys()).filter((k) => k >= startKey && k <= endKey).sort((x, y) => x - y)
+    if (!keys.length) continue
+    const finished = t0 + phaseB[phaseB.length - 1].t <= nowMs
+
+    let prevClose: number | null = null
+    for (const k of keys) {
+      const c = byTime.get(k)
+      // 거래소 원래 종가를 처음 한 번만 기억해 둔다(여러 번 입혀도 같은 결과가 나오게).
+      if (c.__rc === undefined) c.__rc = Number(c.close)
+      const seg = perBar.get(k)
+      if (k === startKey) {
+        // 시작 봉: 거래소 값(시가, 이벤트 전 가격)에 경로 구간을 더한다.
+        if (seg) {
+          c.high = Math.max(Number(c.high), seg.high)
+          c.low = Math.min(Number(c.low), seg.low)
+          if (k !== endKey) c.close = seg.last
+        }
+      } else if (k === endKey && finished) {
+        // 마지막 봉: 이벤트가 끝난 뒤에는 다시 실제 시세라 종가는 거래소 값을 쓰고, 고가/저가만 경로를 더한다.
+        if (seg) {
+          c.high = Math.max(Number(c.high), seg.high)
+          c.low = Math.min(Number(c.low), seg.low)
+        }
+      } else {
+        // 중간 봉(이벤트가 봉 전체를 덮음): 시가 = 직전 봉 종가, 고/저/종가는 경로값으로 대체.
+        const open = prevClose ?? Number(c.open)
+        const close = seg ? seg.last : open
+        c.open = open
+        c.close = close
+        c.high = Math.max(open, close, seg ? seg.high : open)
+        c.low = Math.min(open, close, seg ? seg.low : open)
+      }
+      prevClose = Number(c.close)
+    }
+  }
 }
 
 async function pollProfitEvents() {
@@ -6727,7 +6861,7 @@ async function loadOlderHistory() {
     const candles = prependCandles.concat(existingCandles)
     const vols = prependVols.concat(existingVols)
     applyKillWicks(candles, cachedKillEvents, intervalSeconds)
-    applyKillWicks(candles, cachedProfitEvents, intervalSeconds)
+    applyProfitPathCandles(candles, cachedProfitEvents, intervalSeconds)
     chainCandleOpens(candles)
 
     // 앞쪽에 봉이 끼어들면 logical index가 그만큼 밀리므로, 보고 있던 화면이 튀지 않게 같은 만큼 되돌려준다.
@@ -6771,7 +6905,7 @@ async function fetchCandles(opts: { finalizePrevious?: boolean } = {}) {
 
   const { candles: freshCandles, vols: freshVols } = candleRowsToSeriesData(firstBatch)
   applyKillWicks(freshCandles, killEvents, intervalSeconds)
-  applyKillWicks(freshCandles, profitEvents, intervalSeconds)
+  applyProfitPathCandles(freshCandles, profitEvents, intervalSeconds)
 
   // 이미 불러와져 있던 과거 봉(뒤로 스크롤 등으로 백필된 것)이 있으면, 최근 구간만 다시 받은
   // fresh 데이터로 전체를 덮어쓰지 않고 병합한다(심볼/타임프레임이 바뀔 때는 호출부에서
