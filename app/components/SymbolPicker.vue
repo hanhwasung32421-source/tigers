@@ -104,19 +104,18 @@ const emit = defineEmits<{
 }>()
 const { t } = useLocale()
 
-type TabId = 'fav' | 'spot' | 'futures' | 'tradfi'
+type TabId = 'fav' | 'futures' | 'tradfi'
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
 const searchEl = ref<HTMLInputElement | null>(null)
 const query = ref('')
-const tab = ref<TabId>('spot')
+const tab = ref<TabId>('futures')
 const chip = ref('all')
 const sortKey = ref<'' | 'price' | 'change'>('')
 const sortDir = ref<1 | -1>(-1)
 
 const tabs = computed(() => [
   { id: 'fav' as const, label: t('즐겨찾기', 'Favorites') },
-  { id: 'spot' as const, label: t('현물', 'Spot') },
   { id: 'futures' as const, label: t('선물', 'Futures') },
   { id: 'tradfi' as const, label: 'TradFi' }
 ])
@@ -154,7 +153,6 @@ const rows = computed(() => {
   const q = query.value.trim().toLowerCase()
   let list = (props.items || []).filter((i) => i && i.price > 0)
   if (tab.value === 'fav') list = list.filter((i) => props.favs.includes(i.symbol))
-  else if (tab.value === 'spot') list = list.filter((i) => i.category === 'coin')
   else if (tab.value === 'tradfi') list = list.filter((i) => i.category !== 'coin')
   if (tab.value !== 'fav' && tab.value !== 'tradfi') {
     if (chip.value === 'new') list = list.filter((i) => i.listTime && Date.now() - Number(i.listTime) < NEW_DAYS * 86400_000)
