@@ -4952,19 +4952,38 @@ async function runProfitAnimation(ev: ProfitEvent) {
   adminProfitFreezeUntil = Date.now() + durationMs + revertMs + holdMs + 300
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
-  const time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
-  const openPrice = last ? Number((last as any).open) : ev.basePrice
+  let time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
+  let openPrice = last ? Number((last as any).open) : ev.basePrice
   let runningHigh = last ? Number((last as any).high) : ev.basePrice
   let runningLow = last ? Number((last as any).low) : ev.basePrice
+  let prevApplied = last ? Number((last as any).close) : ev.basePrice
 
   const applyPrice = (price: number) => {
     adminProfitUiOverride.value = price
+    // 시간이 흘러 다음 봉으로 넘어가면(예: 1분봉에서 5분간 이동) 같은 봉만 계속 늘리지 않고 새 봉을 만든다.
+    // 새 봉의 시가는 직전 봉의 종가(직전 틱 가격)를 이어받는다.
+    const bucket = barBucketStart(Math.floor(Date.now() / 1000), barSeconds(timeframe.value))
+    if (bucket > Number(time) && candleSeries) {
+      time = bucket as any
+      openPrice = prevApplied
+      runningHigh = Math.max(openPrice, price)
+      runningLow = Math.min(openPrice, price)
+      const next: CandlestickData = { time, open: openPrice, high: runningHigh, low: runningLow, close: price }
+      liveLastCandle.value = next
+      candleData.value = candleData.value.length ? candleData.value.concat([next]) : [next]
+      try { candleSeries.update(next as any) } catch {}
+      try { volumeSeries?.update({ time, value: 0, color: 'rgba(148,163,184,0.25)' } as any) } catch {}
+      updateVisibleHighLow()
+      prevApplied = price
+      return
+    }
     runningHigh = Math.max(runningHigh, price)
     runningLow = Math.min(runningLow, price)
     const candle: CandlestickData = { time, open: openPrice, high: runningHigh, low: runningLow, close: price }
     liveLastCandle.value = candle
     if (candleData.value.length) candleData.value[candleData.value.length - 1] = candle
     try { candleSeries?.update(candle as any) } catch {}
+    prevApplied = price
   }
 
   // path의 첫 틱은 바로 적용하고, 이후 gaps(랜덤 간격, 합 = 구간 시간)마다 한 틱씩 움직인다. 마지막 틱 = 목표가.
