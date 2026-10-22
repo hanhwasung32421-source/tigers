@@ -11,6 +11,8 @@ export type ProfitPathEvent = {
   holdAmp: number | null
   revertMs: number
   revertTickCount: number
+  // 진행 중에 중단된 이벤트(운영자 화면 새로고침 등)의 중단 시각(이벤트 시작 기준 ms). 이 시각 이후의 경로는 없다.
+  cancelT?: number | null
 }
 
 // 리모콘 경로의 난수. 평소엔 Math.random이지만, 이벤트를 재생/복원할 때는 이벤트 번호로 고정한 난수열로 바꿔 끼운다.
@@ -188,7 +190,14 @@ export function buildProfitTimeline(ev: ProfitPathEvent, realTarget: number): Pr
   const rng = mulberry32(profitSeed(ev))
   const a = buildProfitPhaseA(ev, rng)
   const b = buildProfitPhaseB(ev, rng, a.endT, a.lastHoldPrice, realTarget)
-  return { points: a.points.concat(b), endT: b.length ? b[b.length - 1].t : a.endT }
+  let points = a.points.concat(b)
+  let endT = b.length ? b[b.length - 1].t : a.endT
+  // 중단된 이벤트: 중단 시각까지의 경로만 남긴다(그 가격에서 딱 멈추고, 이후는 실제 시세).
+  if (ev.cancelT != null && Number.isFinite(ev.cancelT) && ev.cancelT < endT) {
+    points = points.filter((p) => p.t <= ev.cancelT!)
+    endT = Math.max(0, ev.cancelT)
+  }
+  return { points, endT }
 }
 
 // t ms 시점에 화면에 보이는 가격(마지막으로 적용된 틱)

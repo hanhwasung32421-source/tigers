@@ -32,7 +32,8 @@ export async function resolveClientPrice(symbol: string, clientPrice: number | u
       const move = Math.max(1, pe.durationMs)
       const hold = Math.max(0, pe.holdMs)
       const revert = Math.max(1, pe.revertMs)
-      const end = start + move + hold + revert
+      // 진행 중 중단된 이벤트(운영자 화면 새로고침 등)는 중단 시각에서 끝난다.
+      const end = start + (pe.cancelT != null ? Math.max(0, pe.cancelT) : move + hold + revert)
       if (Number.isFinite(start) && now >= start - CLOCK_SKEW_MS && now <= end + GRACE_AFTER_END_MS) {
         const delta = pe.shockedPrice - pe.basePrice
         const noise = Math.abs(delta) * NOISE_RATIO

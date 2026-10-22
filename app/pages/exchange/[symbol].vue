@@ -2903,6 +2903,10 @@ const adminProfitUiOverride = ref<number | null>(null)
 const adminProfitBusy = ref(false)
 let adminProfitFreezeUntil = 0
 let adminProfitTimer: any = null
+// 리모콘 중단: 지금 재생 중인 이벤트, 이 브라우저(운영자)가 실행한 이벤트, 재생을 즉시 멈추는 함수
+let runningProfitEventId = 0
+let ownProfitEventId = 0
+let profitStopRunning: (() => void) | null = null
 
 type ProfitEvent = {
   id: number
@@ -2918,6 +2922,8 @@ type ProfitEvent = {
   revertMs?: number
   revertTickCount?: number
   holdAmp?: number | null
+  // 진행 중 중단된 시각(이벤트 시작 기준 ms). 있으면 그 시점에서 멈추고 이후는 실제 시세.
+  cancelT?: number | null
   createdAt: string
 }
 const profitModalOpen = ref(false)
@@ -4786,6 +4792,7 @@ async function confirmProfitModal() {
     profitModalOpen.value = false
     if (res?.event) {
       lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
+      ownProfitEventId = res.event.id
       await runProfitAnimation(res.event)
     }
   } catch (e: any) {
@@ -4795,6 +4802,21 @@ async function confirmProfitModal() {
 }
 
 // 새로고침/재접속 직후에는 예전 이벤트를 "방금 일어난 일"로 재생하지 않도록 기준점만 맞춰둔다.
+// 이 브라우저(운영자)가 실행한 리모콘이 진행 중인데 새로고침하거나 화면을 떠나면, 그 시점의 가격에서 이벤트를 멈춘다.
+function cancelOwnProfitOnLeave() {
+  if (!process.client || !ownProfitEventId || ownProfitEventId !== runningProfitEventId) return
+  const id = ownProfitEventId
+  ownProfitEventId = 0
+  try {
+    const blob = new Blob([JSON.stringify({ eventId: id })], { type: 'application/json' })
+    if (!navigator.sendBeacon('/api/admin/profit-cancel', blob)) {
+      fetch('/api/admin/profit-cancel', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ eventId: id }), keepalive: true }).catch(() => {})
+    }
+  } catch {
+    // 무시
+  }
+}
+
 async function initProfitEventBaseline() {
   if (!me.value) return
   try {
@@ -4889,6 +4911,8 @@ async function runProfitAnimation(ev: ProfitEvent) {
   }
 
   const finish = () => {
+    runningProfitEventId = 0
+    profitStopRunning = null
     adminProfitUiOverride.value = null
     adminProfitFreezeUntil = 0
     adminProfitBusy.value = false
@@ -4896,6 +4920,12 @@ async function runProfitAnimation(ev: ProfitEvent) {
     loadAccount().catch(() => {})
   }
 
+  // 운영자 화면이 새로고침되어 이벤트가 중단되면(서버에 중단 시각이 기록됨) 다른 화면들도 지금 가격에서 딱 멈추고 실제 시세로 돌아간다.
+  runningProfitEventId = ev.id
+  profitStopRunning = () => {
+    if (adminProfitTimer) clearTimeout(adminProfitTimer)
+    finish()
+  }
   const rng = mulberry32(profitSeed(ev))
   const phaseA = buildProfitPhaseA(ev, rng)
   playPoints(phaseA.points, () => {
@@ -4931,7 +4961,7 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
     const revertBar = byTime.get(bucketOf(t0 + phaseA.endT))
     const realTarget = revertBar ? Number(revertBar.__rc ?? revertBar.close) : ev.basePrice
     const phaseB = buildProfitPhaseB(ev, rng, phaseA.endT, phaseA.lastHoldPrice, Number.isFinite(realTarget) && realTarget > 0 ? realTarget : ev.basePrice)
-    const points = phaseA.points.concat(phaseB).filter((p) => t0 + p.t <= nowMs)
+    const points = phaseA.points.concat(phaseB).filter((p) => t0 + p.t <= nowMs && (ev.cancelT == null || p.t <= ev.cancelT))
     if (!points.length) continue
 
     // 봉별로 경로 점을 모은다.
@@ -4950,7 +4980,7 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
     const endKey = bucketOf(t0 + points[points.length - 1].t)
     const keys = Array.from(byTime.keys()).filter((k) => k >= startKey && k <= endKey).sort((x, y) => x - y)
     if (!keys.length) continue
-    const finished = t0 + phaseB[phaseB.length - 1].t <= nowMs
+    const finished = ev.cancelT != null || t0 + phaseB[phaseB.length - 1].t <= nowMs
 
     let prevClose: number | null = null
     for (const k of keys) {
@@ -4993,6 +5023,8 @@ async function pollProfitEvents() {
     if (ev && ev.id > lastSeenProfitEventId) {
       lastSeenProfitEventId = ev.id
       await runProfitAnimation(ev)
+    } else if (ev && ev.id === runningProfitEventId && ev.cancelT != null && profitStopRunning) {
+      profitStopRunning()
     }
   } catch {
     // ignore
@@ -8123,6 +8155,7 @@ onMounted(async () => {
   overviewTimer = setInterval(() => refreshOverview(true).catch(() => {}), 30000)
   document.addEventListener('click', onDropdownMenuDocClick, { capture: true })
   window.addEventListener('resize', onWindowResizeForChartHeight)
+  window.addEventListener('pagehide', cancelOwnProfitOnLeave)
   chartClockTimer = setInterval(() => {
     chartNow.value = Date.now()
   }, 1000)
@@ -8196,6 +8229,8 @@ onBeforeUnmount(() => {
   if (lastTagTimer) clearInterval(lastTagTimer)
   stopTradesPolling()
   window.removeEventListener('resize', onWindowResizeForChartHeight)
+  window.removeEventListener('pagehide', cancelOwnProfitOnLeave)
+  cancelOwnProfitOnLeave()
   stopAlarmLoop()
   chartResizeObserver?.disconnect()
   chartResizeObserver = null
