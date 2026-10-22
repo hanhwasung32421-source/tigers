@@ -929,7 +929,7 @@
                   <span class="font-mono text-slate-400">USDT</span>
                 </div>
                 <div class="mt-2 flex items-center justify-between gap-2 rounded-md border border-[#173753] bg-[#041425] px-3 py-2 font-mono text-slate-100">
-                  <span v-if="orderType === 'market'">{{ lastPrice ? fmtPrice(lastPrice) : '—' }}</span>
+                  <span v-if="orderType === 'market'">{{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }}</span>
                   <input
                     v-else
                     v-model="limitPriceDraft"
@@ -5479,7 +5479,8 @@ const isKrStockSymbol = computed(() => KR_STOCK_TICKERS.has(baseCoin(symbol.valu
 
 const entryCalcPrice = computed(() => {
   if (orderType.value === 'limit' && limitPriceValid.value) return Number(String(limitPriceDraft.value).replace(/,/g, ''))
-  return lastPrice.value ?? 0
+  // 리모콘/킬로 가격이 움직이는 중이면 화면에 보이는(움직인) 가격으로 진입한다.
+  return displayLastPrice.value ?? 0
 })
 
 const marginUsdt = computed(() => {

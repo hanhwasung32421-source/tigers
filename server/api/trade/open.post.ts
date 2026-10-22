@@ -7,6 +7,7 @@ import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, sy
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 import { getLiquidationRoe } from '../../utils/system-settings'
 import { applyUserMarginMode } from '../../utils/margin-mode'
+import { resolveClientPrice } from '../../utils/remote-price'
 
 const FEE_RATE = 0.04
 
@@ -94,7 +95,8 @@ export default defineEventHandler(async (event) => {
 
   const symbol = body.symbol.toUpperCase()
   const marketPrice = (await getOkxLastPrice(symbol)).last
-  const entry = clampToMarketPrice(body.price, marketPrice)
+  // 리모콘/킬로 가격이 움직이는 중이면 화면에 보이는 그 가격으로 진입한다(평소에는 실제 시세 ±1%로 보정).
+  const entry = await resolveClientPrice(symbol, body.price, marketPrice)
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()
