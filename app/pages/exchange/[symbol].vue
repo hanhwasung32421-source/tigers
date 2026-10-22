@@ -56,7 +56,7 @@
                   :disabled="adminProfitBusy || adminKillBusy"
                   @click="openProfitModal()"
                 >
-                  {{ t('실행STOP', 'RUN STOP') }}
+                  {{ t('리모콘', 'Remote') }}
                 </button>
               </div>
               <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
@@ -1598,7 +1598,7 @@
       <div class="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
           <h3 class="text-xl font-semibold tracking-tight text-slate-100">
-            {{ t('RUN STOP', 'RUN STOP') }}
+            {{ t('리모콘', 'Remote') }}
           </h3>
           <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeProfitModal">
             ✕
