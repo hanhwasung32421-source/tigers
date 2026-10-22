@@ -1,4 +1,5 @@
 import { requireUser } from '../utils/auth'
+import { shouldRunSweep, sweepLiquidations } from '../utils/liquidation-sweep'
 import { getDb } from '../utils/db'
 import { supabaseAppDbEnabled } from '../utils/supa-appdb'
 import { supaSelectIn, supaSelectOne, supaSelectWhere, supaUpsertUserSettings } from '../utils/supabase'
@@ -6,6 +7,18 @@ import { supaSelectIn, supaSelectOne, supaSelectWhere, supaUpsertUserSettings } 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const useSupa = supabaseAppDbEnabled()
+
+  // 서버 자동 강제청산: 이 회원의 포지션은 응답 전에(2초 간격) 바로 점검하고, 전체 회원 점검은 10초 간격으로 응답과 별개로 돌린다.
+  // (접속해 있는 누군가가 있는 동안에는 화면을 닫은 회원의 포지션도 이 경로로 청산된다.)
+  try {
+    if (shouldRunSweep(`u:${user.id}`, 2000)) await sweepLiquidations({ userId: user.id })
+    if (shouldRunSweep('all', 10000)) {
+      const p = sweepLiquidations().catch(() => {})
+      ;(event as any).waitUntil?.(p)
+    }
+  } catch {
+    // 점검 실패가 계정 조회를 막으면 안 된다
+  }
 
   if (useSupa) {
     const bal = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })

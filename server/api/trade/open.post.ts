@@ -6,6 +6,7 @@ import { logBuy } from '../../utils/supa-log'
 import { supabaseAppDbEnabled, syncBalanceToSupabase, syncPositionToSupabase, syncTradeToSupabase } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient, supaSelectOne, supaUpdate, supaUpsert } from '../../utils/supabase'
 import { getLiquidationRoe } from '../../utils/system-settings'
+import { applyUserMarginMode } from '../../utils/margin-mode'
 
 const FEE_RATE = 0.04
 
@@ -17,7 +18,9 @@ const BodySchema = z.object({
   leverage: z.number().int().min(1).max(100),
   // 체결가(데모): 값이 오면 그 가격으로 즉시 체결된 것으로 처리
   // (요구사항: 버튼을 누른 순간의 가격으로 서버에도 동일하게 반영)
-  price: z.number().positive().optional()
+  price: z.number().positive().optional(),
+  // 지금 선택된 마진 모드(서버 자동 강제청산이 같은 기준을 쓰도록 서버에도 기록한다)
+  marginMode: z.enum(['isolated', 'cross']).optional()
 })
 
 function round2(n: number) {
@@ -81,6 +84,13 @@ export default defineEventHandler(async (event) => {
   const body = BodySchema.parse(await readBody(event))
   const useSupa = supabaseAppDbEnabled()
   const liquidationTriggerRoe = await getLiquidationRoe()
+
+  if (body.marginMode) {
+    const applied = await applyUserMarginMode(user.id, body.marginMode)
+    if (!applied.ok) {
+      throw createError({ statusCode: 409, statusMessage: '보유 포지션이 있을 때는 격리/교차를 바꿀 수 없습니다.', data: { mode: applied.mode } })
+    }
+  }
 
   const symbol = body.symbol.toUpperCase()
   const marketPrice = (await getOkxLastPrice(symbol)).last

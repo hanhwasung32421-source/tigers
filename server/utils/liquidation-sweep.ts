@@ -1,0 +1,113 @@
+import { getDb } from './db'
+import { getOkxLastPrice } from './okx'
+import { supabaseAppDbEnabled } from './supa-appdb'
+import { getSupabaseAdminClient } from './supabase'
+import { getLiquidationRoe } from './system-settings'
+import { getUserMarginModes } from './margin-mode'
+import { executeClose } from './trade-close'
+
+// 서버가 직접 하는 강제청산(회원이 화면을 닫고 있어도 실행).
+// - 격리: 손익이 증거금(net)의 관리자 설정 ROE(예: -42%) 이하이면 청산(증거금 전액 손실).
+// - 교차: 손실이 증거금(net) + 사용가능 잔고 이상이면(=내 돈이 전부 사라지면) 청산.
+// 회원이 화면을 열어두면 화면이 먼저 청산하고(빠른 경로), 이 함수는 그 뒤를 받치는 안전망이다(이미 청산됐으면 404로 무시).
+// 마진 모드를 서버가 아직 모르는 회원(배포 이전부터 쓰던 회원이 아직 한 번도 접속하지 않은 경우)은 건너뛴다.
+const FEE_RATE = 0.04
+const MAX_LIQUIDATIONS_PER_SWEEP = 50
+
+type PositionRow = { id: number; user_id: number; symbol: string; side: string; qty: number; entry_price: number; margin: number }
+
+async function loadPositions(userId?: number): Promise<PositionRow[]> {
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    let q = supa.from('bitduck_positions').select('id, user_id, symbol, side, qty, entry_price, margin').limit(3000)
+    if (userId) q = q.eq('user_id', userId)
+    const { data, error } = await q
+    if (error) throw error
+    return (data || []) as any
+  }
+  const db = getDb()
+  const rows = userId
+    ? db.prepare('SELECT id, user_id, symbol, side, qty, entry_price, margin FROM positions WHERE user_id = ?').all(userId)
+    : db.prepare('SELECT id, user_id, symbol, side, qty, entry_price, margin FROM positions').all()
+  return rows as any
+}
+
+async function loadBalances(userIds: number[]): Promise<Map<number, number>> {
+  const out = new Map<number, number>()
+  if (!userIds.length) return out
+  if (supabaseAppDbEnabled()) {
+    const supa = getSupabaseAdminClient()
+    const { data, error } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', userIds)
+    if (error) throw error
+    for (const r of data || []) out.set(Number((r as any).user_id), Number((r as any).usdt || 0))
+    return out
+  }
+  const marks = userIds.map(() => '?').join(',')
+  const rows = getDb().prepare(`SELECT user_id, usdt FROM balances WHERE user_id IN (${marks})`).all(...userIds) as any[]
+  for (const r of rows) out.set(Number(r.user_id), Number(r.usdt || 0))
+  return out
+}
+
+export async function sweepLiquidations(opts: { userId?: number } = {}): Promise<{ checked: number; liquidated: number; skippedUnknownMode: number }> {
+  const result = { checked: 0, liquidated: 0, skippedUnknownMode: 0 }
+  const positions = await loadPositions(opts.userId)
+  if (!positions.length) return result
+  result.checked = positions.length
+
+  const userIds = Array.from(new Set(positions.map((p) => Number(p.user_id))))
+  const [modes, balances, liquidationRoe] = await Promise.all([getUserMarginModes(userIds), loadBalances(userIds), getLiquidationRoe()])
+
+  const symbols = Array.from(new Set(positions.map((p) => String(p.symbol).toUpperCase())))
+  const marks = new Map<string, number>()
+  await Promise.all(
+    symbols.map(async (sym) => {
+      try {
+        const { last } = await getOkxLastPrice(sym)
+        if (Number.isFinite(last) && last > 0) marks.set(sym, last)
+      } catch {
+        // 시세를 못 받은 종목은 이번 점검에서 건너뜀
+      }
+    })
+  )
+
+  for (const p of positions) {
+    if (result.liquidated >= MAX_LIQUIDATIONS_PER_SWEEP) break
+    const uid = Number(p.user_id)
+    const mode = modes.get(uid) ?? null
+    if (!mode) {
+      result.skippedUnknownMode++
+      continue
+    }
+    const mark = marks.get(String(p.symbol).toUpperCase())
+    const entry = Number(p.entry_price)
+    const qty = Number(p.qty)
+    const gross = Number(p.margin)
+    const net = gross * (1 - FEE_RATE)
+    if (!(mark && mark > 0 && entry > 0 && qty > 0 && net > 0)) continue
+    const raw = (mark - entry) * qty
+    const pnl = p.side === 'short' ? -raw : raw
+
+    const hit = mode === 'cross' ? pnl <= -(net + (balances.get(uid) ?? 0)) : (pnl / net) * 100 <= liquidationRoe
+    if (!hit) continue
+
+    try {
+      await executeClose(uid, { positionId: Number(p.id), exitPrice: mark, liquidation: true, ...(mode === 'cross' ? { cross: true } : {}) })
+      result.liquidated++
+      // 같은 회원의 다른 교차 포지션 판정이 바뀔 수 있으니 잔고를 다시 읽는다.
+      balances.set(uid, (await loadBalances([uid])).get(uid) ?? 0)
+    } catch {
+      // 이미 화면이나 다른 요청이 청산했거나(404) 일시 오류: 다음 점검에서 다시 시도
+    }
+  }
+  return result
+}
+
+// 요청이 들어올 때마다 점검하되, 너무 자주 돌지 않게 간격을 둔다(서버리스 인스턴스별 메모리 기준).
+const lastRun = new Map<string, number>()
+export function shouldRunSweep(key: string, minIntervalMs: number): boolean {
+  const now = Date.now()
+  const prev = lastRun.get(key) || 0
+  if (now - prev < minIntervalMs) return false
+  lastRun.set(key, now)
+  return true
+}

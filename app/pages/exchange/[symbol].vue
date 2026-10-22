@@ -7100,12 +7100,22 @@ async function loadAccount() {
     if (Number.isFinite(lev)) leverage.value = Math.max(1, Math.min(100, Math.round(lev)))
     // 마진 모드 기본값은 격리: 보유 포지션이 없으면 이전에 교차로 바꿔뒀어도 화면을 열 때마다 격리로 시작한다.
     // (보유 포지션이 있으면 그 포지션의 모드를 유지해야 하므로 저장된 값을 그대로 쓴다.)
-    if (!positions.value.length && marginMode.value !== 'isolated') {
-      marginMode.value = 'isolated'
+    const serverMode = (data?.settings?.chartPrefs as any)?.__marginMode
+    if (!positions.value.length) {
+      if (marginMode.value !== 'isolated') {
+        marginMode.value = 'isolated'
+        try {
+          localStorage.setItem(marginModeStorageKey(), 'isolated')
+        } catch {}
+      }
+    } else if (serverMode === 'cross' || serverMode === 'isolated') {
+      // 포지션이 있으면 서버에 기록된 모드가 기준(다른 기기에서 바꿨을 수도 있다)
+      marginMode.value = serverMode
       try {
-        localStorage.setItem(marginModeStorageKey(), 'isolated')
+        localStorage.setItem(marginModeStorageKey(), serverMode)
       } catch {}
     }
+    if (serverMode !== marginMode.value) syncMarginModeToServer().catch(() => {})
     prefsHydrated.value = true
   }
 
@@ -7716,6 +7726,11 @@ function saveLimitOpenOrders() {
     localStorage.setItem(limitOpenStorageKey(), JSON.stringify(limitOpenOrders.value))
   } catch {}
 }
+// 서버 자동 강제청산이 이 회원의 격리/교차 기준을 알 수 있게 서버에도 기록한다.
+async function syncMarginModeToServer() {
+  if (!me.value) return
+  await $fetch('/api/settings/margin-mode', { method: 'POST', body: { mode: marginMode.value } })
+}
 function setMarginMode(mode: 'isolated' | 'cross') {
   if (marginMode.value === mode) return
   toggleMarginMode()
@@ -7727,10 +7742,19 @@ function toggleMarginMode() {
     return
   }
   error.value = null
+  const prevMode = marginMode.value
   marginMode.value = marginMode.value === 'cross' ? 'isolated' : 'cross'
   try {
     localStorage.setItem(marginModeStorageKey(), marginMode.value)
   } catch {}
+  syncMarginModeToServer().catch(() => {
+    // 서버가 거절하면(다른 기기에서 포지션을 잡은 경우 등) 이전 모드로 되돌린다.
+    marginMode.value = prevMode
+    try {
+      localStorage.setItem(marginModeStorageKey(), prevMode)
+    } catch {}
+    error.value = t('보유 포지션이 있을 때는 격리/교차를 바꿀 수 없습니다.', 'You cannot switch Isolated/Cross while you hold positions.')
+  })
   tradeMsg.value =
     marginMode.value === 'cross'
       ? t('교차 마진: 손실이 증거금과 사용가능 잔고를 함께 사용합니다.', 'Cross margin: losses can use your margin and available balance.')
@@ -7949,7 +7973,9 @@ async function openPosition(ov?: { side: 'long' | 'short'; price: number; percen
         margin: usedGross,
         leverage: levV,
         // 요구사항: 누르는 순간의 가격으로 서버에도 동일하게 반영
-        price
+        price,
+        // 서버 자동 강제청산이 같은 기준(격리/교차)을 쓰도록 현재 마진 모드도 같이 보낸다
+        marginMode: marginMode.value
       }
     })
     tradeMsg.value = null
