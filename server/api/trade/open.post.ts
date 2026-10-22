@@ -114,7 +114,8 @@ export default defineEventHandler(async (event) => {
       const pnlUnclamped = String(existing.side) === 'long' ? pnlRaw : -pnlRaw
       const gross0 = Number(existing.margin)
       const net0 = netMarginFromGross(gross0)
-      const pnl = clampPnlToLiquidation(pnlUnclamped, net0, liquidationTriggerRoe)
+      // 반대 방향 진입은 회원이 직접 파는 것이므로 정확한 손익만 반영한다(강제청산 아님). 증거금을 넘는 손실만 증거금 전액으로 제한.
+      const pnl = Math.max(pnlUnclamped, -net0)
       const { settlementAfterFee } = calcSettlementAfterSellFee(gross0, pnl)
 
       // 포지션 제거
@@ -122,7 +123,6 @@ export default defineEventHandler(async (event) => {
 
       // 거래 내역 저장(bigint PK 직접 생성)
       const tradeId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
-      // 반대 방향 진입으로 기존 포지션이 정리될 때, 손실이 강제청산 기준에 닿아 증거금 전액 손실로 정산됐다면 강제청산으로 기록한다.
       const reversalPayload: any = {
         id: tradeId,
         user_id: user.id,
@@ -136,12 +136,7 @@ export default defineEventHandler(async (event) => {
         pnl,
         created_at: new Date().toISOString()
       }
-      if (pnl <= -net0 * 0.999) reversalPayload.liquidation = 1
-      const rev = await supa.from('bitduck_trades').upsert(reversalPayload, { onConflict: 'id' })
-      if (rev.error && isMissingColumnError(rev.error, 'liquidation')) {
-        delete reversalPayload.liquidation
-        await supa.from('bitduck_trades').upsert(reversalPayload, { onConflict: 'id' })
-      }
+      await supa.from('bitduck_trades').upsert(reversalPayload, { onConflict: 'id' })
 
       // 잔고 반영(정산금 - 매도 수수료)
       usdt = usdt + settlementAfterFee
@@ -241,7 +236,7 @@ export default defineEventHandler(async (event) => {
     const pnlUnclamped = String(existing.side) === 'long' ? pnlRaw : -pnlRaw
     const gross0 = Number(existing.margin)
     const net0 = netMarginFromGross(gross0)
-    const pnl = clampPnlToLiquidation(pnlUnclamped, net0, liquidationTriggerRoe)
+    const pnl = Math.max(pnlUnclamped, -net0)
     const { settlementAfterFee } = calcSettlementAfterSellFee(gross0, pnl)
 
     db.prepare('UPDATE balances SET usdt = usdt + ? WHERE user_id = ?').run(settlementAfterFee, user.id)
@@ -257,7 +252,7 @@ export default defineEventHandler(async (event) => {
       exit,
       Number(existing.leverage),
       pnl,
-      pnl <= -net0 * 0.999 ? 1 : 0,
+      0,
       new Date().toISOString()
     )
   }

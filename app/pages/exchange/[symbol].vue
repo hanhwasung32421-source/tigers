@@ -5266,13 +5266,21 @@ function isFullMarginLoss(t: any) {
   return margin > 0 && Number(t?.pnl || 0) <= -margin * 0.999
 }
 
+// 강제청산 여부: 시스템이 자동으로 판 것만 강제청산이다(거래 기록의 강제청산 표시). 직접 판 시장가/지정가 청산은 수익/손실이다.
+// 기록에 강제청산 표시 칸 자체가 없는 예전 데이터(DB에 컬럼이 없던 경우)만 "증거금 전액 손실"로 추정한다.
+function isLiquidationTrade(tr: any) {
+  const flag = tr?.liquidation
+  if (flag === undefined || flag === null) return isFullMarginLoss(tr)
+  return Boolean(flag)
+}
+
 function tradeResultLabel(tr: any) {
-  if (Boolean(tr?.liquidation) || isFullMarginLoss(tr)) return t('강제청산', 'Liquidated')
+  if (isLiquidationTrade(tr)) return t('강제청산', 'Liquidated')
   return Number(tr?.pnl || 0) >= 0 ? t('수익', 'Profit') : t('손실', 'Loss')
 }
 
 function tradeResultBadgeClass(t: any) {
-  if (Boolean(t?.liquidation) || isFullMarginLoss(t)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
+  if (isLiquidationTrade(t)) return 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
   return Number(t?.pnl || 0) >= 0 ? 'bg-blue-500/15 text-blue-300 ring-blue-400/20' : 'bg-rose-500/15 text-rose-300 ring-rose-400/20'
 }
 
@@ -5308,7 +5316,7 @@ function calcTradeFeeText(t: any) {
 
 function openProfitCardFromTrade(t: any) {
   // 강제청산된 거래는 수익카드를 띄우지 않는다.
-  if (Boolean(t?.liquidation) || isFullMarginLoss(t)) return
+  if (isLiquidationTrade(t)) return
   const pnl = Number(t.pnl || 0)
   const entryPrice = Number(t.entry_price || 0)
   const exitPrice = Number(t.exit_price || 0)

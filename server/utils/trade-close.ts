@@ -84,7 +84,7 @@ export async function executeClose(userId: number, body: CloseBody) {
         : -net
       : body.cross
         ? Math.max(pnlUnclamped, -(net + usdt))
-        : clampPnlToLiquidation(pnlUnclamped, net)
+        : Math.max(pnlUnclamped, -net) // 직접 판 경우(시장가/지정가 청산)는 정확히 그만큼만 손익을 반영한다(증거금을 넘는 손실만 증거금 전액으로 제한)
     const settlementAfterFee = body.cross ? net + pnl - (gross > 0 ? gross * FEE_RATE : 0) : calcSettlementAfterFee(gross, pnl).settlementAfterFee
     const newUsdt = Math.max(0, usdt + settlementAfterFee)
 
@@ -162,7 +162,7 @@ export async function executeClose(userId: number, body: CloseBody) {
       : -net
     : body.cross
       ? Math.max(pnlUnclamped, -(net + usdtBefore))
-      : clampPnlToLiquidation(pnlUnclamped, net)
+      : Math.max(pnlUnclamped, -net)
   const settlementAfterFee = body.cross ? net + pnl - (gross > 0 ? gross * FEE_RATE : 0) : calcSettlementAfterFee(gross, pnl).settlementAfterFee
 
   // 잔고: 증거금 반환 + 손익 반영(0 미만으로는 내려가지 않음)
