@@ -2375,6 +2375,10 @@ async function refreshLiquidationSettings() {
       LIQUIDATION_TRIGGER_ROE = roe
       LIQUIDATION_TRIGGER_FRACTION = Math.abs(roe) / 100
     }
+    if (me.value) {
+      const kr = await $fetch<{ rate: number }>('/api/settings/krw-rate').catch(() => null)
+      if (Number(kr?.rate) > 0) limitKrwRate.value = Number(kr!.rate)
+    }
     if (res?.profitCardStyle && typeof res.profitCardStyle === 'object') {
       profitCardStyle.value = { ...DEFAULT_PROFIT_CARD_STYLE, ...res.profitCardStyle, offsets: { ...(res.profitCardStyle.offsets || {}) } }
     }
@@ -3666,7 +3670,8 @@ const balanceDisplay = computed(() => {
   return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 })
 
-const KRW_RATE = 1350
+// 원화 환산 환율: 관리자가 정한 환율(0이면 매일 고정되는 빗썸 환율). 서버에서 받기 전까지만 1350을 쓴다.
+const krwRateNow = computed(() => (limitKrwRate.value > 0 ? limitKrwRate.value : 1350))
 
 function setLeverage(v: number) {
   leverage.value = Math.max(1, Math.min(100, Math.round(Number(v) || 1)))
@@ -3685,15 +3690,15 @@ const totalAssetsDisplay = computed(() =>
   Number(totalAssetsUsdt.value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 )
 
-const totalAssetsWonText = computed(() => Math.round(totalAssetsUsdt.value * KRW_RATE).toLocaleString())
+const totalAssetsWonText = computed(() => Math.round(totalAssetsUsdt.value * krwRateNow.value).toLocaleString())
 
 const positionsMarginDisplay = computed(() =>
   Number(positionsMarginUsdt.value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 )
 
-const positionsMarginWonText = computed(() => Math.round(positionsMarginUsdt.value * KRW_RATE).toLocaleString())
+const positionsMarginWonText = computed(() => Math.round(positionsMarginUsdt.value * krwRateNow.value).toLocaleString())
 
-const availableWonText = computed(() => Math.round(Number(balance.value || 0) * KRW_RATE).toLocaleString())
+const availableWonText = computed(() => Math.round(Number(balance.value || 0) * krwRateNow.value).toLocaleString())
 
 function setPercent(v: number) {
   percent.value = Math.max(0, Math.min(100, Math.round(v)))
@@ -5262,7 +5267,7 @@ function openProfitCardFromTrade(t: any) {
     exitPrice,
     pnl,
     roe,
-    wonText: Math.round(pnl * 1350).toLocaleString()
+    wonText: Math.round(pnl * krwRateNow.value).toLocaleString()
   }
 }
 
@@ -7120,8 +7125,11 @@ function startAccountAutoRefresh() {
     // 포지션이 있거나(또는 pending close가 있으면) 1초 무응답이면 자동으로 다시 동기화
     if (!me.value) return
     const need = positions.value.length > 0 || pendingCloseJobs.value.length > 0
-    if (!need) return
     const silenceMs = Date.now() - Number(lastAccountTs || 0)
+    if (!need) {
+      if (silenceMs > 5000 && pendingOpenJobs.value.length === 0) loadAccount().catch(() => {})
+      return
+    }
     if (silenceMs > 1000) {
       loadAccount().catch(() => {})
     }
@@ -7306,7 +7314,7 @@ async function executeLimitClose(order: LimitCloseOrder) {
       exitPrice: fillPrice,
       pnl,
       roe: Math.max(LIQUIDATION_TRIGGER_ROE, roe),
-      wonText: Math.round(pnl * (limitKrwRate.value > 0 ? limitKrwRate.value : 1350)).toLocaleString()
+      wonText: Math.round(pnl * krwRateNow.value).toLocaleString()
     })
     await loadAccount().catch(() => {})
     if (fills.value.length || (bottomTab.value === 'fills' || bottomTab.value === 'orderHistory')) await loadFills(true).catch(() => {})
@@ -7845,7 +7853,7 @@ async function openPosition(ov?: { side: 'long' | 'short'; price: number; percen
       exitPrice: price,
       pnl: pnlClamped,
       roe: Math.max(LIQUIDATION_TRIGGER_ROE, roeCalc),
-      wonText: Math.round(pnlClamped * 1350).toLocaleString()
+      wonText: Math.round(pnlClamped * krwRateNow.value).toLocaleString()
     })
 
     // 기존 포지션 제거 + 잔고 반영(정산금 기준)
@@ -7998,7 +8006,7 @@ async function closePosition(
           exitPrice: exitClickPrice,
           pnl: pnlCalc,
           roe: Math.max(LIQUIDATION_TRIGGER_ROE, roeCalc),
-          wonText: Math.round(pnlCalc * 1350).toLocaleString()
+          wonText: Math.round(pnlCalc * krwRateNow.value).toLocaleString()
         })
       }
     }
