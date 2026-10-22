@@ -281,7 +281,7 @@
         <!-- Information 탭: 코인 기본 정보 -->
         <MarketInfoPanel v-if="chartTab === 'info'" :symbol="symbol" :item="headerItem" class="max-h-[640px] overflow-auto bg-[#131722]" />
         <div v-if="chartTab === 'ai'" class="flex min-h-[320px] items-center justify-center bg-[#131722] px-6 text-center text-[14px] text-[#868993]">
-          {{ t('AI 분석은 준비 중입니다.', 'AI Analysis is coming soon.') }}
+          {{ t('AI 분석은 2027년 2월 오픈 예정입니다.', 'AI Analysis is scheduled to open in February 2027.') }}
         </div>
         <div v-show="chartTab === 'chart'" class="flex bg-[#131722]" :style="{ height: chartContainerHeightPx + 'px' }">
           <div class="flex w-[52px] shrink-0 flex-col items-center gap-0.5 overflow-y-auto bg-[#131722] px-1.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
