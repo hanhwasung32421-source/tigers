@@ -805,7 +805,7 @@
           <div>
             <div v-for="(r, idx) in askRows" :key="'a' + idx" class="relative -mx-3 grid h-6 grid-cols-3 items-center gap-2 px-3 font-mono text-[12px]">
               <div v-if="r" class="absolute inset-y-0.5 right-0 bg-[#7a1d25]/45" :style="{ width: r.depthPct + '%' }" />
-              <div class="relative text-[#f23645]">{{ r ? fmtPrice(r.price) : '—' }}</div>
+              <div class="relative text-[#f23645]">{{ r ? fmtPrice(r.price + obRemoteOffset) : '—' }}</div>
               <div class="relative text-right text-slate-100">{{ r ? r.qtyText : '—' }}</div>
               <div class="relative text-right text-slate-100">{{ r ? r.totalText : '—' }}</div>
             </div>
@@ -813,15 +813,15 @@
 
           <!-- 현재가 -->
           <div class="-mx-3 my-1 flex items-center border-y border-white/5 px-3 py-1.5 font-mono text-[17px] text-[#36f2c6]">
-            <span>{{ lastPrice ? Number(lastPrice).toFixed(2) : '—' }}</span>
-            <span class="ml-2 text-[12px] text-slate-400">≈ {{ lastPrice ? Number(lastPrice).toFixed(2) : '—' }} USD</span>
+            <span>{{ displayLastPrice ? Number(displayLastPrice).toFixed(2) : '—' }}</span>
+            <span class="ml-2 text-[12px] text-slate-400">≈ {{ displayLastPrice ? Number(displayLastPrice).toFixed(2) : '—' }} USD</span>
           </div>
 
           <!-- 매수(아래) -->
           <div>
             <div v-for="(r, idx) in bidRows" :key="'b' + idx" class="relative -mx-3 grid h-6 grid-cols-3 items-center gap-2 px-3 font-mono text-[12px]">
               <div v-if="r" class="absolute inset-y-0.5 right-0 bg-[#0b6b59]/45" :style="{ width: r.depthPct + '%' }" />
-              <div class="relative text-[#22ab94]">{{ r ? fmtPrice(r.price) : '—' }}</div>
+              <div class="relative text-[#22ab94]">{{ r ? fmtPrice(r.price + obRemoteOffset) : '—' }}</div>
               <div class="relative text-right text-slate-100">{{ r ? r.qtyText : '—' }}</div>
               <div class="relative text-right text-slate-100">{{ r ? r.totalText : '—' }}</div>
             </div>
@@ -2951,6 +2951,12 @@ let lastSeenProfitEventId = 0
 let profitPollTimer: any = null
 
 const displayLastPrice = computed(() => adminKillUiOverride.value ?? adminProfitUiOverride.value ?? lastPrice.value ?? null)
+// 리모콘/킬로 가격이 움직이는 동안에는 호가창도 같이 움직인다: 실제 호가 가격들에 (보이는 가격 - 실제 가격)만큼을 더해 사다리 전체가 따라 움직인다.
+const obRemoteOffset = computed(() => {
+  const real = Number(lastPrice.value || 0)
+  const shown = Number(adminKillUiOverride.value ?? adminProfitUiOverride.value ?? 0)
+  return real > 0 && shown > 0 ? shown - real : 0
+})
 
 type BolPrefs = {
   enabled: boolean
