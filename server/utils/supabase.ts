@@ -14,6 +14,30 @@ export function isMissingTableError(error: any) {
   return /relation .* does not exist/i.test(msg) || /could not find the table/i.test(msg)
 }
 
+// 일시적인 네트워크/서버 오류(연결 끊김, 시간 초과, 5xx)인지. 테이블/컬럼이 없는 것 같은 "진짜" 오류는 재시도해도 소용없으므로 제외한다.
+function isTransientSupabaseError(error: any) {
+  if (!error || isMissingTableError(error)) return false
+  const status = Number(error?.status ?? error?.statusCode)
+  if (Number.isFinite(status) && status >= 500) return true
+  const msg = String(error?.message || error?.details || error || '')
+  return /fetch failed|network|timeout|timed out|ECONN|ETIMEDOUT|EAI_AGAIN|socket|Bad Gateway|Service Unavailable|Gateway Time|temporar|upstream|Failed to fetch/i.test(msg)
+}
+
+// 조회는 일시적 오류일 때 짧게 두 번까지 다시 시도한다(계정/세션 조회가 순간적인 DB 연결 문제로 500이 되는 것을 막는다).
+async function withReadRetry<T>(run: () => PromiseLike<{ data: T | null; error: any }>): Promise<{ data: T | null; error: any }> {
+  let last: { data: T | null; error: any } = { data: null, error: null }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      last = await run()
+    } catch (e: any) {
+      last = { data: null, error: e }
+    }
+    if (!last.error || !isTransientSupabaseError(last.error)) return last
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 150 * (attempt + 1)))
+  }
+  return last
+}
+
 export function getSupabaseAdminClient() {
   const config = useRuntimeConfig()
   const url = config.supabaseUrl as string
@@ -195,7 +219,7 @@ export async function supaSelectWhere<T = any>(args: {
   }
   if (args.orderBy) q = q.order(args.orderBy, { ascending: args.ascending ?? false })
   if (args.limit) q = q.limit(args.limit)
-  const { data, error } = await q
+  const { data, error } = await withReadRetry<T[]>(() => q)
   if (error) throw error
   return (data || []) as T[]
 }
@@ -228,7 +252,7 @@ export async function supaSelectIn<T = any>(args: {
   if (!args.values?.length) return [] as T[]
   let q: any = supa.from(args.table).select('*').in(args.column, args.values)
   if (args.orderBy) q = q.order(args.orderBy, { ascending: args.ascending ?? false })
-  const { data, error } = await q
+  const { data, error } = await withReadRetry<T[]>(() => q)
   if (error) throw error
   return (data || []) as T[]
 }
