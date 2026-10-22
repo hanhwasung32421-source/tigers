@@ -1,6 +1,7 @@
 import { clampToMarketPrice } from './okx'
 import { latestProfitEvent } from './profit-events'
 import { latestKillEvent } from './kill-events'
+import { PROFIT_RETURN_MS } from '../../shared/utils/profit-path'
 
 // 리모콘(수익/손실)·킬 버튼으로 가격이 움직이는 동안 화면에 보이는 가격은 실제 시세와 크게 다를 수 있다.
 // 이때 롱/숏을 잡거나 청산하는 사람은 "화면에 보이는 그 가격"에 체결되어야 하므로,
@@ -32,23 +33,29 @@ export async function resolveClientPrice(symbol: string, clientPrice: number | u
       const move = Math.max(1, pe.durationMs)
       const hold = Math.max(0, pe.holdMs)
       const revert = Math.max(1, pe.revertMs)
-      // 진행 중 중단된 이벤트(운영자 화면 새로고침 등)는 중단 시각에서 끝난다.
-      const end = start + (pe.cancelT != null ? Math.max(0, pe.cancelT) : move + hold + revert)
+      // "리모콘 정지"를 누른 이벤트는 정지 시각부터 1분 동안 실제 현재가로 돌아오는 경로를 따른다.
+      const stopT = pe.stopT != null ? Math.max(0, pe.stopT) : null
+      const end = start + (stopT != null ? stopT + PROFIT_RETURN_MS : move + hold + revert)
       if (Number.isFinite(start) && now >= start - CLOCK_SKEW_MS && now <= end + GRACE_AFTER_END_MS) {
         const delta = pe.shockedPrice - pe.basePrice
         const noise = Math.abs(delta) * NOISE_RATIO
         const t0 = now - start - CLOCK_SKEW_MS
         const t1 = now - start + CLOCK_SKEW_MS
         const amp = pe.holdAmp != null ? pe.holdAmp : Math.min(0.05, Math.abs(pe.shockedPrice) * 0.003)
-        const at = (t: number) => {
+        const atOriginal = (t: number) => {
           if (t <= 0) return pe.basePrice
           if (t < move) return pe.basePrice + delta * (t / move)
           if (t < move + hold) return pe.shockedPrice
           if (t < move + hold + revert) return pe.shockedPrice + (marketPrice - pe.shockedPrice) * ((t - move - hold) / revert)
           return marketPrice
         }
+        const at = (t: number) => {
+          if (stopT == null || t < stopT) return atOriginal(t)
+          const p0 = atOriginal(stopT)
+          return p0 + (marketPrice - p0) * Math.min(1, (t - stopT) / PROFIT_RETURN_MS)
+        }
         // t0~t1 사이에 지나가는 모든 구간의 경로 값을 모아 범위로 쓴다.
-        const points = [at(t0), at(t1), ...[move, move + hold].filter((x) => x > t0 && x < t1).map(at)]
+        const points = [at(t0), at(t1), ...[move, move + hold, ...(stopT != null ? [stopT] : [])].filter((x) => x > t0 && x < t1).map(at)]
         const [a, b] = span(Math.min(...points), Math.max(...points))
         const inHold = t1 > move && t0 < move + hold
         widen(a - noise - (inHold ? amp : 0), b + noise + (inHold ? amp : 0))

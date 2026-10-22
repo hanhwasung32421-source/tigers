@@ -26,7 +26,7 @@ export type ProfitEvent = {
   revertTickCount: number
   holdAmp: number | null
   // 진행 중 중단된 시각(이벤트 시작 기준 ms). 중단되지 않았으면 없음.
-  cancelT?: number | null
+  stopT?: number | null
   createdAt: string
 }
 
@@ -62,7 +62,7 @@ function rowToProfitEvent(row: any): ProfitEvent {
       revertMs: ext[1] > 0 ? ext[1] : ext[0],
       revertTickCount: ext[4],
       holdAmp: Number.isFinite(ampNum) && ampNum >= 0 ? ampNum : null,
-      cancelT: dirParts.length >= 8 && Number.isFinite(Number(dirParts[7])) && dirParts[7] !== '' ? Number(dirParts[7]) : null,
+      stopT: dirParts.length >= 8 && Number.isFinite(Number(dirParts[7])) && dirParts[7] !== '' ? Number(dirParts[7]) : null,
       createdAt: String(row.created_at)
     }
   }
@@ -169,7 +169,7 @@ export async function createProfitEvent(input: {
 }
 
 // 진행 중인 이벤트를 지금 시각에서 중단한다(운영자 화면 새로고침). direction 컬럼의 확장 형식 8번째 값에 중단 시각(ms)을 기록한다.
-export async function cancelProfitEvent(id: number): Promise<{ ok: boolean; cancelT: number | null }> {
+export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT: number | null }> {
   const apply = (dirRaw: string, createdAt: string) => {
     const parts = String(dirRaw ?? '').split('|')
     if (parts.length < 7) return null // 예전 형식 이벤트는 중단 정보를 담을 수 없다
@@ -181,31 +181,31 @@ export async function cancelProfitEvent(id: number): Promise<{ ok: boolean; canc
   if (supabaseAppDbEnabled()) {
     const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { id }, limit: 1 })
     const row = rows[0]
-    if (!row) return { ok: false, cancelT: null }
+    if (!row) return { ok: false, stopT: null }
     const a = apply(row.direction, row.created_at)
-    if (!a) return { ok: false, cancelT: null }
+    if (!a) return { ok: false, stopT: null }
     const holdMs = Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS
-    if (a.parts.length >= 8 && a.parts[7] !== '') return { ok: true, cancelT: Number(a.parts[7]) } // 이미 중단됨
-    if (a.offset >= a.total + holdMs) return { ok: false, cancelT: null } // 이미 끝난 이벤트
+    if (a.parts.length >= 8 && a.parts[7] !== '') return { ok: true, stopT: Number(a.parts[7]) } // 이미 중단됨
+    if (a.offset >= a.total + holdMs) return { ok: false, stopT: null } // 이미 끝난 이벤트
     const parts = a.parts.slice(0, 7)
     parts[7] = String(Math.round(a.offset))
     const supa = getSupabaseAdminClient()
     const { error } = await supa.from(T_PROFIT_EVENTS).update({ direction: parts.join('|') }).eq('id', id)
     if (error) throw error
-    return { ok: true, cancelT: Math.round(a.offset) }
+    return { ok: true, stopT: Math.round(a.offset) }
   }
   const db = getDb()
   const row = db.prepare('SELECT * FROM profit_events WHERE id = ?').get(id) as any
-  if (!row) return { ok: false, cancelT: null }
+  if (!row) return { ok: false, stopT: null }
   const a = apply(row.direction, row.created_at)
-  if (!a) return { ok: false, cancelT: null }
+  if (!a) return { ok: false, stopT: null }
   const holdMs = Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS
-  if (a.parts.length >= 8 && a.parts[7] !== '') return { ok: true, cancelT: Number(a.parts[7]) }
-  if (a.offset >= a.total + holdMs) return { ok: false, cancelT: null }
+  if (a.parts.length >= 8 && a.parts[7] !== '') return { ok: true, stopT: Number(a.parts[7]) }
+  if (a.offset >= a.total + holdMs) return { ok: false, stopT: null }
   const parts = a.parts.slice(0, 7)
   parts[7] = String(Math.round(a.offset))
   db.prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(parts.join('|'), id)
-  return { ok: true, cancelT: Math.round(a.offset) }
+  return { ok: true, stopT: Math.round(a.offset) }
 }
 
 export async function latestProfitEvent(symbol: string): Promise<ProfitEvent | null> {

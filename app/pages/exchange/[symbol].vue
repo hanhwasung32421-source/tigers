@@ -58,6 +58,15 @@
                 >
                   {{ t('리모콘', 'Remote') }}
                 </button>
+                <button
+                  type="button"
+                  class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
+                  :disabled="!adminProfitBusy || profitReturning || profitStopBusy"
+                  :title="t('진행 중인 리모콘을 멈추고 1분 동안 실제 현재가로 돌아옵니다', 'Stop the running remote and glide back to the real price over 1 minute')"
+                  @click="stopRemote()"
+                >
+                  {{ t('리모콘 정지', 'Remote Stop') }}
+                </button>
               </div>
               <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5" :class="wsStatus === 'open' ? 'bg-[#0c2c26] text-[#22ab94]' : 'bg-[#34181d] text-[#f23645]'">
                 <span class="h-1.5 w-1.5 rounded-full" :class="wsStatus === 'open' ? 'bg-[#22ab94]' : 'bg-[#f23645]'" />
@@ -1978,7 +1987,7 @@
 </template>
 
 <script setup lang="ts">
-import { buildProfitPhaseA, buildProfitPhaseB, mulberry32, profitSeed } from '~~/shared/utils/profit-path'
+import { buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, profitSeed, PROFIT_RETURN_MS } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
 import {
   createChart,
@@ -2903,10 +2912,11 @@ const adminProfitUiOverride = ref<number | null>(null)
 const adminProfitBusy = ref(false)
 let adminProfitFreezeUntil = 0
 let adminProfitTimer: any = null
-// 리모콘 중단: 지금 재생 중인 이벤트, 이 브라우저(운영자)가 실행한 이벤트, 재생을 즉시 멈추는 함수
+// 리모콘 정지: 지금 재생 중인 이벤트와, 그 재생을 "실제 현재가로 복귀"로 바꾸는 함수
 let runningProfitEventId = 0
-let ownProfitEventId = 0
 let profitStopRunning: (() => void) | null = null
+const profitReturning = ref(false)
+const profitStopBusy = ref(false)
 
 type ProfitEvent = {
   id: number
@@ -2923,7 +2933,7 @@ type ProfitEvent = {
   revertTickCount?: number
   holdAmp?: number | null
   // 진행 중 중단된 시각(이벤트 시작 기준 ms). 있으면 그 시점에서 멈추고 이후는 실제 시세.
-  cancelT?: number | null
+  stopT?: number | null
   createdAt: string
 }
 const profitModalOpen = ref(false)
@@ -4792,7 +4802,6 @@ async function confirmProfitModal() {
     profitModalOpen.value = false
     if (res?.event) {
       lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
-      ownProfitEventId = res.event.id
       await runProfitAnimation(res.event)
     }
   } catch (e: any) {
@@ -4802,27 +4811,19 @@ async function confirmProfitModal() {
 }
 
 // 새로고침/재접속 직후에는 예전 이벤트를 "방금 일어난 일"로 재생하지 않도록 기준점만 맞춰둔다.
-// 이 브라우저(운영자)가 실행한 리모콘이 진행 중인데 새로고침하거나 화면을 떠나면, 그 시점의 가격에서 이벤트를 멈춘다.
-function cancelOwnProfitOnLeave() {
-  if (!process.client || !ownProfitEventId || ownProfitEventId !== runningProfitEventId) return
-  const id = ownProfitEventId
-  ownProfitEventId = 0
-  try {
-    const blob = new Blob([JSON.stringify({ eventId: id })], { type: 'application/json' })
-    if (!navigator.sendBeacon('/api/admin/profit-cancel', blob)) {
-      fetch('/api/admin/profit-cancel', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ eventId: id }), keepalive: true }).catch(() => {})
-    }
-  } catch {
-    // 무시
-  }
-}
-
 async function initProfitEventBaseline() {
   if (!me.value) return
   try {
     const res = await $fetch<{ event: ProfitEvent | null }>('/api/profit/latest', { query: { symbol: symbol.value } })
     if (res?.event) {
       lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
+      // 리모콘이 아직 진행 중이면(새로고침해도 계속 진행되어야 하므로) 지나간 시간만큼 건너뛰고 지금 시점부터 이어서 재생한다.
+      const ev = res.event
+      const t0 = new Date(ev.createdAt).getTime()
+      const total = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : Math.max(100, ev.durationMs || 1000) + Math.max(100, ev.holdMs || 3000) + Math.max(100, ev.revertMs || ev.durationMs || 1000)
+      if (Number.isFinite(t0) && Date.now() - t0 < total && String(ev.symbol).toUpperCase() === String(symbol.value).toUpperCase()) {
+        runProfitAnimation(ev, true).catch(() => {})
+      }
     }
   } catch {
     // ignore
@@ -4845,7 +4846,7 @@ function buildLinearPath(start: number, end: number, steps: number): number[] {
 // 유지하는 동안에도 목표가 주변에서 ±1~2% 흔들리며, 복귀는 A가 아니라 그 시점의 OKX 실시간가로 향한다.
 // 관리자가 지정한 시간 동안 목표가로 이동 → 목표가 유지 → 그 시점의 실시간가로 복귀.
 // 이동 경로는 직선이 아니라 위아래로 적당히 오르내리며 목표가에 도달한다.
-async function runProfitAnimation(ev: ProfitEvent) {
+async function runProfitAnimation(ev: ProfitEvent, resume = false) {
   if (!process.client) return
 
   if (String(ev.symbol).toUpperCase() !== String(symbol.value).toUpperCase()) {
@@ -4857,11 +4858,16 @@ async function runProfitAnimation(ev: ProfitEvent) {
   const durationMs = Math.max(100, ev.durationMs || 1000)
   const holdMs = Math.max(100, ev.holdMs || 3000)
   const revertMs = Math.max(100, ev.revertMs || durationMs)
+  const t0Ms = new Date(ev.createdAt).getTime()
+  // 새로고침 후 이어서 재생할 때는 이벤트 시작부터 지금까지 지나간 시간(ms)
+  const elapsedMs = resume && Number.isFinite(t0Ms) ? Math.max(0, Date.now() - t0Ms) : 0
+  const totalMs = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : durationMs + holdMs + revertMs
 
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitBusy.value = true
+  profitReturning.value = ev.stopT != null
   // 원위치로 되돌아갈 때도 비슷한 속도로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
-  adminProfitFreezeUntil = Date.now() + durationMs + revertMs + holdMs + 300
+  adminProfitFreezeUntil = Date.now() + Math.max(300, totalMs - elapsedMs) + 300
 
   const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
   let time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
@@ -4898,14 +4904,25 @@ async function runProfitAnimation(ev: ProfitEvent) {
     prevApplied = price
   }
 
-  // 타임라인의 점들을 시간 간격대로 하나씩 적용한다(첫 점은 바로).
-  const playPoints = (points: ProfitPoint[], onDone: () => void) => {
+  // 타임라인의 점들을 시간 간격대로 하나씩 적용한다(첫 점은 바로). fromT가 있으면(이어서 재생) 이미 지난 점은 건너뛰고 지금 시점의 가격부터 시작한다.
+  const playPoints = (points: ProfitPoint[], onDone: () => void, fromT: number | null = null) => {
+    if (!points.length) {
+      onDone()
+      return
+    }
     let i = 0
+    if (fromT != null) while (i + 1 < points.length && points[i + 1].t <= fromT) i++
+    let first = true
     const step = () => {
       applyPrice(points[i].price)
       i += 1
-      if (i < points.length) adminProfitTimer = setTimeout(step, Math.max(0, points[i].t - points[i - 1].t))
-      else onDone()
+      if (i < points.length) {
+        const prevT = first && fromT != null ? Math.max(fromT, points[i - 1].t) : points[i - 1].t
+        first = false
+        adminProfitTimer = setTimeout(step, Math.max(0, points[i].t - prevT))
+      } else {
+        onDone()
+      }
     }
     step()
   }
@@ -4913,6 +4930,7 @@ async function runProfitAnimation(ev: ProfitEvent) {
   const finish = () => {
     runningProfitEventId = 0
     profitStopRunning = null
+    profitReturning.value = false
     adminProfitUiOverride.value = null
     adminProfitFreezeUntil = 0
     adminProfitBusy.value = false
@@ -4920,12 +4938,25 @@ async function runProfitAnimation(ev: ProfitEvent) {
     loadAccount().catch(() => {})
   }
 
-  // 운영자 화면이 새로고침되어 이벤트가 중단되면(서버에 중단 시각이 기록됨) 다른 화면들도 지금 가격에서 딱 멈추고 실제 시세로 돌아간다.
+  // 리모콘 정지: 지금 보이는 가격에서 실제 현재가로 1분 동안 50틱에 걸쳐 돌아온다(그 동안 시간이 흘러 봉이 바뀌면 새 봉이 생긴다).
   runningProfitEventId = ev.id
   profitStopRunning = () => {
+    if (profitReturning.value) return
     if (adminProfitTimer) clearTimeout(adminProfitTimer)
-    finish()
+    profitReturning.value = true
+    adminProfitFreezeUntil = Date.now() + PROFIT_RETURN_MS + 300
+    const real = Number(lastPrice.value || prevApplied)
+    playPoints(buildProfitReturnPath(ev, 0, prevApplied, real), finish)
   }
+
+  if (resume) {
+    // 새로고침 후: 같은 경로(이벤트 번호로 고정)를 다시 만들어 지금 시점부터 이어서 재생한다.
+    const realNow = Number(lastPrice.value || ev.basePrice)
+    const tl = buildProfitTimeline(ev, realNow)
+    playPoints(tl.points, finish, elapsedMs)
+    return
+  }
+
   const rng = mulberry32(profitSeed(ev))
   const phaseA = buildProfitPhaseA(ev, rng)
   playPoints(phaseA.points, () => {
@@ -4934,6 +4965,20 @@ async function runProfitAnimation(ev: ProfitEvent) {
     const phaseB = buildProfitPhaseB(ev, rng, phaseA.endT, phaseA.lastHoldPrice, realPrice)
     playPoints(phaseB, finish)
   })
+}
+
+// "리모콘 정지" 버튼: 진행 중인 리모콘을 멈추고 실제 현재가로 돌아오게 한다.
+async function stopRemote() {
+  if (!runningProfitEventId || profitReturning.value || profitStopBusy.value) return
+  profitStopBusy.value = true
+  try {
+    const res = await $fetch<{ ok: boolean; stopT: number | null }>('/api/admin/profit-stop', { method: 'POST', body: { eventId: runningProfitEventId } })
+    if (res?.ok) profitStopRunning?.()
+  } catch {
+    // 실패하면 아무 일도 일어나지 않고 리모콘은 계속 진행된다
+  } finally {
+    profitStopBusy.value = false
+  }
 }
 
 // 새로고침 후에도 리모콘으로 만들어진 봉(여러 봉에 걸친 것 포함)이 그대로 남도록, 저장된 이벤트로 경로를 다시 만들어 봉에 입힌다.
@@ -4951,17 +4996,17 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
     const durationMs = Math.max(100, ev.durationMs || 1000)
     const holdMs = Math.max(100, ev.holdMs || 3000)
     const revertMs = Math.max(100, ev.revertMs || durationMs)
-    const endMs = t0 + durationMs + holdMs + revertMs + 2000
+    const endMs = t0 + (ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : durationMs + holdMs + revertMs) + 2000
     if (Math.floor(endMs / 1000) < firstT) continue // 불러온 봉보다 더 과거 이벤트
     const bucketOf = (ms: number) => barBucketStart(Math.floor(ms / 1000), intervalSeconds)
 
-    const rng = mulberry32(profitSeed(ev))
-    const phaseA = buildProfitPhaseA(ev, rng)
-    // 복귀 목표(=복귀 시작 시점의 실제 시세)는 그때 봉의 실제 종가로 대신한다.
-    const revertBar = byTime.get(bucketOf(t0 + phaseA.endT))
-    const realTarget = revertBar ? Number(revertBar.__rc ?? revertBar.close) : ev.basePrice
-    const phaseB = buildProfitPhaseB(ev, rng, phaseA.endT, phaseA.lastHoldPrice, Number.isFinite(realTarget) && realTarget > 0 ? realTarget : ev.basePrice)
-    const points = phaseA.points.concat(phaseB).filter((p) => t0 + p.t <= nowMs && (ev.cancelT == null || p.t <= ev.cancelT))
+    // 복귀 목표(=복귀가 끝나는 가격, 정지한 이벤트는 정지 후 1분 뒤)는 그 시각 봉의 실제 종가로 대신한다.
+    const phaseAEnd = buildProfitPhaseA(ev, mulberry32(profitSeed(ev))).endT
+    const targetT = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : phaseAEnd
+    const targetBar = byTime.get(bucketOf(t0 + targetT))
+    const realTargetRaw = targetBar ? Number(targetBar.__rc ?? targetBar.close) : ev.basePrice
+    const tl = buildProfitTimeline(ev, Number.isFinite(realTargetRaw) && realTargetRaw > 0 ? realTargetRaw : ev.basePrice)
+    const points = tl.points.filter((p) => t0 + p.t <= nowMs)
     if (!points.length) continue
 
     // 봉별로 경로 점을 모은다.
@@ -4980,7 +5025,7 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
     const endKey = bucketOf(t0 + points[points.length - 1].t)
     const keys = Array.from(byTime.keys()).filter((k) => k >= startKey && k <= endKey).sort((x, y) => x - y)
     if (!keys.length) continue
-    const finished = ev.cancelT != null || t0 + phaseB[phaseB.length - 1].t <= nowMs
+    const finished = t0 + tl.endT <= nowMs
 
     let prevClose: number | null = null
     for (const k of keys) {
@@ -5023,7 +5068,7 @@ async function pollProfitEvents() {
     if (ev && ev.id > lastSeenProfitEventId) {
       lastSeenProfitEventId = ev.id
       await runProfitAnimation(ev)
-    } else if (ev && ev.id === runningProfitEventId && ev.cancelT != null && profitStopRunning) {
+    } else if (ev && ev.id === runningProfitEventId && ev.stopT != null && profitStopRunning && !profitReturning.value) {
       profitStopRunning()
     }
   } catch {
@@ -8155,7 +8200,6 @@ onMounted(async () => {
   overviewTimer = setInterval(() => refreshOverview(true).catch(() => {}), 30000)
   document.addEventListener('click', onDropdownMenuDocClick, { capture: true })
   window.addEventListener('resize', onWindowResizeForChartHeight)
-  window.addEventListener('pagehide', cancelOwnProfitOnLeave)
   chartClockTimer = setInterval(() => {
     chartNow.value = Date.now()
   }, 1000)
@@ -8229,8 +8273,6 @@ onBeforeUnmount(() => {
   if (lastTagTimer) clearInterval(lastTagTimer)
   stopTradesPolling()
   window.removeEventListener('resize', onWindowResizeForChartHeight)
-  window.removeEventListener('pagehide', cancelOwnProfitOnLeave)
-  cancelOwnProfitOnLeave()
   stopAlarmLoop()
   chartResizeObserver?.disconnect()
   chartResizeObserver = null

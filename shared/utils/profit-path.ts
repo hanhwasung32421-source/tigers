@@ -11,8 +11,8 @@ export type ProfitPathEvent = {
   holdAmp: number | null
   revertMs: number
   revertTickCount: number
-  // 진행 중에 중단된 이벤트(운영자 화면 새로고침 등)의 중단 시각(이벤트 시작 기준 ms). 이 시각 이후의 경로는 없다.
-  cancelT?: number | null
+  // 운영자가 "리모콘 정지"를 누른 시각(이벤트 시작 기준 ms). 이 시각부터는 원래 경로 대신, 그 가격에서 실제 현재가로 돌아오는 경로를 따른다.
+  stopT?: number | null
 }
 
 // 리모콘 경로의 난수. 평소엔 Math.random이지만, 이벤트를 재생/복원할 때는 이벤트 번호로 고정한 난수열로 바꿔 끼운다.
@@ -185,6 +185,30 @@ export function buildProfitPhaseB(ev: ProfitPathEvent, rng: () => number, startT
 
 export type ProfitTimeline = { points: ProfitPoint[]; endT: number }
 
+// 리모콘 정지 후 복귀: 지금 가격에서 실제 현재가로 1분 동안 50틱에 걸쳐 돌아온다.
+export const PROFIT_RETURN_MS = 60000
+export const PROFIT_RETURN_TICKS = 50
+
+// startT(이벤트 시작 기준 ms)부터 startPrice에서 realTarget까지 돌아오는 경로. 난수는 이벤트 번호로 고정(원래 경로와 다른 난수열).
+export function buildProfitReturnPath(ev: ProfitPathEvent, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
+  const prevRng = rngFn
+  rngFn = mulberry32((profitSeed(ev) ^ 0x9e3779b9) >>> 0)
+  try {
+    const path = buildRandomPathToTarget(startPrice, realTarget, PROFIT_RETURN_TICKS)
+    const gaps = buildRandomGaps(PROFIT_RETURN_TICKS, PROFIT_RETURN_MS)
+    const points: ProfitPoint[] = []
+    let t = startT
+    points.push({ t, price: path[0] })
+    for (let i = 1; i < path.length; i++) {
+      t += gaps[i - 1] ?? 0
+      points.push({ t, price: path[i] })
+    }
+    return points
+  } finally {
+    rngFn = prevRng
+  }
+}
+
 // 이벤트 전체 타임라인(이동 + 유지 + 복귀). 복귀 목표가는 서버가 그 시각의 실제 시세를 알 수 없어서 realTarget(현재 시세)로 대신한다.
 export function buildProfitTimeline(ev: ProfitPathEvent, realTarget: number): ProfitTimeline {
   const rng = mulberry32(profitSeed(ev))
@@ -192,10 +216,14 @@ export function buildProfitTimeline(ev: ProfitPathEvent, realTarget: number): Pr
   const b = buildProfitPhaseB(ev, rng, a.endT, a.lastHoldPrice, realTarget)
   let points = a.points.concat(b)
   let endT = b.length ? b[b.length - 1].t : a.endT
-  // 중단된 이벤트: 중단 시각까지의 경로만 남긴다(그 가격에서 딱 멈추고, 이후는 실제 시세).
-  if (ev.cancelT != null && Number.isFinite(ev.cancelT) && ev.cancelT < endT) {
-    points = points.filter((p) => p.t <= ev.cancelT!)
-    endT = Math.max(0, ev.cancelT)
+  // 정지된 이벤트: 정지 시각까지는 원래 경로, 그 뒤로는 그 가격에서 realTarget(실제 현재가)으로 1분 동안 돌아오는 경로.
+  if (ev.stopT != null && Number.isFinite(ev.stopT) && ev.stopT < endT) {
+    const kept = points.filter((p) => p.t <= ev.stopT!)
+    const stopT = Math.max(0, ev.stopT)
+    const p0 = kept.length ? kept[kept.length - 1].price : ev.basePrice
+    const ret = buildProfitReturnPath(ev, stopT, p0, realTarget)
+    points = kept.concat(ret)
+    endT = ret.length ? ret[ret.length - 1].t : stopT
   }
   return { points, endT }
 }
