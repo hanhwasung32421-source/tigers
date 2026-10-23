@@ -74,7 +74,16 @@ export default defineNuxtConfig({
         headers: {
           'cache-control': 'public, max-age=31536000, immutable'
         }
-      }
+      },
+      // 첫 화면 배경 영상(합쳐서 약 7MB). 위의 '/**' 규칙 때문에 no-store로 나가면 방문할 때마다(영상이 반복 재생될 때도) 통째로 다시 받아서
+      // Vercel 데이터 전송량이 크게 늘어난다. 영상 주소에 ?v=1이 붙어 있으므로 영상을 바꿀 때는 HeroVideo.vue의 v 값만 올리면 새 영상을 받는다.
+      '/hero-bg.mp4': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+      '/hero-bg-3.mp4': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+      // 로고/아이콘/이미지는 하루 동안 브라우저가 재사용
+      '/brand-logo.png': { headers: { 'cache-control': 'public, max-age=86400' } },
+      '/favicon.png': { headers: { 'cache-control': 'public, max-age=86400' } },
+      '/favicon.ico': { headers: { 'cache-control': 'public, max-age=86400' } },
+      '/marketcap-ranking-v2.png': { headers: { 'cache-control': 'public, max-age=86400' } }
     }
   },
   runtimeConfig: {

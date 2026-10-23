@@ -22,7 +22,8 @@
 </template>
 
 <script setup lang="ts">
-const SOURCES = ['/hero-bg.mp4', '/hero-bg-3.mp4']
+// 영상을 바꾸면 v 값을 올린다(영상 파일은 브라우저에 오래 저장되므로 주소가 바뀌어야 새 영상을 받는다).
+const SOURCES = ['/hero-bg.mp4?v=1', '/hero-bg-3.mp4?v=1']
 const FADE_SEC = 1.2 // 끝나기 이 시간 전부터 다음 영상으로 크로스페이드
 
 const videos: Array<HTMLVideoElement | null> = [null, null]
