@@ -1231,7 +1231,7 @@
                     </button>
                     <button
                       class="rounded-md bg-[#20262f] px-2 py-1 text-[14px] text-white ring-1 ring-white/10 hover:bg-[#2a313b] disabled:cursor-not-allowed disabled:opacity-60"
-                      :disabled="isTradeSyncing || closeClickCooldown.has(p.id)"
+                      :disabled="isTradeSyncing || closeClickCooldown.has(p.id) || Number(p.id) <= 0"
                       @click="onClosePositionClick(p.id, p)"
                     >
                       {{ t('시장가청산', 'Market Close') }}
@@ -2543,11 +2543,10 @@ let lastAccountTs = 0
 let accountWatchTimer: any = null
 const accountSyncing = ref(false)
 
-const isTradeSyncing = computed(() =>
-  loading.value ||
-  pendingOpenJobs.value.length > 0 ||
-  pendingCloseJobs.value.length > 0
-)
+// 주문/청산 버튼 잠금: 요청이 진행 중이거나 청산 처리(pending close)가 남아 있는 동안만 잠근다.
+// 주문 직후 "서버 값과 화면 예측이 정확히 같아질 때까지"는 더 이상 잠그지 않는다(예전에는 소수점 오차 등으로 일치하지 않으면 최대 8초간 버튼이 잠겼다).
+// 서버에서 실제 포지션 id를 받기 전(id <= 0)의 예측 포지션만 청산 버튼이 잠긴다(버튼의 disabled 조건 참고).
+const isTradeSyncing = computed(() => loading.value || pendingCloseJobs.value.length > 0)
 
 // 거래 설정(비중/레버리지) 서버 저장/복원
 const prefsHydrated = ref(false)
@@ -3583,17 +3582,20 @@ function removePendingOpenJob(key: string) {
   pendingOpenJobs.value = pendingOpenJobs.value.filter((j) => String(j.key) !== String(key))
 }
 
+// 서버 값이 화면 예측과 "같다"고 볼 기준. DB 저장 시 소수점 반올림 차이가 있어도 같은 값으로 보도록 수량/진입가는 상대 오차(0.01%)로 비교한다.
 function isServerCaughtUp(serverPos: any, optimisticPos: any) {
-  const qtyDiff = Math.abs(Number(serverPos?.qty || 0) - Number(optimisticPos?.qty || 0))
-  const entryDiff = Math.abs(Number(serverPos?.entry_price || 0) - Number(optimisticPos?.entry_price || 0))
-  const marginDiff = Math.abs(Number(serverPos?.margin || 0) - Number(optimisticPos?.margin || 0))
-  return qtyDiff <= 0.000001 && entryDiff <= 0.000001 && marginDiff <= 0.01
+  const near = (a: number, b: number) => Math.abs(a - b) <= Math.max(0.000001, Math.abs(b) * 0.0001)
+  return (
+    near(Number(serverPos?.qty || 0), Number(optimisticPos?.qty || 0)) &&
+    near(Number(serverPos?.entry_price || 0), Number(optimisticPos?.entry_price || 0)) &&
+    Math.abs(Number(serverPos?.margin || 0) - Number(optimisticPos?.margin || 0)) <= 0.01
+  )
 }
 
 // 낙관적(optimistic) 예측이 서버 실제값과 끝내 일치하지 않아도(반올림 오차, 그 사이의 다른 거래 등)
 // 매수/매도/청산 버튼이 영원히 잠기는 일이 없도록, 이 시간이 지난 pending 작업은 서버 값을 그대로
 // 신뢰하고 정리한다(빠르게 여러 번 거래를 반복할 때 드물게 발생하던 "버튼 영구 비활성화" 버그의 안전장치).
-const PENDING_OPEN_STALE_MS = 8000
+const PENDING_OPEN_STALE_MS = 3000
 
 function reconcilePendingOpenPositions(serverPositions: any[]) {
   let next = Array.isArray(serverPositions) ? serverPositions.map((p: any) => ({ ...p })) : []
@@ -7936,7 +7938,7 @@ async function checkLimitOpenOrders() {
 }
 
 async function onClosePositionClick(positionId: number, pos: any) {
-  if (closeClickCooldown.has(positionId) || isTradeSyncing.value) return
+  if (closeClickCooldown.has(positionId) || isTradeSyncing.value || Number(positionId) <= 0) return
   closeClickCooldown.add(positionId)
   setTimeout(() => {
     closeClickCooldown.delete(positionId)
