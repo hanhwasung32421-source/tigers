@@ -389,6 +389,36 @@ async function notifyTelegramOfWalletRequest(memberId: number, kind: 'deposit' |
   await sendTelegramText(text)
 }
 
+// 회원이 고객센터로 문의(쪽지)를 보내면 텔레그램 방으로 회원 정보와 문의 내용을 한글로 알린다(입금/출금 요청 알림과 같은 형식).
+// 알림이 실패해도 문의 접수에는 영향이 없다.
+export async function notifyTelegramOfSupportInquiry(memberId: number, subject: string, body: string) {
+  try {
+    const u = await getMemberProfileForNotice(memberId)
+    const dash = (v: any) => (String(v || '').trim() ? String(v).trim() : '-')
+    const nameWithId = u ? (u.name ? `${u.name}(${u.username})` : dash(u.username)) : '-'
+    const bank = u ? `${dash(u.bank_name)}(${dash(u.bank_account)})` : '-'
+    // 텔레그램 메시지는 4096자까지라서 문의 내용이 길면 잘라서 보낸다.
+    const content = String(body || '').trim()
+    const shown = content.length > 1500 ? `${content.slice(0, 1500)}…(이하 생략)` : content
+    const text = [
+      '고객센터 문의가 접수되었습니다.',
+      `(제목: ${dash(subject)})`,
+      '',
+      `이름 : ${nameWithId}`,
+      `생년월일 : ${dash(u?.birth_date)}`,
+      `은행 : ${bank}`,
+      `예금주 : ${dash(u?.account_holder)}`,
+      `추천코드 : ${dash(u?.referral_code)}`,
+      '',
+      '문의 내용 :',
+      shown
+    ].join('\n')
+    await sendTelegramText(text)
+  } catch (e: any) {
+    console.error('[support-notice] telegram notify failed:', e?.message || e)
+  }
+}
+
 // 새 회원이 가입하면 텔레그램 방으로 가입 정보를 한글로 알린다(입금/출금 요청 알림과 같은 형식). 비밀번호는 보내지 않는다.
 // 알림이 실패해도 가입 처리에는 영향이 없다.
 export async function notifyTelegramOfSignup(info: {

@@ -2,7 +2,7 @@ import { readBody, createError } from 'h3'
 import { z } from 'zod'
 import { requireUser } from '../../utils/auth'
 import { canEditMenu } from '../../utils/menu-permissions'
-import { ensureAdminThreadAccess, getOperatorAdminUser, insertMessages, listMessageRecipientsForAdmin, threadKeyForUser } from '../../utils/messages'
+import { ensureAdminThreadAccess, getOperatorAdminUser, insertMessages, listMessageRecipientsForAdmin, notifyTelegramOfSupportInquiry, threadKeyForUser } from '../../utils/messages'
 
 const BodySchema = z.object({
   userIds: z.array(z.number().int().positive()).optional(),
@@ -58,5 +58,7 @@ export default defineEventHandler(async (event) => {
       read_at: null
     }
   ])
+  // 고객센터 문의가 들어왔다는 것을 텔레그램으로도 알린다(입출금 요청 알림과 같은 방). 실패해도 문의 접수에는 영향 없음.
+  await notifyTelegramOfSupportInquiry(Number(user.id), String(body.subject || ''), String(body.body || ''))
   return { ok: true, count: 1 }
 })
