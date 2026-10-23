@@ -2404,11 +2404,22 @@ async function refreshLiquidationSettings() {
   }
 }
 
+// 로그인한 회원은 강제청산 비율/수익카드 버전을 liveTick(/api/live/events)에서 같이 받으므로, 여기서는 환율만 1분에 한 번 확인한다.
+// 비로그인(게스트)은 예전처럼 5초마다 설정을 확인한다.
+let krwPollTick = 0
+async function refreshKrwRate() {
+  const kr = await $fetch<{ rate: number }>('/api/settings/krw-rate').catch(() => null)
+  if (Number(kr?.rate) > 0) limitKrwRate.value = Number(kr!.rate)
+}
 function startLiquidationSettingsPolling() {
   if (!process.client) return
   if (liquidationSettingsPollTimer) clearInterval(liquidationSettingsPollTimer)
   liquidationSettingsPollTimer = setInterval(() => {
-    refreshLiquidationSettings()
+    if (!me.value) {
+      refreshLiquidationSettings()
+      return
+    }
+    if (++krwPollTick % 12 === 0) refreshKrwRate().catch(() => {})
   }, 5000)
 }
 // 포지션 표에서 직접 수정 가능 여부: 총관리자는 항상 가능, 부관리자는 "포지션 목록" 수정 권한이 있을 때만
@@ -3467,32 +3478,64 @@ function markOf(sym: string) {
   return Number(markPrices.value[s] || 0)
 }
 
-async function refreshMarks() {
-  if (!process.client) return
-  if (markPolling) return
-  const syms = Array.from(new Set(visiblePositions.value.map((p: any) => String(p.symbol || '').toUpperCase()).filter(Boolean)))
-  if (!syms.length) return
-  markPolling = true
+// 예전에는 보유 종목 현재가(1초), 킬 최신 이벤트(1.5초), 리모콘 최신 이벤트(1.5초), 강제청산 비율/수익카드 버전(5초)을 각각 따로 요청했다.
+// 지금은 한 번의 요청(/api/live/events)으로 같이 받는다. 포지션이 있으면 1초, 없으면 1.5초 간격(예전 각 항목의 간격과 같거나 더 빠름).
+// 킬/리모콘 이벤트는 기준점(initKillEventBaseline 등)을 맞춘 뒤(startKillPolling)부터 처리한다.
+let liveBusy = false
+let liveEventsEnabled = false
+let liveStyleRefreshAt = 0
+function handleLiveSettings(res: any) {
+  const roe = Number(res?.liquidationRoe)
+  if (Number.isFinite(roe) && roe < 0) {
+    LIQUIDATION_TRIGGER_ROE = roe
+    LIQUIDATION_TRIGGER_FRACTION = Math.abs(roe) / 100
+  }
+  // 수익카드 스타일(큰 데이터)은 버전이 바뀌었을 때만 다시 받는다(실패해도 5초에 한 번만 재시도).
+  if (res?.styleVersion && res.styleVersion !== profitStyleVersion && Date.now() - liveStyleRefreshAt > 5000) {
+    liveStyleRefreshAt = Date.now()
+    refreshLiquidationSettings().catch(() => {})
+  }
+}
+async function liveTick() {
+  if (!process.client || !me.value || liveBusy) return
+  liveBusy = true
+  let res: any = null
   try {
-    const res = await $fetch<any>('/api/okx/marks', { method: 'POST', body: { symbols: syms } })
-    markPrices.value = { ...(markPrices.value || {}), ...(res?.prices || {}) }
-    updateEntryBadges()
-    await checkAutoLiquidations().catch(() => {})
-    await checkLimitCloseOrders().catch(() => {})
-    await checkLimitOpenOrders().catch(() => {})
-    checkPositionAlarms()
+    const syms = Array.from(new Set(visiblePositions.value.map((p: any) => String(p.symbol || '').toUpperCase()).filter(Boolean)))
+    res = await $fetch<any>('/api/live/events', { query: { symbol: symbol.value, ...(syms.length ? { marks: syms.join(',') } : {}) } }).catch(() => null)
   } finally {
-    markPolling = false
+    liveBusy = false
+  }
+  if (!res) return
+  handleLiveSettings(res)
+  if (liveEventsEnabled) {
+    // 킬과 리모콘은 서로 기다리지 않고 각자 처리한다(예전에도 따로 폴링되어 서로 막지 않았다).
+    handleKillEvent(res.kill).catch(() => {})
+    handleProfitEvent(res.profit).catch(() => {})
+  }
+  if (res.prices && !markPolling) {
+    markPolling = true
+    try {
+      markPrices.value = { ...(markPrices.value || {}), ...(res.prices || {}) }
+      updateEntryBadges()
+      await checkAutoLiquidations().catch(() => {})
+      await checkLimitCloseOrders().catch(() => {})
+      await checkLimitOpenOrders().catch(() => {})
+      checkPositionAlarms()
+    } finally {
+      markPolling = false
+    }
   }
 }
 
 function startMarksPolling() {
   if (!process.client) return
-  if (markPollTimer) clearInterval(markPollTimer)
-  markPollTimer = setInterval(() => {
-    refreshMarks().catch(() => {})
-  }, 1000)
-  refreshMarks().catch(() => {})
+  if (markPollTimer) clearTimeout(markPollTimer)
+  const loop = () => {
+    liveTick().catch(() => {})
+    markPollTimer = setTimeout(loop, visiblePositions.value.length ? 1000 : 1500)
+  }
+  loop()
 }
 
 function netMarginFromGross(grossMargin: number) {
@@ -4645,26 +4688,18 @@ async function runKillAnimation(ev: KillEvent) {
   tick()
 }
 
-async function pollKillEvents() {
+async function handleKillEvent(ev: KillEvent | null | undefined) {
   if (!me.value) return
-  try {
-    const res = await $fetch<{ event: KillEvent | null }>('/api/kill/latest', { query: { symbol: symbol.value } })
-    const ev = res?.event
-    if (ev && ev.id > lastSeenKillEventId) {
-      lastSeenKillEventId = ev.id
-      await runKillAnimation(ev)
-    }
-  } catch {
-    // ignore
+  if (ev && ev.id > lastSeenKillEventId) {
+    lastSeenKillEventId = ev.id
+    await runKillAnimation(ev)
   }
 }
 
+// 킬/리모콘 최신 이벤트는 위의 liveTick(/api/live/events)이 받아서 처리한다. 기준점을 맞춘 뒤 이 함수로 처리를 시작한다.
 function startKillPolling() {
   if (!process.client) return
-  if (killPollTimer) clearInterval(killPollTimer)
-  killPollTimer = setInterval(() => {
-    pollKillEvents()
-  }, 1500)
+  liveEventsEnabled = true
 }
 
 // 관리자가 킬 이력을 삭제했을 때(잘못 만든 킬봉 등) 이미 열려있는 화면에도 반영되도록,
@@ -5072,28 +5107,20 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
   }
 }
 
-async function pollProfitEvents() {
+async function handleProfitEvent(ev: ProfitEvent | null | undefined) {
   if (!me.value) return
-  try {
-    const res = await $fetch<{ event: ProfitEvent | null }>('/api/profit/latest', { query: { symbol: symbol.value } })
-    const ev = res?.event
-    if (ev && ev.id > lastSeenProfitEventId) {
-      lastSeenProfitEventId = ev.id
-      await runProfitAnimation(ev)
-    } else if (ev && ev.id === runningProfitEventId && ev.stopT != null && profitStopRunning && !profitReturning.value) {
-      profitStopRunning()
-    }
-  } catch {
-    // ignore
+  if (ev && ev.id > lastSeenProfitEventId) {
+    lastSeenProfitEventId = ev.id
+    await runProfitAnimation(ev)
+  } else if (ev && ev.id === runningProfitEventId && ev.stopT != null && profitStopRunning && !profitReturning.value) {
+    profitStopRunning()
   }
 }
 
+// 리모콘 최신 이벤트도 liveTick이 받아서 handleProfitEvent로 처리한다(별도 폴링 없음).
 function startProfitPolling() {
   if (!process.client) return
-  if (profitPollTimer) clearInterval(profitPollTimer)
-  profitPollTimer = setInterval(() => {
-    pollProfitEvents()
-  }, 1500)
+  liveEventsEnabled = true
 }
 
 type DepthRow = { price: number; qty: number; qtyText: string; total: number; totalText: string; depthPct: number }
@@ -8321,7 +8348,7 @@ onBeforeUnmount(() => {
   closeBinanceTradeWs()
   for (const timer of pendingCloseTimers.values()) clearTimeout(timer)
   pendingCloseTimers.clear()
-  if (markPollTimer) clearInterval(markPollTimer)
+  if (markPollTimer) clearTimeout(markPollTimer)
   markPollTimer = null
   if (liquidationSettingsPollTimer) clearInterval(liquidationSettingsPollTimer)
   liquidationSettingsPollTimer = null
