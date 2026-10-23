@@ -51,6 +51,46 @@ async function loadBalances(userIds: number[]): Promise<Map<number, number>> {
   return out
 }
 
+// 마진 모드(격리/교차)는 보유 포지션이 있는 동안 바꿀 수 없다(applyUserMarginMode). 그래서 어떤 회원의 모든 포지션이
+// 모드를 읽어둔 시각보다 먼저 만들어졌다면, 그 사이에 모드가 바뀔 수 없으므로 읽어둔 값을 계속 써도 된다.
+// (읽은 뒤에 새 포지션이 생긴 회원만 다시 읽는다.) 점검마다 같은 값을 DB에서 다시 읽던 것을 줄인다.
+const MODE_CACHE_MAX_MS = 10 * 60 * 1000
+const modeCache = new Map<number, { at: number; mode: 'isolated' | 'cross' }>()
+
+async function resolveMarginModes(positions: PositionRow[], userIds: number[]) {
+  const now = Date.now()
+  const out = new Map<number, 'isolated' | 'cross' | null>()
+  const need: number[] = []
+  const newestPositionAt = new Map<number, number>()
+  for (const p of positions) {
+    const uid = Number(p.user_id)
+    const t = p.created_at ? new Date(p.created_at).getTime() : Number.POSITIVE_INFINITY
+    newestPositionAt.set(uid, Math.max(newestPositionAt.get(uid) ?? 0, Number.isFinite(t) ? t : Number.POSITIVE_INFINITY))
+  }
+  for (const uid of userIds) {
+    const hit = modeCache.get(uid)
+    if (hit && now - hit.at < MODE_CACHE_MAX_MS && (newestPositionAt.get(uid) ?? Number.POSITIVE_INFINITY) + 2000 < hit.at) out.set(uid, hit.mode)
+    else need.push(uid)
+  }
+  if (need.length) {
+    const fresh = await getUserMarginModes(need)
+    const at = Date.now()
+    for (const uid of need) {
+      const m = fresh.get(uid) ?? null
+      out.set(uid, m)
+      if (m) modeCache.set(uid, { at, mode: m })
+      else modeCache.delete(uid)
+    }
+    if (modeCache.size > 5000) modeCache.clear()
+  }
+  return out
+}
+
+export function invalidateMarginModeCache(userId?: number) {
+  if (userId == null) modeCache.clear()
+  else modeCache.delete(Number(userId))
+}
+
 export async function sweepLiquidations(opts: { userId?: number } = {}): Promise<{ checked: number; liquidated: number; skippedUnknownMode: number }> {
   const result = { checked: 0, liquidated: 0, skippedUnknownMode: 0 }
   const positions = await loadPositions(opts.userId)
@@ -58,7 +98,9 @@ export async function sweepLiquidations(opts: { userId?: number } = {}): Promise
   result.checked = positions.length
 
   const userIds = Array.from(new Set(positions.map((p) => Number(p.user_id))))
-  const [modes, balances, liquidationRoe] = await Promise.all([getUserMarginModes(userIds), loadBalances(userIds), getLiquidationRoe()])
+  const [modes, liquidationRoe] = await Promise.all([resolveMarginModes(positions, userIds), getLiquidationRoe()])
+  // 잔고는 교차 회원의 청산 판정에만 쓰이므로 교차 회원만 읽는다(격리만 있으면 읽지 않음).
+  const balances = await loadBalances(userIds.filter((id) => modes.get(id) === 'cross'))
 
   const symbols = Array.from(new Set(positions.map((p) => String(p.symbol).toUpperCase())))
   const marks = new Map<string, number>()

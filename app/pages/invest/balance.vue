@@ -33,7 +33,7 @@ const trades = ref<any[]>([])
 // SSR(주소창 직접 접속/새로고침)에서는 브라우저 쿠키가 자동으로 전달되지 않으므로 명시적으로 넘겨야
 // 로그인 상태인데도 /api/account가 401로 실패하는 문제를 막을 수 있다.
 const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const data = await $fetch<any>('/api/account', { headers, credentials: 'include' })
+const data = await $fetch<any>('/api/account', { headers, credentials: 'include', query: { parts: 'balance,positions,trades' } })
 balance.value = data.balance.usdt
 positions.value = data.positions
 trades.value = data.trades

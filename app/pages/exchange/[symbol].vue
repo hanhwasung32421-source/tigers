@@ -7212,19 +7212,31 @@ async function loadAccount() {
   }
 }
 
+// 화면이 가려진 탭(다른 탭/최소화)은 눈에 보이지 않으므로 동기화를 천천히 하고, 다시 보이는 순간 바로 한 번 동기화한다(DB 읽기 절약).
+function accountSyncDue(visibleMs: number, hiddenMs: number) {
+  const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  return Date.now() - Number(lastAccountTs || 0) > (hidden ? hiddenMs : visibleMs)
+}
+function onAccountVisibility() {
+  if (document.visibilityState !== 'visible' || !me.value) return
+  if (accountSyncDue(positions.value.length > 0 || pendingCloseJobs.value.length > 0 ? 3000 : 15000, 0)) loadAccount().catch(() => {})
+}
 function startAccountAutoRefresh() {
   if (!process.client) return
   if (accountWatchTimer) clearInterval(accountWatchTimer)
+  document.removeEventListener('visibilitychange', onAccountVisibility)
+  document.addEventListener('visibilitychange', onAccountVisibility)
   accountWatchTimer = setInterval(() => {
     // 포지션이 있거나(또는 pending close가 있으면) 1초 무응답이면 자동으로 다시 동기화
     if (!me.value) return
     const need = positions.value.length > 0 || pendingCloseJobs.value.length > 0
-    const silenceMs = Date.now() - Number(lastAccountTs || 0)
+    // 주문/청산이 처리 중일 때는 가려진 탭이어도 평소 간격으로 확인한다.
+    const busy = pendingOpenJobs.value.length > 0 || pendingCloseJobs.value.length > 0
     if (!need) {
-      if (silenceMs > 15000 && pendingOpenJobs.value.length === 0) loadAccount().catch(() => {})
+      if (accountSyncDue(15000, busy ? 15000 : 60000) && pendingOpenJobs.value.length === 0) loadAccount().catch(() => {})
       return
     }
-    if (silenceMs > 3000) {
+    if (accountSyncDue(3000, busy ? 3000 : 10000)) {
       loadAccount().catch(() => {})
     }
   }, 400)
@@ -8331,6 +8343,7 @@ onBeforeUnmount(() => {
   orderbookLevelTimer = null
   if (accountWatchTimer) clearInterval(accountWatchTimer)
   accountWatchTimer = null
+  document.removeEventListener('visibilitychange', onAccountVisibility)
   if (chartClockTimer) clearInterval(chartClockTimer)
   if (savePrefsTimer) clearTimeout(savePrefsTimer)
   if (saveChartPrefsTimer) clearTimeout(saveChartPrefsTimer)

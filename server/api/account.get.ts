@@ -2,7 +2,7 @@ import { requireUser } from '../utils/auth'
 import { shouldRunSweep, sweepLiquidations } from '../utils/liquidation-sweep'
 import { getDb } from '../utils/db'
 import { supabaseAppDbEnabled } from '../utils/supa-appdb'
-import { getSupabaseAdminClient, supaSelectIn, supaSelectOne, supaSelectWhere, supaUpsertUserSettings } from '../utils/supabase'
+import { supaSelectIn, supaSelectOne, supaSelectWhere, supaUpsertUserSettings } from '../utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -10,6 +10,10 @@ export default defineEventHandler(async (event) => {
 
   // light=1: 화면이 주기적으로 갱신할 때 쓰는 가벼운 응답(잔고/포지션/거래 설정만). 거래 내역·수익카드·차트 설정(그림 등 큰 데이터)은 빼서 DB에서 읽는 양을 줄인다.
   const light = String(getQuery(event).light || '') === '1'
+  // parts=balance,positions,trades,cards,settings: 화면에 필요한 항목만 요청한다(없으면 전부). 안 쓰는 항목은 DB에서 읽지 않는다.
+  const partsRaw = String(getQuery(event).parts || '').trim()
+  const parts = partsRaw ? new Set(partsRaw.split(',').map((s) => s.trim())) : null
+  const want = (k: string) => !parts || parts.has(k)
 
   // 서버 자동 강제청산: 접속해 있는 누군가의 요청이 있을 때 5초 간격으로 전체 회원 포지션을 점검한다(응답과 별개로 처리).
   // (회원마다 따로 점검하면 같은 조회가 회원 수만큼 반복되므로, 전체 점검 한 번으로 모두 처리한다.)
@@ -24,14 +28,15 @@ export default defineEventHandler(async (event) => {
 
   if (useSupa && light) {
     try {
-      const balL = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })
-      const st = await getSupabaseAdminClient().from('bitduck_user_settings').select('trade_percent, trade_leverage').eq('user_id', user.id).maybeSingle()
-      if (st.error) throw st.error
-      const positionsL = await supaSelectWhere<any>({ table: 'bitduck_positions', where: { user_id: user.id }, orderBy: 'id', ascending: false })
+      // 화면은 이미 거래 설정을 복원한 뒤에만 light=1로 부르고 응답의 settings는 쓰지 않으므로, 설정 테이블은 읽지 않는다(2번 조회).
+      const [balL, positionsL] = await Promise.all([
+        supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id }),
+        supaSelectWhere<any>({ table: 'bitduck_positions', where: { user_id: user.id }, orderBy: 'id', ascending: false })
+      ])
       return {
         me: user,
         balance: { usdt: balL?.usdt ?? 0 },
-        settings: { tradePercent: (st.data as any)?.trade_percent ?? 100, tradeLeverage: (st.data as any)?.trade_leverage ?? 100 },
+        settings: { tradePercent: 100, tradeLeverage: 100 },
         positions: positionsL,
         trades: [],
         cards: []
@@ -42,13 +47,13 @@ export default defineEventHandler(async (event) => {
   }
 
   if (useSupa) {
-    const bal = await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id })
+    const bal = want('balance') ? await supaSelectOne<{ usdt: number }>('bitduck_balances', { user_id: user.id }) : null
 
     // 사용자 거래 설정(비중/레버리지/차트 설정) - 없을 때만 기본값으로 생성.
     // 매 요청마다 upsert하면 이미 저장된 chart_prefs(BOL 등)가 기본값 {}로 덮어써져
     // 새로고침/재로그인 때마다 초기화되는 문제가 있었음(SQLite 쪽의 INSERT OR IGNORE와 동작이 달랐음).
-    let settings = await supaSelectOne<any>('bitduck_user_settings', { user_id: user.id })
-    if (!settings) {
+    let settings = want('settings') ? await supaSelectOne<any>('bitduck_user_settings', { user_id: user.id }) : null
+    if (want('settings') && !settings) {
       await supaUpsertUserSettings({
         user_id: user.id,
         trade_percent: 100,
@@ -59,26 +64,32 @@ export default defineEventHandler(async (event) => {
       settings = await supaSelectOne<any>('bitduck_user_settings', { user_id: user.id })
     }
 
-    const positions = await supaSelectWhere<any>({
-      table: 'bitduck_positions',
-      where: { user_id: user.id },
-      orderBy: 'id',
-      ascending: false
-    })
-    const trades = await supaSelectWhere<any>({
-      table: 'bitduck_trades',
-      where: { user_id: user.id },
-      orderBy: 'id',
-      ascending: false,
-      limit: 50
-    })
-    const cardsRaw = await supaSelectWhere<any>({
-      table: 'bitduck_profit_cards',
-      where: { user_id: user.id },
-      orderBy: 'id',
-      ascending: false,
-      limit: 50
-    })
+    const positions = want('positions')
+      ? await supaSelectWhere<any>({
+          table: 'bitduck_positions',
+          where: { user_id: user.id },
+          orderBy: 'id',
+          ascending: false
+        })
+      : []
+    const trades = want('trades')
+      ? await supaSelectWhere<any>({
+          table: 'bitduck_trades',
+          where: { user_id: user.id },
+          orderBy: 'id',
+          ascending: false,
+          limit: 50
+        })
+      : []
+    const cardsRaw = want('cards')
+      ? await supaSelectWhere<any>({
+          table: 'bitduck_profit_cards',
+          where: { user_id: user.id },
+          orderBy: 'id',
+          ascending: false,
+          limit: 50
+        })
+      : []
     const tradeIds = cardsRaw.map((c: any) => c.trade_id).filter(Boolean)
     const tradesForCards = await supaSelectIn<any>({
       table: 'bitduck_trades',

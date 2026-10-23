@@ -1,5 +1,6 @@
 import { getDb } from './db'
 import { clearTtlCache, ttlCached } from './ttl-cache'
+import { createLatestBySymbol } from './latest-by-symbol'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, isMissingColumnError, supaDelete, supaSelectWhere } from './supabase'
 
@@ -34,13 +35,11 @@ function rowToKillEvent(row: any): KillEvent {
 }
 
 export async function createKillEvent(input: Parameters<typeof createKillEventInner>[0]): Promise<KillEvent> {
-  latestKillCache.clear()
-  clearTtlCache('kill-list')
+  invalidateLatestKill()
   try {
     return await createKillEventInner(input)
   } finally {
-    latestKillCache.clear()
-    clearTtlCache('kill-list')
+    invalidateLatestKill()
   }
 }
 
@@ -103,16 +102,21 @@ async function createKillEventInner(input: {
   }
 }
 
-const latestKillCache = new Map<string, { at: number; value: KillEvent | null }>()
-const LATEST_TTL_MS = 1000
+// 보고 있는 종목마다 DB를 따로 읽지 않고, 전체 종목의 최근 킬 이벤트를 1초에 한 번만 읽어 종목별로 골라 준다(latest-by-symbol.ts).
+const latestKillBySymbol = createLatestBySymbol<KillEvent>({
+  windowSize: 40,
+  windowTtlMs: 1000,
+  fallbackTtlMs: 60_000,
+  fetchWindow: (limit) => listAllKillEvents(limit),
+  fetchOne: (symbol) => latestKillEventUncached(symbol)
+})
+function invalidateLatestKill() {
+  latestKillBySymbol.invalidate()
+  clearTtlCache('kill-list')
+}
 
 export async function latestKillEvent(symbol: string): Promise<KillEvent | null> {
-  const sym = symbol.toUpperCase()
-  const hit = latestKillCache.get(sym)
-  if (hit && Date.now() - hit.at < LATEST_TTL_MS) return hit.value
-  const value = await latestKillEventUncached(symbol)
-  latestKillCache.set(sym, { at: Date.now(), value })
-  return value
+  return latestKillBySymbol.get(symbol)
 }
 
 async function latestKillEventUncached(symbol: string): Promise<KillEvent | null> {
@@ -155,12 +159,15 @@ export async function listAllKillEvents(limit = 100): Promise<KillEvent[]> {
 }
 
 export async function deleteKillEvent(id: number): Promise<void> {
-  latestKillCache.clear()
-  clearTtlCache('kill-list')
-  if (supabaseAppDbEnabled()) {
-    await supaDelete(T_KILL_EVENTS, { id })
-    return
+  invalidateLatestKill()
+  try {
+    if (supabaseAppDbEnabled()) {
+      await supaDelete(T_KILL_EVENTS, { id })
+      return
+    }
+    const db = getDb()
+    db.prepare('DELETE FROM kill_events WHERE id = ?').run(id)
+  } finally {
+    invalidateLatestKill()
   }
-  const db = getDb()
-  db.prepare('DELETE FROM kill_events WHERE id = ?').run(id)
 }

@@ -164,7 +164,7 @@ const krwPerUsdt = ref(0)
 // SSR(주소창 직접 접속/새로고침)에서는 브라우저 쿠키가 자동으로 전달되지 않으므로 명시적으로 넘겨야
 // 로그인 상태인데도 /api/account가 401로 실패하는 문제를 막을 수 있다.
 const accountHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const data = await $fetch<any>('/api/account', { headers: accountHeaders, credentials: 'include' })
+const data = await $fetch<any>('/api/account', { headers: accountHeaders, credentials: 'include', query: { parts: 'balance' } })
 balance.value = data.balance.usdt
 
 try {

@@ -1,5 +1,6 @@
 import { getDb } from './db'
 import { clearTtlCache, ttlCached } from './ttl-cache'
+import { createLatestBySymbol } from './latest-by-symbol'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, isMissingColumnError, isMissingTableError, supaDelete, supaSelectWhere } from './supabase'
 
@@ -227,21 +228,29 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
   return { ok: true, stopT: Math.round(a.offset) }
 }
 
-// 모든 접속자 화면이 1.5초마다 같은 종목의 최신 이벤트를 조회하므로, 서버 인스턴스에서 1초간 결과를 공유해 DB 조회를 줄인다.
-const latestProfitCache = new Map<string, { at: number; value: ProfitEvent | null }>()
-const LATEST_TTL_MS = 1000
+// 모든 접속자 화면이 1.5초마다 같은 종목의 최신 이벤트를 조회한다. 보고 있는 종목마다 DB를 따로 읽지 않고,
+// 전체 종목의 최근 이벤트를 1초에 한 번만 읽어 종목별로 골라 준다(latest-by-symbol.ts).
+const latestProfitBySymbol = createLatestBySymbol<ProfitEvent>({
+  windowSize: 40,
+  windowTtlMs: 1000,
+  fallbackTtlMs: 60_000,
+  fetchWindow: async (limit) => {
+    try {
+      return await listAllProfitEvents(limit)
+    } catch (e: any) {
+      if (isMissingTableError(e)) return []
+      throw e
+    }
+  },
+  fetchOne: (symbol) => latestProfitEventUncached(symbol)
+})
 function invalidateLatestProfit() {
-  latestProfitCache.clear()
+  latestProfitBySymbol.invalidate()
   clearTtlCache('profit-list')
 }
 
 export async function latestProfitEvent(symbol: string): Promise<ProfitEvent | null> {
-  const sym = symbol.toUpperCase()
-  const hit = latestProfitCache.get(sym)
-  if (hit && Date.now() - hit.at < LATEST_TTL_MS) return hit.value
-  const value = await latestProfitEventUncached(symbol)
-  latestProfitCache.set(sym, { at: Date.now(), value })
-  return value
+  return latestProfitBySymbol.get(symbol)
 }
 
 async function latestProfitEventUncached(symbol: string): Promise<ProfitEvent | null> {
