@@ -1,4 +1,5 @@
 import { getDb } from './db'
+import { clearTtlCache, ttlCached } from './ttl-cache'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, isMissingColumnError, isMissingTableError, supaDelete, supaSelectWhere } from './supabase'
 
@@ -231,6 +232,7 @@ const latestProfitCache = new Map<string, { at: number; value: ProfitEvent | nul
 const LATEST_TTL_MS = 1000
 function invalidateLatestProfit() {
   latestProfitCache.clear()
+  clearTtlCache('profit-list')
 }
 
 export async function latestProfitEvent(symbol: string): Promise<ProfitEvent | null> {
@@ -261,7 +263,13 @@ async function latestProfitEventUncached(symbol: string): Promise<ProfitEvent | 
 }
 
 // 새로고침 후에도 수익/손실로 생긴 봉의 고가/저가(꼬리)를 다시 그려 넣기 위해 과거 이벤트 목록이 필요하다.
+// 캔들을 새로 받을 때마다(여러 접속자가 20초마다) 불리는 과거 이벤트 목록: 8초간 서버 메모리에서 공유한다(이벤트 생성/정지/삭제 때는 바로 비움).
 export async function listProfitEvents(symbol: string, limit = 200): Promise<ProfitEvent[]> {
+  const sym = symbol.toUpperCase()
+  return ttlCached(`profit-list:${sym}:${limit}`, 8000, () => listProfitEventsUncached(sym, limit))
+}
+
+async function listProfitEventsUncached(symbol: string, limit = 200): Promise<ProfitEvent[]> {
   const sym = symbol.toUpperCase()
   if (supabaseAppDbEnabled()) {
     try {

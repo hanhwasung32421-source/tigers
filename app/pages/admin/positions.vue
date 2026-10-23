@@ -3,7 +3,7 @@
     <div class="flex items-end justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold">{{ t('포지션 목록', 'Positions') }}</h1>
-        <p class="mt-1 text-sm text-slate-400">{{ t('실시간 오픈 포지션을 1초마다 갱신합니다.', 'Live open positions refresh every second.') }}</p>
+        <p class="mt-1 text-sm text-slate-400">{{ t('실시간 오픈 포지션을 2초마다 갱신합니다.', 'Live open positions refresh every 2 seconds.') }}</p>
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
@@ -261,7 +261,7 @@ async function load(silent = false) {
   loadingNow = true
   if (!silent) loading.value = true
   try {
-    const data = await $fetch<{ items: AdminPositionRow[]; serverTime: string }>('/api/admin/positions')
+    const data = await $fetch<{ items: AdminPositionRow[]; serverTime: string }>('/api/admin/positions', { query: silent ? { p: 1 } : undefined })
     items.value = data.items || []
     lastUpdated.value = new Date().toLocaleTimeString('ko-KR', { hour12: false })
     error.value = null
@@ -275,13 +275,12 @@ async function load(silent = false) {
 
 onMounted(async () => {
   await load()
-  pollTimer = setInterval(() => {
-    load(true).catch(() => {})
-  }, 1000)
+  // 화면이 보이는 동안 2초마다 자동 갱신(예전 1초)
+  pollTimer = startVisiblePolling(() => load(true), 2000)
 })
 
 onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer)
+  if (pollTimer) pollTimer()
   pollTimer = null
 })
 </script>

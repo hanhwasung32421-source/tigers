@@ -4,6 +4,7 @@ import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
 import { getOkxLastPrice } from '../../utils/okx'
 import { getLiquidationRoe } from '../../utils/system-settings'
+import { ttlCached } from '../../utils/ttl-cache'
 import { canViewMenu } from '../../utils/menu-permissions'
 
 function calcLiqPrice(side: string, entry: number, lev: number, liquidationRoe: number) {
@@ -42,30 +43,36 @@ export default defineEventHandler(async (event) => {
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
-    const nowIso = new Date().toISOString()
+    // 포지션/회원/접속 정보는 자동 갱신(p=1) 때 1.5초 캐시를 공유한다(가격은 매번 새로 계산). 사람이 직접 새로고침하면 항상 최신.
+    const loadAll = async () => {
+      const nowIso = new Date().toISOString()
+      const { data: posRows, error: e1 } = await supa
+        .from('bitduck_positions')
+        .select('id, user_id, symbol, side, qty, entry_price, leverage, margin, created_at')
+        .order('created_at', { ascending: false })
+      if (e1) throw e1
 
-    const { data: posRows, error: e1 } = await supa
-      .from('bitduck_positions')
-      .select('id, user_id, symbol, side, qty, entry_price, leverage, margin, created_at')
-      .order('created_at', { ascending: false })
-    if (e1) throw e1
+      // 회원 목록은 자주 바뀌지 않아서 30초 캐시(가입/삭제 직후 수 초~30초 늦게 반영되어도 이 화면에는 영향이 거의 없다)
+      const userRows = await ttlCached('admin:positions:users', 30_000, async () => {
+        const { data, error } = await supa.from('bitduck_users').select('id, username, name, role')
+        if (error) throw error
+        return data || []
+      })
 
-    const { data: userRows, error: e2 } = await supa
-      .from('bitduck_users')
-      .select('id, username, name, role')
-    if (e2) throw e2
+      const userIds = (userRows || []).map((u: any) => Number(u.id)).filter(Boolean)
+      const { data: sessions, error: e3 } = await supa
+        .from('bitduck_sessions')
+        .select('user_id, expires_at')
+        .in('user_id', userIds)
+        .gt('expires_at', nowIso)
+      if (e3) throw e3
+      return { posRows: posRows || [], userRows, sessions: sessions || [] }
+    }
+    const loaded = String(getQuery(event).p || '') === '1' ? await ttlCached('admin:positions:all', 1500, loadAll) : await loadAll()
 
-    const userIds = (userRows || []).map((u: any) => Number(u.id)).filter(Boolean)
-    const { data: sessions, error: e3 } = await supa
-      .from('bitduck_sessions')
-      .select('user_id, expires_at')
-      .in('user_id', userIds)
-      .gt('expires_at', nowIso)
-    if (e3) throw e3
-
-    positions = posRows || []
-    const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
-    users = (userRows || []).map((u: any) => ({ ...u, online: onlineSet.has(Number(u.id)) }))
+    positions = loaded.posRows
+    const onlineSet = new Set((loaded.sessions || []).map((s: any) => Number(s.user_id)))
+    users = (loaded.userRows || []).map((u: any) => ({ ...u, online: onlineSet.has(Number(u.id)) }))
   } else {
     const db = getDb()
     positions = db

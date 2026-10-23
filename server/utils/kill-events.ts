@@ -1,4 +1,5 @@
 import { getDb } from './db'
+import { clearTtlCache, ttlCached } from './ttl-cache'
 import { supabaseAppDbEnabled } from './supa-appdb'
 import { getSupabaseAdminClient, isMissingColumnError, supaDelete, supaSelectWhere } from './supabase'
 
@@ -34,10 +35,12 @@ function rowToKillEvent(row: any): KillEvent {
 
 export async function createKillEvent(input: Parameters<typeof createKillEventInner>[0]): Promise<KillEvent> {
   latestKillCache.clear()
+  clearTtlCache('kill-list')
   try {
     return await createKillEventInner(input)
   } finally {
     latestKillCache.clear()
+    clearTtlCache('kill-list')
   }
 }
 
@@ -126,6 +129,11 @@ async function latestKillEventUncached(symbol: string): Promise<KillEvent | null
 // 새로고침 후에도 킬로 생긴 봉의 고가/저가(꼬리)를 다시 그려 넣기 위해 과거 이벤트 목록이 필요하다.
 export async function listKillEvents(symbol: string, limit = 200): Promise<KillEvent[]> {
   const sym = symbol.toUpperCase()
+  return ttlCached(`kill-list:${sym}:${limit}`, 8000, () => listKillEventsUncached(sym, limit))
+}
+
+async function listKillEventsUncached(symbol: string, limit = 200): Promise<KillEvent[]> {
+  const sym = symbol.toUpperCase()
   if (supabaseAppDbEnabled()) {
     const rows = await supaSelectWhere<any>({ table: T_KILL_EVENTS, where: { symbol: sym }, orderBy: 'id', ascending: false, limit })
     return rows.map(rowToKillEvent)
@@ -148,6 +156,7 @@ export async function listAllKillEvents(limit = 100): Promise<KillEvent[]> {
 
 export async function deleteKillEvent(id: number): Promise<void> {
   latestKillCache.clear()
+  clearTtlCache('kill-list')
   if (supabaseAppDbEnabled()) {
     await supaDelete(T_KILL_EVENTS, { id })
     return

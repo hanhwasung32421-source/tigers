@@ -99,9 +99,10 @@ export function useMessages() {
   function startUnreadPolling() {
     if (!process.client) return
     if (pollTimer) clearInterval(pollTimer)
+    // 안 읽은 쪽지 확인: 8초 간격(예전 5초). 가려진 탭에서도 새 쪽지 알림음이 울려야 하므로 화면이 가려져도 계속 확인한다.
     pollTimer = setInterval(() => {
       refreshUnread()
-    }, 5000)
+    }, 8000)
   }
 
   function stopUnreadPolling() {

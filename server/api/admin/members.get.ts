@@ -5,6 +5,7 @@ import { getSupabaseAdminClient } from '../../utils/supabase'
 import { canViewMenu } from '../../utils/menu-permissions'
 import { computeDownlineUsernames, resolveTopCode } from '../../utils/referral'
 import { listRoles } from '../../utils/roles'
+import { ttlCached } from '../../utils/ttl-cache'
 
 const FEE_RATE = 0.04
 
@@ -33,35 +34,47 @@ export default defineEventHandler(async (event) => {
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
     const nowIso = new Date().toISOString()
+    // 화면이 자동 갱신(p=1)으로 부를 때는 몇 초짜리 캐시를 쓰고, 사람이 직접 새로고침/수정한 직후(p 없음)는 항상 최신을 읽는다.
+    // 마지막 로그인(IP)과 누적수익(최근 거래 5000건 집계)은 자주 바뀌지 않아 항상 캐시를 쓴다.
+    const polling = String(getQuery(event).p || '') === '1'
+    const maybeCache = <T>(key: string, ttl: number, produce: () => Promise<T>) => (polling ? ttlCached(key, ttl, produce) : produce())
 
-    const { data: users, error: e1 } = await supa
-      .from('bitduck_users')
-      .select('id, username, name, birth_date, bank_name, bank_account, account_holder, referral_code, role, permissions, created_at')
-      .order('id', { ascending: false })
-    if (e1) throw e1
+    const users = await maybeCache('admin:members:users', 4000, async () => {
+      const { data, error } = await supa
+        .from('bitduck_users')
+        .select('id, username, name, birth_date, bank_name, bank_account, account_holder, referral_code, role, permissions, created_at')
+        .order('id', { ascending: false })
+      if (error) throw error
+      return data || []
+    })
 
     const ids = (users || []).map((u: any) => Number(u.id)).filter(Boolean)
     if (!ids.length) return { items: [] }
 
-    const { data: sessions, error: e2 } = await supa
-      .from('bitduck_sessions')
-      .select('user_id, expires_at')
-      .in('user_id', ids)
-      .gt('expires_at', nowIso)
-    if (e2) throw e2
+    const sessions = await maybeCache('admin:members:sessions', 3000, async () => {
+      const { data, error } = await supa.from('bitduck_sessions').select('user_id, expires_at').in('user_id', ids).gt('expires_at', nowIso)
+      if (error) throw error
+      return data || []
+    })
     const onlineSet = new Set((sessions || []).map((s: any) => Number(s.user_id)))
 
-    const { data: balances, error: eBalance } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', ids)
-    if (eBalance) throw eBalance
+    const balances = await maybeCache('admin:members:balances', 3000, async () => {
+      const { data, error } = await supa.from('bitduck_balances').select('user_id, usdt').in('user_id', ids)
+      if (error) throw error
+      return data || []
+    })
     const balanceMap = new Map((balances || []).map((b: any) => [Number(b.user_id), Number(b.usdt ?? 0)]))
 
-    const { data: events, error: e3 } = await supa
-      .from('bitduck_log_logins')
-      .select('local_user_id, ip, created_at')
-      .in('local_user_id', ids)
-      .order('created_at', { ascending: false })
-      .limit(300)
-    if (e3) throw e3
+    const events = await ttlCached('admin:members:logins', 30_000, async () => {
+      const { data, error } = await supa
+        .from('bitduck_log_logins')
+        .select('local_user_id, ip, created_at')
+        .in('local_user_id', ids)
+        .order('created_at', { ascending: false })
+        .limit(300)
+      if (error) throw error
+      return data || []
+    })
     const ipMap = new Map<number, string>()
     const lastLoginMap = new Map<number, string>()
     for (const ev of events || []) {
@@ -74,12 +87,11 @@ export default defineEventHandler(async (event) => {
     }
 
     // 누적수익(실현손익 - 총수수료)
-    const { data: trades, error: e4 } = await supa
-      .from('bitduck_trades')
-      .select('user_id, pnl, entry_price, qty, leverage')
-      .in('user_id', ids)
-      .limit(5000)
-    if (e4) throw e4
+    const trades = await ttlCached('admin:members:trades', 15_000, async () => {
+      const { data, error } = await supa.from('bitduck_trades').select('user_id, pnl, entry_price, qty, leverage').in('user_id', ids).limit(5000)
+      if (error) throw error
+      return data || []
+    })
     const profitMap = new Map<number, number>()
     for (const t of trades || []) {
       const uid = Number((t as any).user_id)

@@ -616,7 +616,7 @@ async function load(silent = false) {
   loadingNow = true
   if (!silent) loading.value = true
   try {
-    const res = await $fetch<{ items: MemberRow[] }>('/api/admin/members')
+    const res = await $fetch<{ items: MemberRow[] }>('/api/admin/members', { query: silent ? { p: 1 } : undefined })
     items.value = res.items || []
     syncRoleDraft(items.value)
     if (selectedMember.value) {
@@ -703,14 +703,15 @@ async function saveBalance() {
 onMounted(async () => {
   await loadRoles()
   await load()
-  pollTimer = setInterval(() => {
+  // 화면이 보이는 동안 5초마다 자동 갱신(예전 1초). 수정 창이 열려 있으면 건너뛴다.
+  pollTimer = startVisiblePolling(() => {
     if (autoRefreshPaused.value) return
-    load(true).catch(() => {})
-  }, 1000)
+    return load(true)
+  }, 5000)
 })
 
 onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer)
+  if (pollTimer) pollTimer()
   pollTimer = null
 })
 </script>

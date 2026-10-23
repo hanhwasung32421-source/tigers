@@ -3,7 +3,7 @@
     <div class="flex items-end justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold">{{ t('실시간 접속', 'Live Connections') }}</h1>
-        <p class="mt-1 text-sm text-slate-400">{{ t('1초마다 갱신됩니다.', 'Refreshes every second.') }}</p>
+        <p class="mt-1 text-sm text-slate-400">{{ t('3초마다 갱신됩니다.', 'Refreshes every 3 seconds.') }}</p>
       </div>
       <div class="flex items-center gap-2">
         <NuxtLink to="/admin" class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15">{{ t('대시보드', 'Dashboard') }}</NuxtLink>
@@ -139,7 +139,7 @@ async function load(silent = false) {
   loadingNow = true
   if (!silent) loading.value = true
   try {
-    const res = await $fetch<{ items: OnlineRow[] }>('/api/admin/online')
+    const res = await $fetch<{ items: OnlineRow[] }>('/api/admin/online', { query: silent ? { p: 1 } : undefined })
     items.value = res.items || []
     lastUpdated.value = new Date().toLocaleTimeString('ko-KR', { hour12: false })
     error.value = null
@@ -153,11 +153,12 @@ async function load(silent = false) {
 
 onMounted(async () => {
   await load()
-  timer = setInterval(() => load(true).catch(() => {}), 1000)
+  // 화면이 보이는 동안 3초마다 자동 갱신(예전 1초)
+  timer = startVisiblePolling(() => load(true), 3000)
 })
 
 onBeforeUnmount(() => {
-  if (timer) clearInterval(timer)
+  if (timer) timer()
   timer = null
 })
 </script>
