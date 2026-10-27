@@ -1640,10 +1640,20 @@ html.snap-landing {
   letter-spacing: 0.01em;
 }
 .splash-s1 {
-  font-size: 28px;
+  font-size: 20px;
 }
 .splash-s2 {
-  font-size: 24px;
+  font-size: 20px;
+}
+.splash-lock {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: #16a34a;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .splash-s3 {
   font-size: 20px;

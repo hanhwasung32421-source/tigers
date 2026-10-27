@@ -8,6 +8,10 @@
         <Transition name="splash-msg" mode="out-in">
           <div v-if="!verified" :key="idx" class="splash-msg" :class="messages[idx].cls">
             <span v-if="messages[idx].spin" class="splash-spin" />
+            <svg v-if="messages[idx].lock" class="splash-lock" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
             <span>{{ messages[idx].text }}</span>
           </div>
           <div v-else key="verified" class="splash-msg splash-verified">
@@ -26,7 +30,7 @@
 <script setup lang="ts">
 const { items: marketItems } = useMarketOverview()
 const SEEN_KEY = 'ktx_splash_seen'
-const MIN_SHOW_MS = 2500 // 문구가 최소한 한두 개는 읽히도록
+const MIN_SHOW_MS = 3000 // 보안 연결 문구 → World Ranking Exchange 순서가 읽히도록
 const MAX_SHOW_MS = 12000 // 로딩이 아주 오래 걸려도 이 시간이 지나면 넘어간다
 const MSG_MS = 1000 // 문구 사이 간격(1초)
 const VERIFIED_HOLD_MS = 850 // Human verified가 나타난 뒤 홈페이지로 넘어가기까지(전환 0.35초 + 0.5초)
@@ -36,6 +40,7 @@ const verified = ref(false)
 const idx = ref(0)
 
 const messages = computed(() => [
+  { text: 'Establishing secure HTTPS connection…', cls: 'splash-check', spin: false, lock: true },
   { text: 'World Ranking Exchange', cls: 'splash-slogan splash-s1', spin: false },
   { text: 'Safer, more powerful, digital asset trading', cls: 'splash-slogan splash-s2', spin: false },
   { text: 'Security check in progress…', cls: 'splash-check', spin: true },
