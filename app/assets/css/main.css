@@ -1576,6 +1576,12 @@ html.theme-native .hb-fade {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+/* 스플래시 글꼴은 웹폰트(Pretendard/Inter, 아직 내려받는 중)에 의존하지 않고 기기에 이미 있는 글꼴만 쓴다.
+   그렇지 않으면 처음엔 대체 글꼴로 크게 그려졌다가, 웹폰트가 도착하는 순간 글자가 작아 보이게 바뀐다. */
+.splash,
+.splash * {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif !important;
+}
 .splash-out {
   opacity: 0;
   pointer-events: none;
