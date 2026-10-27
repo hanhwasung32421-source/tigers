@@ -5704,19 +5704,28 @@ function toBinanceInterval(bar: TimeframeValue): string {
 
 // 캔들 한 페이지를 가져온다. beforeMs가 있으면 그 시각보다 과거 구간을 요청한다(이력 페이지네이션용).
 // 반환 형식은 항상 OKX 스타일(내림차순 문자열 배열)로 통일한다.
-// 바이낸스 분봉을 기본으로 쓰되, 바이낸스가 그 봉에서 체결을 한 건도 주지 않은 봉(거래량 0 = 시가/고가/저가/종가가 모두 같은 가로선)만
-// 같은 시각의 OKX 분봉으로 대신한다. 바이낸스 분봉이 정상으로 다시 들어오는 봉부터는 곧바로 바이낸스 값을 쓴다(봉마다 따로 판단).
+// 삼성/SK하이닉스 분봉 진행 방식:
+//  1) 평소에는 바이낸스 분봉만 받는다.
+//  2) 바이낸스 분봉에 거래량이 0인 봉(체결이 한 건도 없어 시가=고가=저가=종가인 가로선)이 보이면, 그 봉들은 같은 시각의 OKX 분봉으로 대신 그린다.
+//  3) 그 최근 봉들이 이어서 문제인 동안(= 오류가 계속되는 동안)에는 바이낸스와 OKX를 동시에 받는다. 바이낸스가 정상으로 돌아오면(최근 봉에 거래량이 다시 생기면)
+//     OKX 요청은 멈추고 그 봉부터 바이낸스 분봉을 쓴다(봉마다 따로 판단하므로 정상 봉은 항상 바이낸스 값).
+//  4) 오류가 났던 거래량 0 봉은 정상화 이후에도 처음 받아 둔 OKX 분봉으로 계속 그린다(다시 가로선으로 돌아가지 않게 기억해 둔다).
 // 바이낸스 응답이 통째로 비어 있으면(장애) OKX 분봉을 그대로 쓴다.
-function blendBinanceWithOkxRows(binanceKlines: any[], okxRows: string[][]): string[][] {
-  const okxByTs = new Map<string, string[]>()
-  for (const r of okxRows) okxByTs.set(String(r[0]), r)
-  if (!binanceKlines.length) return okxRows
+const binanceCandleProblem = new Map<string, boolean>() // 종목|봉 단위별로 "지금 바이낸스가 문제 중인지"
+const okxBackfillRows = new Map<string, string[]>() // 종목|봉|시각 -> 그 시각의 OKX 분봉 행(오류 구간 대체용)
+const OKX_BACKFILL_MAX = 4000
+
+function binanceBarIsEmpty(r: any) {
+  return !(Number(r?.[5] ?? 0) > 0)
+}
+
+function blendBinanceWithOkxRows(binanceKlines: any[], okxFor: (ts: string) => string[] | undefined, okxAll: string[][]): string[][] {
+  if (!binanceKlines.length) return okxAll
   return binanceKlines
     .map((r) => {
       const ts = String(r[0])
-      const volume = Number(r[5] ?? 0)
-      const okx = okxByTs.get(ts)
-      if (!(volume > 0) && okx) return [ts, String(okx[1]), String(okx[2]), String(okx[3]), String(okx[4]), String(okx[5] ?? 0)]
+      const okx = binanceBarIsEmpty(r) ? okxFor(ts) : undefined
+      if (okx) return [ts, String(okx[1]), String(okx[2]), String(okx[3]), String(okx[4]), String(okx[5] ?? 0)]
       return [ts, String(r[1]), String(r[2]), String(r[3]), String(r[4]), String(r[5] ?? 0)]
     })
     .reverse()
@@ -5725,16 +5734,47 @@ function blendBinanceWithOkxRows(binanceKlines: any[], okxRows: string[][]): str
 async function fetchCandlesPage(sym: string, bar: TimeframeValue, limit: number, beforeMs?: number): Promise<string[][]> {
   if (usesBinanceFeed(sym)) {
     const interval = toBinanceInterval(bar)
-    // 두 거래소 분봉을 동시에 받는다(한쪽이 실패해도 다른 쪽으로 계속 그린다).
-    const [binanceRes, okxRes] = await Promise.all([
+    const key = `${sym.toUpperCase()}|${bar}`
+    const getBinance = () =>
       $fetch<any[]>('/api/binance/candles', {
         query: { symbol: sym.toUpperCase(), interval, limit, ...(beforeMs ? { endTime: beforeMs - 1 } : {}) }
-      }).catch(() => []),
-      $fetch<any>('/api/okx/candles', {
+      }).catch(() => [])
+    const getOkx = async () => {
+      const res = await $fetch<any>('/api/okx/candles', {
         query: { instId: toInstId(sym), bar, limit, ...(beforeMs ? { after: String(beforeMs) } : {}) }
       }).catch(() => null)
-    ])
-    return blendBinanceWithOkxRows(Array.isArray(binanceRes) ? binanceRes : [], (okxRes?.data || []) as string[][])
+      return (res?.data || []) as string[][]
+    }
+
+    let binanceRows: any[]
+    let okxRows: string[][] = []
+    if (binanceCandleProblem.get(key)) {
+      // 오류가 이어지는 동안: 두 거래소를 동시에 받는다.
+      const [b, o] = await Promise.all([getBinance(), getOkx()])
+      binanceRows = Array.isArray(b) ? b : []
+      okxRows = o
+    } else {
+      binanceRows = await getBinance().then((b) => (Array.isArray(b) ? b : []))
+      // 처음으로 거래량 0 봉이 보였거나 바이낸스가 비어 있을 때만(아직 받아 둔 적 없는 봉이 있을 때) 그때 OKX를 받는다.
+      const needOkx = !binanceRows.length || binanceRows.slice(0, -1).some((r) => binanceBarIsEmpty(r) && !okxBackfillRows.has(`${key}|${r[0]}`))
+      if (needOkx) okxRows = await getOkx()
+    }
+
+    // 받은 OKX 분봉은 기억해 둔다(오류 구간 봉을 정상화 이후에도 계속 OKX로 그리기 위해).
+    for (const r of okxRows) okxBackfillRows.set(`${key}|${r[0]}`, r)
+    if (okxBackfillRows.size > OKX_BACKFILL_MAX) {
+      const drop = Array.from(okxBackfillRows.keys()).slice(0, okxBackfillRows.size - OKX_BACKFILL_MAX)
+      for (const k of drop) okxBackfillRows.delete(k)
+    }
+
+    // 최신 구간을 받을 때만 "지금 문제 중인지"를 갱신한다(과거 이력 페이지는 판단에 쓰지 않는다).
+    // 완료된 최근 3개 봉 중 하나라도 거래량 0이면 문제 진행 중, 모두 정상이면 정상화로 본다.
+    if (!beforeMs) {
+      const recent = binanceRows.slice(-4, -1) // 아직 진행 중인 마지막 봉은 시작 직후 체결이 없는 게 정상이라 판단에서 뺀다
+      binanceCandleProblem.set(key, !binanceRows.length || recent.some((r) => binanceBarIsEmpty(r)))
+    }
+
+    return blendBinanceWithOkxRows(binanceRows, (ts) => okxBackfillRows.get(`${key}|${ts}`), okxRows)
   }
   const instId = toInstId(sym)
   const res = await $fetch<any>('/api/okx/candles', {
