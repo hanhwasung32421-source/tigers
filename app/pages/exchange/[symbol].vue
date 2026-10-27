@@ -1989,6 +1989,7 @@
 <script setup lang="ts">
 import { buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, profitSeed, PROFIT_RETURN_MS } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
+import { usesBinanceFeed } from '~~/shared/utils/feed-symbols'
 import {
   createChart,
   CandlestickSeries,
@@ -5691,12 +5692,7 @@ function toInstId(sym: string) {
   return 'BTC-USDT-SWAP'
 }
 
-// 아래 종목들은 실제로 바이낸스 선물에도 상장돼 있어서(펀딩비/마크프라이스까지 있는 정식 상품),
-// 캔들/실시간 체결가만 OKX 대신 바이낸스 공개 API를 쓴다(호가는 종목과 무관하게 항상 OKX).
-const BINANCE_FEED_SYMBOLS = new Set(['SAMSUNGUSDT', 'SKHYNIXUSDT'])
-function usesBinanceFeed(sym: string) {
-  return BINANCE_FEED_SYMBOLS.has(String(sym || '').toUpperCase())
-}
+// 삼성/SK하이닉스는 차트 호가·체결과 서버의 주문/청산 판정 모두 바이낸스 선물 기준이다(shared/utils/feed-symbols.ts).
 
 function toBinanceInterval(bar: TimeframeValue): string {
   if (bar === '1H') return '1h'
@@ -5707,23 +5703,39 @@ function toBinanceInterval(bar: TimeframeValue): string {
   return bar
 }
 
-// 바이낸스 캔들(오름차순, [openTime,o,h,l,c,vol,...])을 OKX 캔들 행 형태(내림차순 문자열 배열)로
-// 바꿔서, candleRowsToSeriesData/이력 페이지네이션 등 기존 OKX 파이프라인을 그대로 재사용한다.
-function binanceKlinesToOkxRows(rows: any[]): string[][] {
-  return rows
-    .map((r) => [String(r[0]), String(r[1]), String(r[2]), String(r[3]), String(r[4]), String(r[5] ?? 0)])
+// 캔들 한 페이지를 가져온다. beforeMs가 있으면 그 시각보다 과거 구간을 요청한다(이력 페이지네이션용).
+// 반환 형식은 항상 OKX 스타일(내림차순 문자열 배열)로 통일한다.
+// 바이낸스 분봉을 기본으로 쓰되, 바이낸스가 그 봉에서 체결을 한 건도 주지 않은 봉(거래량 0 = 시가/고가/저가/종가가 모두 같은 가로선)만
+// 같은 시각의 OKX 분봉으로 대신한다. 바이낸스 분봉이 정상으로 다시 들어오는 봉부터는 곧바로 바이낸스 값을 쓴다(봉마다 따로 판단).
+// 바이낸스 응답이 통째로 비어 있으면(장애) OKX 분봉을 그대로 쓴다.
+function blendBinanceWithOkxRows(binanceKlines: any[], okxRows: string[][]): string[][] {
+  const okxByTs = new Map<string, string[]>()
+  for (const r of okxRows) okxByTs.set(String(r[0]), r)
+  if (!binanceKlines.length) return okxRows
+  return binanceKlines
+    .map((r) => {
+      const ts = String(r[0])
+      const volume = Number(r[5] ?? 0)
+      const okx = okxByTs.get(ts)
+      if (!(volume > 0) && okx) return [ts, String(okx[1]), String(okx[2]), String(okx[3]), String(okx[4]), String(okx[5] ?? 0)]
+      return [ts, String(r[1]), String(r[2]), String(r[3]), String(r[4]), String(r[5] ?? 0)]
+    })
     .reverse()
 }
 
-// 캔들 한 페이지를 가져온다. beforeMs가 있으면 그 시각보다 과거 구간을 요청한다(이력 페이지네이션용).
-// 반환 형식은 항상 OKX 스타일(내림차순 문자열 배열)로 통일한다.
 async function fetchCandlesPage(sym: string, bar: TimeframeValue, limit: number, beforeMs?: number): Promise<string[][]> {
   if (usesBinanceFeed(sym)) {
     const interval = toBinanceInterval(bar)
-    const res = await $fetch<any[]>('/api/binance/candles', {
-      query: { symbol: sym.toUpperCase(), interval, limit, ...(beforeMs ? { endTime: beforeMs - 1 } : {}) }
-    }).catch(() => [])
-    return binanceKlinesToOkxRows(Array.isArray(res) ? res : [])
+    // 두 거래소 분봉을 동시에 받는다(한쪽이 실패해도 다른 쪽으로 계속 그린다).
+    const [binanceRes, okxRes] = await Promise.all([
+      $fetch<any[]>('/api/binance/candles', {
+        query: { symbol: sym.toUpperCase(), interval, limit, ...(beforeMs ? { endTime: beforeMs - 1 } : {}) }
+      }).catch(() => []),
+      $fetch<any>('/api/okx/candles', {
+        query: { instId: toInstId(sym), bar, limit, ...(beforeMs ? { after: String(beforeMs) } : {}) }
+      }).catch(() => null)
+    ])
+    return blendBinanceWithOkxRows(Array.isArray(binanceRes) ? binanceRes : [], (okxRes?.data || []) as string[][])
   }
   const instId = toInstId(sym)
   const res = await $fetch<any>('/api/okx/candles', {
