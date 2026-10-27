@@ -4524,10 +4524,11 @@ function fillFlatCandlesFromLive(candles: CandlestickData[], intervalSeconds: nu
     const t = Number(c.time)
     const inBar = minutes.filter((m) => m[0] >= t && m[0] < t + intervalSeconds)
     if (inBar.length) {
-      const high = Math.max(Number(c.open), ...inBar.map((m) => m[2]))
-      const low = Math.min(Number(c.open), ...inBar.map((m) => m[3]))
-      c.high = high
-      c.low = low
+      // 호가 중간값이 실제로 지나간 경로만 쓴다(API의 옛 체결가는 섞지 않는다 - 섞으면 모든 봉이 옛 체결가까지 긴 아랫꼬리가 생긴다).
+      // 봉 사이의 이어짐(시가=전봉 종가)은 이어서 chainCandleOpens가 맞춘다.
+      c.open = inBar[0][1]
+      c.high = Math.max(...inBar.map((m) => m[2]))
+      c.low = Math.min(...inBar.map((m) => m[3]))
       c.close = inBar[inBar.length - 1][4]
       carry = Number(c.close)
     } else if (carry !== null) {
