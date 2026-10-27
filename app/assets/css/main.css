@@ -1572,6 +1572,9 @@ html.theme-native .hb-fade {
   justify-content: center;
   background: #ffffff;
   transition: opacity 0.6s ease;
+  /* 모바일 브라우저의 글자 자동 확대(font boosting)가 처음에 글자를 크게 그렸다가 레이아웃이 바뀔 때 작게 줄이는 "틱"을 막는다 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 .splash-out {
   opacity: 0;
@@ -1638,6 +1641,17 @@ html.snap-landing {
   color: #111111;
   font-weight: 600;
   letter-spacing: 0.01em;
+  white-space: nowrap;
+  /* 첫 문구도 크기가 정해진 상태에서 서서히 나타난다(처음 그려지는 순간의 크기 변화가 보이지 않게) */
+  animation: splash-msg-in 0.4s ease-out backwards;
+}
+@keyframes splash-msg-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .splash-s1 {
   font-size: 20px;
