@@ -4448,6 +4448,97 @@ function scheduleFinalizePreviousBar() {
   }, 1500)
 }
 
+// ─── 체결이 뜸한 종목(SAMSUNGUSDT 등)의 "평평한 분봉" 보정 ───
+// 바이낸스 분봉(API)은 그 1분 동안 체결이 한 건도 없으면 시가=고가=저가=종가인 가로선(---)으로 내려온다.
+// 그런데 호가(매수/매도 1호가)는 그 사이에도 움직이므로, 화면이 열려 있는 동안 받은 라이브 가격(호가 중간값/체결가)을
+// 분 단위로 기록해 두었다가, API 분봉이 평평하게 오는 봉만 그 기록으로 채워서 봉이 형성되게 한다.
+// API가 시가/고가/저가/종가가 서로 다른 정상 값을 주는 봉은 건드리지 않는다(= API가 정상으로 돌아오면 자동으로 원상복구).
+type MidMinute = [number, number, number, number, number] // [분 시작(초), 시가, 고가, 저가, 종가]
+const MID_MINUTES_MAX = 720
+const midMinutes = new Map<number, MidMinute>()
+let midMinutesSymbol = ''
+let midSaveTimer: any = null
+function midStorageKey(sym: string) {
+  return `ktx_mid_minutes:${String(sym || '').toUpperCase()}`
+}
+function loadMidMinutes(sym: string) {
+  midMinutes.clear()
+  midMinutesSymbol = String(sym || '').toUpperCase()
+  if (!process.client || !usesBinanceFeed(midMinutesSymbol)) return
+  try {
+    const rows = JSON.parse(localStorage.getItem(midStorageKey(midMinutesSymbol)) || '[]')
+    const cutoff = Math.floor(Date.now() / 1000) - MID_MINUTES_MAX * 60
+    if (Array.isArray(rows)) for (const r of rows) if (Array.isArray(r) && r.length === 5 && Number(r[0]) >= cutoff && r.every((x: any) => Number.isFinite(Number(x)))) midMinutes.set(Number(r[0]), r.map(Number) as MidMinute)
+  } catch {
+    // 저장소를 못 읽어도 라이브 기록은 메모리에서 계속 쌓는다
+  }
+}
+function saveMidMinutes() {
+  midSaveTimer = null
+  if (!process.client || !midMinutesSymbol || !usesBinanceFeed(midMinutesSymbol)) return
+  try {
+    const keys = Array.from(midMinutes.keys()).sort((a, b) => a - b).slice(-MID_MINUTES_MAX)
+    localStorage.setItem(midStorageKey(midMinutesSymbol), JSON.stringify(keys.map((k) => midMinutes.get(k))))
+  } catch {
+    // 저장 실패는 무시
+  }
+}
+function recordMidMinute(price: number, tsMs: number) {
+  const sym = String(symbol.value || '').toUpperCase()
+  if (!usesBinanceFeed(sym)) return
+  if (midMinutesSymbol !== sym) loadMidMinutes(sym)
+  const minute = Math.floor(Math.floor(tsMs / 1000) / 60) * 60
+  const cur = midMinutes.get(minute)
+  if (cur) {
+    cur[2] = Math.max(cur[2], price)
+    cur[3] = Math.min(cur[3], price)
+    cur[4] = price
+  } else {
+    const prev = midMinutes.get(minute - 60)
+    const open = prev ? prev[4] : price
+    midMinutes.set(minute, [minute, open, Math.max(open, price), Math.min(open, price), price])
+    if (midMinutes.size > MID_MINUTES_MAX + 60) {
+      const oldest = Math.min(...Array.from(midMinutes.keys()))
+      midMinutes.delete(oldest)
+    }
+  }
+  if (!midSaveTimer) midSaveTimer = setTimeout(saveMidMinutes, 10_000)
+}
+function isFlatCandle(c: any) {
+  const o = Number(c.open)
+  return Number(c.high) === o && Number(c.low) === o && Number(c.close) === o
+}
+// API 분봉 중 "평평한 봉"만 기록으로 채운다. 기록이 없는 평평한 봉이 채워진 봉 바로 뒤에 이어지면 그 종가 높이로 이어 붙인다
+// (그래야 채워진 봉 뒤에서 옛 체결가로 툭 떨어지는 가짜 꼬리가 안 생긴다). 정상 봉이 나오는 순간 이어붙이기는 끝난다.
+function fillFlatCandlesFromLive(candles: CandlestickData[], intervalSeconds: number) {
+  if (!candles.length || !usesBinanceFeed(symbol.value)) return
+  if (midMinutesSymbol !== String(symbol.value || '').toUpperCase()) loadMidMinutes(symbol.value)
+  if (!midMinutes.size) return
+  const minutes = Array.from(midMinutes.values()).sort((a, b) => a[0] - b[0])
+  let carry: number | null = null
+  for (const c of candles as any[]) {
+    if (!isFlatCandle(c)) {
+      carry = null
+      continue
+    }
+    const t = Number(c.time)
+    const inBar = minutes.filter((m) => m[0] >= t && m[0] < t + intervalSeconds)
+    if (inBar.length) {
+      const high = Math.max(Number(c.open), ...inBar.map((m) => m[2]))
+      const low = Math.min(Number(c.open), ...inBar.map((m) => m[3]))
+      c.high = high
+      c.low = low
+      c.close = inBar[inBar.length - 1][4]
+      carry = Number(c.close)
+    } else if (carry !== null) {
+      c.open = carry
+      c.high = carry
+      c.low = carry
+      c.close = carry
+    }
+  }
+}
+
 function updateLiveCandle(price: number, tsMs: number) {
   // 관리자 킬 버튼 동작 중에는 실시간 업데이트로 "튀는 효과"가 즉시 덮어써지지 않게 잠깐 멈춤
   if (adminKillFreezeUntil && Date.now() < adminKillFreezeUntil) return
@@ -4456,6 +4547,7 @@ function updateLiveCandle(price: number, tsMs: number) {
   if (!candleSeries) return
   const p = Number(price)
   if (!Number.isFinite(p) || p <= 0) return
+  recordMidMinute(p, Number.isFinite(tsMs) ? tsMs : Date.now())
 
   const ts = Number.isFinite(tsMs) ? tsMs : Date.now()
   const sec = Math.floor(ts / 1000)
@@ -6857,6 +6949,7 @@ async function fetchCandles(opts: { finalizePrevious?: boolean } = {}) {
   cachedProfitEvents = profitEvents
 
   const { candles: freshCandles, vols: freshVols } = candleRowsToSeriesData(firstBatch)
+  fillFlatCandlesFromLive(freshCandles, intervalSeconds)
   applyKillWicks(freshCandles, killEvents, intervalSeconds)
   applyProfitPathCandles(freshCandles, profitEvents, intervalSeconds)
 
