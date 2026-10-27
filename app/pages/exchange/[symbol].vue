@@ -814,7 +814,6 @@
           <!-- 현재가 -->
           <div class="-mx-3 my-1 flex items-center border-y border-white/5 px-3 py-1.5 font-mono text-[17px] text-[#36f2c6]">
             <span>{{ displayLastPrice ? Number(displayLastPrice).toFixed(2) : '—' }}</span>
-            <span class="ml-2 text-[12px] text-slate-400">≈ {{ displayLastPrice ? Number(displayLastPrice).toFixed(2) : '—' }} USD</span>
           </div>
 
           <!-- 매수(아래) -->
