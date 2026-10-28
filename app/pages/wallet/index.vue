@@ -22,8 +22,8 @@
     <div class="grid gap-4 md:grid-cols-3">
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
         <div class="text-sm text-slate-400">{{ t('USDT 잔고', 'USDT Balance') }}</div>
-        <div class="mt-1 font-mono text-2xl">{{ fmtKrw(balance) }}</div>
-        <div class="mt-0.5 font-mono text-sm text-slate-400">{{ balance.toFixed(2) }} USDT</div>
+        <div class="font-data-plain mt-1 text-2xl">{{ fmtKrw(balance) }}</div>
+        <div class="font-data-plain mt-0.5 text-sm text-slate-400">{{ balance.toFixed(2) }} USDT</div>
       </div>
 
       <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-5 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
