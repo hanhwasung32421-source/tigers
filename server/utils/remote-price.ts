@@ -1,5 +1,5 @@
 import { clampToMarketPrice } from './okx'
-import { latestProfitEvent } from './profit-events'
+import { latestProfitEvent, listProfitEvents, profitEventForUser } from './profit-events'
 import { latestKillEvent } from './kill-events'
 import { buildProfitTimeline, profitEventTotalMs, profitRangeBetween, profitStopReturnMs } from '../../shared/utils/profit-path'
 
@@ -15,7 +15,7 @@ function span(a: number, b: number) {
   return [Math.min(a, b), Math.max(a, b)] as const
 }
 
-export async function resolveClientPrice(symbol: string, clientPrice: number | undefined | null, marketPrice: number): Promise<number> {
+export async function resolveClientPrice(symbol: string, clientPrice: number | undefined | null, marketPrice: number, viewer?: { id?: any; role?: any } | null): Promise<number> {
   const normal = clampToMarketPrice(clientPrice, marketPrice)
   if (clientPrice == null || !Number.isFinite(clientPrice) || clientPrice <= 0) return normal
   const now = Date.now()
@@ -27,7 +27,9 @@ export async function resolveClientPrice(symbol: string, clientPrice: number | u
   }
 
   try {
-    const pe = await latestProfitEvent(symbol)
+    // 적용대상이 정해진 이벤트(디자인차트)는 그 회원에게만 가격이 움직이므로, 이 회원에게 적용되는 가장 최근 이벤트만 본다.
+    let pe = profitEventForUser(await latestProfitEvent(symbol), viewer)
+    if (!pe) pe = (await listProfitEvents(symbol, 5)).map((e) => profitEventForUser(e, viewer)).find((e) => !!e) ?? null
     if (pe && (pe.plan || pe.cplan)) {
       // 리모콘2: 목표가 여러 개를 지나는 경로. 같은 plan에서 만든 경로의 지금 시각 전후 범위 안의 가격만 받아준다.
       const start = new Date(pe.createdAt).getTime()

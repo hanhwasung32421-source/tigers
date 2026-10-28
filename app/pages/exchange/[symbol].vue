@@ -119,6 +119,45 @@
             :title="t(`봉을 드래그해서 종가/고가/저가를 움직이세요. 시작하면 다음 봉이 시작될 때부터 ${designTickSizeRef}(최소 틱)씩 랜덤하게 움직입니다.`, `Drag a bar to move its close/high/low. After Start, price moves in random steps of ${designTickSizeRef} (min tick) from the next bar.`)"
           >
             <div class="flex items-center gap-2 rounded-md bg-[#1e222d] px-3 py-1.5 text-[12px] text-[#d1d4dc] shadow-[0_6px_20px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
+              <!-- 적용대상: 이름/아이디로 검색해서 체크한 회원에게만 적용(모두 적용이 체크돼 있으면 전체) -->
+              <div class="relative">
+                <button type="button" class="flex items-center gap-1 rounded bg-white/10 px-2 py-1 hover:bg-white/15" @click="designTargetOpen = !designTargetOpen">
+                  {{ t('적용대상', 'Targets') }}
+                  <span class="text-violet-300">{{ designApplyAll ? t('전체', 'All') : designTargets.length + t('명', '') }}</span>
+                  <span class="text-[10px] text-[#868993]">▾</span>
+                </button>
+                <div v-if="designTargetOpen" class="absolute left-0 top-full z-40 mt-2 w-72 whitespace-normal rounded-lg bg-[#1e222d] p-3 text-[12px] shadow-[0_12px_40px_rgba(0,0,0,0.55)] ring-1 ring-white/10">
+                  <label class="flex cursor-pointer items-center gap-2 font-semibold text-slate-100">
+                    <input type="checkbox" class="h-4 w-4 accent-violet-500" :checked="designApplyAll" @change="onDesignApplyAllChange(($event.target as HTMLInputElement).checked)" />
+                    {{ t('모두 적용', 'Apply to everyone') }}
+                  </label>
+                  <input
+                    v-model="designTargetQuery"
+                    type="text"
+                    class="mt-2 w-full rounded-md bg-white/5 px-2.5 py-1.5 text-[12px] text-slate-100 outline-none ring-1 ring-white/10 focus:ring-violet-400"
+                    :placeholder="t('이름 또는 아이디 검색', 'Search by name or ID')"
+                    @input="onDesignTargetQuery"
+                  />
+                  <div class="mt-2 max-h-44 overflow-y-auto">
+                    <div v-if="designTargetBusy" class="px-1 py-2 text-slate-500">{{ t('검색 중…', 'Searching…') }}</div>
+                    <div v-else-if="designTargetQuery.trim() && !designTargetResults.length" class="px-1 py-2 text-slate-500">{{ t('검색 결과가 없습니다.', 'No results.') }}</div>
+                    <label v-for="u in designTargetResults" :key="u.id" class="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1.5 hover:bg-white/5">
+                      <input type="checkbox" class="h-4 w-4 accent-violet-500" :checked="isDesignTarget(u.id)" @change="toggleDesignTarget(u)" />
+                      <span class="text-slate-100">{{ u.username }}</span>
+                      <span class="text-slate-400">{{ u.name }}</span>
+                    </label>
+                  </div>
+                  <div v-if="designTargets.length" class="mt-2 border-t border-white/10 pt-2">
+                    <div class="mb-1 text-slate-400">{{ t('선택한 적용대상', 'Selected') }} ({{ designTargets.length }})</div>
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="u in designTargets" :key="u.id" class="inline-flex items-center gap-1 rounded bg-violet-500/20 px-1.5 py-0.5 text-violet-100">
+                        {{ u.username }}
+                        <button type="button" class="text-violet-300 hover:text-white" @click="toggleDesignTarget(u)">✕</button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <span class="font-semibold text-violet-300">{{ t('디자인차트', 'Design chart') }}</span>
               <span class="text-[#868993]">{{ t('다음봉', 'Bars') }} {{ designCandles.length }}/{{ DESIGN_MAX }}</span>
               <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length >= DESIGN_MAX" @click="addDesignCandle">+ {{ t('다음봉', 'Next bar') }}</button>
@@ -3186,6 +3225,8 @@ type ProfitEvent = {
   stopT?: number | null
   // 정지할 때 정한 "정상가로 돌아오는 시간"(ms)
   returnMs?: number | null
+  // 디자인차트의 적용대상 회원 수만 알 수 있으면 충분하다(관리자 화면의 로그창용). 없으면 전체.
+  targets?: number[] | null
   // 리모콘2 이벤트면 목표가 여러 개를 지나는 계획
   plan?: ProfitPlan | null
   // 디자인차트 이벤트면 설계한 봉들
@@ -5123,6 +5164,53 @@ const designOpen = ref(false)
 const designWaiting = ref(false) // 시작을 눌렀고 다음 봉이 시작되기를 기다리는 중
 const designBusy = ref(false)
 const designReturnMinutes = ref(3) // 마지막 봉이 끝난 뒤 정상가로 돌아오는 데 걸리는 시간(분)
+// 적용대상: "모두 적용"이 켜져 있으면 전체, 특정 회원을 체크하면 모두 적용은 자동으로 꺼지고 그 회원들에게만 적용된다.
+type DesignTarget = { id: number; username: string; name: string }
+const designApplyAll = ref(true)
+const designTargets = ref<DesignTarget[]>([])
+const designTargetOpen = ref(false)
+const designTargetQuery = ref('')
+const designTargetResults = ref<DesignTarget[]>([])
+const designTargetBusy = ref(false)
+let designTargetTimer: any = null
+let designTargetSeq = 0
+
+function isDesignTarget(id: number) {
+  return designTargets.value.some((u) => u.id === id)
+}
+function toggleDesignTarget(u: DesignTarget) {
+  if (isDesignTarget(u.id)) {
+    designTargets.value = designTargets.value.filter((x) => x.id !== u.id)
+  } else {
+    designTargets.value = designTargets.value.concat([u])
+    designApplyAll.value = false // 특정 회원이 체크되면 모두 적용은 자동으로 해제
+  }
+}
+function onDesignApplyAllChange(checked: boolean) {
+  designApplyAll.value = checked
+  if (checked) designTargets.value = [] // 모두 적용을 다시 켜면 개별 선택은 비운다
+}
+function onDesignTargetQuery() {
+  if (designTargetTimer) clearTimeout(designTargetTimer)
+  const q = designTargetQuery.value.trim()
+  if (!q) {
+    designTargetResults.value = []
+    designTargetBusy.value = false
+    return
+  }
+  designTargetBusy.value = true
+  designTargetTimer = setTimeout(async () => {
+    const seq = ++designTargetSeq
+    try {
+      const res = await $fetch<{ users: DesignTarget[] }>('/api/admin/user-search', { query: { q } })
+      if (seq === designTargetSeq) designTargetResults.value = res?.users || []
+    } catch {
+      if (seq === designTargetSeq) designTargetResults.value = []
+    } finally {
+      if (seq === designTargetSeq) designTargetBusy.value = false
+    }
+  }, 250)
+}
 const designError = ref<string | null>(null)
 const designOpenPrice = ref(0)
 const designTickSizeRef = ref(0.01)
@@ -5192,6 +5280,11 @@ async function openDesignChart() {
     if (Number(res?.tick) > 0) designTickSizeRef.value = Number(res.tick)
   } catch {}
   if (designOpen.value) return
+  designApplyAll.value = true
+  designTargets.value = []
+  designTargetQuery.value = ''
+  designTargetResults.value = []
+  designTargetOpen.value = false
   designOpenPrice.value = snapDesign(cur)
   designCandles.value = [defaultDesignCandle(designOpenPrice.value)]
   designDrag.value = null
@@ -5200,6 +5293,7 @@ async function openDesignChart() {
   designLoop()
 }
 function closeDesignChart() {
+  designTargetOpen.value = false
   designOpen.value = false
   designDrag.value = null
   stopDesignLoop()
@@ -5302,6 +5396,11 @@ async function startDesignChart() {
     designError.value = t('디자인차트는 1시간봉 이하에서 사용할 수 있습니다.', 'Design chart works on 1-hour bars or shorter.')
     return
   }
+  if (!designApplyAll.value && !designTargets.value.length) {
+    designError.value = t('적용대상을 선택하거나 "모두 적용"을 체크해주세요.', 'Select targets or check "Apply to everyone".')
+    designTargetOpen.value = true
+    return
+  }
   const retMin = Number(designReturnMinutes.value)
   if (!Number.isFinite(retMin) || retMin < 0.5 || retMin > 30) {
     designError.value = t('정상가로 돌아오는 시간은 0.5~30분 사이로 입력해주세요.', 'Return time must be between 0.5 and 30 minutes.')
@@ -5320,6 +5419,7 @@ async function startDesignChart() {
         open: designOpenPrice.value,
         barSeconds: bar,
         returnMinutes: retMin,
+        ...(designApplyAll.value ? {} : { targets: designTargets.value.map((u) => u.id) }),
         candles: designCandles.value.map((c) => ({ c: c.c, h: c.h, l: c.l }))
       }
     })
@@ -5357,7 +5457,7 @@ function buildRemoteLogSteps(ev: ProfitEvent): RemoteLogStep[] {
   }
   if (ev.cplan?.candles?.length) {
     const cp = ev.cplan
-    add(t('다음 봉 시작까지 대기', 'Wait for the next bar'), t('봉 시작 시각에 맞춤', 'aligned to bar start'), cp.delayMs)
+    add(t('다음 봉 시작까지 대기', 'Wait for the next bar'), t('봉 시작 시각에 맞춤', 'aligned to bar start') + (ev.targets?.length ? ` · ${ev.targets.length}${t('명 대상', ' targets')}` : ''), cp.delayMs)
     cp.candles.forEach((cd, k) => {
       add(t('다음봉', 'Next bar') + ` ${k + 1}`, `C ${fmtPrice(cd.c)} · H ${fmtPrice(cd.h)} · L ${fmtPrice(cd.l)}`, cp.barMs)
     })

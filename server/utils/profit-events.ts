@@ -32,6 +32,8 @@ export type ProfitEvent = {
   stopT?: number | null
   // 정지할 때 정한 "정상가로 돌아오는 시간"(ms)
   returnMs?: number | null
+  // 이 이벤트가 적용되는 회원 번호들(디자인차트의 "적용대상"). 없으면 모든 회원에게 적용된다.
+  targets?: number[] | null
   // 리모콘2 이벤트면 목표가 여러 개를 차례로 지나는 계획(없으면 기존 리모콘1 이벤트).
   plan?: ProfitPlan | null
   // 디자인차트 이벤트면 설계한 봉들(없으면 리모콘1/2).
@@ -41,7 +43,7 @@ export type ProfitEvent = {
 
 // 디자인차트 저장 형식: direction 컬럼에 'R3:' + JSON({ o: 첫 시가, t: 눈금, b: 봉 길이ms, d: 첫 봉 시작까지 대기ms, r: 복귀ms, c: [[종가, 고가, 저가], ...], st: 정지시각ms })
 const CANDLE_PREFIX = 'R3:'
-function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: number | null; returnMs: number | null } | null {
+function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: number | null; returnMs: number | null; targets: number[] | null } | null {
   const text = String(dir ?? '')
   if (!text.startsWith(CANDLE_PREFIX)) return null
   try {
@@ -62,19 +64,20 @@ function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: numbe
     const wander = Number(j?.w)
     if (!candles.length || ![open, tick, barMs, delayMs, cMs].every((x) => Number.isFinite(x)) || tick <= 0 || barMs <= 0) return null
     const st = Number(j?.st)
-    return { cplan: { open, tick, barMs, delayMs, cMs, wander: Number.isFinite(wander) && wander >= 0 ? wander : undefined, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null }
+    return { cplan: { open, tick, barMs, delayMs, cMs, wander: Number.isFinite(wander) && wander >= 0 ? wander : undefined, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null, targets: Array.isArray(j?.u) ? j.u.map(Number).filter((x: number) => Number.isFinite(x) && x > 0) : null }
   } catch {
     return null
   }
 }
-function buildCandleDirection(cp: ProfitCandlePlan, stopT?: number | null, returnMs?: number | null) {
+function buildCandleDirection(cp: ProfitCandlePlan, stopT?: number | null, returnMs?: number | null, targets?: number[] | null) {
   const body: any = { o: cp.open, t: cp.tick, b: cp.barMs, d: cp.delayMs, r: cp.cMs, c: cp.candles.map((x) => [x.c, x.h, x.l]) }
   if (cp.wander != null) body.w = cp.wander
   if (stopT != null) body.st = stopT
   if (returnMs) body.rm = Math.round(returnMs)
+  if (targets && targets.length) body.u = targets
   return CANDLE_PREFIX + JSON.stringify(body)
 }
-function candleToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, cp: ProfitCandlePlan, stopT: number | null, returnMs: number | null = null): ProfitEvent {
+function candleToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, cp: ProfitCandlePlan, stopT: number | null, returnMs: number | null = null, targets: number[] | null = null): ProfitEvent {
   const last = cp.candles[cp.candles.length - 1]
   return {
     id: base.id,
@@ -92,6 +95,7 @@ function candleToEvent(base: { id: number; symbol: string; percent: number; base
     holdAmp: null,
     stopT,
     returnMs,
+    targets,
     cplan: cp,
     createdAt: base.createdAt
   }
@@ -159,7 +163,8 @@ function rowToProfitEvent(row: any): ProfitEvent {
       { id: Number(row.id), symbol: String(row.symbol).toUpperCase(), percent: Number(row.percent), basePrice: Number(row.base_price), createdAt: String(row.created_at) },
       candleDir.cplan,
       candleDir.stopT,
-      candleDir.returnMs
+      candleDir.returnMs,
+      candleDir.targets
     )
   }
   const planDir = parsePlanDirection(row.direction)
@@ -360,8 +365,19 @@ async function createProfitPlanEventInner(input: { symbol: string; basePrice: nu
   return planToEvent({ id: Number(result.lastInsertRowid), symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, plan, null)
 }
 
+// 이 이벤트가 해당 회원에게 적용되는지: 적용대상이 없으면 모두, 있으면 그 회원들만(총관리자는 항상 본다).
+// 적용되면 (다른 회원 번호가 새지 않게 targets를 뺀) 이벤트를, 아니면 null을 돌려준다.
+export function profitEventForUser(ev: ProfitEvent | null | undefined, user: { id?: any; role?: any } | null | undefined): ProfitEvent | null {
+  if (!ev) return null
+  const t = ev.targets
+  if (!t || !t.length) return ev
+  if (user?.role === 'super_admin') return ev
+  if (user && t.includes(Number(user.id))) return { ...ev, targets: null }
+  return null
+}
+
 // 디자인차트 이벤트 만들기
-export async function createProfitCandleEvent(input: { symbol: string; basePrice: number; percent: number; cplan: ProfitCandlePlan }): Promise<ProfitEvent> {
+export async function createProfitCandleEvent(input: { symbol: string; basePrice: number; percent: number; cplan: ProfitCandlePlan; targets?: number[] }): Promise<ProfitEvent> {
   invalidateLatestProfit()
   try {
     return await createProfitCandleEventInner(input)
@@ -370,12 +386,12 @@ export async function createProfitCandleEvent(input: { symbol: string; basePrice
   }
 }
 
-async function createProfitCandleEventInner(input: { symbol: string; basePrice: number; percent: number; cplan: ProfitCandlePlan }): Promise<ProfitEvent> {
+async function createProfitCandleEventInner(input: { symbol: string; basePrice: number; percent: number; cplan: ProfitCandlePlan; targets?: number[] }): Promise<ProfitEvent> {
   const createdAt = new Date().toISOString()
   const symbol = input.symbol.toUpperCase()
   const cp = input.cplan
   const last = cp.candles[cp.candles.length - 1]
-  const storedDirection = buildCandleDirection(cp)
+  const storedDirection = buildCandleDirection(cp, undefined, undefined, input.targets)
   const storedDuration = Math.min(Math.round(cp.barMs), 19999)
   const holdMs = Math.max(1, Math.round(cp.barMs))
   if (supabaseAppDbEnabled()) {
@@ -394,13 +410,13 @@ async function createProfitCandleEventInner(input: { symbol: string; basePrice: 
       created_at: createdAt
     })
     if (error) throw error
-    return candleToEvent({ id, symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, cp, null)
+    return candleToEvent({ id, symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, cp, null, null, input.targets ?? null)
   }
   const db = getDb()
   const result = db
     .prepare('INSERT INTO profit_events (symbol, direction, percent, base_price, shocked_price, duration_ms, tick_count, hold_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .run(symbol, storedDirection, input.percent, input.basePrice, last.c, storedDuration, 0, holdMs, createdAt)
-  return candleToEvent({ id: Number(result.lastInsertRowid), symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, cp, null)
+  return candleToEvent({ id: Number(result.lastInsertRowid), symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, cp, null, null, input.targets ?? null)
 }
 
 // 진행 중인 이벤트를 지금 시각에서 중단한다(운영자 화면 새로고침). direction 컬럼의 확장 형식 8번째 값에 중단 시각(ms)을 기록한다.
@@ -421,7 +437,7 @@ async function stopPlanEvent(row: any, returnMs: number | null | undefined, save
     const off = Math.max(0, Date.now() - new Date(row.created_at).getTime())
     if (off >= candlePlanTotalMs(cd.cplan)) return { ok: false, stopT: null }
     const stopT = Math.round(off)
-    await save(buildCandleDirection(cd.cplan, stopT, returnMs))
+    await save(buildCandleDirection(cd.cplan, stopT, returnMs, cd.targets))
     return { ok: true, stopT }
   }
   const pd = parsePlanDirection(row.direction)

@@ -62,7 +62,7 @@ export async function executeClose(userId: number, body: CloseBody) {
     const pos = await supaSelectOne<any>('bitduck_positions', { id: body.positionId, user_id: userId })
     if (!pos) throw createError({ statusCode: 404, statusMessage: '포지션을 찾을 수 없습니다.' })
 
-    const exit = await resolveClientPrice(String(pos.symbol), body.exitPrice, (await getOkxLastPrice(pos.symbol)).last)
+    const exit = await resolveClientPrice(String(pos.symbol), body.exitPrice, (await getOkxLastPrice(pos.symbol)).last, { id: userId })
 
     // 일부 청산이면 청산하는 수량 비율만큼의 증거금/손익만 정산하고 포지션은 남긴다.
     const posQty = Number(pos.qty)
@@ -143,7 +143,7 @@ export async function executeClose(userId: number, body: CloseBody) {
   if (!pos) throw createError({ statusCode: 404, statusMessage: '포지션을 찾을 수 없습니다.' })
 
   const { last } = await getOkxLastPrice(pos.symbol)
-  const exit = await resolveClientPrice(String(pos.symbol), body.exitPrice, last)
+  const exit = await resolveClientPrice(String(pos.symbol), body.exitPrice, last, { id: userId })
 
   const posQty = Number(pos.qty)
   const closeQty = body.qty && body.qty < posQty * 0.99999 ? body.qty : posQty

@@ -13,6 +13,8 @@ const BodySchema = z.object({
   barSeconds: z.coerce.number().int().min(1).max(3600),
   // 마지막 봉이 끝난 뒤 정상가로 돌아오는 데 걸리는 시간(분)
   returnMinutes: z.coerce.number().min(0.5).max(30).optional(),
+  // 적용대상 회원 번호들. 없으면 모든 회원에게 적용한다.
+  targets: z.array(z.coerce.number().int().positive()).max(500).optional(),
   candles: z
     .array(
       z.object({
@@ -69,13 +71,13 @@ export default defineEventHandler(async (event) => {
   const cplan: ProfitCandlePlan = { open, tick, barMs, delayMs, cMs, wander: WANDER, candles }
   const percent = Number(((Math.abs(candles[candles.length - 1].c - open) / basePrice) * 100 * 100).toFixed(4))
   try {
-    const profitEvent = await createProfitCandleEvent({ symbol, basePrice, percent, cplan })
+    const profitEvent = await createProfitCandleEvent({ symbol, basePrice, percent, cplan, targets: body.targets?.length ? Array.from(new Set(body.targets)) : undefined })
     await logAdminAction(event, {
       adminUserId: admin.id,
       action: 'profit_card_create',
       targetType: 'profit_card',
       targetId: profitEvent?.id ?? null,
-      detail: { remote: 3, symbol, basePrice, barSeconds: body.barSeconds, delayMs, candles }
+      detail: { remote: 3, symbol, basePrice, barSeconds: body.barSeconds, delayMs, candles, targets: body.targets?.length ? body.targets : 'all' }
     })
     return { ok: true, event: profitEvent }
   } catch (e: any) {

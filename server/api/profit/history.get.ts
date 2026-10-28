@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { requireUser } from '../../utils/auth'
-import { listProfitEvents } from '../../utils/profit-events'
+import { listProfitEvents, profitEventForUser } from '../../utils/profit-events'
 
 const QuerySchema = z.object({
   symbol: z.string().min(1),
@@ -8,13 +8,13 @@ const QuerySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event)
+  const user = await requireUser(event)
   const query = QuerySchema.parse(getQuery(event))
   // 캔들 로딩마다 호출되는 읽기 전용 엔드포인트라, 저장소 쪽 문제(테이블 미생성, 일시적 오류 등)로
   // 500을 띄우지 않고 빈 목록으로 조용히 넘어간다.
   try {
     const items = await listProfitEvents(query.symbol, query.limit ?? 200)
-    return { items }
+    return { items: items.map((e) => profitEventForUser(e, user)).filter((e) => !!e) }
   } catch {
     return { items: [] }
   }

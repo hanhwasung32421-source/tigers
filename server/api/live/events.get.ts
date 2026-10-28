@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { getSessionUser } from '../../utils/auth'
 import { latestKillEvent } from '../../utils/kill-events'
-import { latestProfitEvent } from '../../utils/profit-events'
+import { latestProfitEvent, profitEventForUser } from '../../utils/profit-events'
 import { getLiquidationRoe, getProfitCardStyleWithVersion } from '../../utils/system-settings'
 import { getOkxLastPrice } from '../../utils/okx'
 
@@ -51,7 +51,8 @@ export default defineEventHandler(async (event) => {
 
   return {
     kill,
-    profit,
+    // 적용대상이 정해진 이벤트(디자인차트)는 그 회원에게만 내려준다.
+    profit: profitEventForUser(profit, user),
     liquidationRoe,
     styleVersion: style,
     ...(markSymbols.length ? { prices: Object.fromEntries(prices) } : {})

@@ -117,7 +117,7 @@ export async function sweepLiquidations(opts: { userId?: number } = {}): Promise
 
   // 리모콘(수익/손실) 이벤트: 가격이 시간을 두고 목표가로 움직이는 동안에는 화면에 보이는 가격(경로)을 기준으로 판정한다.
   // 청산가에 "도달한 적이 있는지"를 경로로 확인하므로, 점검이 늦어도(가격이 이미 되돌아온 뒤여도) 놓치지 않는다.
-  type EventTimeline = { startMs: number; tl: ProfitTimeline }
+  type EventTimeline = { startMs: number; tl: ProfitTimeline; targets: number[] | null }
   const eventsBySymbol = new Map<string, EventTimeline[]>()
   await Promise.all(
     symbols.map(async (sym) => {
@@ -128,7 +128,7 @@ export async function sweepLiquidations(opts: { userId?: number } = {}): Promise
         for (const ev of evs) {
           const startMs = new Date(ev.createdAt).getTime()
           if (!Number.isFinite(startMs)) continue
-          list.push({ startMs, tl: buildProfitTimeline(ev, mark > 0 ? mark : ev.basePrice) })
+          list.push({ startMs, tl: buildProfitTimeline(ev, mark > 0 ? mark : ev.basePrice), targets: ev.targets ?? null })
         }
         eventsBySymbol.set(sym, list)
       } catch {
@@ -148,7 +148,8 @@ export async function sweepLiquidations(opts: { userId?: number } = {}): Promise
     }
     const sym = String(p.symbol).toUpperCase()
     const realMark = marks.get(sym)
-    const evTimelines = eventsBySymbol.get(sym) ?? []
+    // 적용대상이 정해진 이벤트(디자인차트)는 그 회원의 포지션에만 적용한다.
+    const evTimelines = (eventsBySymbol.get(sym) ?? []).filter((e) => !e.targets?.length || e.targets.includes(uid))
     const posStartMs = p.created_at ? new Date(p.created_at).getTime() : 0
     // 지금 진행 중인 리모콘 이벤트가 있으면 화면에 보이는(경로상의) 가격이 현재가다.
     let mark = realMark

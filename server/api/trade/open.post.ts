@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
   const symbol = body.symbol.toUpperCase()
   const marketPrice = (await getOkxLastPrice(symbol)).last
   // 리모콘/킬로 가격이 움직이는 중이면 화면에 보이는 그 가격으로 진입한다(평소에는 실제 시세 ±1%로 보정).
-  const entry = await resolveClientPrice(symbol, body.price, marketPrice)
+  const entry = await resolveClientPrice(symbol, body.price, marketPrice, user)
 
   if (useSupa) {
     const supa = getSupabaseAdminClient()
