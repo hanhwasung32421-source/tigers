@@ -58,14 +58,8 @@
                 >
                   {{ t('디자인차트', 'Design chart') }}
                 </button>
-                <button
-                  type="button"
-                  class="rounded bg-emerald-500/15 px-2 py-1 text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40"
-                  :disabled="adminProfitBusy || adminKillBusy"
-                  @click="openProfitModal()"
-                >
-                  {{ t('리모콘', 'Remote') }}
-                </button>
+                <!-- 리모콘1 버튼은 화면에서 숨겼다(삭제). 기능(openProfitModal, 서버 /api/admin/profit, 정지/로그창)은 그대로 살아 있다. 다시 쓰려면 아래 버튼을 되살리면 된다. -->
+                <!-- <button type="button" class="rounded bg-emerald-500/15 px-2 py-1 text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40" :disabled="adminProfitBusy || adminKillBusy" @click="openProfitModal()">{{ t('리모콘1', 'Remote 1') }}</button> -->
                 <button
                   type="button"
                   class="rounded bg-sky-500/15 px-2 py-1 text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40"
@@ -1673,7 +1667,7 @@
       <div class="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-6 shadow-2xl">
         <div class="flex items-center justify-between">
           <h3 class="text-xl font-semibold tracking-tight text-slate-100">
-            {{ t('리모콘', 'Remote') }}
+            {{ t('리모콘1', 'Remote 1') }}
           </h3>
           <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="closeProfitModal">
             ✕
@@ -1777,7 +1771,7 @@
     >
       <div class="flex items-center justify-between">
         <div class="text-sm font-semibold text-slate-100">
-          {{ remoteLog.kind === 3 ? t('디자인차트 진행 상황', 'Design chart progress') : remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘 진행 상황', 'Remote progress') }}
+          {{ remoteLog.kind === 3 ? t('디자인차트 진행 상황', 'Design chart progress') : remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘1 진행 상황', 'Remote 1 progress') }}
           <span class="ml-1 font-normal" :class="remoteLog.done ? 'text-emerald-300' : 'text-sky-300'">
             {{ remoteLog.done ? t('· 완료', '· Done') : t('· 진행 중', '· Running') }}
           </span>
