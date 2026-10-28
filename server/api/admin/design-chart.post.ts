@@ -11,6 +11,8 @@ const BodySchema = z.object({
   symbol: z.string().min(1),
   open: z.coerce.number().positive(),
   barSeconds: z.coerce.number().int().min(1).max(3600),
+  // 마지막 봉이 끝난 뒤 정상가로 돌아오는 데 걸리는 시간(분)
+  returnMinutes: z.coerce.number().min(0.5).max(30).optional(),
   candles: z
     .array(
       z.object({
@@ -23,7 +25,8 @@ const BodySchema = z.object({
     .max(PROFIT_CANDLE_MAX)
 })
 
-const RETURN_MS = 20000
+const DEFAULT_RETURN_MINUTES = 1
+const WANDER = 0.1 // 돌아오는 동안 정상가로 다가가는 선에서 위아래로 벗어날 수 있는 폭(±)
 
 export default defineEventHandler(async (event) => {
   const admin = await requireSuperAdmin(event)
@@ -62,7 +65,8 @@ export default defineEventHandler(async (event) => {
   let delayMs = barMs - (Date.now() % barMs)
   if (delayMs < 3000) delayMs += barMs
 
-  const cplan: ProfitCandlePlan = { open, tick, barMs, delayMs, cMs: RETURN_MS, candles }
+  const cMs = Math.round((body.returnMinutes ?? DEFAULT_RETURN_MINUTES) * 60000)
+  const cplan: ProfitCandlePlan = { open, tick, barMs, delayMs, cMs, wander: WANDER, candles }
   const percent = Number(((Math.abs(candles[candles.length - 1].c - open) / basePrice) * 100 * 100).toFixed(4))
   try {
     const profitEvent = await createProfitCandleEvent({ symbol, basePrice, percent, cplan })

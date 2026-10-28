@@ -27,6 +27,8 @@ export type ProfitCandlePlan = {
   delayMs: number
   // 마지막 봉이 끝난 뒤 정상가로 돌아오는 시간
   cMs: number
+  // 돌아오는 동안 가격이 (정상가로 다가가는 선) 위아래로 벗어날 수 있는 폭(±). 없으면 0.10.
+  wander?: number
   candles: ProfitCandleStep[]
 }
 export const PROFIT_CANDLE_MAX = 20
@@ -382,8 +384,29 @@ export function buildCandlePlanPoints(ev: ProfitPathEvent): { points: ProfitPoin
 export function buildCandlePlanReturn(ev: ProfitPathEvent, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
   const cp = ev.cplan as ProfitCandlePlan
   const rng = mulberry32((profitSeed(ev) ^ 0x7f4a7c15) >>> 0)
-  const stage: ProfitPlanStage = { price: 0, aMs: cp.cMs, aTicks: 0, bMs: 0, bTicks: 0, amp: null, back: true, cMs: cp.cMs, cTicks: 0 }
-  return buildPlanStageC(stage, rng, startT, startPrice, realTarget)
+  // 정해진 시간(cMs) 동안 정상가로 자연스럽게 돌아온다: 정상가로 다가가는 선을 따라가되, 그 선에서 위아래로 ±wander(기본 0.10) 안에서
+  // 천천히(틱마다 조금씩) 오르내린다. 끝 20% 구간에서는 흔들림이 줄어 마지막 점이 정확히 정상가(realTarget)에 닿는다.
+  const cMs = Math.max(1000, cp.cMs)
+  const band = cp.wander != null && Number.isFinite(cp.wander) && cp.wander >= 0 ? cp.wander : 0.1
+  const tick = cp.tick > 0 ? cp.tick : 0.01
+  const snap = (p: number) => Number((Math.round(p / tick) * tick).toPrecision(12))
+  const n = Math.max(6, Math.min(6000, Math.round(cMs / 400)))
+  const weights = Array.from({ length: n - 1 }, () => 0.4 + rng() * 1.2)
+  const sum = weights.reduce((x, y) => x + y, 0)
+  const stepMax = Math.max(tick * 2, band * 0.2)
+  const points: ProfitPoint[] = []
+  let acc = 0
+  let w = 0
+  for (let k = 1; k <= n; k++) {
+    if (k > 1) acc += weights[k - 2]
+    const t = startT + (cMs * acc) / sum
+    const s = Math.min(1, (t - startT) / cMs)
+    w = Math.max(-band, Math.min(band, w + (rng() * 2 - 1) * stepMax))
+    const env = s < 0.8 ? 1 : Math.max(0, (1 - s) / 0.2)
+    const price = k === n ? realTarget : snap(startPrice + (realTarget - startPrice) * s + w * env)
+    points.push({ t, price })
+  }
+  return points
 }
 
 export function candlePlanTotalMs(cp: ProfitCandlePlan): number {

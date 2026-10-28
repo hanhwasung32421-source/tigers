@@ -600,6 +600,11 @@
                 <span class="text-[#868993]">{{ t('다음봉', 'Bars') }} {{ designCandles.length }}/{{ DESIGN_MAX }}</span>
                 <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length >= DESIGN_MAX" @click="addDesignCandle">+ {{ t('다음봉', 'Next bar') }}</button>
                 <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length <= 1" @click="removeLastDesignCandle">{{ t('마지막 삭제', 'Remove last') }}</button>
+                <label class="flex items-center gap-1 text-[#868993]">
+                  {{ t('정상가 복귀', 'Return') }}
+                  <input v-model.number="designReturnMinutes" type="number" min="0.5" max="30" step="0.5" class="w-14 rounded bg-white/10 px-1.5 py-1 text-right text-[#d1d4dc] outline-none ring-1 ring-white/10 focus:ring-violet-400" />
+                  {{ t('분', 'min') }}
+                </label>
                 <button type="button" class="rounded bg-[#0aa37f] px-3 py-1 font-semibold text-white hover:bg-[#0cb88f] disabled:opacity-50" :disabled="designBusy" @click="startDesignChart">{{ t('시작', 'Start') }}</button>
                 <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15" @click="closeDesignChart">{{ t('닫기', 'Close') }}</button>
               </div>
@@ -5117,6 +5122,7 @@ const DESIGN_MAX = PROFIT_CANDLE_MAX
 const designOpen = ref(false)
 const designWaiting = ref(false) // 시작을 눌렀고 다음 봉이 시작되기를 기다리는 중
 const designBusy = ref(false)
+const designReturnMinutes = ref(3) // 마지막 봉이 끝난 뒤 정상가로 돌아오는 데 걸리는 시간(분)
 const designError = ref<string | null>(null)
 const designOpenPrice = ref(0)
 const designTickSizeRef = ref(0.01)
@@ -5162,6 +5168,10 @@ async function openDesignChart() {
   if (!(cur > 0)) return
   // 움직이는 최소 단위는 종목의 실제 최소 가격 단위(틱, 예: SAMSUNGUSDT 0.01)를 서버에서 확인해 쓴다. 못 받으면 가격 크기에 맞춘 기본값.
   designTickSizeRef.value = designTickSize(cur)
+  try {
+    const savedMin = Number(localStorage.getItem('ktx_design_return_minutes'))
+    if (Number.isFinite(savedMin) && savedMin >= 0.5 && savedMin <= 30) designReturnMinutes.value = savedMin
+  } catch {}
   try {
     const res = await $fetch<{ tick: number }>('/api/admin/design-chart', { query: { symbol: symbol.value } })
     if (Number(res?.tick) > 0) designTickSizeRef.value = Number(res.tick)
@@ -5277,6 +5287,14 @@ async function startDesignChart() {
     designError.value = t('디자인차트는 1시간봉 이하에서 사용할 수 있습니다.', 'Design chart works on 1-hour bars or shorter.')
     return
   }
+  const retMin = Number(designReturnMinutes.value)
+  if (!Number.isFinite(retMin) || retMin < 0.5 || retMin > 30) {
+    designError.value = t('정상가로 돌아오는 시간은 0.5~30분 사이로 입력해주세요.', 'Return time must be between 0.5 and 30 minutes.')
+    return
+  }
+  try {
+    localStorage.setItem('ktx_design_return_minutes', String(retMin))
+  } catch {}
   designBusy.value = true
   designError.value = null
   try {
@@ -5286,6 +5304,7 @@ async function startDesignChart() {
         symbol: symbol.value,
         open: designOpenPrice.value,
         barSeconds: bar,
+        returnMinutes: retMin,
         candles: designCandles.value.map((c) => ({ c: c.c, h: c.h, l: c.l }))
       }
     })
@@ -5327,7 +5346,7 @@ function buildRemoteLogSteps(ev: ProfitEvent): RemoteLogStep[] {
     cp.candles.forEach((cd, k) => {
       add(t('다음봉', 'Next bar') + ` ${k + 1}`, `C ${fmtPrice(cd.c)} · H ${fmtPrice(cd.h)} · L ${fmtPrice(cd.l)}`, cp.barMs)
     })
-    add(t('정상가로 복귀', 'Return to normal'), t('실제 현재가로', 'to the real price'), cp.cMs)
+    add(t('정상가로 복귀', 'Return to normal'), `±${cp.wander ?? 0.1} · ${Math.round((cp.cMs / 60000) * 10) / 10}${t('분', 'min')}`, cp.cMs)
   } else if (ev.plan?.stages?.length) {
     const plan = ev.plan
     plan.stages.forEach((st, k) => {

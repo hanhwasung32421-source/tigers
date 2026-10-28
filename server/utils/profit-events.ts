@@ -59,15 +59,17 @@ function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: numbe
     const barMs = Number(j?.b)
     const delayMs = Number(j?.d)
     const cMs = Number(j?.r)
+    const wander = Number(j?.w)
     if (!candles.length || ![open, tick, barMs, delayMs, cMs].every((x) => Number.isFinite(x)) || tick <= 0 || barMs <= 0) return null
     const st = Number(j?.st)
-    return { cplan: { open, tick, barMs, delayMs, cMs, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null }
+    return { cplan: { open, tick, barMs, delayMs, cMs, wander: Number.isFinite(wander) && wander >= 0 ? wander : undefined, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null }
   } catch {
     return null
   }
 }
 function buildCandleDirection(cp: ProfitCandlePlan, stopT?: number | null, returnMs?: number | null) {
   const body: any = { o: cp.open, t: cp.tick, b: cp.barMs, d: cp.delayMs, r: cp.cMs, c: cp.candles.map((x) => [x.c, x.h, x.l]) }
+  if (cp.wander != null) body.w = cp.wander
   if (stopT != null) body.st = stopT
   if (returnMs) body.rm = Math.round(returnMs)
   return CANDLE_PREFIX + JSON.stringify(body)
