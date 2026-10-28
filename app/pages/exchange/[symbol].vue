@@ -2139,7 +2139,7 @@
 </template>
 
 <script setup lang="ts">
-import { buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, PROFIT_RETURN_MS } from '~~/shared/utils/profit-path'
+import { buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, PROFIT_RETURN_MS, PROFIT_STOP_JITTER_MS } from '~~/shared/utils/profit-path'
 import type { ProfitPlan } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
 import { usesBinanceFeed } from '~~/shared/utils/feed-symbols'
@@ -5080,7 +5080,8 @@ function buildRemoteLogSteps(ev: ProfitEvent): RemoteLogStep[] {
 // 정지: 정지 시각 이후의 단계는 빼고, "정지 → 정상가로 복귀(1분)" 단계를 붙인다.
 function applyStopToSteps(steps: RemoteLogStep[], stopT: number): RemoteLogStep[] {
   const out = steps.filter((x) => x.startT < stopT).map((x) => ({ ...x, endT: Math.min(x.endT, stopT) }))
-  out.push({ label: t('리모콘 정지 · 정상가로 복귀', 'Stopped · returning to normal'), detail: t('실제 현재가로', 'to the real price'), startT: stopT, endT: stopT + PROFIT_RETURN_MS })
+  out.push({ label: t('정지 · 그 가격에서 ±0.01 흔들림', 'Stopped · wiggle ±0.01 at that price'), detail: '±0.01', startT: stopT, endT: stopT + PROFIT_STOP_JITTER_MS })
+  out.push({ label: t('정지 · 정상가로 복귀', 'Stopped · returning to normal'), detail: t('실제 현재가로', 'to the real price'), startT: stopT + PROFIT_STOP_JITTER_MS, endT: stopT + PROFIT_RETURN_MS })
   return out
 }
 
