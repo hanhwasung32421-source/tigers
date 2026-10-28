@@ -1,4 +1,5 @@
 import { getDb } from './db'
+import { planTotalMs, PROFIT_PLAN_MAX_STAGES, type ProfitPlan, type ProfitPlanStage } from '../../shared/utils/profit-path'
 import { clearTtlCache, ttlCached } from './ttl-cache'
 import { createLatestBySymbol } from './latest-by-symbol'
 import { supabaseAppDbEnabled } from './supa-appdb'
@@ -29,13 +30,74 @@ export type ProfitEvent = {
   holdAmp: number | null
   // 진행 중 중단된 시각(이벤트 시작 기준 ms). 중단되지 않았으면 없음.
   stopT?: number | null
+  // 리모콘2 이벤트면 목표가 여러 개를 차례로 지나는 계획(없으면 기존 리모콘1 이벤트).
+  plan?: ProfitPlan | null
   createdAt: string
+}
+
+// 리모콘2 저장 형식: direction 컬럼에 'R2:' + JSON({ s: [[목표가, 이동ms, 이동틱, 유지ms, 유지틱, 움직임금액|null, 복귀여부(0/1), 복귀ms, 복귀틱], ...], st: 정지시각ms })
+// (DB 컬럼을 늘리지 않으려고 기존 text 컬럼에 담는다. 리모콘1 이벤트는 'up|...' 형식 그대로라 서로 섞이지 않는다.)
+const PLAN_PREFIX = 'R2:'
+function parsePlanDirection(dir: any): { plan: ProfitPlan; stopT: number | null } | null {
+  const text = String(dir ?? '')
+  if (!text.startsWith(PLAN_PREFIX)) return null
+  try {
+    const j = JSON.parse(text.slice(PLAN_PREFIX.length))
+    const rows = Array.isArray(j?.s) ? j.s : []
+    const stages: ProfitPlanStage[] = []
+    for (const r of rows.slice(0, PROFIT_PLAN_MAX_STAGES)) {
+      if (!Array.isArray(r) || r.length < 9) return null
+      const n = r.map((x: any, i: number) => (i === 5 && (x === null || x === '') ? null : Number(x)))
+      if (!n.every((x: any, i: number) => (i === 5 && x === null) || Number.isFinite(x))) return null
+      stages.push({ price: n[0], aMs: n[1], aTicks: n[2], bMs: n[3], bTicks: n[4], amp: n[5], back: n[6] === 1, cMs: n[7], cTicks: n[8] })
+    }
+    if (!stages.length) return null
+    const st = Number(j?.st)
+    return { plan: { stages }, stopT: j?.st != null && Number.isFinite(st) ? st : null }
+  } catch {
+    return null
+  }
+}
+function buildPlanDirection(plan: ProfitPlan, stopT?: number | null) {
+  const s = plan.stages.map((g) => [g.price, g.aMs, g.aTicks, g.bMs, g.bTicks, g.amp, g.back ? 1 : 0, g.cMs, g.cTicks])
+  return PLAN_PREFIX + JSON.stringify(stopT != null ? { s, st: stopT } : { s })
+}
+// 리모콘2 이벤트의 기존 필드(리모콘1 화면/관리자 목록이 읽는 값)는 첫 목표 기준으로 채운다.
+function planToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, plan: ProfitPlan, stopT: number | null): ProfitEvent {
+  const first = plan.stages[0]
+  const last = plan.stages[plan.stages.length - 1]
+  return {
+    id: base.id,
+    symbol: base.symbol,
+    direction: first.price >= base.basePrice ? 'up' : 'down',
+    percent: base.percent,
+    basePrice: base.basePrice,
+    shockedPrice: first.price,
+    durationMs: first.aMs,
+    tickCount: first.aTicks,
+    holdTickCount: first.bTicks,
+    holdMs: first.bMs,
+    revertMs: last.cMs,
+    revertTickCount: last.cTicks,
+    holdAmp: first.amp,
+    stopT,
+    plan,
+    createdAt: base.createdAt
+  }
 }
 
 // duration_ms = 이동 ms + 복귀 ms × 20000, tick_count = 이동 틱 + 유지 틱 × 1000 + 복귀 틱 × 1,000,000, direction = 'up' | 'up|0.03'(유지 움직임 폭)
 const DURATION_PACK = 20000
 
 function rowToProfitEvent(row: any): ProfitEvent {
+  const planDir = parsePlanDirection(row.direction)
+  if (planDir) {
+    return planToEvent(
+      { id: Number(row.id), symbol: String(row.symbol).toUpperCase(), percent: Number(row.percent), basePrice: Number(row.base_price), createdAt: String(row.created_at) },
+      planDir.plan,
+      planDir.stopT
+    )
+  }
   const dur = Number(row.duration_ms)
   const durOk = Number.isFinite(dur) && dur > 0
   const moveMs = durOk ? dur % DURATION_PACK || DEFAULT_DURATION_MS : DEFAULT_DURATION_MS
@@ -179,6 +241,51 @@ async function createProfitEventInner(input: {
   }
 }
 
+// 리모콘2 이벤트 만들기(목표가 1~10개). 가격 경로는 plan 하나로 정해지고, 모든 화면/서버가 같은 plan으로 같은 경로를 만든다.
+export async function createProfitPlanEvent(input: { symbol: string; basePrice: number; percent: number; stages: ProfitPlanStage[] }): Promise<ProfitEvent> {
+  invalidateLatestProfit()
+  try {
+    return await createProfitPlanEventInner(input)
+  } finally {
+    invalidateLatestProfit()
+  }
+}
+
+async function createProfitPlanEventInner(input: { symbol: string; basePrice: number; percent: number; stages: ProfitPlanStage[] }): Promise<ProfitEvent> {
+  const createdAt = new Date().toISOString()
+  const symbol = input.symbol.toUpperCase()
+  const plan: ProfitPlan = { stages: input.stages.slice(0, PROFIT_PLAN_MAX_STAGES) }
+  const first = plan.stages[0]
+  const storedDirection = buildPlanDirection(plan)
+  // 숫자 컬럼은 기존 형식과 같은 범위로만 채운다(실제 값은 direction의 plan에 있다).
+  const storedDuration = Math.min(Math.round(first.aMs), 19999)
+  const storedTickCount = Math.min(Math.round(first.aTicks), 999)
+  const holdMs = Math.max(1, Math.round(first.bMs))
+  if (supabaseAppDbEnabled()) {
+    const id = Date.now() * 1000 + Math.floor(Math.random() * 1000)
+    const supa = getSupabaseAdminClient()
+    const { error } = await supa.from(T_PROFIT_EVENTS).insert({
+      id,
+      symbol,
+      direction: storedDirection,
+      percent: input.percent,
+      base_price: input.basePrice,
+      shocked_price: first.price,
+      duration_ms: storedDuration,
+      tick_count: storedTickCount,
+      hold_ms: holdMs,
+      created_at: createdAt
+    })
+    if (error) throw error
+    return planToEvent({ id, symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, plan, null)
+  }
+  const db = getDb()
+  const result = db
+    .prepare('INSERT INTO profit_events (symbol, direction, percent, base_price, shocked_price, duration_ms, tick_count, hold_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(symbol, storedDirection, input.percent, input.basePrice, first.price, storedDuration, storedTickCount, holdMs, createdAt)
+  return planToEvent({ id: Number(result.lastInsertRowid), symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, plan, null)
+}
+
 // 진행 중인 이벤트를 지금 시각에서 중단한다(운영자 화면 새로고침). direction 컬럼의 확장 형식 8번째 값에 중단 시각(ms)을 기록한다.
 export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT: number | null }> {
   invalidateLatestProfit()
@@ -187,6 +294,18 @@ export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT:
   } finally {
     invalidateLatestProfit()
   }
+}
+
+// 리모콘2 이벤트의 정지: plan의 전체 길이 안에서만 정지할 수 있고, 정지 시각은 JSON의 st에 기록한다.
+async function stopPlanEvent(row: any, save: (direction: string) => Promise<void>): Promise<{ ok: boolean; stopT: number | null }> {
+  const pd = parsePlanDirection(row.direction)
+  if (!pd) return { ok: false, stopT: null }
+  if (pd.stopT != null) return { ok: true, stopT: pd.stopT } // 이미 중단됨
+  const offset = Math.max(0, Date.now() - new Date(row.created_at).getTime())
+  if (offset >= planTotalMs(pd.plan)) return { ok: false, stopT: null } // 이미 끝난 이벤트
+  const stopT = Math.round(offset)
+  await save(buildPlanDirection(pd.plan, stopT))
+  return { ok: true, stopT }
 }
 
 async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: number | null }> {
@@ -202,6 +321,12 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
     const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { id }, limit: 1 })
     const row = rows[0]
     if (!row) return { ok: false, stopT: null }
+    if (String(row.direction ?? '').startsWith(PLAN_PREFIX)) {
+      return stopPlanEvent(row, async (direction) => {
+        const { error } = await getSupabaseAdminClient().from(T_PROFIT_EVENTS).update({ direction }).eq('id', id)
+        if (error) throw error
+      })
+    }
     const a = apply(row.direction, row.created_at)
     if (!a) return { ok: false, stopT: null }
     const holdMs = Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS
@@ -217,6 +342,11 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
   const db = getDb()
   const row = db.prepare('SELECT * FROM profit_events WHERE id = ?').get(id) as any
   if (!row) return { ok: false, stopT: null }
+  if (String(row.direction ?? '').startsWith(PLAN_PREFIX)) {
+    return stopPlanEvent(row, async (direction) => {
+      db.prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(direction, id)
+    })
+  }
   const a = apply(row.direction, row.created_at)
   if (!a) return { ok: false, stopT: null }
   const holdMs = Number(row.hold_ms) > 0 ? Number(row.hold_ms) : DEFAULT_HOLD_MS

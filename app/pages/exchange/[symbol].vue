@@ -60,6 +60,14 @@
                 </button>
                 <button
                   type="button"
+                  class="rounded bg-sky-500/15 px-2 py-1 text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40"
+                  :disabled="adminProfitBusy || adminKillBusy"
+                  @click="openRemote2Modal()"
+                >
+                  {{ t('리모콘2', 'Remote 2') }}
+                </button>
+                <button
+                  type="button"
                   class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
                   :disabled="!adminProfitBusy || profitReturning || profitStopBusy"
                   :title="t('진행 중인 리모콘을 멈추고 1분 동안 실제 현재가로 돌아옵니다', 'Stop the running remote and glide back to the real price over 1 minute')"
@@ -1686,6 +1694,96 @@
     </div>
 
     <div
+      v-if="remote2Open"
+      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+      @click.self="remote2Open = false"
+    >
+      <div class="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-5 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold tracking-tight text-slate-100">{{ t('리모콘2', 'Remote 2') }}</h3>
+          <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="remote2Open = false">✕</button>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">
+          {{ t('현재가', 'Current') }} {{ displayLastPrice ? fmtPrice(displayLastPrice) : '—' }} ·
+          {{ t('목표마다 A(가는 중) → B(머무름) 순서로 진행하고, 마지막 목표 뒤에는 정상가로 돌아옵니다.', 'Each target runs A (move) → B (hold); after the last target the price returns to normal.') }}
+        </p>
+
+        <div class="mt-3 space-y-3">
+          <div v-for="(st, i) in remote2Stages" :key="i" class="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-semibold text-slate-100">{{ t('목표', 'Target') }} {{ i + 1 }}</div>
+              <button v-if="remote2Stages.length > 1" type="button" class="rounded px-2 py-0.5 text-xs text-slate-400 hover:bg-white/10 hover:text-white" @click="removeRemote2Stage(i)">
+                {{ t('삭제', 'Remove') }}
+              </button>
+            </div>
+            <div class="mt-2 grid grid-cols-[88px_1fr] items-center gap-x-2 gap-y-2 text-xs">
+              <div class="text-slate-400">{{ t('목표가격', 'Target price') }}</div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input v-model.number="st.price" type="number" min="0" step="any" class="w-32 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+                <span class="text-slate-400">{{ t('움직임금액', 'Move') }} ±</span>
+                <input v-model.number="st.amp" type="number" min="0" step="any" class="w-20 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+              </div>
+              <div class="text-slate-400">{{ t('A 목표가로', 'A move to target') }}</div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input v-model.number="st.aSec" type="number" min="0.1" step="0.1" class="w-20 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+                <span class="text-slate-400">{{ t('초', 'sec') }}</span>
+                <input v-model.number="st.aTicks" type="number" min="0" step="1" class="w-20 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+                <span class="text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
+              </div>
+              <div class="text-slate-400">{{ t('B 머무르기', 'B hold') }}</div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input v-model.number="st.bSec" type="number" min="0.1" step="0.1" class="w-20 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+                <span class="text-slate-400">{{ t('초', 'sec') }}</span>
+                <input v-model.number="st.bTicks" type="number" min="0" step="1" class="w-20 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+                <span class="text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
+              </div>
+              <template v-if="i < remote2Stages.length - 1">
+                <div class="text-slate-400">{{ t('B 다음', 'After B') }}</div>
+                <label class="flex items-center gap-2 text-slate-300">
+                  <input v-model="st.back" type="checkbox" class="h-4 w-4 accent-sky-500" />
+                  {{ t('정상가로 돌아온 뒤 다음 목표로 (해제 시 바로 다음 목표로 이동)', 'Return to normal first, then go to the next target (off = go straight to the next target)') }}
+                </label>
+              </template>
+              <template v-if="st.back || i === remote2Stages.length - 1">
+                <div class="text-slate-400">{{ t('C 정상가로', 'C return to normal') }}</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <input v-model.number="st.cSec" type="number" min="0.1" step="0.1" class="w-20 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+                  <span class="text-slate-400">{{ t('초', 'sec') }}</span>
+                  <input v-model.number="st.cTicks" type="number" min="0" step="1" class="w-20 rounded-md bg-white/5 px-2 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
+                  <span class="text-slate-400">{{ t('틱 (0=자동)', 'ticks (0=auto)') }}</span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="mt-3 w-full rounded-lg border border-dashed border-white/20 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+          :disabled="remote2Stages.length >= REMOTE2_MAX"
+          @click="addRemote2Stage"
+        >
+          + {{ t('다음 목표가격 추가', 'Add next target') }} ({{ remote2Stages.length }}/{{ REMOTE2_MAX }})
+        </button>
+
+        <p v-if="remote2Error" class="mt-3 text-sm text-red-300">{{ remote2Error }}</p>
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <button type="button" class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-[#252f39]" @click="remote2Open = false">
+            {{ t('취소', 'Cancel') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-[#0aa37f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0cb88f] disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="adminProfitBusy"
+            @click="confirmRemote2"
+          >
+            {{ t('실행', 'Run') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
       v-if="bolModalOpen"
       class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
       @click.self="closeBolSettings"
@@ -1989,7 +2087,8 @@
 </template>
 
 <script setup lang="ts">
-import { buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, profitSeed, PROFIT_RETURN_MS } from '~~/shared/utils/profit-path'
+import { buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, PROFIT_RETURN_MS } from '~~/shared/utils/profit-path'
+import type { ProfitPlan } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
 import { usesBinanceFeed } from '~~/shared/utils/feed-symbols'
 import {
@@ -2962,6 +3061,8 @@ type ProfitEvent = {
   holdAmp?: number | null
   // 진행 중 중단된 시각(이벤트 시작 기준 ms). 있으면 그 시점에서 멈추고 이후는 실제 시세.
   stopT?: number | null
+  // 리모콘2 이벤트면 목표가 여러 개를 지나는 계획
+  plan?: ProfitPlan | null
   createdAt: string
 }
 const profitModalOpen = ref(false)
@@ -4888,6 +4989,120 @@ function closeProfitModal() {
   profitModalOpen.value = false
 }
 
+// ─── 리모콘2: 목표가를 최대 10개까지 이어서 지정(기존 리모콘과 별개) ───
+type Remote2Stage = { price: number | null; amp: number; aSec: number; aTicks: number; bSec: number; bTicks: number; back: boolean; cSec: number; cTicks: number }
+const REMOTE2_MAX = 10
+const REMOTE2_LAST_KEY = 'ktx_remote2_last'
+const remote2Open = ref(false)
+const remote2Stages = ref<Remote2Stage[]>([])
+const remote2Error = ref<string | null>(null)
+
+function newRemote2Stage(price: number | null, from?: Remote2Stage | null): Remote2Stage {
+  return {
+    price,
+    amp: from?.amp ?? 0.03,
+    aSec: from?.aSec ?? 3,
+    aTicks: from?.aTicks ?? 0,
+    bSec: from?.bSec ?? 5,
+    bTicks: from?.bTicks ?? 0,
+    back: false,
+    cSec: from?.cSec ?? 3,
+    cTicks: from?.cTicks ?? 0
+  }
+}
+
+function openRemote2Modal() {
+  if (!isSuperAdminUser.value) return
+  let saved: Remote2Stage[] = []
+  try {
+    const parsed = JSON.parse(localStorage.getItem(REMOTE2_LAST_KEY) || '[]')
+    if (Array.isArray(parsed)) saved = parsed.slice(0, REMOTE2_MAX).map((g: any) => ({ ...newRemote2Stage(null), ...g, price: null }))
+  } catch {}
+  const cur = Number(displayLastPrice.value || lastPrice.value || 0)
+  if (saved.length) {
+    // 지난번 시간/틱 설정은 그대로 두고, 목표가격만 현재가 기준으로 새로 채운다(첫 목표는 현재가보다 조금 위).
+    saved.forEach((g, i) => {
+      g.price = cur > 0 ? Number((cur * (1 + 0.001 * (i + 1))).toPrecision(8)) : null
+    })
+    remote2Stages.value = saved
+  } else {
+    remote2Stages.value = [newRemote2Stage(cur > 0 ? Number((cur * 1.001).toPrecision(8)) : null)]
+  }
+  remote2Error.value = null
+  remote2Open.value = true
+}
+
+function addRemote2Stage() {
+  if (remote2Stages.value.length >= REMOTE2_MAX) return
+  const prev = remote2Stages.value[remote2Stages.value.length - 1] || null
+  remote2Stages.value = remote2Stages.value.concat([newRemote2Stage(prev?.price ?? null, prev)])
+}
+
+function removeRemote2Stage(i: number) {
+  if (remote2Stages.value.length <= 1) return
+  remote2Stages.value = remote2Stages.value.filter((_, idx) => idx !== i)
+}
+
+async function confirmRemote2() {
+  const stages = remote2Stages.value
+  const curPrice = Number(displayLastPrice.value || lastPrice.value || 0)
+  const isNum = (v: any) => Number.isFinite(Number(v))
+  const payload: any[] = []
+  const autoTicks = (seconds: number) => Math.max(2, Math.round(seconds * (3 + Math.random() * 2)))
+  for (let i = 0; i < stages.length; i++) {
+    const g = stages[i]
+    const label = t(`목표 ${i + 1}: `, `Target ${i + 1}: `)
+    const isLast = i === stages.length - 1
+    const returns = isLast || g.back
+    const price = Number(g.price)
+    if (!isNum(g.price) || price <= 0) return void (remote2Error.value = label + t('목표가격을 입력해주세요.', 'enter a target price.'))
+    if (i === 0 && curPrice > 0 && price === curPrice) return void (remote2Error.value = label + t('현재가와 다른 금액을 입력해주세요.', 'enter a price different from the current price.'))
+    if (!isNum(g.amp) || Number(g.amp) < 0) return void (remote2Error.value = label + t('움직임금액은 0 이상으로 입력해주세요.', 'move amount must be 0 or more.'))
+    const secs: Array<[string, any]> = [['A', g.aSec], ['B', g.bSec], ...(returns ? ([['C', g.cSec]] as Array<[string, any]>) : [])]
+    for (const [name, v] of secs) {
+      if (!isNum(v) || Number(v) < 0.1) return void (remote2Error.value = label + t(`${name} 시간은 0.1초 이상으로 입력해주세요.`, `${name} time must be 0.1 sec or more.`))
+    }
+    const ticks: Array<[string, any]> = [['A', g.aTicks], ['B', g.bTicks], ...(returns ? ([['C', g.cTicks]] as Array<[string, any]>) : [])]
+    for (const [name, v] of ticks) {
+      const n = Math.round(Number(v || 0))
+      if (!isNum(v ?? 0) || n < 0 || n > 2000) return void (remote2Error.value = label + t(`${name} 틱은 0~2000 사이로 입력해주세요. (0 = 자동)`, `${name} ticks must be between 0 and 2000. (0 = auto)`))
+    }
+    const aSec = Number(g.aSec)
+    const bSec = Number(g.bSec)
+    const cSec = returns ? Number(g.cSec) : aSec
+    const t0 = Math.round(Number(g.aTicks || 0))
+    const t1 = Math.round(Number(g.bTicks || 0))
+    const t2 = Math.round(Number(g.cTicks || 0))
+    payload.push({
+      price,
+      aSeconds: aSec,
+      aTicks: t0 > 0 ? t0 : autoTicks(aSec),
+      bSeconds: bSec,
+      bTicks: t1 > 0 ? t1 : autoTicks(bSec),
+      amp: Number(g.amp),
+      back: returns,
+      cSeconds: cSec,
+      cTicks: t2 > 0 ? t2 : autoTicks(cSec)
+    })
+  }
+  adminProfitBusy.value = true
+  remote2Error.value = null
+  try {
+    const res = await $fetch<{ ok: boolean; event: ProfitEvent }>('/api/admin/profit2', { method: 'POST', body: { symbol: symbol.value, stages: payload } })
+    try {
+      localStorage.setItem(REMOTE2_LAST_KEY, JSON.stringify(stages.map((g) => ({ amp: g.amp, aSec: g.aSec, aTicks: g.aTicks, bSec: g.bSec, bTicks: g.bTicks, back: g.back, cSec: g.cSec, cTicks: g.cTicks }))))
+    } catch {}
+    remote2Open.value = false
+    if (res?.event) {
+      lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
+      await runProfitAnimation(res.event)
+    }
+  } catch (e: any) {
+    remote2Error.value = e?.data?.statusMessage || t('실행 실패', 'Execution failed')
+    adminProfitBusy.value = false
+  }
+}
+
 async function confirmProfitModal() {
   const targetPrice = Number(profitTargetDraft.value)
   if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
@@ -4982,7 +5197,7 @@ async function initProfitEventBaseline() {
       // 리모콘이 아직 진행 중이면(새로고침해도 계속 진행되어야 하므로) 지나간 시간만큼 건너뛰고 지금 시점부터 이어서 재생한다.
       const ev = res.event
       const t0 = new Date(ev.createdAt).getTime()
-      const total = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : Math.max(100, ev.durationMs || 1000) + Math.max(100, ev.holdMs || 3000) + Math.max(100, ev.revertMs || ev.durationMs || 1000)
+      const total = profitEventTotalMs(ev)
       if (Number.isFinite(t0) && Date.now() - t0 < total && String(ev.symbol).toUpperCase() === String(symbol.value).toUpperCase()) {
         runProfitAnimation(ev, true).catch(() => {})
       }
@@ -5023,7 +5238,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
   const t0Ms = new Date(ev.createdAt).getTime()
   // 새로고침 후 이어서 재생할 때는 이벤트 시작부터 지금까지 지나간 시간(ms)
   const elapsedMs = resume && Number.isFinite(t0Ms) ? Math.max(0, Date.now() - t0Ms) : 0
-  const totalMs = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : durationMs + holdMs + revertMs
+  const totalMs = profitEventTotalMs(ev)
 
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitBusy.value = true
@@ -5118,6 +5333,33 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     return
   }
 
+  if (ev.plan && ev.plan.stages?.length) {
+    // 리모콘2: 목표를 차례로 진행한다. 목표마다 [이동 + 유지]를 만들어 재생하고, 정상가로 복귀하는 목표는 복귀 시작 시점의 실제 현재가로 돌아온다.
+    // (서버/새로고침 복원이 쓰는 buildProfitTimeline과 같은 함수·같은 난수 순서라 같은 경로가 나온다.)
+    const plan = ev.plan
+    const planRng = mulberry32(profitSeed(ev))
+    const runStage = (k: number, startT: number, startPrice: number) => {
+      if (k >= plan.stages.length) {
+        finish()
+        return
+      }
+      const stage = plan.stages[k]
+      const ab = buildPlanStageAB(stage, planRng, startT, startPrice)
+      playPoints(ab.points, () => {
+        if (!planStageReturns(plan, k)) {
+          runStage(k + 1, ab.endT, ab.lastHoldPrice)
+          return
+        }
+        const realPrice = Number(lastPrice.value || ev.basePrice)
+        const c = buildPlanStageC(stage, planRng, ab.endT, ab.lastHoldPrice, realPrice)
+        const endT = c.length ? c[c.length - 1].t : ab.endT
+        playPoints(c, () => runStage(k + 1, endT, realPrice))
+      })
+    }
+    runStage(0, 0, ev.basePrice)
+    return
+  }
+
   const rng = mulberry32(profitSeed(ev))
   const phaseA = buildProfitPhaseA(ev, rng)
   playPoints(phaseA.points, () => {
@@ -5157,12 +5399,12 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
     const durationMs = Math.max(100, ev.durationMs || 1000)
     const holdMs = Math.max(100, ev.holdMs || 3000)
     const revertMs = Math.max(100, ev.revertMs || durationMs)
-    const endMs = t0 + (ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : durationMs + holdMs + revertMs) + 2000
+    const endMs = t0 + profitEventTotalMs(ev) + 2000
     if (Math.floor(endMs / 1000) < firstT) continue // 불러온 봉보다 더 과거 이벤트
     const bucketOf = (ms: number) => barBucketStart(Math.floor(ms / 1000), intervalSeconds)
 
     // 복귀 목표(=복귀가 끝나는 가격, 정지한 이벤트는 정지 후 1분 뒤)는 그 시각 봉의 실제 종가로 대신한다.
-    const phaseAEnd = buildProfitPhaseA(ev, mulberry32(profitSeed(ev))).endT
+    const phaseAEnd = ev.plan ? planFirstReturnStartT(ev.plan) : buildProfitPhaseA(ev, mulberry32(profitSeed(ev))).endT
     const targetT = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : phaseAEnd
     const targetBar = byTime.get(bucketOf(t0 + targetT))
     const realTargetRaw = targetBar ? Number(targetBar.__rc ?? targetBar.close) : ev.basePrice

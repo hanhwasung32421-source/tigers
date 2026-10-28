@@ -1,6 +1,24 @@
 // 리모콘(수익/손실) 가격 경로 생성: 화면(애니메이션/새로고침 복원)과 서버(강제청산 판정)가 같은 코드를 써서 같은 경로를 얻는다.
 // 난수는 이벤트 번호로 고정한 난수열(mulberry32)이라, 같은 이벤트는 언제 어디서 만들어도 같은 경로가 나온다.
+// 리모콘2: 목표가를 최대 10개까지 이어서 지정한다. 목표마다 ① 목표가로 가는 시간/틱 ② 목표가에서 머무르는 시간/틱(움직임금액 ±)을 정하고,
+// 그 뒤 정상가로 돌아왔다가(back=true) 다음 목표로 가거나, 돌아오지 않고 바로 다음 목표로 이어서 간다. 마지막 목표 뒤에는 항상 정상가로 돌아온다.
+export type ProfitPlanStage = {
+  price: number
+  aMs: number
+  aTicks: number
+  bMs: number
+  bTicks: number
+  amp: number | null
+  back: boolean
+  cMs: number
+  cTicks: number
+}
+export type ProfitPlan = { stages: ProfitPlanStage[] }
+export const PROFIT_PLAN_MAX_STAGES = 10
+
 export type ProfitPathEvent = {
+  // 리모콘2 이벤트면 여러 목표가를 차례로 지나는 경로를 쓴다(없으면 기존 리모콘1 경로).
+  plan?: ProfitPlan | null
   id: number
   basePrice: number
   shockedPrice: number
@@ -185,6 +203,124 @@ export function buildProfitPhaseB(ev: ProfitPathEvent, rng: () => number, startT
 
 export type ProfitTimeline = { points: ProfitPoint[]; endT: number }
 
+// ─── 리모콘2 경로 ───
+// 화면 재생(목표 단위로 이어서 만든다)과 서버/새로고침 복원(한 번에 만든다)이 같은 함수·같은 난수 순서를 써서 같은 경로가 나온다.
+export function planStageReturns(plan: ProfitPlan, k: number) {
+  return k === plan.stages.length - 1 || !!plan.stages[k]?.back
+}
+
+// 한 목표의 앞부분: 목표가로 이동(최소 2틱) + 목표가에서 유지. startPrice에서 출발한다.
+export function buildPlanStageAB(stage: ProfitPlanStage, rng: () => number, startT: number, startPrice: number): { points: ProfitPoint[]; endT: number; lastHoldPrice: number } {
+  const prevRng = rngFn
+  rngFn = rng
+  try {
+    const aMs = Math.max(100, stage.aMs || 1000)
+    const bMs = Math.max(100, stage.bMs || 3000)
+    const steps = Math.max(2, resolveWiggleSteps(Math.max(0, Math.round(stage.aTicks || 0)), aMs))
+    const risePath = buildRandomPathToTarget(startPrice, stage.price, steps)
+    const riseGaps = buildRandomGaps(steps, aMs)
+    const points: ProfitPoint[] = []
+    let t = startT
+    points.push({ t, price: risePath[0] })
+    for (let i = 1; i < risePath.length; i++) {
+      t += riseGaps[i - 1] ?? 0
+      points.push({ t, price: risePath[i] })
+    }
+    const amp = stage.amp != null && Number.isFinite(Number(stage.amp)) ? Math.max(0, Number(stage.amp)) : Math.min(0.05, Math.abs(stage.price) * 0.003)
+    const requested = Math.max(0, Math.round(stage.bTicks || 0))
+    const n = requested > 0 ? requested : 3 + Math.floor(rngFn() * 8)
+    const weights = Array.from({ length: n }, () => 0.3 + rngFn())
+    const total = weights.reduce((x, y) => x + y, 0)
+    const holdGaps = weights.map((w) => (w / total) * bMs)
+    let lastHoldPrice = stage.price
+    points.push({ t, price: stage.price })
+    let ht = t
+    for (let i = 0; i < n; i++) {
+      ht += holdGaps[i]
+      const price = stage.price + (rngFn() * 2 - 1) * amp
+      lastHoldPrice = price
+      points.push({ t: ht, price })
+    }
+    return { points, endT: ht, lastHoldPrice }
+  } finally {
+    rngFn = prevRng
+  }
+}
+
+// 한 목표의 뒷부분: 유지가 끝난 가격에서 정상가(realTarget)로 복귀(최소 2틱).
+export function buildPlanStageC(stage: ProfitPlanStage, rng: () => number, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
+  const prevRng = rngFn
+  rngFn = rng
+  try {
+    const cMs = Math.max(100, stage.cMs || stage.aMs || 1000)
+    const steps = Math.max(2, resolveWiggleSteps(Math.max(0, Math.round(stage.cTicks || 0)), cMs))
+    const path = buildRandomPathToTarget(startPrice, realTarget, steps)
+    const gaps = buildRandomGaps(steps, cMs)
+    const points: ProfitPoint[] = []
+    let t = startT
+    points.push({ t, price: path[0] })
+    for (let i = 1; i < path.length; i++) {
+      t += gaps[i - 1] ?? 0
+      points.push({ t, price: path[i] })
+    }
+    return points
+  } finally {
+    rngFn = prevRng
+  }
+}
+
+export function buildPlanTimeline(ev: ProfitPathEvent, realTarget: number): ProfitTimeline {
+  const plan = ev.plan as ProfitPlan
+  const rng = mulberry32(profitSeed(ev))
+  const points: ProfitPoint[] = []
+  let t = 0
+  let price = ev.basePrice
+  for (let k = 0; k < plan.stages.length; k++) {
+    const stage = plan.stages[k]
+    const ab = buildPlanStageAB(stage, rng, t, price)
+    for (const p of ab.points) points.push(p)
+    t = ab.endT
+    price = ab.lastHoldPrice
+    if (planStageReturns(plan, k)) {
+      const c = buildPlanStageC(stage, rng, t, price, realTarget)
+      for (const p of c) points.push(p)
+      if (c.length) t = c[c.length - 1].t
+      price = realTarget
+    }
+  }
+  return { points, endT: t }
+}
+
+// 리모콘2의 전체 길이(ms): 목표마다 이동 + 유지(+ 정상가로 돌아오는 구간).
+export function planTotalMs(plan: ProfitPlan): number {
+  let total = 0
+  for (let k = 0; k < plan.stages.length; k++) {
+    const st = plan.stages[k]
+    total += Math.max(100, st.aMs || 1000) + Math.max(100, st.bMs || 3000)
+    if (planStageReturns(plan, k)) total += Math.max(100, st.cMs || st.aMs || 1000)
+  }
+  return total
+}
+
+// 첫 번째 "정상가로 복귀"가 시작되는 시각(ms). 지난 이벤트를 봉에 다시 입힐 때 복귀 목표(그 시각의 실제 시세)를 고르는 기준으로 쓴다.
+export function planFirstReturnStartT(plan: ProfitPlan): number {
+  let total = 0
+  for (let k = 0; k < plan.stages.length; k++) {
+    const st = plan.stages[k]
+    total += Math.max(100, st.aMs || 1000) + Math.max(100, st.bMs || 3000)
+    if (planStageReturns(plan, k)) return total
+  }
+  return total
+}
+
+// 이벤트가 끝나는 시각(이벤트 시작 기준 ms): 정지했으면 정지 시각 + 복귀 1분, 아니면 경로 전체 길이. 리모콘1/2 모두 같은 함수로 구한다.
+export function profitEventTotalMs(ev: { durationMs?: number; holdMs?: number; revertMs?: number; stopT?: number | null; plan?: ProfitPlan | null }): number {
+  if (ev.stopT != null) return Math.max(0, ev.stopT) + PROFIT_RETURN_MS
+  if (ev.plan) return planTotalMs(ev.plan)
+  const durationMs = Math.max(100, ev.durationMs || 1000)
+  return durationMs + Math.max(100, ev.holdMs || 3000) + Math.max(100, ev.revertMs || durationMs)
+}
+
 // 리모콘 정지 후 복귀: 지금 가격에서 실제 현재가로 1분 동안 200틱에 걸쳐 돌아온다.
 export const PROFIT_RETURN_MS = 60000
 export const PROFIT_RETURN_TICKS = 200
@@ -211,11 +347,19 @@ export function buildProfitReturnPath(ev: ProfitPathEvent, startT: number, start
 
 // 이벤트 전체 타임라인(이동 + 유지 + 복귀). 복귀 목표가는 서버가 그 시각의 실제 시세를 알 수 없어서 realTarget(현재 시세)로 대신한다.
 export function buildProfitTimeline(ev: ProfitPathEvent, realTarget: number): ProfitTimeline {
-  const rng = mulberry32(profitSeed(ev))
-  const a = buildProfitPhaseA(ev, rng)
-  const b = buildProfitPhaseB(ev, rng, a.endT, a.lastHoldPrice, realTarget)
-  let points = a.points.concat(b)
-  let endT = b.length ? b[b.length - 1].t : a.endT
+  let points: ProfitPoint[]
+  let endT: number
+  if (ev.plan && ev.plan.stages?.length) {
+    const tl = buildPlanTimeline(ev, realTarget)
+    points = tl.points
+    endT = tl.endT
+  } else {
+    const rng = mulberry32(profitSeed(ev))
+    const a = buildProfitPhaseA(ev, rng)
+    const b = buildProfitPhaseB(ev, rng, a.endT, a.lastHoldPrice, realTarget)
+    points = a.points.concat(b)
+    endT = b.length ? b[b.length - 1].t : a.endT
+  }
   // 정지된 이벤트: 정지 시각까지는 원래 경로, 그 뒤로는 그 가격에서 realTarget(실제 현재가)으로 1분 동안 돌아오는 경로.
   if (ev.stopT != null && Number.isFinite(ev.stopT) && ev.stopT < endT) {
     const kept = points.filter((p) => p.t <= ev.stopT!)

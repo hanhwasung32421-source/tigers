@@ -1,7 +1,7 @@
 import { clampToMarketPrice } from './okx'
 import { latestProfitEvent } from './profit-events'
 import { latestKillEvent } from './kill-events'
-import { PROFIT_RETURN_MS } from '../../shared/utils/profit-path'
+import { buildProfitTimeline, profitEventTotalMs, profitRangeBetween, PROFIT_RETURN_MS } from '../../shared/utils/profit-path'
 
 // 리모콘(수익/손실)·킬 버튼으로 가격이 움직이는 동안 화면에 보이는 가격은 실제 시세와 크게 다를 수 있다.
 // 이때 롱/숏을 잡거나 청산하는 사람은 "화면에 보이는 그 가격"에 체결되어야 하므로,
@@ -28,7 +28,25 @@ export async function resolveClientPrice(symbol: string, clientPrice: number | u
 
   try {
     const pe = await latestProfitEvent(symbol)
-    if (pe) {
+    if (pe && pe.plan) {
+      // 리모콘2: 목표가 여러 개를 지나는 경로. 같은 plan에서 만든 경로의 지금 시각 전후 범위 안의 가격만 받아준다.
+      const start = new Date(pe.createdAt).getTime()
+      const tl = buildProfitTimeline(pe, marketPrice)
+      const end = start + profitEventTotalMs(pe)
+      if (Number.isFinite(start) && now >= start - CLOCK_SKEW_MS && now <= end + GRACE_AFTER_END_MS) {
+        const t0 = Math.max(0, now - start - CLOCK_SKEW_MS)
+        const t1 = Math.min(tl.endT, now - start + CLOCK_SKEW_MS)
+        const range = profitRangeBetween(tl, t0, Math.max(t0, t1))
+        let gLo = Infinity
+        let gHi = -Infinity
+        for (const p of tl.points) {
+          gLo = Math.min(gLo, p.price)
+          gHi = Math.max(gHi, p.price)
+        }
+        const noise = Number.isFinite(gLo) ? (gHi - gLo) * NOISE_RATIO : 0
+        if (range) widen(range.low - noise, range.high + noise)
+      }
+    } else if (pe) {
       const start = new Date(pe.createdAt).getTime()
       const move = Math.max(1, pe.durationMs)
       const hold = Math.max(0, pe.holdMs)
