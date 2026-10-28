@@ -16,7 +16,31 @@ export type ProfitPlanStage = {
 export type ProfitPlan = { stages: ProfitPlanStage[] }
 export const PROFIT_PLAN_MAX_STAGES = 10
 
+// 디자인차트: 다음 봉들을 직접 설계한다. 각 봉의 시가는 앞 봉의 종가(첫 봉은 open)이고, 종가/고가/저가를 지정한다.
+// 재생은 한 틱에 tick(기본 0.01)보다 크게 움직이지 않는 랜덤 경로로 그 봉의 고가/저가를 찍고 종가에 도착한다.
+export type ProfitCandleStep = { c: number; h: number; l: number }
+export type ProfitCandlePlan = {
+  open: number
+  tick: number
+  barMs: number
+  // 이벤트 시작부터 첫 봉이 시작되기까지(다음 봉 시작 시각까지) 기다리는 시간
+  delayMs: number
+  // 마지막 봉이 끝난 뒤 정상가로 돌아오는 시간
+  cMs: number
+  candles: ProfitCandleStep[]
+}
+export const PROFIT_CANDLE_MAX = 20
+
+// 가격 눈금: 1 이상은 0.01, 그보다 싼 종목은 비율에 맞춰 더 작게.
+export function designTickSize(price: number) {
+  const p = Math.abs(Number(price))
+  if (!(p > 0)) return 0.01
+  return p >= 1 ? 0.01 : p >= 0.01 ? 0.0001 : 0.000001
+}
+
 export type ProfitPathEvent = {
+  // 디자인차트 이벤트면 설계한 봉들을 차례로 만든다.
+  cplan?: ProfitCandlePlan | null
   // 리모콘2 이벤트면 여러 목표가를 차례로 지나는 경로를 쓴다(없으면 기존 리모콘1 경로).
   plan?: ProfitPlan | null
   id: number
@@ -291,6 +315,79 @@ export function buildPlanTimeline(ev: ProfitPathEvent, realTarget: number): Prof
   return { points, endT: t }
 }
 
+// ─── 디자인차트 경로 ───
+// 한 봉: 시가 o에서 출발해 고가/저가를 (순서는 난수로) 찍고 종가 c에 도착한다. 모든 틱은 눈금(tick) 한 칸(0.01)을 넘게 움직이지 않는다.
+// 필요한 걸음 수(= 눈금 단위 이동 거리)보다 시간이 남으면 위아래 한 칸씩 흔들리는 걸음을 랜덤하게 끼워 넣어 봉 시간 동안 계속 움직이게 한다.
+function buildCandleTicks(o: number, c: number, h: number, l: number, tick: number, rng: () => number, barMs: number, startT: number): ProfitPoint[] {
+  const toI = (p: number) => Math.round(p / tick)
+  const O = toI(o)
+  const C = toI(c)
+  const H = Math.max(toI(h), O, C)
+  const L = Math.min(toI(l), O, C)
+  const lowFirst = rng() < 0.5
+  const waypoints = lowFirst ? [O, L, H, C] : [O, H, L, C]
+  const path: number[] = [O]
+  for (let w = 1; w < waypoints.length; w++) {
+    let cur = path[path.length - 1]
+    const target = waypoints[w]
+    while (cur !== target) {
+      cur += cur < target ? 1 : -1
+      path.push(cur)
+    }
+  }
+  const minSteps = path.length - 1
+  const desired = Math.round(barMs / 400)
+  const maxByTime = Math.max(1, Math.floor(barMs / 40))
+  const total = Math.max(minSteps, Math.min(desired, maxByTime))
+  let pairs = Math.floor((total - minSteps) / 2)
+  let guard = pairs * 8 + 16
+  while (pairs > 0 && guard-- > 0 && H > L) {
+    const idx = Math.floor(rng() * path.length)
+    const v = path[idx]
+    let dir = rng() < 0.5 ? 1 : -1
+    if (v + dir > H || v + dir < L) dir = -dir
+    if (v + dir > H || v + dir < L) continue
+    path.splice(idx + 1, 0, v + dir, v)
+    pairs--
+  }
+  const n = path.length
+  const weights = Array.from({ length: n }, () => 0.4 + rng())
+  const sum = weights.reduce((x, y) => x + y, 0)
+  const points: ProfitPoint[] = []
+  let acc = 0
+  for (let k = 0; k < n; k++) {
+    points.push({ t: startT + (barMs * acc) / sum, price: Number((path[k] * tick).toPrecision(12)) })
+    acc += weights[k]
+  }
+  return points
+}
+
+export function buildCandlePlanPoints(ev: ProfitPathEvent): { points: ProfitPoint[]; candlesEndT: number; lastPrice: number } {
+  const cp = ev.cplan as ProfitCandlePlan
+  const rng = mulberry32((profitSeed(ev) ^ 0x51ed270b) >>> 0)
+  const points: ProfitPoint[] = []
+  let o = cp.open
+  for (let i = 0; i < cp.candles.length; i++) {
+    const st = cp.candles[i]
+    const pts = buildCandleTicks(o, st.c, st.h, st.l, cp.tick, rng, cp.barMs, cp.delayMs + i * cp.barMs)
+    for (const p of pts) points.push(p)
+    o = st.c
+  }
+  return { points, candlesEndT: cp.delayMs + cp.candles.length * cp.barMs, lastPrice: o }
+}
+
+// 마지막 봉이 끝난 뒤 정상가(realTarget)로 돌아오는 구간.
+export function buildCandlePlanReturn(ev: ProfitPathEvent, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
+  const cp = ev.cplan as ProfitCandlePlan
+  const rng = mulberry32((profitSeed(ev) ^ 0x7f4a7c15) >>> 0)
+  const stage: ProfitPlanStage = { price: 0, aMs: cp.cMs, aTicks: 0, bMs: 0, bTicks: 0, amp: null, back: true, cMs: cp.cMs, cTicks: 0 }
+  return buildPlanStageC(stage, rng, startT, startPrice, realTarget)
+}
+
+export function candlePlanTotalMs(cp: ProfitCandlePlan): number {
+  return cp.delayMs + cp.candles.length * cp.barMs + cp.cMs
+}
+
 // 리모콘2의 전체 길이(ms): 목표마다 이동 + 유지(+ 정상가로 돌아오는 구간).
 export function planTotalMs(plan: ProfitPlan): number {
   let total = 0
@@ -314,8 +411,9 @@ export function planFirstReturnStartT(plan: ProfitPlan): number {
 }
 
 // 이벤트가 끝나는 시각(이벤트 시작 기준 ms): 정지했으면 정지 시각 + 복귀 1분, 아니면 경로 전체 길이. 리모콘1/2 모두 같은 함수로 구한다.
-export function profitEventTotalMs(ev: { durationMs?: number; holdMs?: number; revertMs?: number; stopT?: number | null; plan?: ProfitPlan | null }): number {
+export function profitEventTotalMs(ev: { durationMs?: number; holdMs?: number; revertMs?: number; stopT?: number | null; plan?: ProfitPlan | null; cplan?: ProfitCandlePlan | null }): number {
   if (ev.stopT != null) return Math.max(0, ev.stopT) + PROFIT_RETURN_MS
+  if (ev.cplan) return candlePlanTotalMs(ev.cplan)
   if (ev.plan) return planTotalMs(ev.plan)
   const durationMs = Math.max(100, ev.durationMs || 1000)
   return durationMs + Math.max(100, ev.holdMs || 3000) + Math.max(100, ev.revertMs || durationMs)
@@ -363,7 +461,15 @@ export function buildProfitReturnPath(ev: ProfitPathEvent, startT: number, start
 export function buildProfitTimeline(ev: ProfitPathEvent, realTarget: number): ProfitTimeline {
   let points: ProfitPoint[]
   let endT: number
-  if (ev.plan && ev.plan.stages?.length) {
+  if (ev.cplan && ev.cplan.candles?.length) {
+    const cp = ev.cplan
+    // 첫 봉이 시작되기 전에 정지(취소)하면 가격을 건드리지 않는다.
+    if (ev.stopT != null && ev.stopT < cp.delayMs) return { points: [], endT: 0 }
+    const built = buildCandlePlanPoints(ev)
+    const ret = buildCandlePlanReturn(ev, built.candlesEndT, built.lastPrice, realTarget)
+    points = built.points.concat(ret)
+    endT = ret.length ? ret[ret.length - 1].t : built.candlesEndT
+  } else if (ev.plan && ev.plan.stages?.length) {
     const tl = buildPlanTimeline(ev, realTarget)
     points = tl.points
     endT = tl.endT

@@ -28,7 +28,7 @@ export async function resolveClientPrice(symbol: string, clientPrice: number | u
 
   try {
     const pe = await latestProfitEvent(symbol)
-    if (pe && pe.plan) {
+    if (pe && (pe.plan || pe.cplan)) {
       // 리모콘2: 목표가 여러 개를 지나는 경로. 같은 plan에서 만든 경로의 지금 시각 전후 범위 안의 가격만 받아준다.
       const start = new Date(pe.createdAt).getTime()
       const tl = buildProfitTimeline(pe, marketPrice)

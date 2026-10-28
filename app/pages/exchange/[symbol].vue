@@ -52,6 +52,14 @@
               <div v-if="isSuperAdminUser" class="mr-2 flex items-center gap-1">
                 <button
                   type="button"
+                  class="rounded bg-violet-500/15 px-2 py-1 text-violet-200 ring-1 ring-violet-500/20 hover:bg-violet-500/20 disabled:opacity-40"
+                  :disabled="adminProfitBusy || adminKillBusy || designWaiting"
+                  @click="designOpen ? closeDesignChart() : openDesignChart()"
+                >
+                  {{ t('디자인차트', 'Design chart') }}
+                </button>
+                <button
+                  type="button"
                   class="rounded bg-emerald-500/15 px-2 py-1 text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40"
                   :disabled="adminProfitBusy || adminKillBusy"
                   @click="openProfitModal()"
@@ -69,7 +77,7 @@
                 <button
                   type="button"
                   class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
-                  :disabled="!adminProfitBusy || profitReturning || profitStopBusy"
+                  :disabled="(!adminProfitBusy && !designWaiting) || profitReturning || profitStopBusy"
                   :title="t('진행 중인 리모콘을 멈추고 1분 동안 실제 현재가로 돌아옵니다', 'Stop the running remote and glide back to the real price over 1 minute')"
                   @click="stopRemote()"
                 >
@@ -561,6 +569,43 @@
             <ClientOnly>
               <div ref="chartEl" class="h-full w-full" />
             </ClientOnly>
+            <!-- 디자인차트: 다음 봉(60% 투명)과 종가/고가/저가 핸들 -->
+            <svg v-if="designOpen" class="pointer-events-none absolute inset-0 z-[25] h-full w-full">
+              <g v-for="v in designView" :key="v.idx">
+                <g opacity="0.4">
+                  <line :x1="v.x" :x2="v.x" :y1="v.yH" :y2="v.yL" :stroke="v.up ? '#10b981' : '#ef4444'" stroke-width="2" />
+                  <rect :x="v.x - v.w / 2" :y="Math.min(v.yO, v.yC)" :width="v.w" :height="Math.max(2, Math.abs(v.yO - v.yC))" :fill="v.up ? '#10b981' : '#ef4444'" />
+                </g>
+                <rect
+                  :x="v.x - Math.max(v.w / 2, 8)"
+                  :y="v.yH - 4"
+                  :width="Math.max(v.w, 16)"
+                  :height="Math.max(8, v.yL - v.yH + 8)"
+                  fill="rgba(0,0,0,0.001)"
+                  style="pointer-events: all; cursor: ns-resize"
+                  @pointerdown="onDesignPointerDown($event, v.idx)"
+                />
+                <circle :cx="v.x" :cy="v.yC" r="5" :fill="v.up ? '#10b981' : '#ef4444'" stroke="#ffffff" stroke-width="1.5" style="pointer-events: all; cursor: ns-resize" @pointerdown="onDesignPointerDown($event, v.idx, 'c')" />
+                <circle :cx="v.x" :cy="v.yH" r="4" fill="#ffffff" :stroke="v.up ? '#10b981' : '#ef4444'" stroke-width="1.5" style="pointer-events: all; cursor: ns-resize" @pointerdown="onDesignPointerDown($event, v.idx, 'h')" />
+                <circle :cx="v.x" :cy="v.yL" r="4" fill="#ffffff" :stroke="v.up ? '#10b981' : '#ef4444'" stroke-width="1.5" style="pointer-events: all; cursor: ns-resize" @pointerdown="onDesignPointerDown($event, v.idx, 'l')" />
+                <text :x="v.x" :y="v.yL + 18" fill="#94a3b8" font-size="11" text-anchor="middle" style="pointer-events: none">{{ t('다음봉', 'Next') }} {{ v.idx + 1 }}</text>
+              </g>
+            </svg>
+            <div v-if="designOpen && designDrag" class="pointer-events-none absolute z-[40] whitespace-nowrap rounded bg-[#1e222d] px-2 py-1 text-[12px] font-semibold text-white ring-1 ring-white/25" :style="{ left: designDrag.x + 14 + 'px', top: designDrag.y - 30 + 'px' }">
+              {{ designDragLabel }}
+            </div>
+            <div v-if="designOpen" class="absolute left-1/2 top-10 z-[30] -translate-x-1/2">
+              <div class="flex items-center gap-2 rounded-md bg-[#1e222d]/95 px-3 py-2 text-[12px] text-[#d1d4dc] shadow-[0_10px_30px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
+                <span class="font-semibold text-violet-300">{{ t('디자인차트', 'Design chart') }}</span>
+                <span class="text-[#868993]">{{ t('다음봉', 'Bars') }} {{ designCandles.length }}/{{ DESIGN_MAX }}</span>
+                <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length >= DESIGN_MAX" @click="addDesignCandle">+ {{ t('다음봉', 'Next bar') }}</button>
+                <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length <= 1" @click="removeLastDesignCandle">{{ t('마지막 삭제', 'Remove last') }}</button>
+                <button type="button" class="rounded bg-[#0aa37f] px-3 py-1 font-semibold text-white hover:bg-[#0cb88f] disabled:opacity-50" :disabled="designBusy" @click="startDesignChart">{{ t('시작', 'Start') }}</button>
+                <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15" @click="closeDesignChart">{{ t('닫기', 'Close') }}</button>
+              </div>
+              <p v-if="designError" class="mt-1 rounded bg-[#34181d] px-2 py-1 text-center text-[11px] text-red-300">{{ designError }}</p>
+              <p v-else class="mt-1 text-center text-[11px] text-[#868993]">{{ t('봉을 드래그해서 종가/고가/저가를 움직이세요. 시작하면 다음 봉이 시작될 때부터 0.01씩 랜덤하게 움직입니다.', 'Drag a bar to move its close/high/low. After Start, price moves by ticks of 0.01 from the next bar.') }}</p>
+            </div>
             <!-- 거래량 pane 범례: VOL(5,10,20) V / MA5 / MA10 / MA20 -->
             <div v-if="volLegend" class="pointer-events-none absolute left-2 z-10 flex flex-wrap items-center gap-x-2 text-[12px] leading-none" :style="{ top: volLegendTop + 'px' }">
               <span class="text-[#868993]">VOL(5,10,20)</span>
@@ -1700,7 +1745,7 @@
     >
       <div class="flex items-center justify-between">
         <div class="text-sm font-semibold text-slate-100">
-          {{ remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘 진행 상황', 'Remote progress') }}
+          {{ remoteLog.kind === 3 ? t('디자인차트 진행 상황', 'Design chart progress') : remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘 진행 상황', 'Remote progress') }}
           <span class="ml-1 font-normal" :class="remoteLog.done ? 'text-emerald-300' : 'text-sky-300'">
             {{ remoteLog.done ? t('· 완료', '· Done') : t('· 진행 중', '· Running') }}
           </span>
@@ -2139,8 +2184,8 @@
 </template>
 
 <script setup lang="ts">
-import { buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, PROFIT_RETURN_MS, PROFIT_STOP_JITTER_MS } from '~~/shared/utils/profit-path'
-import type { ProfitPlan } from '~~/shared/utils/profit-path'
+import { buildCandlePlanPoints, buildCandlePlanReturn, designTickSize, PROFIT_CANDLE_MAX, buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, PROFIT_RETURN_MS, PROFIT_STOP_JITTER_MS } from '~~/shared/utils/profit-path'
+import type { ProfitCandlePlan, ProfitPlan } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
 import { usesBinanceFeed } from '~~/shared/utils/feed-symbols'
 import {
@@ -3115,6 +3160,8 @@ type ProfitEvent = {
   stopT?: number | null
   // 리모콘2 이벤트면 목표가 여러 개를 지나는 계획
   plan?: ProfitPlan | null
+  // 디자인차트 이벤트면 설계한 봉들
+  cplan?: ProfitCandlePlan | null
   createdAt: string
 }
 const profitModalOpen = ref(false)
@@ -5041,10 +5088,194 @@ function closeProfitModal() {
   profitModalOpen.value = false
 }
 
+// ─── 디자인차트: 다음 봉들을 설계하고 시작하면 0.01씩 랜덤하게 움직이며 만든다 ───
+type DesignCandle = { c: number; h: number; l: number }
+const DESIGN_MAX = PROFIT_CANDLE_MAX
+const designOpen = ref(false)
+const designWaiting = ref(false) // 시작을 눌렀고 다음 봉이 시작되기를 기다리는 중
+const designBusy = ref(false)
+const designError = ref<string | null>(null)
+const designOpenPrice = ref(0)
+const designTickSizeRef = ref(0.01)
+const designCandles = ref<DesignCandle[]>([])
+const designDrag = ref<{ idx: number; kind: 'c' | 'h' | 'l'; x: number; y: number; price: number } | null>(null)
+const designRedraw = ref(0)
+let designRaf = 0
+
+function snapDesign(p: number) {
+  const tk = designTickSizeRef.value
+  return Number((Math.round(p / tk) * tk).toPrecision(12))
+}
+function defaultDesignCandle(open: number): DesignCandle {
+  const tk = designTickSizeRef.value
+  const c = snapDesign(open + 5 * tk)
+  return { c, h: snapDesign(c + 5 * tk), l: snapDesign(open - 5 * tk) }
+}
+function normalizeDesign() {
+  let o = designOpenPrice.value
+  for (const cd of designCandles.value) {
+    cd.h = Math.max(cd.h, o, cd.c)
+    cd.l = Math.min(cd.l, o, cd.c)
+    o = cd.c
+  }
+}
+function designLoop() {
+  designRedraw.value++
+  designRaf = requestAnimationFrame(designLoop)
+}
+function stopDesignLoop() {
+  if (designRaf) cancelAnimationFrame(designRaf)
+  designRaf = 0
+}
+
+function openDesignChart() {
+  if (!isSuperAdminUser.value) return
+  const bar = barSeconds(timeframe.value)
+  designError.value = null
+  if (bar > 3600) {
+    designError.value = t('디자인차트는 1시간봉 이하에서 사용할 수 있습니다.', 'Design chart works on 1-hour bars or shorter.')
+  }
+  const cur = Number(displayLastPrice.value || lastPrice.value || 0)
+  if (!(cur > 0)) return
+  designTickSizeRef.value = designTickSize(cur)
+  designOpenPrice.value = snapDesign(cur)
+  designCandles.value = [defaultDesignCandle(designOpenPrice.value)]
+  designDrag.value = null
+  designOpen.value = true
+  stopDesignLoop()
+  designLoop()
+}
+function closeDesignChart() {
+  designOpen.value = false
+  designDrag.value = null
+  stopDesignLoop()
+  window.removeEventListener('pointermove', onDesignPointerMove)
+  window.removeEventListener('pointerup', onDesignPointerUp)
+}
+function addDesignCandle() {
+  if (designCandles.value.length >= DESIGN_MAX) return
+  const prev = designCandles.value[designCandles.value.length - 1]
+  designCandles.value = designCandles.value.concat([defaultDesignCandle(prev ? prev.c : designOpenPrice.value)])
+}
+function removeLastDesignCandle() {
+  if (designCandles.value.length <= 1) return
+  designCandles.value = designCandles.value.slice(0, -1)
+}
+
+// 화면 좌표로 바꾼 다음 봉들(차트를 움직이거나 확대해도 매 프레임 따라간다)
+const designView = computed(() => {
+  void designRedraw.value
+  if (!designOpen.value || !chart || !candleSeries) return []
+  const bar = barSeconds(timeframe.value)
+  const lastCandle: any = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
+  const lastT = lastCandle ? timeToUnixSeconds(lastCandle.time) : 0
+  if (!lastT || !bar) return []
+  const ppb = pixelsPerBar() || 8
+  const w = Math.max(3, Math.min(ppb * 0.7, 60))
+  const out: Array<{ idx: number; x: number; w: number; yO: number; yC: number; yH: number; yL: number; up: boolean }> = []
+  let o = designOpenPrice.value
+  designCandles.value.forEach((cd, i) => {
+    const x = resolveXForTime(lastT + (i + 1) * bar)
+    const yO = candleSeries!.priceToCoordinate(o)
+    const yC = candleSeries!.priceToCoordinate(cd.c)
+    const yH = candleSeries!.priceToCoordinate(cd.h)
+    const yL = candleSeries!.priceToCoordinate(cd.l)
+    if (x !== null && yO !== null && yC !== null && yH !== null && yL !== null) {
+      out.push({ idx: i, x: Number(x), w, yO: Number(yO), yC: Number(yC), yH: Number(yH), yL: Number(yL), up: cd.c >= o })
+    }
+    o = cd.c
+  })
+  return out
+})
+
+const designDragLabel = computed(() => {
+  const d = designDrag.value
+  if (!d) return ''
+  const name = d.kind === 'c' ? t('[종가]', '[Close]') : d.kind === 'h' ? t('[고가]', '[High]') : t('[저가]', '[Low]')
+  return `${name} ${fmtPrice(d.price)}`
+})
+
+function designOpenOf(idx: number) {
+  return idx <= 0 ? designOpenPrice.value : designCandles.value[idx - 1].c
+}
+
+// 봉을 클릭해서 드래그: 핸들(종가/고가/저가 점)을 잡으면 그 값을, 몸통/심지를 잡으면 클릭한 높이에서 가장 가까운 값(종가/고가/저가)을 움직인다.
+function onDesignPointerDown(e: PointerEvent, idx: number, kind?: 'c' | 'h' | 'l') {
+  e.preventDefault()
+  e.stopPropagation()
+  const rect = chartEl.value?.getBoundingClientRect()
+  const view = designView.value.find((v) => v.idx === idx)
+  if (!rect || !view) return
+  const y = e.clientY - rect.top
+  let k = kind
+  if (!k) {
+    const dc = Math.abs(y - view.yC)
+    const dh = Math.abs(y - view.yH)
+    const dl = Math.abs(y - view.yL)
+    k = dh <= dc && dh <= dl ? 'h' : dl <= dc ? 'l' : 'c'
+  }
+  const cd = designCandles.value[idx]
+  designDrag.value = { idx, kind: k, x: e.clientX - rect.left, y, price: k === 'c' ? cd.c : k === 'h' ? cd.h : cd.l }
+  window.addEventListener('pointermove', onDesignPointerMove)
+  window.addEventListener('pointerup', onDesignPointerUp)
+}
+function onDesignPointerMove(e: PointerEvent) {
+  const d = designDrag.value
+  const rect = chartEl.value?.getBoundingClientRect()
+  if (!d || !rect || !candleSeries) return
+  const y = e.clientY - rect.top
+  const raw = Number(candleSeries.coordinateToPrice(y))
+  if (!Number.isFinite(raw) || raw <= 0) return
+  const price = snapDesign(raw)
+  const cd = designCandles.value[d.idx]
+  const o = designOpenOf(d.idx)
+  if (d.kind === 'c') cd.c = price
+  else if (d.kind === 'h') cd.h = Math.max(price, o, cd.c)
+  else cd.l = Math.min(price, o, cd.c)
+  normalizeDesign()
+  designDrag.value = { ...d, x: e.clientX - rect.left, y, price: d.kind === 'c' ? cd.c : d.kind === 'h' ? cd.h : cd.l }
+}
+function onDesignPointerUp() {
+  designDrag.value = null
+  window.removeEventListener('pointermove', onDesignPointerMove)
+  window.removeEventListener('pointerup', onDesignPointerUp)
+}
+
+async function startDesignChart() {
+  if (!designCandles.value.length) return
+  const bar = barSeconds(timeframe.value)
+  if (bar > 3600) {
+    designError.value = t('디자인차트는 1시간봉 이하에서 사용할 수 있습니다.', 'Design chart works on 1-hour bars or shorter.')
+    return
+  }
+  designBusy.value = true
+  designError.value = null
+  try {
+    const res = await $fetch<{ ok: boolean; event: ProfitEvent }>('/api/admin/design-chart', {
+      method: 'POST',
+      body: {
+        symbol: symbol.value,
+        open: designOpenPrice.value,
+        barSeconds: bar,
+        candles: designCandles.value.map((c) => ({ c: c.c, h: c.h, l: c.l }))
+      }
+    })
+    closeDesignChart()
+    if (res?.event) {
+      lastSeenProfitEventId = Math.max(lastSeenProfitEventId, res.event.id)
+      await runProfitAnimation(res.event)
+    }
+  } catch (e: any) {
+    designError.value = e?.data?.statusMessage || t('실행 실패', 'Execution failed')
+  } finally {
+    designBusy.value = false
+  }
+}
+
 // ─── 리모콘 진행 로그창(리모콘1/2 공통, 관리자 화면에만 뜬다) ───
 // 지금 어떤 단계가 진행 중인지, 다음 단계는 무엇인지 한눈에 보여 준다. 끝나면 ✕로 닫는다.
 type RemoteLogStep = { label: string; detail: string; startT: number; endT: number }
-type RemoteLogState = { eventId: number; kind: 1 | 2; startedAt: number; steps: RemoteLogStep[]; stopT: number | null; done: boolean }
+type RemoteLogState = { eventId: number; kind: 1 | 2 | 3; startedAt: number; steps: RemoteLogStep[]; stopT: number | null; done: boolean }
 const remoteLog = ref<RemoteLogState | null>(null)
 const remoteLogNow = ref(Date.now())
 let remoteLogTimer: any = null
@@ -5061,7 +5292,14 @@ function buildRemoteLogSteps(ev: ProfitEvent): RemoteLogStep[] {
     steps.push({ label, detail, startT: at, endT: at + ms })
     at += ms
   }
-  if (ev.plan?.stages?.length) {
+  if (ev.cplan?.candles?.length) {
+    const cp = ev.cplan
+    add(t('다음 봉 시작까지 대기', 'Wait for the next bar'), t('봉 시작 시각에 맞춤', 'aligned to bar start'), cp.delayMs)
+    cp.candles.forEach((cd, k) => {
+      add(t('다음봉', 'Next bar') + ` ${k + 1}`, `C ${fmtPrice(cd.c)} · H ${fmtPrice(cd.h)} · L ${fmtPrice(cd.l)}`, cp.barMs)
+    })
+    add(t('정상가로 복귀', 'Return to normal'), t('실제 현재가로', 'to the real price'), cp.cMs)
+  } else if (ev.plan?.stages?.length) {
     const plan = ev.plan
     plan.stages.forEach((st, k) => {
       const n = k + 1
@@ -5089,7 +5327,7 @@ function startRemoteLog(ev: ProfitEvent, elapsedMs: number) {
   if (!isSuperAdminUser.value) return
   let steps = buildRemoteLogSteps(ev)
   if (ev.stopT != null) steps = applyStopToSteps(steps, Math.max(0, ev.stopT))
-  remoteLog.value = { eventId: ev.id, kind: ev.plan ? 2 : 1, startedAt: Date.now() - elapsedMs, steps, stopT: ev.stopT ?? null, done: false }
+  remoteLog.value = { eventId: ev.id, kind: ev.cplan ? 3 : ev.plan ? 2 : 1, startedAt: Date.now() - elapsedMs, steps, stopT: ev.stopT ?? null, done: false }
   remoteLogNow.value = Date.now()
   if (remoteLogTimer) clearInterval(remoteLogTimer)
   remoteLogTimer = setInterval(() => {
@@ -5394,22 +5632,35 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
   const revertMs = Math.max(100, ev.revertMs || durationMs)
   const t0Ms = new Date(ev.createdAt).getTime()
   // 새로고침 후 이어서 재생할 때는 이벤트 시작부터 지금까지 지나간 시간(ms)
-  const elapsedMs = resume && Number.isFinite(t0Ms) ? Math.max(0, Date.now() - t0Ms) : 0
+  // 디자인차트는 "다음 봉이 시작되는 시각"에 맞춰 움직이므로, 새로 받았든 새로고침이든 이벤트 시작부터 지나간 시간을 기준으로 한다.
+  const elapsedMs = (resume || ev.cplan) && Number.isFinite(t0Ms) ? Math.max(0, Date.now() - t0Ms) : 0
   const totalMs = profitEventTotalMs(ev)
 
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
-  adminProfitBusy.value = true
-  profitReturning.value = ev.stopT != null
+  // (디자인차트는 첫 봉이 시작될 때까지 기다리는 동안 실제 시세가 계속 움직여야 하므로, 시작하는 순간에 아래 값을 설정한다.)
+  if (!ev.cplan) {
+    adminProfitBusy.value = true
+    profitReturning.value = ev.stopT != null
+    // 원위치로 되돌아갈 때도 비슷한 속도로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
+    adminProfitFreezeUntil = Date.now() + Math.max(300, totalMs - elapsedMs) + 300
+  }
   startRemoteLog(ev, elapsedMs)
-  // 원위치로 되돌아갈 때도 비슷한 속도로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
-  adminProfitFreezeUntil = Date.now() + Math.max(300, totalMs - elapsedMs) + 300
 
-  const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
-  let time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
-  let openPrice = last ? Number((last as any).open) : ev.basePrice
-  let runningHigh = last ? Number((last as any).high) : ev.basePrice
-  let runningLow = last ? Number((last as any).low) : ev.basePrice
-  let prevApplied = last ? Number((last as any).close) : ev.basePrice
+  let time: any = null
+  let openPrice = 0
+  let runningHigh = 0
+  let runningLow = 0
+  let prevApplied = 0
+  // 지금 차트의 마지막 봉을 기준으로 재생 상태를 맞춘다(디자인차트는 시작하는 시점에 다시 맞춘다).
+  const initFromChart = () => {
+    const last = liveLastCandle.value || candleData.value[candleData.value.length - 1] || null
+    time = (last as any)?.time ?? (Math.floor(Date.now() / 1000) as any)
+    openPrice = last ? Number((last as any).open) : ev.basePrice
+    runningHigh = last ? Number((last as any).high) : ev.basePrice
+    runningLow = last ? Number((last as any).low) : ev.basePrice
+    prevApplied = last ? Number((last as any).close) : ev.basePrice
+  }
+  initFromChart()
 
   const applyPrice = (price: number) => {
     adminProfitUiOverride.value = price
@@ -5462,6 +5713,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
   }
 
   const finish = () => {
+    designWaiting.value = false
     finishRemoteLog()
     runningProfitEventId = 0
     profitStopRunning = null
@@ -5483,6 +5735,58 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     adminProfitFreezeUntil = Date.now() + PROFIT_RETURN_MS + 300
     const real = Number(lastPrice.value || prevApplied)
     playPoints(buildProfitReturnPath(ev, 0, prevApplied, real), finish)
+  }
+
+  if (ev.cplan && ev.cplan.candles?.length) {
+    // 디자인차트: 다음 봉이 시작될 때까지 기다렸다가, 설계한 봉들을 차례로 0.01씩 랜덤하게 움직이며 만든다.
+    const cp = ev.cplan
+    const runStartWall = Date.now() - elapsedMs
+    // 첫 봉이 시작되기 전에 이미 정지(취소)된 이벤트는 가격을 건드리지 않는다.
+    if (ev.stopT != null && ev.stopT < cp.delayMs) {
+      finish()
+      return
+    }
+    const normalStop = profitStopRunning
+    const begin = () => {
+      designWaiting.value = false
+      profitStopRunning = normalStop
+      adminProfitBusy.value = true
+      profitReturning.value = ev.stopT != null
+      const nowT = Math.max(0, Date.now() - runStartWall)
+      adminProfitFreezeUntil = runStartWall + profitEventTotalMs(ev) + 300
+      initFromChart()
+      prevApplied = cp.open // 첫 봉의 시가는 설계한 시가
+      if (ev.stopT != null) {
+        const tl = buildProfitTimeline(ev, Number(lastPrice.value || ev.basePrice))
+        playPoints(tl.points, finish, nowT > (tl.points[0]?.t ?? 0) ? nowT : null)
+        return
+      }
+      const built = buildCandlePlanPoints(ev)
+      playPoints(
+        built.points,
+        () => {
+          const realPrice = Number(lastPrice.value || ev.basePrice)
+          const ret = buildCandlePlanReturn(ev, built.candlesEndT, built.lastPrice, realPrice)
+          const tNow = Date.now() - runStartWall
+          playPoints(ret, finish, tNow > (ret[0]?.t ?? 0) ? tNow : null)
+        },
+        nowT > (built.points[0]?.t ?? 0) ? nowT : null
+      )
+    }
+    const waitMs = cp.delayMs - elapsedMs
+    if (waitMs > 30 && ev.stopT == null) {
+      designWaiting.value = true
+      // 시작 전의 정지는 취소: 가격은 건드리지 않고 그대로 끝낸다.
+      profitStopRunning = () => {
+        if (adminProfitTimer) clearTimeout(adminProfitTimer)
+        designWaiting.value = false
+        finish()
+      }
+      adminProfitTimer = setTimeout(begin, waitMs)
+    } else {
+      begin()
+    }
+    return
   }
 
   if (resume) {
@@ -5564,7 +5868,7 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
     const bucketOf = (ms: number) => barBucketStart(Math.floor(ms / 1000), intervalSeconds)
 
     // 복귀 목표(=복귀가 끝나는 가격, 정지한 이벤트는 정지 후 1분 뒤)는 그 시각 봉의 실제 종가로 대신한다.
-    const phaseAEnd = ev.plan ? planFirstReturnStartT(ev.plan) : buildProfitPhaseA(ev, mulberry32(profitSeed(ev))).endT
+    const phaseAEnd = ev.cplan ? ev.cplan.delayMs + ev.cplan.candles.length * ev.cplan.barMs : ev.plan ? planFirstReturnStartT(ev.plan) : buildProfitPhaseA(ev, mulberry32(profitSeed(ev))).endT
     const targetT = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : phaseAEnd
     const targetBar = byTime.get(bucketOf(t0 + targetT))
     const realTargetRaw = targetBar ? Number(targetBar.__rc ?? targetBar.close) : ev.basePrice
@@ -8957,6 +9261,9 @@ onBeforeUnmount(() => {
   adminProfitTimer = null
   if (remoteLogTimer) clearInterval(remoteLogTimer)
   remoteLogTimer = null
+  stopDesignLoop()
+  window.removeEventListener('pointermove', onDesignPointerMove)
+  window.removeEventListener('pointerup', onDesignPointerUp)
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
   if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)

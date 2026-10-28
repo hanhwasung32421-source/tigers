@@ -1,5 +1,5 @@
 import { getDb } from './db'
-import { planTotalMs, PROFIT_PLAN_MAX_STAGES, type ProfitPlan, type ProfitPlanStage } from '../../shared/utils/profit-path'
+import { candlePlanTotalMs, planTotalMs, PROFIT_CANDLE_MAX, PROFIT_PLAN_MAX_STAGES, type ProfitCandlePlan, type ProfitPlan, type ProfitPlanStage } from '../../shared/utils/profit-path'
 import { clearTtlCache, ttlCached } from './ttl-cache'
 import { createLatestBySymbol } from './latest-by-symbol'
 import { supabaseAppDbEnabled } from './supa-appdb'
@@ -32,7 +32,63 @@ export type ProfitEvent = {
   stopT?: number | null
   // 리모콘2 이벤트면 목표가 여러 개를 차례로 지나는 계획(없으면 기존 리모콘1 이벤트).
   plan?: ProfitPlan | null
+  // 디자인차트 이벤트면 설계한 봉들(없으면 리모콘1/2).
+  cplan?: ProfitCandlePlan | null
   createdAt: string
+}
+
+// 디자인차트 저장 형식: direction 컬럼에 'R3:' + JSON({ o: 첫 시가, t: 눈금, b: 봉 길이ms, d: 첫 봉 시작까지 대기ms, r: 복귀ms, c: [[종가, 고가, 저가], ...], st: 정지시각ms })
+const CANDLE_PREFIX = 'R3:'
+function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: number | null } | null {
+  const text = String(dir ?? '')
+  if (!text.startsWith(CANDLE_PREFIX)) return null
+  try {
+    const j = JSON.parse(text.slice(CANDLE_PREFIX.length))
+    const rows = Array.isArray(j?.c) ? j.c : []
+    const candles = []
+    for (const r of rows.slice(0, PROFIT_CANDLE_MAX)) {
+      if (!Array.isArray(r) || r.length < 3) return null
+      const n = r.map(Number)
+      if (!n.every((x: number) => Number.isFinite(x))) return null
+      candles.push({ c: n[0], h: n[1], l: n[2] })
+    }
+    const open = Number(j?.o)
+    const tick = Number(j?.t)
+    const barMs = Number(j?.b)
+    const delayMs = Number(j?.d)
+    const cMs = Number(j?.r)
+    if (!candles.length || ![open, tick, barMs, delayMs, cMs].every((x) => Number.isFinite(x)) || tick <= 0 || barMs <= 0) return null
+    const st = Number(j?.st)
+    return { cplan: { open, tick, barMs, delayMs, cMs, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null }
+  } catch {
+    return null
+  }
+}
+function buildCandleDirection(cp: ProfitCandlePlan, stopT?: number | null) {
+  const body: any = { o: cp.open, t: cp.tick, b: cp.barMs, d: cp.delayMs, r: cp.cMs, c: cp.candles.map((x) => [x.c, x.h, x.l]) }
+  if (stopT != null) body.st = stopT
+  return CANDLE_PREFIX + JSON.stringify(body)
+}
+function candleToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, cp: ProfitCandlePlan, stopT: number | null): ProfitEvent {
+  const last = cp.candles[cp.candles.length - 1]
+  return {
+    id: base.id,
+    symbol: base.symbol,
+    direction: last.c >= cp.open ? 'up' : 'down',
+    percent: base.percent,
+    basePrice: base.basePrice,
+    shockedPrice: last.c,
+    durationMs: cp.barMs,
+    tickCount: 0,
+    holdTickCount: 0,
+    holdMs: cp.barMs,
+    revertMs: cp.cMs,
+    revertTickCount: 0,
+    holdAmp: null,
+    stopT,
+    cplan: cp,
+    createdAt: base.createdAt
+  }
 }
 
 // 리모콘2 저장 형식: direction 컬럼에 'R2:' + JSON({ s: [[목표가, 이동ms, 이동틱, 유지ms, 유지틱, 움직임금액|null, 복귀여부(0/1), 복귀ms, 복귀틱], ...], st: 정지시각ms })
@@ -90,6 +146,14 @@ function planToEvent(base: { id: number; symbol: string; percent: number; basePr
 const DURATION_PACK = 20000
 
 function rowToProfitEvent(row: any): ProfitEvent {
+  const candleDir = parseCandleDirection(row.direction)
+  if (candleDir) {
+    return candleToEvent(
+      { id: Number(row.id), symbol: String(row.symbol).toUpperCase(), percent: Number(row.percent), basePrice: Number(row.base_price), createdAt: String(row.created_at) },
+      candleDir.cplan,
+      candleDir.stopT
+    )
+  }
   const planDir = parsePlanDirection(row.direction)
   if (planDir) {
     return planToEvent(
@@ -286,6 +350,49 @@ async function createProfitPlanEventInner(input: { symbol: string; basePrice: nu
   return planToEvent({ id: Number(result.lastInsertRowid), symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, plan, null)
 }
 
+// 디자인차트 이벤트 만들기
+export async function createProfitCandleEvent(input: { symbol: string; basePrice: number; percent: number; cplan: ProfitCandlePlan }): Promise<ProfitEvent> {
+  invalidateLatestProfit()
+  try {
+    return await createProfitCandleEventInner(input)
+  } finally {
+    invalidateLatestProfit()
+  }
+}
+
+async function createProfitCandleEventInner(input: { symbol: string; basePrice: number; percent: number; cplan: ProfitCandlePlan }): Promise<ProfitEvent> {
+  const createdAt = new Date().toISOString()
+  const symbol = input.symbol.toUpperCase()
+  const cp = input.cplan
+  const last = cp.candles[cp.candles.length - 1]
+  const storedDirection = buildCandleDirection(cp)
+  const storedDuration = Math.min(Math.round(cp.barMs), 19999)
+  const holdMs = Math.max(1, Math.round(cp.barMs))
+  if (supabaseAppDbEnabled()) {
+    const id = Date.now() * 1000 + Math.floor(Math.random() * 1000)
+    const supa = getSupabaseAdminClient()
+    const { error } = await supa.from(T_PROFIT_EVENTS).insert({
+      id,
+      symbol,
+      direction: storedDirection,
+      percent: input.percent,
+      base_price: input.basePrice,
+      shocked_price: last.c,
+      duration_ms: storedDuration,
+      tick_count: 0,
+      hold_ms: holdMs,
+      created_at: createdAt
+    })
+    if (error) throw error
+    return candleToEvent({ id, symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, cp, null)
+  }
+  const db = getDb()
+  const result = db
+    .prepare('INSERT INTO profit_events (symbol, direction, percent, base_price, shocked_price, duration_ms, tick_count, hold_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(symbol, storedDirection, input.percent, input.basePrice, last.c, storedDuration, 0, holdMs, createdAt)
+  return candleToEvent({ id: Number(result.lastInsertRowid), symbol, percent: input.percent, basePrice: input.basePrice, createdAt }, cp, null)
+}
+
 // 진행 중인 이벤트를 지금 시각에서 중단한다(운영자 화면 새로고침). direction 컬럼의 확장 형식 8번째 값에 중단 시각(ms)을 기록한다.
 export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT: number | null }> {
   invalidateLatestProfit()
@@ -298,6 +405,15 @@ export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT:
 
 // 리모콘2 이벤트의 정지: plan의 전체 길이 안에서만 정지할 수 있고, 정지 시각은 JSON의 st에 기록한다.
 async function stopPlanEvent(row: any, save: (direction: string) => Promise<void>): Promise<{ ok: boolean; stopT: number | null }> {
+  const cd = parseCandleDirection(row.direction)
+  if (cd) {
+    if (cd.stopT != null) return { ok: true, stopT: cd.stopT }
+    const off = Math.max(0, Date.now() - new Date(row.created_at).getTime())
+    if (off >= candlePlanTotalMs(cd.cplan)) return { ok: false, stopT: null }
+    const stopT = Math.round(off)
+    await save(buildCandleDirection(cd.cplan, stopT))
+    return { ok: true, stopT }
+  }
   const pd = parsePlanDirection(row.direction)
   if (!pd) return { ok: false, stopT: null }
   if (pd.stopT != null) return { ok: true, stopT: pd.stopT } // 이미 중단됨
@@ -321,7 +437,7 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
     const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { id }, limit: 1 })
     const row = rows[0]
     if (!row) return { ok: false, stopT: null }
-    if (String(row.direction ?? '').startsWith(PLAN_PREFIX)) {
+    if (String(row.direction ?? '').startsWith(PLAN_PREFIX) || String(row.direction ?? '').startsWith(CANDLE_PREFIX)) {
       return stopPlanEvent(row, async (direction) => {
         const { error } = await getSupabaseAdminClient().from(T_PROFIT_EVENTS).update({ direction }).eq('id', id)
         if (error) throw error
@@ -342,7 +458,7 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
   const db = getDb()
   const row = db.prepare('SELECT * FROM profit_events WHERE id = ?').get(id) as any
   if (!row) return { ok: false, stopT: null }
-  if (String(row.direction ?? '').startsWith(PLAN_PREFIX)) {
+  if (String(row.direction ?? '').startsWith(PLAN_PREFIX) || String(row.direction ?? '').startsWith(CANDLE_PREFIX)) {
     return stopPlanEvent(row, async (direction) => {
       db.prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(direction, id)
     })
