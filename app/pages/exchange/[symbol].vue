@@ -102,9 +102,9 @@
         class="grid grid-cols-1 gap-1 lg:grid-cols-[minmax(0,1100fr)_minmax(0,406fr)_minmax(0,392fr)]"
       >
       <!-- 차트 -->
-      <section class="order-1 flex min-w-0 flex-col overflow-hidden bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
+      <section ref="chartSectionEl" class="order-1 flex min-w-0 flex-col overflow-hidden bg-[#131722] lg:order-none lg:col-start-1 lg:row-start-1">
         <div ref="chartHeaderEl">
-        <div class="ex-rule flex h-[46px] items-center gap-6 bg-[#131722] px-3 text-[14px]">
+        <div class="ex-rule relative flex h-[46px] items-center gap-6 bg-[#131722] px-3 text-[14px]">
           <button
             v-for="tb in chartTabs"
             :key="tb.id"
@@ -116,6 +116,29 @@
             <span v-if="tb.id === 'ai'" class="mr-1 inline-block rounded bg-[#f0b90b] px-1 text-[10px] text-[#131722]">AI</span>{{ tb.label }}
             <span v-if="chartTab === tb.id" class="ex-yellow absolute inset-x-0 bottom-0 h-[2px]" />
           </button>
+          <!-- 디자인차트 툴바: 차트 탭 줄의 빈 칸, 화면 가운데(차트 칸 오른쪽 끝을 넘지 않게) -->
+          <div
+            v-if="designOpen"
+            ref="designBarEl"
+            class="absolute top-1/2 z-[30] -translate-y-1/2 whitespace-nowrap"
+            :style="{ left: designBarLeft + 'px' }"
+            :title="t(`봉을 드래그해서 종가/고가/저가를 움직이세요. 시작하면 다음 봉이 시작될 때부터 ${designTickSizeRef}(최소 틱)씩 랜덤하게 움직입니다.`, `Drag a bar to move its close/high/low. After Start, price moves in random steps of ${designTickSizeRef} (min tick) from the next bar.`)"
+          >
+            <div class="flex items-center gap-2 rounded-md bg-[#1e222d] px-3 py-1.5 text-[12px] text-[#d1d4dc] shadow-[0_6px_20px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
+              <span class="font-semibold text-violet-300">{{ t('디자인차트', 'Design chart') }}</span>
+              <span class="text-[#868993]">{{ t('다음봉', 'Bars') }} {{ designCandles.length }}/{{ DESIGN_MAX }}</span>
+              <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length >= DESIGN_MAX" @click="addDesignCandle">+ {{ t('다음봉', 'Next bar') }}</button>
+              <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length <= 1" @click="removeLastDesignCandle">{{ t('마지막 삭제', 'Remove last') }}</button>
+              <label class="flex items-center gap-1 text-[#868993]">
+                {{ t('정상가 복귀', 'Return') }}
+                <input v-model.number="designReturnMinutes" type="number" min="0.5" max="30" step="0.5" class="w-14 rounded bg-white/10 px-1.5 py-1 text-right text-[#d1d4dc] outline-none ring-1 ring-white/10 focus:ring-violet-400" />
+                {{ t('분', 'min') }}
+              </label>
+              <button type="button" class="rounded bg-[#0aa37f] px-3 py-1 font-semibold text-white hover:bg-[#0cb88f] disabled:opacity-50" :disabled="designBusy" @click="startDesignChart">{{ t('시작', 'Start') }}</button>
+              <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15" @click="closeDesignChart">{{ t('닫기', 'Close') }}</button>
+            </div>
+            <p v-if="designError" class="absolute left-0 top-full mt-1 rounded bg-[#34181d] px-2 py-1 text-[11px] text-red-300">{{ designError }}</p>
+          </div>
         </div>
         <div v-show="chartTab === 'chart'" class="bg-[#131722] px-3 py-1.5">
           <div class="flex min-w-0 items-center gap-3">
@@ -593,23 +616,6 @@
             </svg>
             <div v-if="designOpen && designDrag" class="pointer-events-none absolute z-[40] whitespace-nowrap rounded bg-[#1e222d] px-2 py-1 text-[12px] font-semibold text-white ring-1 ring-white/25" :style="{ left: designDrag.x + 14 + 'px', top: designDrag.y - 30 + 'px' }">
               {{ designDragLabel }}
-            </div>
-            <div v-if="designOpen" class="absolute left-1/2 top-10 z-[30] -translate-x-1/2">
-              <div class="flex items-center gap-2 rounded-md bg-[#1e222d]/95 px-3 py-2 text-[12px] text-[#d1d4dc] shadow-[0_10px_30px_rgba(0,0,0,0.4)] ring-1 ring-white/10">
-                <span class="font-semibold text-violet-300">{{ t('디자인차트', 'Design chart') }}</span>
-                <span class="text-[#868993]">{{ t('다음봉', 'Bars') }} {{ designCandles.length }}/{{ DESIGN_MAX }}</span>
-                <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length >= DESIGN_MAX" @click="addDesignCandle">+ {{ t('다음봉', 'Next bar') }}</button>
-                <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length <= 1" @click="removeLastDesignCandle">{{ t('마지막 삭제', 'Remove last') }}</button>
-                <label class="flex items-center gap-1 text-[#868993]">
-                  {{ t('정상가 복귀', 'Return') }}
-                  <input v-model.number="designReturnMinutes" type="number" min="0.5" max="30" step="0.5" class="w-14 rounded bg-white/10 px-1.5 py-1 text-right text-[#d1d4dc] outline-none ring-1 ring-white/10 focus:ring-violet-400" />
-                  {{ t('분', 'min') }}
-                </label>
-                <button type="button" class="rounded bg-[#0aa37f] px-3 py-1 font-semibold text-white hover:bg-[#0cb88f] disabled:opacity-50" :disabled="designBusy" @click="startDesignChart">{{ t('시작', 'Start') }}</button>
-                <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15" @click="closeDesignChart">{{ t('닫기', 'Close') }}</button>
-              </div>
-              <p v-if="designError" class="mt-1 rounded bg-[#34181d] px-2 py-1 text-center text-[11px] text-red-300">{{ designError }}</p>
-              <p v-else class="mt-1 text-center text-[11px] text-[#868993]">{{ t(`봉을 드래그해서 종가/고가/저가를 움직이세요. 시작하면 다음 봉이 시작될 때부터 ${designTickSizeRef}(최소 틱)씩 랜덤하게 움직입니다.`, `Drag a bar to move its close/high/low. After Start, price moves in random steps of ${designTickSizeRef} (min tick) from the next bar.`) }}</p>
             </div>
             <!-- 거래량 pane 범례: VOL(5,10,20) V / MA5 / MA10 / MA20 -->
             <div v-if="volLegend" class="pointer-events-none absolute left-2 z-10 flex flex-wrap items-center gap-x-2 text-[12px] leading-none" :style="{ top: volLegendTop + 'px' }">
@@ -5129,6 +5135,21 @@ const designTickSizeRef = ref(0.01)
 const designCandles = ref<DesignCandle[]>([])
 const designDrag = ref<{ idx: number; kind: 'c' | 'h' | 'l'; x: number; y: number; price: number } | null>(null)
 const designRedraw = ref(0)
+const chartSectionEl = ref<HTMLElement | null>(null)
+const designBarEl = ref<HTMLElement | null>(null)
+// 툴바 위치: 화면 가로 가운데에 놓되, 차트 칸의 오른쪽 끝을 넘지 않고(왼쪽의 탭 글자도 가리지 않게) 안쪽으로 맞춘다.
+const DESIGN_BAR_MIN_LEFT = 200
+const designBarLeft = computed(() => {
+  void designRedraw.value
+  const sec = chartSectionEl.value
+  const bar = designBarEl.value
+  if (!sec || !bar || !process.client) return DESIGN_BAR_MIN_LEFT
+  const r = sec.getBoundingClientRect()
+  const w = bar.offsetWidth
+  const maxLeft = Math.max(0, r.width - w - 8)
+  const desired = window.innerWidth / 2 - r.left - w / 2
+  return Math.max(Math.min(DESIGN_BAR_MIN_LEFT, maxLeft), Math.min(desired, maxLeft))
+})
 let designRaf = 0
 
 function snapDesign(p: number) {
