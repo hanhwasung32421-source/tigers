@@ -79,7 +79,7 @@
                   class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
                   :disabled="(!adminProfitBusy && !designWaiting) || profitReturning || profitStopBusy"
                   :title="t('진행 중인 리모콘을 멈추고 1분 동안 실제 현재가로 돌아옵니다', 'Stop the running remote and glide back to the real price over 1 minute')"
-                  @click="stopRemote()"
+                  @click="openStopModal()"
                 >
                   {{ t('리모콘 정지', 'Remote Stop') }}
                 </button>
@@ -1738,6 +1738,27 @@
       </div>
     </div>
 
+    <!-- 리모콘 정지: 정상가로 돌아오는 시간 설정 -->
+    <div v-if="stopModalOpen" class="fixed inset-0 z-[78] flex items-center justify-center bg-black/60 px-4" @click.self="stopModalOpen = false">
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[linear-gradient(180deg,#111920,#10171d)] p-5 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-slate-100">{{ t('리모콘 정지', 'Stop remote') }}</h3>
+          <button type="button" class="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white" @click="stopModalOpen = false">✕</button>
+        </div>
+        <p class="mt-2 text-xs text-slate-400">{{ t('지금 가격에서 실제 현재가로, 정한 시간 동안 단계적으로 돌아옵니다.', 'The price glides from the current level back to the real price over the time you set.') }}</p>
+        <div class="mt-4 flex items-center gap-2">
+          <span class="text-sm text-slate-300">{{ t('정상가로 돌아오는 시간', 'Time to return to normal') }}</span>
+          <input v-model.number="stopSecondsDraft" type="number" min="1" max="3600" step="1" class="w-24 rounded-md bg-white/5 px-3 py-2 text-sm outline-none ring-1 ring-white/10 focus:ring-indigo-500" @keyup.enter="confirmStopModal" />
+          <span class="text-sm text-slate-400">{{ t('초', 'sec') }}</span>
+        </div>
+        <p v-if="stopModalError" class="mt-2 text-sm text-red-300">{{ stopModalError }}</p>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button type="button" class="rounded-lg border border-white/15 bg-[#1b2229] px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-[#252f39]" @click="stopModalOpen = false">{{ t('취소', 'Cancel') }}</button>
+          <button type="button" class="rounded-lg bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50" :disabled="profitStopBusy" @click="confirmStopModal">{{ t('시작', 'Start') }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 리모콘 진행 로그창(관리자 화면, 리모콘1/2 공통) -->
     <div
       v-if="remoteLog && isSuperAdminUser"
@@ -2184,7 +2205,7 @@
 </template>
 
 <script setup lang="ts">
-import { buildCandlePlanPoints, buildCandlePlanReturn, designTickSize, PROFIT_CANDLE_MAX, buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, PROFIT_RETURN_MS, PROFIT_STOP_JITTER_MS } from '~~/shared/utils/profit-path'
+import { buildCandlePlanPoints, buildCandlePlanReturn, designTickSize, PROFIT_CANDLE_MAX, buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, profitStopReturnMs } from '~~/shared/utils/profit-path'
 import type { ProfitCandlePlan, ProfitPlan } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
 import { usesBinanceFeed } from '~~/shared/utils/feed-symbols'
@@ -3138,7 +3159,7 @@ let adminProfitFreezeUntil = 0
 let adminProfitTimer: any = null
 // 리모콘 정지: 지금 재생 중인 이벤트와, 그 재생을 "실제 현재가로 복귀"로 바꾸는 함수
 let runningProfitEventId = 0
-let profitStopRunning: (() => void) | null = null
+let profitStopRunning: ((retMs?: number) => void) | null = null
 const profitReturning = ref(false)
 const profitStopBusy = ref(false)
 
@@ -3158,6 +3179,8 @@ type ProfitEvent = {
   holdAmp?: number | null
   // 진행 중 중단된 시각(이벤트 시작 기준 ms). 있으면 그 시점에서 멈추고 이후는 실제 시세.
   stopT?: number | null
+  // 정지할 때 정한 "정상가로 돌아오는 시간"(ms)
+  returnMs?: number | null
   // 리모콘2 이벤트면 목표가 여러 개를 지나는 계획
   plan?: ProfitPlan | null
   // 디자인차트 이벤트면 설계한 봉들
@@ -5322,17 +5345,16 @@ function buildRemoteLogSteps(ev: ProfitEvent): RemoteLogStep[] {
   return steps
 }
 // 정지: 정지 시각 이후의 단계는 빼고, "정지 → 정상가로 복귀(1분)" 단계를 붙인다.
-function applyStopToSteps(steps: RemoteLogStep[], stopT: number): RemoteLogStep[] {
+function applyStopToSteps(steps: RemoteLogStep[], stopT: number, retMs: number): RemoteLogStep[] {
   const out = steps.filter((x) => x.startT < stopT).map((x) => ({ ...x, endT: Math.min(x.endT, stopT) }))
-  out.push({ label: t('정지 · 그 가격에서 ±0.01 흔들림', 'Stopped · wiggle ±0.01 at that price'), detail: '±0.01', startT: stopT, endT: stopT + PROFIT_STOP_JITTER_MS })
-  out.push({ label: t('정지 · 정상가로 복귀', 'Stopped · returning to normal'), detail: t('실제 현재가로', 'to the real price'), startT: stopT + PROFIT_STOP_JITTER_MS, endT: stopT + PROFIT_RETURN_MS })
+  out.push({ label: t('정지 · 정상가로 복귀', 'Stopped · returning to normal'), detail: `${Math.round(retMs / 1000)}${t('초', 's')}`, startT: stopT, endT: stopT + retMs })
   return out
 }
 
 function startRemoteLog(ev: ProfitEvent, elapsedMs: number) {
   if (!isSuperAdminUser.value) return
   let steps = buildRemoteLogSteps(ev)
-  if (ev.stopT != null) steps = applyStopToSteps(steps, Math.max(0, ev.stopT))
+  if (ev.stopT != null) steps = applyStopToSteps(steps, Math.max(0, ev.stopT), profitStopReturnMs(ev))
   remoteLog.value = { eventId: ev.id, kind: ev.cplan ? 3 : ev.plan ? 2 : 1, startedAt: Date.now() - elapsedMs, steps, stopT: ev.stopT ?? null, done: false }
   remoteLogNow.value = Date.now()
   if (remoteLogTimer) clearInterval(remoteLogTimer)
@@ -5341,11 +5363,11 @@ function startRemoteLog(ev: ProfitEvent, elapsedMs: number) {
   }, 250)
 }
 
-function noteRemoteLogStop() {
+function noteRemoteLogStop(retMs: number) {
   const log = remoteLog.value
   if (!log || log.stopT != null) return
   const stopT = Math.max(0, Date.now() - log.startedAt)
-  remoteLog.value = { ...log, stopT, steps: applyStopToSteps(log.steps, stopT) }
+  remoteLog.value = { ...log, stopT, steps: applyStopToSteps(log.steps, stopT, retMs) }
 }
 
 function finishRemoteLog() {
@@ -5697,7 +5719,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
   }
 
   // 타임라인의 점들을 시간 간격대로 하나씩 적용한다(첫 점은 바로). fromT가 있으면(이어서 재생) 이미 지난 점은 건너뛰고 지금 시점의 가격부터 시작한다.
-  const playPoints = (points: ProfitPoint[], onDone: () => void, fromT: number | null = null) => {
+  const playPoints = (points: ProfitPoint[], onDone: () => void, fromT: number | null = null, mapPrice?: (price: number, t: number) => number) => {
     if (!points.length) {
       onDone()
       return
@@ -5707,7 +5729,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     // 각 점은 "시작 시각 + 점의 시각"에 맞춰 예약한다(앞 점과의 간격만큼 계속 더하면 PC가 느릴 때 오차가 쌓여 전체가 길어진다).
     const startWall = Date.now() - (fromT != null ? Math.max(fromT, points[i].t) : points[i].t)
     const step = () => {
-      applyPrice(points[i].price)
+      applyPrice(mapPrice ? mapPrice(points[i].price, points[i].t) : points[i].price)
       i += 1
       if (i < points.length) {
         adminProfitTimer = setTimeout(step, Math.max(0, startWall + points[i].t - Date.now()))
@@ -5716,6 +5738,19 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
       }
     }
     step()
+  }
+
+  // 정상가로 돌아오는 구간은 시작할 때의 실제 시세(r0)를 향해 만든 경로다. 돌아오는 동안 실제 시세가 움직였으면 그 차이를 구간 진행률에 비례해 더해,
+  // 마지막 점이 "그 순간의 실제 시세"에 정확히 닿게 한다(안 그러면 복귀가 끝나는 순간 화면이 실제 시세로 한 번에 훅 튄다).
+  const driftMap = (points: ProfitPoint[], r0: number) => {
+    const t0 = points.length ? points[0].t : 0
+    const t1 = points.length ? points[points.length - 1].t : 0
+    return (price: number, t: number) => {
+      const real = Number(lastPrice.value)
+      if (!(real > 0) || !(r0 > 0)) return price
+      const sp = t1 > t0 ? Math.min(1, Math.max(0, (t - t0) / (t1 - t0))) : 1
+      return price + (real - r0) * sp
+    }
   }
 
   const finish = () => {
@@ -5731,16 +5766,18 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     loadAccount().catch(() => {})
   }
 
-  // 리모콘 정지: 지금 보이는 가격에서 실제 현재가로 1분 동안 50틱에 걸쳐 돌아온다(그 동안 시간이 흘러 봉이 바뀌면 새 봉이 생긴다).
+  // 리모콘 정지: 지금 보이는 가격에서 정한 시간(기본 1분) 동안 실제 현재가로 단계적으로 돌아온다(위아래로 흔들리며, 그 동안 실제 시세가 움직이면 거기에 맞춰 도착한다).
   runningProfitEventId = ev.id
-  profitStopRunning = () => {
+  profitStopRunning = (retMsParam?: number) => {
     if (profitReturning.value) return
     if (adminProfitTimer) clearTimeout(adminProfitTimer)
     profitReturning.value = true
-    noteRemoteLogStop()
-    adminProfitFreezeUntil = Date.now() + PROFIT_RETURN_MS + 300
+    const retMs = Number(retMsParam) >= 1000 ? Number(retMsParam) : profitStopReturnMs(ev)
+    noteRemoteLogStop(retMs)
+    adminProfitFreezeUntil = Date.now() + retMs + 300
     const real = Number(lastPrice.value || prevApplied)
-    playPoints(buildProfitReturnPath(ev, 0, prevApplied, real), finish)
+    const ret = buildProfitReturnPath({ ...ev, returnMs: retMs }, 0, prevApplied, real)
+    playPoints(ret, finish, null, driftMap(ret, real))
   }
 
   if (ev.cplan && ev.cplan.candles?.length) {
@@ -5774,7 +5811,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
           const realPrice = Number(lastPrice.value || ev.basePrice)
           const ret = buildCandlePlanReturn(ev, built.candlesEndT, built.lastPrice, realPrice)
           const tNow = Date.now() - runStartWall
-          playPoints(ret, finish, tNow > (ret[0]?.t ?? 0) ? tNow : null)
+          playPoints(ret, finish, tNow > (ret[0]?.t ?? 0) ? tNow : null, driftMap(ret, realPrice))
         },
         nowT > (built.points[0]?.t ?? 0) ? nowT : null
       )
@@ -5823,7 +5860,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
         const realPrice = Number(lastPrice.value || ev.basePrice)
         const c = buildPlanStageC(stage, planRng, ab.endT, ab.lastHoldPrice, realPrice)
         const endT = c.length ? c[c.length - 1].t : ab.endT
-        playPoints(c, () => runStage(k + 1, endT, realPrice))
+        playPoints(c, () => runStage(k + 1, endT, realPrice), null, driftMap(c, realPrice))
       })
     }
     runStage(0, 0, ev.basePrice)
@@ -5836,17 +5873,53 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     // A(basePrice)가 아니라, 복귀를 시작하는 시점의 실제 현재가로 되돌아간다.
     const realPrice = Number(lastPrice.value || ev.shockedPrice)
     const phaseB = buildProfitPhaseB(ev, rng, phaseA.endT, phaseA.lastHoldPrice, realPrice)
-    playPoints(phaseB, finish)
+    playPoints(phaseB, finish, null, driftMap(phaseB, realPrice))
   })
 }
 
-// "리모콘 정지" 버튼: 진행 중인 리모콘을 멈추고 실제 현재가로 돌아오게 한다.
-async function stopRemote() {
+// "리모콘 정지" 버튼: 몇 초 만에 정상가로 돌아올지 물어보고, 시작을 누르면 그 시간 동안 단계적으로 정상가로 돌아오게 한다.
+const stopModalOpen = ref(false)
+const stopSecondsDraft = ref(60)
+const stopModalError = ref<string | null>(null)
+const STOP_SECONDS_KEY = 'ktx_remote_stop_seconds'
+
+function openStopModal() {
+  if (!runningProfitEventId || profitReturning.value || profitStopBusy.value) {
+    // 디자인차트가 첫 봉을 기다리는 중이면(아직 가격을 건드리지 않았으므로) 시간을 묻지 않고 바로 취소한다.
+    if (designWaiting.value) stopRemote(60).catch(() => {})
+    return
+  }
+  if (designWaiting.value) {
+    stopRemote(60).catch(() => {})
+    return
+  }
+  try {
+    const saved = Number(localStorage.getItem(STOP_SECONDS_KEY))
+    if (Number.isFinite(saved) && saved >= 1) stopSecondsDraft.value = saved
+  } catch {}
+  stopModalError.value = null
+  stopModalOpen.value = true
+}
+
+async function confirmStopModal() {
+  const sec = Number(stopSecondsDraft.value)
+  if (!Number.isFinite(sec) || sec < 1 || sec > 3600) {
+    stopModalError.value = t('1~3600초 사이로 입력해주세요.', 'Please enter 1 to 3600 seconds.')
+    return
+  }
+  try {
+    localStorage.setItem(STOP_SECONDS_KEY, String(sec))
+  } catch {}
+  stopModalOpen.value = false
+  await stopRemote(sec)
+}
+
+async function stopRemote(seconds = 60) {
   if (!runningProfitEventId || profitReturning.value || profitStopBusy.value) return
   profitStopBusy.value = true
   try {
-    const res = await $fetch<{ ok: boolean; stopT: number | null }>('/api/admin/profit-stop', { method: 'POST', body: { eventId: runningProfitEventId } })
-    if (res?.ok) profitStopRunning?.()
+    const res = await $fetch<{ ok: boolean; stopT: number | null }>('/api/admin/profit-stop', { method: 'POST', body: { eventId: runningProfitEventId, returnSeconds: seconds } })
+    if (res?.ok) profitStopRunning?.(Math.round(seconds * 1000))
   } catch {
     // 실패하면 아무 일도 일어나지 않고 리모콘은 계속 진행된다
   } finally {
@@ -5875,7 +5948,7 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
 
     // 복귀 목표(=복귀가 끝나는 가격, 정지한 이벤트는 정지 후 1분 뒤)는 그 시각 봉의 실제 종가로 대신한다.
     const phaseAEnd = ev.cplan ? ev.cplan.delayMs + ev.cplan.candles.length * ev.cplan.barMs : ev.plan ? planFirstReturnStartT(ev.plan) : buildProfitPhaseA(ev, mulberry32(profitSeed(ev))).endT
-    const targetT = ev.stopT != null ? Math.max(0, ev.stopT) + PROFIT_RETURN_MS : phaseAEnd
+    const targetT = ev.stopT != null ? Math.max(0, ev.stopT) + profitStopReturnMs(ev) : phaseAEnd
     const targetBar = byTime.get(bucketOf(t0 + targetT))
     const realTargetRaw = targetBar ? Number(targetBar.__rc ?? targetBar.close) : ev.basePrice
     const tl = buildProfitTimeline(ev, Number.isFinite(realTargetRaw) && realTargetRaw > 0 ? realTargetRaw : ev.basePrice)
@@ -5939,7 +6012,7 @@ async function handleProfitEvent(ev: ProfitEvent | null | undefined) {
     lastSeenProfitEventId = ev.id
     await runProfitAnimation(ev)
   } else if (ev && ev.id === runningProfitEventId && ev.stopT != null && profitStopRunning && !profitReturning.value) {
-    profitStopRunning()
+    profitStopRunning(ev.returnMs ?? undefined)
   }
 }
 

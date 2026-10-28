@@ -30,6 +30,8 @@ export type ProfitEvent = {
   holdAmp: number | null
   // 진행 중 중단된 시각(이벤트 시작 기준 ms). 중단되지 않았으면 없음.
   stopT?: number | null
+  // 정지할 때 정한 "정상가로 돌아오는 시간"(ms)
+  returnMs?: number | null
   // 리모콘2 이벤트면 목표가 여러 개를 차례로 지나는 계획(없으면 기존 리모콘1 이벤트).
   plan?: ProfitPlan | null
   // 디자인차트 이벤트면 설계한 봉들(없으면 리모콘1/2).
@@ -39,7 +41,7 @@ export type ProfitEvent = {
 
 // 디자인차트 저장 형식: direction 컬럼에 'R3:' + JSON({ o: 첫 시가, t: 눈금, b: 봉 길이ms, d: 첫 봉 시작까지 대기ms, r: 복귀ms, c: [[종가, 고가, 저가], ...], st: 정지시각ms })
 const CANDLE_PREFIX = 'R3:'
-function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: number | null } | null {
+function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: number | null; returnMs: number | null } | null {
   const text = String(dir ?? '')
   if (!text.startsWith(CANDLE_PREFIX)) return null
   try {
@@ -59,17 +61,18 @@ function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: numbe
     const cMs = Number(j?.r)
     if (!candles.length || ![open, tick, barMs, delayMs, cMs].every((x) => Number.isFinite(x)) || tick <= 0 || barMs <= 0) return null
     const st = Number(j?.st)
-    return { cplan: { open, tick, barMs, delayMs, cMs, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null }
+    return { cplan: { open, tick, barMs, delayMs, cMs, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null }
   } catch {
     return null
   }
 }
-function buildCandleDirection(cp: ProfitCandlePlan, stopT?: number | null) {
+function buildCandleDirection(cp: ProfitCandlePlan, stopT?: number | null, returnMs?: number | null) {
   const body: any = { o: cp.open, t: cp.tick, b: cp.barMs, d: cp.delayMs, r: cp.cMs, c: cp.candles.map((x) => [x.c, x.h, x.l]) }
   if (stopT != null) body.st = stopT
+  if (returnMs) body.rm = Math.round(returnMs)
   return CANDLE_PREFIX + JSON.stringify(body)
 }
-function candleToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, cp: ProfitCandlePlan, stopT: number | null): ProfitEvent {
+function candleToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, cp: ProfitCandlePlan, stopT: number | null, returnMs: number | null = null): ProfitEvent {
   const last = cp.candles[cp.candles.length - 1]
   return {
     id: base.id,
@@ -86,6 +89,7 @@ function candleToEvent(base: { id: number; symbol: string; percent: number; base
     revertTickCount: 0,
     holdAmp: null,
     stopT,
+    returnMs,
     cplan: cp,
     createdAt: base.createdAt
   }
@@ -94,7 +98,7 @@ function candleToEvent(base: { id: number; symbol: string; percent: number; base
 // 리모콘2 저장 형식: direction 컬럼에 'R2:' + JSON({ s: [[목표가, 이동ms, 이동틱, 유지ms, 유지틱, 움직임금액|null, 복귀여부(0/1), 복귀ms, 복귀틱], ...], st: 정지시각ms })
 // (DB 컬럼을 늘리지 않으려고 기존 text 컬럼에 담는다. 리모콘1 이벤트는 'up|...' 형식 그대로라 서로 섞이지 않는다.)
 const PLAN_PREFIX = 'R2:'
-function parsePlanDirection(dir: any): { plan: ProfitPlan; stopT: number | null } | null {
+function parsePlanDirection(dir: any): { plan: ProfitPlan; stopT: number | null; returnMs: number | null } | null {
   const text = String(dir ?? '')
   if (!text.startsWith(PLAN_PREFIX)) return null
   try {
@@ -109,17 +113,17 @@ function parsePlanDirection(dir: any): { plan: ProfitPlan; stopT: number | null 
     }
     if (!stages.length) return null
     const st = Number(j?.st)
-    return { plan: { stages }, stopT: j?.st != null && Number.isFinite(st) ? st : null }
+    return { plan: { stages }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null }
   } catch {
     return null
   }
 }
-function buildPlanDirection(plan: ProfitPlan, stopT?: number | null) {
+function buildPlanDirection(plan: ProfitPlan, stopT?: number | null, returnMs?: number | null) {
   const s = plan.stages.map((g) => [g.price, g.aMs, g.aTicks, g.bMs, g.bTicks, g.amp, g.back ? 1 : 0, g.cMs, g.cTicks])
-  return PLAN_PREFIX + JSON.stringify(stopT != null ? { s, st: stopT } : { s })
+  return PLAN_PREFIX + JSON.stringify(stopT != null ? { s, st: stopT, ...(returnMs ? { rm: Math.round(returnMs) } : {}) } : { s })
 }
 // 리모콘2 이벤트의 기존 필드(리모콘1 화면/관리자 목록이 읽는 값)는 첫 목표 기준으로 채운다.
-function planToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, plan: ProfitPlan, stopT: number | null): ProfitEvent {
+function planToEvent(base: { id: number; symbol: string; percent: number; basePrice: number; createdAt: string }, plan: ProfitPlan, stopT: number | null, returnMs: number | null = null): ProfitEvent {
   const first = plan.stages[0]
   const last = plan.stages[plan.stages.length - 1]
   return {
@@ -137,6 +141,7 @@ function planToEvent(base: { id: number; symbol: string; percent: number; basePr
     revertTickCount: last.cTicks,
     holdAmp: first.amp,
     stopT,
+    returnMs,
     plan,
     createdAt: base.createdAt
   }
@@ -151,7 +156,8 @@ function rowToProfitEvent(row: any): ProfitEvent {
     return candleToEvent(
       { id: Number(row.id), symbol: String(row.symbol).toUpperCase(), percent: Number(row.percent), basePrice: Number(row.base_price), createdAt: String(row.created_at) },
       candleDir.cplan,
-      candleDir.stopT
+      candleDir.stopT,
+      candleDir.returnMs
     )
   }
   const planDir = parsePlanDirection(row.direction)
@@ -159,7 +165,8 @@ function rowToProfitEvent(row: any): ProfitEvent {
     return planToEvent(
       { id: Number(row.id), symbol: String(row.symbol).toUpperCase(), percent: Number(row.percent), basePrice: Number(row.base_price), createdAt: String(row.created_at) },
       planDir.plan,
-      planDir.stopT
+      planDir.stopT,
+      planDir.returnMs
     )
   }
   const dur = Number(row.duration_ms)
@@ -191,6 +198,7 @@ function rowToProfitEvent(row: any): ProfitEvent {
       revertTickCount: ext[4],
       holdAmp: Number.isFinite(ampNum) && ampNum >= 0 ? ampNum : null,
       stopT: dirParts.length >= 8 && Number.isFinite(Number(dirParts[7])) && dirParts[7] !== '' ? Number(dirParts[7]) : null,
+      returnMs: dirParts.length >= 9 && Number(dirParts[8]) >= 1000 ? Number(dirParts[8]) : null,
       createdAt: String(row.created_at)
     }
   }
@@ -394,24 +402,24 @@ async function createProfitCandleEventInner(input: { symbol: string; basePrice: 
 }
 
 // 진행 중인 이벤트를 지금 시각에서 중단한다(운영자 화면 새로고침). direction 컬럼의 확장 형식 8번째 값에 중단 시각(ms)을 기록한다.
-export async function stopProfitEvent(id: number): Promise<{ ok: boolean; stopT: number | null }> {
+export async function stopProfitEvent(id: number, returnMs?: number | null): Promise<{ ok: boolean; stopT: number | null }> {
   invalidateLatestProfit()
   try {
-    return await stopProfitEventInner(id)
+    return await stopProfitEventInner(id, returnMs)
   } finally {
     invalidateLatestProfit()
   }
 }
 
 // 리모콘2 이벤트의 정지: plan의 전체 길이 안에서만 정지할 수 있고, 정지 시각은 JSON의 st에 기록한다.
-async function stopPlanEvent(row: any, save: (direction: string) => Promise<void>): Promise<{ ok: boolean; stopT: number | null }> {
+async function stopPlanEvent(row: any, returnMs: number | null | undefined, save: (direction: string) => Promise<void>): Promise<{ ok: boolean; stopT: number | null }> {
   const cd = parseCandleDirection(row.direction)
   if (cd) {
     if (cd.stopT != null) return { ok: true, stopT: cd.stopT }
     const off = Math.max(0, Date.now() - new Date(row.created_at).getTime())
     if (off >= candlePlanTotalMs(cd.cplan)) return { ok: false, stopT: null }
     const stopT = Math.round(off)
-    await save(buildCandleDirection(cd.cplan, stopT))
+    await save(buildCandleDirection(cd.cplan, stopT, returnMs))
     return { ok: true, stopT }
   }
   const pd = parsePlanDirection(row.direction)
@@ -420,11 +428,11 @@ async function stopPlanEvent(row: any, save: (direction: string) => Promise<void
   const offset = Math.max(0, Date.now() - new Date(row.created_at).getTime())
   if (offset >= planTotalMs(pd.plan)) return { ok: false, stopT: null } // 이미 끝난 이벤트
   const stopT = Math.round(offset)
-  await save(buildPlanDirection(pd.plan, stopT))
+  await save(buildPlanDirection(pd.plan, stopT, returnMs))
   return { ok: true, stopT }
 }
 
-async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: number | null }> {
+async function stopProfitEventInner(id: number, returnMs?: number | null): Promise<{ ok: boolean; stopT: number | null }> {
   const apply = (dirRaw: string, createdAt: string) => {
     const parts = String(dirRaw ?? '').split('|')
     if (parts.length < 7) return null // 예전 형식 이벤트는 중단 정보를 담을 수 없다
@@ -438,7 +446,7 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
     const row = rows[0]
     if (!row) return { ok: false, stopT: null }
     if (String(row.direction ?? '').startsWith(PLAN_PREFIX) || String(row.direction ?? '').startsWith(CANDLE_PREFIX)) {
-      return stopPlanEvent(row, async (direction) => {
+      return stopPlanEvent(row, returnMs, async (direction) => {
         const { error } = await getSupabaseAdminClient().from(T_PROFIT_EVENTS).update({ direction }).eq('id', id)
         if (error) throw error
       })
@@ -450,6 +458,7 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
     if (a.offset >= a.total + holdMs) return { ok: false, stopT: null } // 이미 끝난 이벤트
     const parts = a.parts.slice(0, 7)
     parts[7] = String(Math.round(a.offset))
+    parts[8] = returnMs ? String(Math.round(returnMs)) : ''
     const supa = getSupabaseAdminClient()
     const { error } = await supa.from(T_PROFIT_EVENTS).update({ direction: parts.join('|') }).eq('id', id)
     if (error) throw error
@@ -459,7 +468,7 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
   const row = db.prepare('SELECT * FROM profit_events WHERE id = ?').get(id) as any
   if (!row) return { ok: false, stopT: null }
   if (String(row.direction ?? '').startsWith(PLAN_PREFIX) || String(row.direction ?? '').startsWith(CANDLE_PREFIX)) {
-    return stopPlanEvent(row, async (direction) => {
+    return stopPlanEvent(row, returnMs, async (direction) => {
       db.prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(direction, id)
     })
   }
@@ -470,6 +479,7 @@ async function stopProfitEventInner(id: number): Promise<{ ok: boolean; stopT: n
   if (a.offset >= a.total + holdMs) return { ok: false, stopT: null }
   const parts = a.parts.slice(0, 7)
   parts[7] = String(Math.round(a.offset))
+  parts[8] = returnMs ? String(Math.round(returnMs)) : ''
   db.prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(parts.join('|'), id)
   return { ok: true, stopT: Math.round(a.offset) }
 }

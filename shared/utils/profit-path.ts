@@ -39,6 +39,8 @@ export function designTickSize(price: number) {
 }
 
 export type ProfitPathEvent = {
+  // 리모콘 정지 때 정한 "정상가로 돌아오는 시간"(ms). 없으면 기본 1분.
+  returnMs?: number | null
   // 디자인차트 이벤트면 설계한 봉들을 차례로 만든다.
   cplan?: ProfitCandlePlan | null
   // 리모콘2 이벤트면 여러 목표가를 차례로 지나는 경로를 쓴다(없으면 기존 리모콘1 경로).
@@ -411,45 +413,40 @@ export function planFirstReturnStartT(plan: ProfitPlan): number {
 }
 
 // 이벤트가 끝나는 시각(이벤트 시작 기준 ms): 정지했으면 정지 시각 + 복귀 1분, 아니면 경로 전체 길이. 리모콘1/2 모두 같은 함수로 구한다.
-export function profitEventTotalMs(ev: { durationMs?: number; holdMs?: number; revertMs?: number; stopT?: number | null; plan?: ProfitPlan | null; cplan?: ProfitCandlePlan | null }): number {
-  if (ev.stopT != null) return Math.max(0, ev.stopT) + PROFIT_RETURN_MS
+export function profitEventTotalMs(ev: { durationMs?: number; holdMs?: number; revertMs?: number; stopT?: number | null; returnMs?: number | null; plan?: ProfitPlan | null; cplan?: ProfitCandlePlan | null }): number {
+  if (ev.stopT != null) return Math.max(0, ev.stopT) + profitStopReturnMs(ev)
   if (ev.cplan) return candlePlanTotalMs(ev.cplan)
   if (ev.plan) return planTotalMs(ev.plan)
   const durationMs = Math.max(100, ev.durationMs || 1000)
   return durationMs + Math.max(100, ev.holdMs || 3000) + Math.max(100, ev.revertMs || durationMs)
 }
 
-// 리모콘 정지 후 복귀: 지금 가격에서 실제 현재가로 1분 동안 200틱에 걸쳐 돌아온다.
+// 리모콘 정지 후 복귀: 지금 가격에서 실제 현재가로 돌아오는 시간(기본 1분, 정지할 때 1~3600초로 정할 수 있다).
 export const PROFIT_RETURN_MS = 60000
-export const PROFIT_RETURN_TICKS = 200
-// 정지 직후 처음 10초는 정지한 가격 근처에서 ±0.01씩 랜덤하게 움직인 뒤(PROFIT_RETURN_MS 안에 포함) 정상가로 돌아온다.
-export const PROFIT_STOP_JITTER_MS = 10000
-export const PROFIT_STOP_JITTER_AMP = 0.01
+export function profitStopReturnMs(ev: { returnMs?: number | null }) {
+  const v = Number(ev?.returnMs)
+  return Number.isFinite(v) && v >= 1000 ? Math.min(v, 3600000) : PROFIT_RETURN_MS
+}
 
 // startT(이벤트 시작 기준 ms)부터 startPrice에서 realTarget까지 돌아오는 경로. 난수는 이벤트 번호로 고정(원래 경로와 다른 난수열).
 export function buildProfitReturnPath(ev: ProfitPathEvent, startT: number, startPrice: number, realTarget: number): ProfitPoint[] {
   const prevRng = rngFn
   rngFn = mulberry32((profitSeed(ev) ^ 0x9e3779b9) >>> 0)
   try {
+    // 정해진 시간 동안 정상가로 "단계적으로" 돌아온다: 시간에 비례해 직선으로 다가가되, 틱마다 위아래로 랜덤하게 흔들려서 제자리에 멈춰 있지 않다.
+    // 흔들림 폭은 이동 거리(없으면 가격의 0.02%) 기준이고 끝으로 갈수록 줄어, 마지막 점은 정확히 realTarget이다.
+    const returnMs = profitStopReturnMs(ev)
+    const n = Math.max(4, Math.min(1500, Math.round(returnMs / 300)))
+    const gaps = buildRandomGaps(n, returnMs)
+    const move = realTarget - startPrice
+    const amp = Math.max(Math.abs(move) * 0.12, Math.abs(realTarget) * 0.0002)
     const points: ProfitPoint[] = []
     let t = startT
-    // 1) 정지한 가격에서 처음 10초 동안은 멈춰 있지 않고, 위아래로 ±0.01씩 랜덤하게 움직인다.
-    const jitterEnd = startT + PROFIT_STOP_JITTER_MS
-    points.push({ t, price: startPrice + (rngFn() * 2 - 1) * PROFIT_STOP_JITTER_AMP })
-    for (;;) {
-      t += 100 + rngFn() * 200
-      if (t >= jitterEnd) break
-      points.push({ t, price: startPrice + (rngFn() * 2 - 1) * PROFIT_STOP_JITTER_AMP })
-    }
-    // 2) 그 뒤 남은 50초 동안 정상가(실제 현재가)로 돌아온다. 전체 길이는 그대로 PROFIT_RETURN_MS(1분).
-    const returnMs = PROFIT_RETURN_MS - PROFIT_STOP_JITTER_MS
-    const path = buildRandomPathToTarget(startPrice, realTarget, PROFIT_RETURN_TICKS)
-    const gaps = buildRandomGaps(PROFIT_RETURN_TICKS, returnMs)
-    t = jitterEnd
-    points.push({ t, price: path[0] })
-    for (let i = 1; i < path.length; i++) {
-      t += gaps[i - 1] ?? 0
-      points.push({ t, price: path[i] })
+    for (let k = 1; k <= n; k++) {
+      if (k > 1) t += gaps[k - 2] ?? 0
+      const s = Math.min(1, (t - startT) / returnMs)
+      const price = k === n ? realTarget : startPrice + move * s + (rngFn() * 2 - 1) * amp * Math.sqrt(Math.max(0, 1 - s))
+      points.push({ t, price })
     }
     return points
   } finally {

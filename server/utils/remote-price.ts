@@ -1,7 +1,7 @@
 import { clampToMarketPrice } from './okx'
 import { latestProfitEvent } from './profit-events'
 import { latestKillEvent } from './kill-events'
-import { buildProfitTimeline, profitEventTotalMs, profitRangeBetween, PROFIT_RETURN_MS } from '../../shared/utils/profit-path'
+import { buildProfitTimeline, profitEventTotalMs, profitRangeBetween, profitStopReturnMs } from '../../shared/utils/profit-path'
 
 // 리모콘(수익/손실)·킬 버튼으로 가격이 움직이는 동안 화면에 보이는 가격은 실제 시세와 크게 다를 수 있다.
 // 이때 롱/숏을 잡거나 청산하는 사람은 "화면에 보이는 그 가격"에 체결되어야 하므로,
@@ -53,7 +53,8 @@ export async function resolveClientPrice(symbol: string, clientPrice: number | u
       const revert = Math.max(1, pe.revertMs)
       // "리모콘 정지"를 누른 이벤트는 정지 시각부터 1분 동안 실제 현재가로 돌아오는 경로를 따른다.
       const stopT = pe.stopT != null ? Math.max(0, pe.stopT) : null
-      const end = start + (stopT != null ? stopT + PROFIT_RETURN_MS : move + hold + revert)
+      const retMs = profitStopReturnMs(pe)
+      const end = start + (stopT != null ? stopT + retMs : move + hold + revert)
       if (Number.isFinite(start) && now >= start - CLOCK_SKEW_MS && now <= end + GRACE_AFTER_END_MS) {
         const delta = pe.shockedPrice - pe.basePrice
         const noise = Math.abs(delta) * NOISE_RATIO
@@ -70,7 +71,7 @@ export async function resolveClientPrice(symbol: string, clientPrice: number | u
         const at = (t: number) => {
           if (stopT == null || t < stopT) return atOriginal(t)
           const p0 = atOriginal(stopT)
-          return p0 + (marketPrice - p0) * Math.min(1, (t - stopT) / PROFIT_RETURN_MS)
+          return p0 + (marketPrice - p0) * Math.min(1, (t - stopT) / retMs)
         }
         // t0~t1 사이에 지나가는 모든 구간의 경로 값을 모아 범위로 쓴다.
         const points = [at(t0), at(t1), ...[move, move + hold, ...(stopT != null ? [stopT] : [])].filter((x) => x > t0 && x < t1).map(at)]
