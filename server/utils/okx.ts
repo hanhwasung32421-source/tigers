@@ -16,6 +16,38 @@ function toInstId(symbol: string) {
   return 'BTC-USDT-SWAP'
 }
 
+// 종목의 최소 가격 단위(틱). 바이낸스 기준 종목(삼성/SK하이닉스)은 바이낸스 선물의 PRICE_FILTER tickSize, 나머지는 OKX 무기한 선물의 tickSz.
+// 거래소 정보는 거의 바뀌지 않아 6시간 서버 메모리에 둔다. 못 받으면 가격 크기에 맞춘 기본값(fallbackTick)을 쓴다.
+export async function getSymbolTickSize(symbol: string, fallbackTick: number): Promise<number> {
+  const sym = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  try {
+    if (usesBinanceFeed(sym)) {
+      const map = await ttlCached('binance-tick-sizes', 6 * 3600 * 1000, async () => {
+        const info = await $fetch<any>('https://fapi.binance.com/fapi/v1/exchangeInfo', { timeout: 8000 })
+        const out: Record<string, number> = {}
+        for (const s of info?.symbols || []) {
+          const pf = (s?.filters || []).find((f: any) => f?.filterType === 'PRICE_FILTER')
+          const tk = Number(pf?.tickSize)
+          if (s?.symbol && Number.isFinite(tk) && tk > 0) out[String(s.symbol)] = tk
+        }
+        return out
+      })
+      const tk = map[sym]
+      if (tk > 0) return tk
+    } else {
+      const instId = toInstId(symbol)
+      const tk = await ttlCached(`okx-tick:${instId}`, 6 * 3600 * 1000, async () => {
+        const r = await $fetch<any>('https://www.okx.com/api/v5/public/instruments', { query: { instType: 'SWAP', instId }, timeout: 6000 })
+        return Number(r?.data?.[0]?.tickSz)
+      })
+      if (Number.isFinite(tk) && tk > 0) return tk
+    }
+  } catch {
+    // 거래소 정보를 못 받으면 기본값 사용
+  }
+  return fallbackTick
+}
+
 // 바이낸스 선물 최우선 호가의 중간값. 화면 차트의 현재가(호가 중간값)와 같은 기준이라 주문/청산 판정이 화면과 어긋나지 않는다.
 async function getBinanceMidPrice(symbol: string): Promise<number> {
   const s = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '')

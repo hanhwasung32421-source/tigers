@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { requireSuperAdmin } from '../../utils/auth'
-import { getOkxLastPrice } from '../../utils/okx'
+import { getOkxLastPrice, getSymbolTickSize } from '../../utils/okx'
 import { createProfitCandleEvent } from '../../utils/profit-events'
 import { logAdminAction } from '../../utils/supa-log'
 import { designTickSize, PROFIT_CANDLE_MAX, type ProfitCandlePlan } from '../../../shared/utils/profit-path'
@@ -35,7 +35,8 @@ export default defineEventHandler(async (event) => {
   if (!Number.isFinite(basePrice) || basePrice <= 0) {
     throw createError({ statusCode: 400, statusMessage: '현재가를 불러오지 못했습니다.' })
   }
-  const tick = designTickSize(basePrice)
+  // 움직이는 최소 단위는 종목의 실제 최소 가격 단위(틱)다(삼성/SK하이닉스는 바이낸스 0.01, 그 외는 OKX tickSz).
+  const tick = await getSymbolTickSize(symbol, designTickSize(basePrice))
   const snap = (p: number) => Number((Math.round(p / tick) * tick).toPrecision(12))
   const shift = basePrice - body.open
   const open = snap(basePrice)

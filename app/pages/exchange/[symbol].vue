@@ -604,7 +604,7 @@
                 <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15" @click="closeDesignChart">{{ t('닫기', 'Close') }}</button>
               </div>
               <p v-if="designError" class="mt-1 rounded bg-[#34181d] px-2 py-1 text-center text-[11px] text-red-300">{{ designError }}</p>
-              <p v-else class="mt-1 text-center text-[11px] text-[#868993]">{{ t('봉을 드래그해서 종가/고가/저가를 움직이세요. 시작하면 다음 봉이 시작될 때부터 0.01씩 랜덤하게 움직입니다.', 'Drag a bar to move its close/high/low. After Start, price moves by ticks of 0.01 from the next bar.') }}</p>
+              <p v-else class="mt-1 text-center text-[11px] text-[#868993]">{{ t(`봉을 드래그해서 종가/고가/저가를 움직이세요. 시작하면 다음 봉이 시작될 때부터 ${designTickSizeRef}(최소 틱)씩 랜덤하게 움직입니다.`, `Drag a bar to move its close/high/low. After Start, price moves in random steps of ${designTickSizeRef} (min tick) from the next bar.`) }}</p>
             </div>
             <!-- 거래량 pane 범례: VOL(5,10,20) V / MA5 / MA10 / MA20 -->
             <div v-if="volLegend" class="pointer-events-none absolute left-2 z-10 flex flex-wrap items-center gap-x-2 text-[12px] leading-none" :style="{ top: volLegendTop + 'px' }">
@@ -5128,7 +5128,7 @@ function stopDesignLoop() {
   designRaf = 0
 }
 
-function openDesignChart() {
+async function openDesignChart() {
   if (!isSuperAdminUser.value) return
   const bar = barSeconds(timeframe.value)
   designError.value = null
@@ -5137,7 +5137,13 @@ function openDesignChart() {
   }
   const cur = Number(displayLastPrice.value || lastPrice.value || 0)
   if (!(cur > 0)) return
+  // 움직이는 최소 단위는 종목의 실제 최소 가격 단위(틱, 예: SAMSUNGUSDT 0.01)를 서버에서 확인해 쓴다. 못 받으면 가격 크기에 맞춘 기본값.
   designTickSizeRef.value = designTickSize(cur)
+  try {
+    const res = await $fetch<{ tick: number }>('/api/admin/design-chart', { query: { symbol: symbol.value } })
+    if (Number(res?.tick) > 0) designTickSizeRef.value = Number(res.tick)
+  } catch {}
+  if (designOpen.value) return
   designOpenPrice.value = snapDesign(cur)
   designCandles.value = [defaultDesignCandle(designOpenPrice.value)]
   designDrag.value = null
