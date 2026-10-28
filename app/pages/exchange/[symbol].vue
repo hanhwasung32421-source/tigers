@@ -640,6 +640,9 @@
                   stroke-width="1"
                 />
               </svg>
+              <svg v-if="shapeStartMarker" class="pointer-events-none absolute inset-0 h-full w-full">
+                <circle :cx="shapeStartMarker.x" :cy="shapeStartMarker.y" r="5" :fill="shapeStartMarker.color" stroke="#ffffff" stroke-width="1.5" />
+              </svg>
             </div>
             <template v-if="measureBoxView">
               <div
@@ -2706,6 +2709,15 @@ const shapePreviewStartPx = computed(() => {
   const y = candleSeries.priceToCoordinate(pendingShapeStart.value.price)
   if (x === null || y === null) return null
   return { x: Number(x), y: Number(y) }
+})
+
+// 추세선/사각형/원: 첫 번째 점을 찍은 자리에, 완성된 뒤 선택했을 때 나오는 것과 같은 동그란 표시를 바로 보여준다.
+const shapeStartMarker = computed(() => {
+  if (!(activeTool.value === 'trend' || activeTool.value === 'rect' || activeTool.value === 'circle') || !pendingShapeStart.value) return null
+  const start = shapePreviewStartPx.value
+  if (!start) return null
+  const colors: Record<string, string> = { trend: '#facc15', rect: '#22c55e', circle: '#a855f7' }
+  return { x: start.x, y: start.y, color: colors[activeTool.value] }
 })
 
 const trendPreview = computed(() => {
@@ -6387,12 +6399,15 @@ function placeHorizontalLineAtCursor() {
   if (!chart || !candleSeries || !mouseCrosshair.visible) return
   const price = Number(candleSeries.coordinateToPrice(mouseCrosshair.y))
   if (!Number.isFinite(price)) return
+  const id = `h-${Date.now()}`
   chartPrefs.drawings.push({
-    id: `h-${Date.now()}`,
+    id,
     type: 'hline',
     color: '#2962ff',
     price
   })
+  // 그은 직후부터 이미 선택된 상태(양 끝/가운데 선택 표시)로 보이게 한다.
+  selectedDrawingId.value = id
   renderSavedDrawings()
   scheduleSaveChartPrefs()
 }
@@ -6414,12 +6429,14 @@ function onChartClick(param: any) {
   if (!Number.isFinite(Number(price)) || !time) return
 
   if (activeTool.value === 'hline') {
+    const hid = `h-${Date.now()}`
     chartPrefs.drawings.push({
-      id: `h-${Date.now()}`,
+      id: hid,
       type: 'hline',
       color: '#2962ff',
       price: Number(price)
     })
+    selectedDrawingId.value = hid
     liveDrawingPoint.value = null
     clearDrawingPreviewVisuals()
     renderSavedDrawings()
@@ -6460,8 +6477,9 @@ function onChartClick(param: any) {
     trendSnap.value = null
     const shapeColors: Record<string, string> = { trend: '#facc15', rect: '#22c55e', circle: '#a855f7' }
     const shapeIdPrefix: Record<string, string> = { trend: 't', rect: 'r', circle: 'c' }
+    const shapeId = `${shapeIdPrefix[activeTool.value]}-${Date.now()}`
     chartPrefs.drawings.push({
-      id: `${shapeIdPrefix[activeTool.value]}-${Date.now()}`,
+      id: shapeId,
       type: activeTool.value,
       color: shapeColors[activeTool.value],
       points: [
@@ -6472,6 +6490,8 @@ function onChartClick(param: any) {
     pendingShapeStart.value = null
     liveDrawingPoint.value = null
     clearDrawingPreviewVisuals()
+    // 완성되는 순간 그 선(도형)이 클릭된 것처럼 선택 표시가 보이게 한다.
+    selectedDrawingId.value = shapeId
     renderSavedDrawings()
     scheduleSaveChartPrefs()
     activeTool.value = 'cursor'
