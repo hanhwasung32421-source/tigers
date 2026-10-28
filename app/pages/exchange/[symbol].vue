@@ -1693,6 +1693,58 @@
       </div>
     </div>
 
+    <!-- 리모콘 진행 로그창(관리자 화면, 리모콘1/2 공통) -->
+    <div
+      v-if="remoteLog && isSuperAdminUser"
+      class="fixed bottom-4 right-4 z-[75] w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[#10171d]/95 p-3 text-xs shadow-2xl backdrop-blur"
+    >
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-semibold text-slate-100">
+          {{ remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘 진행 상황', 'Remote progress') }}
+          <span class="ml-1 font-normal" :class="remoteLog.done ? 'text-emerald-300' : 'text-sky-300'">
+            {{ remoteLog.done ? t('· 완료', '· Done') : t('· 진행 중', '· Running') }}
+          </span>
+        </div>
+        <button v-if="remoteLog.done" type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" :title="t('닫기', 'Close')" @click="closeRemoteLog">✕</button>
+      </div>
+
+      <div v-if="!remoteLog.done" class="mt-2 rounded-lg bg-white/5 px-3 py-2">
+        <div class="text-slate-400">
+          {{ t('지금', 'Now') }}:
+          <span class="font-semibold text-slate-100">{{ remoteLogCurrent ? remoteLogCurrent.label : '—' }}</span>
+        </div>
+        <div class="mt-0.5 text-slate-400">
+          {{ t('다음', 'Next') }}:
+          <span class="text-slate-200">{{ remoteLogNext ? remoteLogNext.label : t('없음 (마지막 단계)', 'none (last step)') }}</span>
+        </div>
+        <div class="mt-0.5 text-slate-500">{{ t('전체 남은 시간', 'Total remaining') }} {{ fmtLogSec(remoteLogTotalRemain) }}</div>
+      </div>
+
+      <ol class="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+        <li
+          v-for="(r, i) in remoteLogRows"
+          :key="i"
+          class="rounded-md px-2 py-1.5"
+          :class="r.status === 'running' ? 'bg-sky-500/15 ring-1 ring-sky-400/30' : 'bg-white/[0.03]'"
+        >
+          <div class="flex items-center gap-2">
+            <span class="w-4 text-center" :class="r.status === 'done' ? 'text-emerald-300' : r.status === 'running' ? 'text-sky-300' : 'text-slate-500'">
+              {{ r.status === 'done' ? '✓' : r.status === 'running' ? '▶' : '○' }}
+            </span>
+            <span class="flex-1" :class="r.status === 'pending' ? 'text-slate-500' : 'text-slate-100'">{{ r.label }}</span>
+            <span class="text-slate-400">{{ r.detail }}</span>
+          </div>
+          <div class="mt-0.5 flex items-center justify-between pl-6 text-[11px] text-slate-500">
+            <span>{{ fmtLogSec(r.startT) }} – {{ fmtLogSec(r.endT) }}</span>
+            <span v-if="r.status === 'running'" class="text-sky-300">{{ t('남은', 'left') }} {{ fmtLogSec(r.remain) }}</span>
+          </div>
+          <div v-if="r.status === 'running'" class="mt-1 ml-6 h-1 overflow-hidden rounded bg-white/10">
+            <div class="h-full bg-sky-400" :style="{ width: Math.round(r.progress * 100) + '%' }" />
+          </div>
+        </li>
+      </ol>
+    </div>
+
     <div
       v-if="remote2Open"
       class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
@@ -4989,6 +5041,110 @@ function closeProfitModal() {
   profitModalOpen.value = false
 }
 
+// ─── 리모콘 진행 로그창(리모콘1/2 공통, 관리자 화면에만 뜬다) ───
+// 지금 어떤 단계가 진행 중인지, 다음 단계는 무엇인지 한눈에 보여 준다. 끝나면 ✕로 닫는다.
+type RemoteLogStep = { label: string; detail: string; startT: number; endT: number }
+type RemoteLogState = { eventId: number; kind: 1 | 2; startedAt: number; steps: RemoteLogStep[]; stopT: number | null; done: boolean }
+const remoteLog = ref<RemoteLogState | null>(null)
+const remoteLogNow = ref(Date.now())
+let remoteLogTimer: any = null
+
+function fmtLogSec(ms: number) {
+  const sec = Math.max(0, ms) / 1000
+  return sec >= 60 ? `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}` : `${sec.toFixed(1)}s`
+}
+
+function buildRemoteLogSteps(ev: ProfitEvent): RemoteLogStep[] {
+  const steps: RemoteLogStep[] = []
+  let at = 0
+  const add = (label: string, detail: string, ms: number) => {
+    steps.push({ label, detail, startT: at, endT: at + ms })
+    at += ms
+  }
+  if (ev.plan?.stages?.length) {
+    const plan = ev.plan
+    plan.stages.forEach((st, k) => {
+      const n = k + 1
+      add(t('목표', 'Target') + ` ${n} · A ` + t('목표가로 이동', 'move to target'), `→ ${fmtPrice(st.price)}`, Math.max(100, st.aMs || 1000))
+      add(t('목표', 'Target') + ` ${n} · B ` + t('목표가에서 머무름', 'hold at target'), `±${st.amp != null ? st.amp : Math.min(0.05, Math.abs(st.price) * 0.003)}`, Math.max(100, st.bMs || 3000))
+      if (planStageReturns(plan, k)) add(t('목표', 'Target') + ` ${n} · C ` + t('정상가로 복귀', 'return to normal'), t('실제 현재가로', 'to the real price'), Math.max(100, st.cMs || st.aMs || 1000))
+    })
+  } else {
+    const durationMs = Math.max(100, ev.durationMs || 1000)
+    add('A ' + t('목표가로 이동', 'Move to target'), `→ ${fmtPrice(ev.shockedPrice)}`, durationMs)
+    add('B ' + t('목표가에서 머무름', 'Hold at target'), `±${ev.holdAmp != null ? ev.holdAmp : Math.min(0.05, Math.abs(ev.shockedPrice) * 0.003)}`, Math.max(100, ev.holdMs || 3000))
+    add('C ' + t('정상가로 복귀', 'Return to normal'), t('실제 현재가로', 'to the real price'), Math.max(100, ev.revertMs || durationMs))
+  }
+  return steps
+}
+// 정지: 정지 시각 이후의 단계는 빼고, "정지 → 정상가로 복귀(1분)" 단계를 붙인다.
+function applyStopToSteps(steps: RemoteLogStep[], stopT: number): RemoteLogStep[] {
+  const out = steps.filter((x) => x.startT < stopT).map((x) => ({ ...x, endT: Math.min(x.endT, stopT) }))
+  out.push({ label: t('리모콘 정지 · 정상가로 복귀', 'Stopped · returning to normal'), detail: t('실제 현재가로', 'to the real price'), startT: stopT, endT: stopT + PROFIT_RETURN_MS })
+  return out
+}
+
+function startRemoteLog(ev: ProfitEvent, elapsedMs: number) {
+  if (!isSuperAdminUser.value) return
+  let steps = buildRemoteLogSteps(ev)
+  if (ev.stopT != null) steps = applyStopToSteps(steps, Math.max(0, ev.stopT))
+  remoteLog.value = { eventId: ev.id, kind: ev.plan ? 2 : 1, startedAt: Date.now() - elapsedMs, steps, stopT: ev.stopT ?? null, done: false }
+  remoteLogNow.value = Date.now()
+  if (remoteLogTimer) clearInterval(remoteLogTimer)
+  remoteLogTimer = setInterval(() => {
+    remoteLogNow.value = Date.now()
+  }, 250)
+}
+
+function noteRemoteLogStop() {
+  const log = remoteLog.value
+  if (!log || log.stopT != null) return
+  const stopT = Math.max(0, Date.now() - log.startedAt)
+  remoteLog.value = { ...log, stopT, steps: applyStopToSteps(log.steps, stopT) }
+}
+
+function finishRemoteLog() {
+  if (remoteLogTimer) {
+    clearInterval(remoteLogTimer)
+    remoteLogTimer = null
+  }
+  if (remoteLog.value) remoteLog.value = { ...remoteLog.value, done: true }
+}
+
+function closeRemoteLog() {
+  if (remoteLogTimer) {
+    clearInterval(remoteLogTimer)
+    remoteLogTimer = null
+  }
+  remoteLog.value = null
+}
+
+// 단계별 상태(완료/진행 중/대기)와 진행률
+const remoteLogRows = computed(() => {
+  const log = remoteLog.value
+  if (!log) return []
+  const tNow = remoteLogNow.value - log.startedAt
+  return log.steps.map((st) => {
+    const status: 'done' | 'running' | 'pending' = log.done || tNow >= st.endT ? 'done' : tNow >= st.startT ? 'running' : 'pending'
+    const progress = status === 'done' ? 1 : status === 'running' ? Math.min(1, (tNow - st.startT) / Math.max(1, st.endT - st.startT)) : 0
+    const remain = status === 'running' ? st.endT - tNow : 0
+    return { ...st, status, progress, remain }
+  })
+})
+const remoteLogCurrent = computed(() => remoteLogRows.value.find((r) => r.status === 'running') || null)
+const remoteLogNext = computed(() => {
+  const rows = remoteLogRows.value
+  const idx = rows.findIndex((r) => r.status === 'running')
+  if (idx >= 0) return rows[idx + 1] || null
+  return rows.find((r) => r.status === 'pending') || null
+})
+const remoteLogTotalRemain = computed(() => {
+  const log = remoteLog.value
+  if (!log || log.done) return 0
+  const end = log.steps.length ? log.steps[log.steps.length - 1].endT : 0
+  return Math.max(0, end - (remoteLogNow.value - log.startedAt))
+})
+
 // ─── 리모콘2: 목표가를 최대 10개까지 이어서 지정(기존 리모콘과 별개) ───
 type Remote2Stage = { price: number | null; amp: number; aSec: number; aTicks: number; bSec: number; bTicks: number; back: boolean; cSec: number; cTicks: number }
 const REMOTE2_MAX = 10
@@ -5243,6 +5399,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitBusy.value = true
   profitReturning.value = ev.stopT != null
+  startRemoteLog(ev, elapsedMs)
   // 원위치로 되돌아갈 때도 비슷한 속도로 서서히 복귀하므로, 그 시간까지 포함해서 얼려둔다.
   adminProfitFreezeUntil = Date.now() + Math.max(300, totalMs - elapsedMs) + 300
 
@@ -5304,6 +5461,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
   }
 
   const finish = () => {
+    finishRemoteLog()
     runningProfitEventId = 0
     profitStopRunning = null
     profitReturning.value = false
@@ -5320,6 +5478,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     if (profitReturning.value) return
     if (adminProfitTimer) clearTimeout(adminProfitTimer)
     profitReturning.value = true
+    noteRemoteLogStop()
     adminProfitFreezeUntil = Date.now() + PROFIT_RETURN_MS + 300
     const real = Number(lastPrice.value || prevApplied)
     playPoints(buildProfitReturnPath(ev, 0, prevApplied, real), finish)
@@ -8795,6 +8954,8 @@ onBeforeUnmount(() => {
   profitPollTimer = null
   if (adminProfitTimer) clearTimeout(adminProfitTimer)
   adminProfitTimer = null
+  if (remoteLogTimer) clearInterval(remoteLogTimer)
+  remoteLogTimer = null
   if (orderbookWatchTimer) clearInterval(orderbookWatchTimer)
   orderbookWatchTimer = null
   if (orderbookLevelTimer) clearTimeout(orderbookLevelTimer)
