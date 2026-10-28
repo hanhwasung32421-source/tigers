@@ -4556,6 +4556,9 @@ function updateLiveCandle(price: number, tsMs: number) {
   // 관리자 킬 버튼 동작 중에는 실시간 업데이트로 "튀는 효과"가 즉시 덮어써지지 않게 잠깐 멈춤
   if (adminKillFreezeUntil && Date.now() < adminKillFreezeUntil) return
   // 수익/손실 버튼 동작(유지시간 포함) 중에도 동일하게, 실시간 시세가 덮어쓰지 않도록 멈춤
+  // (시간 추정만으로는 느린 PC에서 타이머가 밀려 애니메이션이 끝나기 전에 풀려버려, 애니메이션 값과 실시간 값이 번갈아 찍혔다.
+  //  그래서 애니메이션이 실제로 진행 중인 동안에는 항상 멈춘다.)
+  if (adminProfitBusy.value && Date.now() < adminProfitFreezeUntil + 120000) return
   if (adminProfitFreezeUntil && Date.now() < adminProfitFreezeUntil) return
   if (!candleSeries) return
   const p = Number(price)
@@ -5071,14 +5074,13 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     }
     let i = 0
     if (fromT != null) while (i + 1 < points.length && points[i + 1].t <= fromT) i++
-    let first = true
+    // 각 점은 "시작 시각 + 점의 시각"에 맞춰 예약한다(앞 점과의 간격만큼 계속 더하면 PC가 느릴 때 오차가 쌓여 전체가 길어진다).
+    const startWall = Date.now() - (fromT != null ? Math.max(fromT, points[i].t) : points[i].t)
     const step = () => {
       applyPrice(points[i].price)
       i += 1
       if (i < points.length) {
-        const prevT = first && fromT != null ? Math.max(fromT, points[i - 1].t) : points[i - 1].t
-        first = false
-        adminProfitTimer = setTimeout(step, Math.max(0, points[i].t - prevT))
+        adminProfitTimer = setTimeout(step, Math.max(0, startWall + points[i].t - Date.now()))
       } else {
         onDone()
       }
