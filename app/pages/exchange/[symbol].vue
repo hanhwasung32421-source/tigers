@@ -2877,6 +2877,27 @@ function updateVolLegendPos() {
     if (h0 && h0 > 0) volLegendTop.value = h0 + 6
   } catch {}
 }
+// 가격 pane과 거래량 pane의 분할 비율(가격 pane이 차지하는 비율)을 브라우저에 저장해 두고, F5/재접속 때 그대로 복원한다.
+// 쿠키는 모든 요청에 실려 나가 데이터 사용량이 늘어서, 같은 브라우저에 유지되는 localStorage를 쓴다.
+const PANE_SPLIT_KEY = 'ktx_chart_pane_split'
+const PANE_SPLIT_DEFAULT = 0.75 // 기본 3:1
+function loadPaneSplit(): number {
+  try {
+    const r = Number(localStorage.getItem(PANE_SPLIT_KEY))
+    if (Number.isFinite(r) && r >= 0.2 && r <= 0.95) return r
+  } catch {}
+  return PANE_SPLIT_DEFAULT
+}
+function savePaneSplit() {
+  try {
+    const panes = chart?.panes()
+    const h0 = panes?.[0]?.getHeight() || 0
+    const h1 = panes?.[1]?.getHeight() || 0
+    if (h0 <= 0 || h1 <= 0) return
+    const r = h0 / (h0 + h1)
+    if (r >= 0.2 && r <= 0.95) localStorage.setItem(PANE_SPLIT_KEY, r.toFixed(4))
+  } catch {}
+}
 // 가격 pane과 거래량 pane 사이 구분선을 끌어 크기를 바꾸는 동안에도 범례가 구분선 아래에 붙어 따라오도록, 마우스를 누르고 있는 동안 매 프레임 위치를 다시 계산한다.
 let volLegendRaf = 0
 function trackVolLegendWhilePointerDown() {
@@ -2893,6 +2914,7 @@ function trackVolLegendWhilePointerDown() {
       if (volLegendRaf) cancelAnimationFrame(volLegendRaf)
       volLegendRaf = 0
       updateVolLegendPos()
+      savePaneSplit()
     }, 100)
   }
   window.addEventListener('pointerup', stop)
@@ -7590,8 +7612,9 @@ function initChart() {
     )
   )
   try {
-    chart.panes()[0]?.setStretchFactor(3)
-    chart.panes()[1]?.setStretchFactor(1)
+    const split = loadPaneSplit()
+    chart.panes()[0]?.setStretchFactor(split * 4)
+    chart.panes()[1]?.setStretchFactor((1 - split) * 4)
   } catch {}
 
   // 화면엔 안 보이지만(완전 투명), whitespace 데이터로 시간축에 미래 눈금을 미리 그려주는 시리즈.
