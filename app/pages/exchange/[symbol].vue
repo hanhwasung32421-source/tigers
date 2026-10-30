@@ -8347,6 +8347,7 @@ async function loadAccount() {
       balance.value = serverBalance
     }
     pruneHiddenClosingPositions(data.positions || [])
+    syncPositionAlarmsWithPositions()
     lastAccountTs = Date.now()
   } finally {
     accountSyncing.value = false
@@ -8705,14 +8706,93 @@ const makePriceAlarmRow = () =>
   reactive<PriceAlarmRow>({ id: ++priceAlarmSeq, enabled: false, price: '', triggered: false, side: 0, autoSide: '' })
 const priceAlarms = reactive<PriceAlarmRow[]>([makePriceAlarmRow()])
 
+// 알람 설정은 이 브라우저(localStorage)에 저장해 F5를 눌러도 유지한다(회원별, 총관리자만).
+// - 가격 알람: 종목별로 줄(가격/체크/롱·숏)을 저장하고, 그 종목 화면을 열 때 복원한다.
+// - 포지션 알람: 포지션 번호별로 줄(체크/퍼센트)을 저장한다. 청산돼서 사라진 포지션의 알람은 지운다.
+// 울리는 중인 상태(triggered)는 저장하지 않으므로 새로고침 후 조건이 아직 맞으면 다시 울린다.
+function alarmStorageKey(kind: 'price' | 'position') {
+  return `ktx_${kind}_alarms_${me.value?.id ?? 0}`
+}
+function readAlarmStore(kind: 'price' | 'position'): Record<string, any> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(alarmStorageKey(kind)) || '{}')
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  } catch {
+    return {}
+  }
+}
+function writeAlarmStore(kind: 'price' | 'position', data: Record<string, any>) {
+  try {
+    if (Object.keys(data).length) localStorage.setItem(alarmStorageKey(kind), JSON.stringify(data))
+    else localStorage.removeItem(alarmStorageKey(kind))
+  } catch {}
+}
+function savePriceAlarms() {
+  if (!process.client || !isSuperAdminUser.value) return
+  const store = readAlarmStore('price')
+  const rows = priceAlarms.filter((r) => r.enabled || String(r.price).trim() !== '' || r.autoSide)
+  if (rows.length) store[symbol.value] = rows.map((r) => [r.enabled ? 1 : 0, String(r.price), r.autoSide])
+  else delete store[symbol.value]
+  writeAlarmStore('price', store)
+}
+// 현재 종목의 가격 알람 줄을 저장본으로 채운다(없으면 빈 1줄).
+function restorePriceAlarms() {
+  priceAlarms.splice(0)
+  const saved = process.client && isSuperAdminUser.value ? readAlarmStore('price')[symbol.value] : null
+  if (Array.isArray(saved)) {
+    for (const r of saved.slice(0, PRICE_ALARM_MAX_ROWS)) {
+      if (!Array.isArray(r)) continue
+      const row = makePriceAlarmRow()
+      row.enabled = !!r[0]
+      row.price = String(r[1] ?? '')
+      row.autoSide = r[2] === 'long' || r[2] === 'short' ? r[2] : ''
+      priceAlarms.push(row)
+    }
+  }
+  if (!priceAlarms.length) priceAlarms.push(makePriceAlarmRow())
+  checkPositionAlarms()
+}
+function savePositionAlarms() {
+  if (!process.client || !isSuperAdminUser.value) return
+  const out: Record<string, any> = {}
+  for (const [id, rows] of Object.entries(positionAlarms)) {
+    const isDefault = rows.length === 1 && !rows[0].enabled && rows[0].percent === '+-20'
+    if (!isDefault) out[id] = rows.map((r) => [r.enabled ? 1 : 0, r.percent])
+  }
+  writeAlarmStore('position', out)
+}
+// 계정에서 포지션 목록을 받을 때마다 호출: 저장된 알람을 아직 화면에 없는 포지션에 복원하고, 청산돼서 없어진 포지션의 알람은 지운다.
+function syncPositionAlarmsWithPositions() {
+  if (!process.client || !isSuperAdminUser.value) return
+  const ids = new Set(positions.value.map((p: any) => Number(p.id)).filter(Boolean))
+  const stored = readAlarmStore('position')
+  for (const id of ids) {
+    const saved = stored[String(id)]
+    if (positionAlarms[id] || !Array.isArray(saved) || !saved.length) continue
+    positionAlarms[id] = saved.slice(0, POSITION_ALARM_MAX_ROWS).map((r: any, i: number) => ({
+      ...newPositionAlarmRow(),
+      uid: i === 0 ? 0 : ++positionAlarmSeq,
+      enabled: !!r?.[0],
+      percent: String(r?.[1] ?? '+-20')
+    }))
+  }
+  for (const k of Object.keys(positionAlarms)) {
+    if (!ids.has(Number(k))) delete positionAlarms[Number(k)]
+  }
+  savePositionAlarms()
+  checkPositionAlarms()
+}
+
 function addPriceAlarmRow() {
   if (priceAlarms.length < PRICE_ALARM_MAX_ROWS) priceAlarms.push(makePriceAlarmRow())
+  savePriceAlarms()
 }
 
 // 줄을 지우면 그 줄의 알람/자동주문도 함께 사라진다(울리던 중이었다면 알람도 멈춘다).
 function removePriceAlarmRow(idx: number) {
   if (idx <= 0 || idx >= priceAlarms.length) return
   priceAlarms.splice(idx, 1)
+  savePriceAlarms()
   checkPositionAlarms()
 }
 
@@ -8727,6 +8807,7 @@ function onTogglePriceAlarm(idx: number, checked: boolean) {
   pa.enabled = checked
   if (!checked) pa.autoSide = ''
   resetPriceAlarmState(pa)
+  savePriceAlarms()
   checkPositionAlarms()
 }
 
@@ -8735,6 +8816,7 @@ function onPriceAlarmInput(idx: number, raw: string) {
   if (!pa) return
   pa.price = raw
   resetPriceAlarmState(pa)
+  savePriceAlarms()
   checkPositionAlarms()
 }
 
@@ -8743,6 +8825,7 @@ function onPriceAlarmAutoSide(idx: number, s: 'long' | 'short') {
   const pa = priceAlarms[idx]
   if (!pa) return
   pa.autoSide = pa.autoSide === s ? '' : s
+  savePriceAlarms()
 }
 
 // 목표 가격에 도달한 순간 한 번만 호출된다: 알람이 울리는 동안 주문을 내고, 알람 문구가 한 번 다
@@ -8751,10 +8834,12 @@ function onPriceAlarmReached(pa: PriceAlarmRow) {
   const s = pa.autoSide
   if (!s) return
   pa.autoSide = ''
+  savePriceAlarms()
   onOpen(s).catch(() => {})
   setTimeout(() => {
     pa.enabled = false
     resetPriceAlarmState(pa)
+    savePriceAlarms()
     checkPositionAlarms()
   }, 3500)
 }
@@ -8786,6 +8871,7 @@ function ensurePositionAlarmRows(id: number): PositionAlarm[] {
 function addPositionAlarmRow(id: number) {
   const rows = ensurePositionAlarmRows(id)
   if (rows.length < POSITION_ALARM_MAX_ROWS) rows.push(newPositionAlarmRow())
+  savePositionAlarms()
 }
 
 // 줄을 지우면 그 줄의 알람도 사라진다(울리던 중이었다면 알람도 멈춘다).
@@ -8793,6 +8879,7 @@ function removePositionAlarmRow(id: number, idx: number) {
   const rows = positionAlarms[Number(id)]
   if (!rows || idx <= 0 || idx >= rows.length) return
   rows.splice(idx, 1)
+  savePositionAlarms()
   checkPositionAlarms()
 }
 
@@ -8824,6 +8911,7 @@ function onToggleAlarm(id: number, idx: number, checked: boolean) {
     a.triggered = false
     a.triggeredKind = null
   }
+  savePositionAlarms()
   checkPositionAlarms()
 }
 
@@ -8831,6 +8919,7 @@ function onAlarmPercentInput(id: number, idx: number, raw: string) {
   const a = ensurePositionAlarmRows(id)[idx]
   if (!a) return
   a.percent = raw
+  savePositionAlarms()
   checkPositionAlarms()
 }
 
@@ -9473,16 +9562,10 @@ watch(
 
 watch(displayLastPrice, () => checkPositionAlarms())
 
-watch(symbol, () => {
-  priceAlarms.splice(1)
-  for (const pa of priceAlarms) {
-    pa.enabled = false
-    pa.price = ''
-    pa.autoSide = ''
-    resetPriceAlarmState(pa)
-  }
-  checkPositionAlarms()
-})
+// 종목이 바뀌거나(로그인 정보가 늦게 들어온 경우 포함) 화면이 처음 열릴 때, 그 종목에 저장해 둔 가격 알람으로 채운다.
+// (서버가 그린 화면과 어긋나지 않도록 화면이 붙은 뒤에 한 번 복원하고, 이후에는 종목/로그인 변화를 따라간다.)
+watch([symbol, () => me.value?.id, isSuperAdminUser], () => restorePriceAlarms())
+onMounted(() => restorePriceAlarms())
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
