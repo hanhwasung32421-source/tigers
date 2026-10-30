@@ -2877,6 +2877,27 @@ function updateVolLegendPos() {
     if (h0 && h0 > 0) volLegendTop.value = h0 + 6
   } catch {}
 }
+// 가격 pane과 거래량 pane 사이 구분선을 끌어 크기를 바꾸는 동안에도 범례가 구분선 아래에 붙어 따라오도록, 마우스를 누르고 있는 동안 매 프레임 위치를 다시 계산한다.
+let volLegendRaf = 0
+function trackVolLegendWhilePointerDown() {
+  if (volLegendRaf) return
+  const loop = () => {
+    updateVolLegendPos()
+    volLegendRaf = requestAnimationFrame(loop)
+  }
+  loop()
+  const stop = () => {
+    window.removeEventListener('pointerup', stop)
+    window.removeEventListener('pointercancel', stop)
+    setTimeout(() => {
+      if (volLegendRaf) cancelAnimationFrame(volLegendRaf)
+      volLegendRaf = 0
+      updateVolLegendPos()
+    }, 100)
+  }
+  window.addEventListener('pointerup', stop)
+  window.addEventListener('pointercancel', stop)
+}
 // 마지막 봉 오른쪽 여백에 미래 시간축 눈금을 미리 표시하기 위한, 화면엔 안 보이는 전용 시리즈.
 // candleSeries에 직접 whitespace를 섞으면 실시간 틱(update()) 갱신과 충돌할 수 있어 분리했다.
 let futureAxisSeries: ISeriesApi<'Line'> | null = null
@@ -7585,7 +7606,11 @@ function initChart() {
   chart.subscribeClick(onChartClick)
   chart.subscribeCrosshairMove(onCrosshairMove)
   if (lastTagTimer) clearInterval(lastTagTimer)
-  lastTagTimer = setInterval(updateLastTag, 100)
+  lastTagTimer = setInterval(() => {
+    updateLastTag()
+    updateVolLegendPos()
+  }, 100)
+  chartEl.value.addEventListener('pointerdown', trackVolLegendWhilePointerDown)
   // 확대/축소/스크롤로 가격축 스케일이 바뀔 때도 진입가 뱃지 위치를 다시 계산
   chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
     updateEntryBadges()
@@ -9440,6 +9465,9 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   if (overviewTimer) clearInterval(overviewTimer)
   if (lastTagTimer) clearInterval(lastTagTimer)
+  chartEl.value?.removeEventListener('pointerdown', trackVolLegendWhilePointerDown)
+  if (volLegendRaf) cancelAnimationFrame(volLegendRaf)
+  volLegendRaf = 0
   stopTradesPolling()
   window.removeEventListener('resize', onWindowResizeForChartHeight)
   stopAlarmLoop()
