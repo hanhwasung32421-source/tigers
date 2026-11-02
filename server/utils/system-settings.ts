@@ -88,6 +88,21 @@ export async function getProfitCardStyleWithVersion(): Promise<{ style: ProfitCa
   return { style, version: `${json.length}-${(h >>> 0).toString(36)}` }
 }
 
+// 수익카드 배경 그림(data URI)의 짧은 버전 값. 그림이 바뀌면 달라진다.
+export function profitCardBgVersion(bg: string): string {
+  let h = 5381
+  for (let i = 0; i < bg.length; i++) h = ((h << 5) + h + bg.charCodeAt(i)) | 0
+  return `${bg.length}-${(h >>> 0).toString(36)}`
+}
+
+// 화면(회원)에 내려줄 스타일: 배경 그림(수백 KB의 data URI)을 빼고, 그 자리에 별도 이미지 주소(/api/settings/profit-card-bg?v=버전)를 넣는다.
+// 이 주소는 버전이 같으면 내용이 같아서 브라우저/CDN이 오래 캐시하므로, 접속할 때마다 그림을 다시 받지 않는다.
+export function profitCardStyleForClient(style: ProfitCardStyle): ProfitCardStyle {
+  const bg = String(style.bgImage || '')
+  if (!bg.startsWith('data:')) return style
+  return { ...style, bgImage: `/api/settings/profit-card-bg?v=${profitCardBgVersion(bg)}` }
+}
+
 // 강제청산 기준 ROE(%). 관리자 대시보드에서 조정하며, 모든 유저의 실시간 청산 판정에 사용됩니다.
 export async function getLiquidationRoe(): Promise<number> {
   if (supabaseAppDbEnabled()) {

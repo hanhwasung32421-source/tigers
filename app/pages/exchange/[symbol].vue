@@ -2662,6 +2662,13 @@ async function refreshLiquidationSettings() {
     }
     if (res?.profitCardStyle && typeof res.profitCardStyle === 'object') {
       profitCardStyle.value = { ...DEFAULT_PROFIT_CARD_STYLE, ...res.profitCardStyle, offsets: { ...(res.profitCardStyle.offsets || {}) } }
+      // 배경 그림은 별도 주소라서, 카드를 열기 전에 미리 받아 캐시해 둔다(처음 열 때 배경이 늦게 뜨지 않게).
+      const bgUrl = String(profitCardStyle.value.bgImage || '')
+      if (process.client && bgUrl && !bgUrl.startsWith('data:')) {
+        try {
+          new Image().src = bgUrl
+        } catch {}
+      }
     }
   } catch {
     // 네트워크 실패 시 이전 값 유지
