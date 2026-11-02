@@ -56,18 +56,12 @@
                   :disabled="adminProfitBusy || adminKillBusy || designWaiting"
                   @click="designOpen ? closeDesignChart() : openDesignChart()"
                 >
-                  {{ t('디자인차트', 'Design chart') }}
+                  {{ t('리모콘', 'Remote') }}
                 </button>
                 <!-- 리모콘1 버튼은 화면에서 숨겼다(삭제). 기능(openProfitModal, 서버 /api/admin/profit, 정지/로그창)은 그대로 살아 있다. 다시 쓰려면 아래 버튼을 되살리면 된다. -->
                 <!-- <button type="button" class="rounded bg-emerald-500/15 px-2 py-1 text-emerald-200 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-40" :disabled="adminProfitBusy || adminKillBusy" @click="openProfitModal()">{{ t('리모콘1', 'Remote 1') }}</button> -->
-                <button
-                  type="button"
-                  class="rounded bg-sky-500/15 px-2 py-1 text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40"
-                  :disabled="adminProfitBusy || adminKillBusy"
-                  @click="openRemote2Modal()"
-                >
-                  {{ t('리모콘2', 'Remote 2') }}
-                </button>
+                <!-- 리모콘2 버튼은 화면에서 숨겼다. 기능(openRemote2Modal, 서버 /api/admin/profit2, 정지/로그창)은 그대로 살아 있다. 다시 쓰려면 아래 버튼을 되살리면 된다. -->
+                <!-- <button type="button" class="rounded bg-sky-500/15 px-2 py-1 text-sky-200 ring-1 ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-40" :disabled="adminProfitBusy || adminKillBusy" @click="openRemote2Modal()">{{ t('리모콘2', 'Remote 2') }}</button> -->
                 <button
                   type="button"
                   class="rounded bg-rose-500/15 px-2 py-1 font-semibold text-rose-200 ring-1 ring-rose-500/20 hover:bg-rose-500/20 disabled:opacity-40"
@@ -158,7 +152,7 @@
                   </div>
                 </div>
               </div>
-              <span class="font-semibold text-violet-300">{{ t('디자인차트', 'Design chart') }}</span>
+              <span class="font-semibold text-violet-300">{{ t('리모콘', 'Remote') }}</span>
               <span class="text-[#868993]">{{ t('다음봉', 'Bars') }} {{ designCandles.length }}/{{ DESIGN_MAX }}</span>
               <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length >= DESIGN_MAX" @click="addDesignCandle">+ {{ t('다음봉', 'Next bar') }}</button>
               <button type="button" class="rounded bg-white/10 px-2 py-1 hover:bg-white/15 disabled:opacity-40" :disabled="designCandles.length <= 1" @click="removeLastDesignCandle">{{ t('마지막 삭제', 'Remove last') }}</button>
@@ -1844,7 +1838,7 @@
       <!-- 제목줄을 마우스로 끌면 창 위치를 옮길 수 있다 -->
       <div class="flex cursor-move touch-none select-none items-center justify-between" :title="t('끌어서 위치 이동', 'Drag to move')" @pointerdown="startRemoteLogDrag">
         <div class="text-sm font-semibold text-slate-100">
-          {{ remoteLog.kind === 3 ? t('디자인차트 진행 상황', 'Design chart progress') : remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘1 진행 상황', 'Remote 1 progress') }}
+          {{ remoteLog.kind === 3 ? t('리모콘 진행 상황', 'Remote progress') : remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘1 진행 상황', 'Remote 1 progress') }}
           <span class="ml-1 font-normal" :class="remoteLog.done ? 'text-emerald-300' : 'text-sky-300'">
             {{ remoteLog.done ? t('· 완료', '· Done') : t('· 진행 중', '· Running') }}
           </span>
@@ -5383,7 +5377,7 @@ async function openDesignChart() {
   const bar = barSeconds(timeframe.value)
   designError.value = null
   if (bar > 3600) {
-    designError.value = t('디자인차트는 1시간봉 이하에서 사용할 수 있습니다.', 'Design chart works on 1-hour bars or shorter.')
+    designError.value = t('리모콘은 1시간봉 이하에서 사용할 수 있습니다.', 'Remote works on 1-hour bars or shorter.')
   }
   const cur = Number(displayLastPrice.value || lastPrice.value || 0)
   if (!(cur > 0)) return
@@ -5511,7 +5505,7 @@ async function startDesignChart() {
   if (!designCandles.value.length) return
   const bar = barSeconds(timeframe.value)
   if (bar > 3600) {
-    designError.value = t('디자인차트는 1시간봉 이하에서 사용할 수 있습니다.', 'Design chart works on 1-hour bars or shorter.')
+    designError.value = t('리모콘은 1시간봉 이하에서 사용할 수 있습니다.', 'Remote works on 1-hour bars or shorter.')
     return
   }
   if (!designApplyAll.value && !designTargets.value.length) {
