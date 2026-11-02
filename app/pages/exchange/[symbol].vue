@@ -1806,19 +1806,36 @@
     <!-- 리모콘 진행 로그창(관리자 화면, 리모콘1/2 공통) -->
     <div
       v-if="remoteLog && isSuperAdminUser"
-      class="fixed bottom-4 right-4 z-[75] w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[#10171d]/95 p-3 text-xs shadow-2xl backdrop-blur"
+      ref="remoteLogEl"
+      class="fixed z-[75] w-[22rem] max-w-[calc(100vw-2rem)] rounded-xl border border-white/10 bg-[#10171d]/95 p-3 text-xs shadow-2xl backdrop-blur"
+      :class="remoteLogPos ? '' : 'bottom-4 right-4'"
+      :style="remoteLogPos ? { left: `min(${remoteLogPos.x}px, calc(100vw - 4rem))`, top: `min(${remoteLogPos.y}px, calc(100vh - 3rem))` } : undefined"
     >
-      <div class="flex items-center justify-between">
+      <!-- 제목줄을 마우스로 끌면 창 위치를 옮길 수 있다 -->
+      <div class="flex cursor-move touch-none select-none items-center justify-between" :title="t('끌어서 위치 이동', 'Drag to move')" @pointerdown="startRemoteLogDrag">
         <div class="text-sm font-semibold text-slate-100">
           {{ remoteLog.kind === 3 ? t('디자인차트 진행 상황', 'Design chart progress') : remoteLog.kind === 2 ? t('리모콘2 진행 상황', 'Remote 2 progress') : t('리모콘1 진행 상황', 'Remote 1 progress') }}
           <span class="ml-1 font-normal" :class="remoteLog.done ? 'text-emerald-300' : 'text-sky-300'">
             {{ remoteLog.done ? t('· 완료', '· Done') : t('· 진행 중', '· Running') }}
           </span>
         </div>
-        <button v-if="remoteLog.done" type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" :title="t('닫기', 'Close')" @click="closeRemoteLog">✕</button>
+        <div class="flex items-center gap-1">
+          <button
+            type="button"
+            class="rounded-full px-2 py-1 text-slate-400 hover:bg-white/10 hover:text-white"
+            :title="remoteLogCollapsed ? t('펼치기', 'Expand') : t('접기', 'Collapse')"
+            @click="remoteLogCollapsed = !remoteLogCollapsed"
+          >{{ remoteLogCollapsed ? '▴' : '▾' }}</button>
+          <button v-if="remoteLog.done" type="button" class="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white" :title="t('닫기', 'Close')" @click="closeRemoteLog">✕</button>
+        </div>
       </div>
 
-      <div v-if="!remoteLog.done" class="mt-2 rounded-lg bg-white/5 px-3 py-2">
+      <div v-if="remoteLogCollapsed && !remoteLog.done" class="mt-1 flex items-center justify-between gap-2 text-slate-400">
+        <span class="truncate">{{ remoteLogCurrent ? remoteLogCurrent.label : '—' }}</span>
+        <span class="shrink-0">{{ t('남은', 'left') }} {{ fmtLogSec(remoteLogTotalRemain) }}</span>
+      </div>
+
+      <div v-if="!remoteLogCollapsed && !remoteLog.done" class="mt-2 rounded-lg bg-white/5 px-3 py-2">
         <div class="text-slate-400">
           {{ t('지금', 'Now') }}:
           <span class="font-semibold text-slate-100">{{ remoteLogCurrent ? remoteLogCurrent.label : '—' }}</span>
@@ -1830,7 +1847,7 @@
         <div class="mt-0.5 text-slate-500">{{ t('전체 남은 시간', 'Total remaining') }} {{ fmtLogSec(remoteLogTotalRemain) }}</div>
       </div>
 
-      <ol class="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+      <ol v-if="!remoteLogCollapsed" class="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
         <li
           v-for="(r, i) in remoteLogRows"
           :key="i"
@@ -5492,6 +5509,38 @@ type RemoteLogState = { eventId: number; kind: 1 | 2 | 3; startedAt: number; ste
 const remoteLog = ref<RemoteLogState | null>(null)
 const remoteLogNow = ref(Date.now())
 let remoteLogTimer: any = null
+// 진행 로그창 접기/펼치기, 끌어서 옮긴 위치(null이면 기본 위치: 오른쪽 아래)
+const remoteLogCollapsed = ref(false)
+const remoteLogPos = ref<{ x: number; y: number } | null>(null)
+const remoteLogEl = ref<HTMLElement | null>(null)
+let remoteLogDragStop: (() => void) | null = null
+
+function startRemoteLogDrag(e: PointerEvent) {
+  if ((e.target as HTMLElement | null)?.closest('button')) return
+  const el = remoteLogEl.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const dx = e.clientX - rect.left
+  const dy = e.clientY - rect.top
+  e.preventDefault()
+  remoteLogDragStop?.()
+  const onMove = (ev: PointerEvent) => {
+    const x = Math.min(Math.max(0, ev.clientX - dx), Math.max(0, window.innerWidth - rect.width))
+    const y = Math.min(Math.max(0, ev.clientY - dy), Math.max(0, window.innerHeight - 40))
+    remoteLogPos.value = { x, y }
+  }
+  const stop = () => {
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', stop)
+    window.removeEventListener('pointercancel', stop)
+    remoteLogDragStop = null
+  }
+  remoteLogDragStop = stop
+  remoteLogPos.value = { x: rect.left, y: rect.top }
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', stop)
+  window.addEventListener('pointercancel', stop)
+}
 
 function fmtLogSec(ms: number) {
   const sec = Math.max(0, ms) / 1000
@@ -9575,6 +9624,7 @@ watch([symbol, () => me.value?.id, isSuperAdminUser], () => restorePriceAlarms()
 onMounted(() => restorePriceAlarms())
 
 onBeforeUnmount(() => {
+  remoteLogDragStop?.()
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   if (overviewTimer) clearInterval(overviewTimer)
   if (lastTagTimer) clearInterval(lastTagTimer)
