@@ -29,9 +29,24 @@ export type ProfitCandlePlan = {
   cMs: number
   // 돌아오는 동안 가격이 (정상가로 다가가는 선) 위아래로 벗어날 수 있는 폭(±). 없으면 0.10.
   wander?: number
+  // 첫 봉이 시작되는 순간의 실제 가격(전봉 종가). 설계한 가격은 "open에서 얼마나 움직이는지"로만 쓰이고, 실제로는 이 가격에서 시작해 같은 폭만큼 움직인다.
+  // 없으면(아직 시작 전이거나 기록이 없으면) 설계한 가격 그대로 쓴다.
+  anchor?: number
   candles: ProfitCandleStep[]
 }
 export const PROFIT_CANDLE_MAX = 20
+
+// anchor가 있으면 설계한 모든 가격(시가/종가/고가/저가)을 (anchor - open)만큼 옮긴 계획을 돌려준다(눈금에 맞춰서). 모양(움직이는 폭)은 그대로다.
+export function candlePlanShifted(cp: ProfitCandlePlan): ProfitCandlePlan {
+  const a = Number(cp.anchor)
+  if (!(a > 0)) return cp
+  const tick = cp.tick > 0 ? cp.tick : 0.01
+  const d = Number((Math.round(a / tick) * tick - cp.open).toPrecision(12))
+  const { anchor: _drop, ...rest } = cp
+  if (!d) return rest
+  const add = (p: number) => Number((p + d).toPrecision(12))
+  return { ...rest, open: add(cp.open), candles: cp.candles.map((x) => ({ c: add(x.c), h: add(x.h), l: add(x.l) })) }
+}
 
 // 가격 눈금: 1 이상은 0.01, 그보다 싼 종목은 비율에 맞춰 더 작게.
 export function designTickSize(price: number) {
@@ -367,7 +382,7 @@ function buildCandleTicks(o: number, c: number, h: number, l: number, tick: numb
 }
 
 export function buildCandlePlanPoints(ev: ProfitPathEvent): { points: ProfitPoint[]; candlesEndT: number; lastPrice: number } {
-  const cp = ev.cplan as ProfitCandlePlan
+  const cp = candlePlanShifted(ev.cplan as ProfitCandlePlan)
   const rng = mulberry32((profitSeed(ev) ^ 0x51ed270b) >>> 0)
   const points: ProfitPoint[] = []
   let o = cp.open

@@ -2309,7 +2309,7 @@
 </template>
 
 <script setup lang="ts">
-import { buildCandlePlanPoints, buildCandlePlanReturn, designTickSize, PROFIT_CANDLE_MAX, buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, profitStopReturnMs } from '~~/shared/utils/profit-path'
+import { buildCandlePlanPoints, buildCandlePlanReturn, candlePlanShifted, designTickSize, PROFIT_CANDLE_MAX, buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, profitStopReturnMs } from '~~/shared/utils/profit-path'
 import type { ProfitCandlePlan, ProfitPlan } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
 import { usesBinanceFeed } from '~~/shared/utils/feed-symbols'
@@ -5600,7 +5600,7 @@ function buildRemoteLogSteps(ev: ProfitEvent): RemoteLogStep[] {
     at += ms
   }
   if (ev.cplan?.candles?.length) {
-    const cp = ev.cplan
+    const cp = candlePlanShifted(ev.cplan)
     add(t('다음 봉 시작까지 대기', 'Wait for the next bar'), t('봉 시작 시각에 맞춤', 'aligned to bar start') + (ev.targets?.length ? ` · ${ev.targets.length}${t('명 대상', ' targets')}` : ''), cp.delayMs)
     cp.candles.forEach((cd, k) => {
       add(t('다음봉', 'Next bar') + ` ${k + 1}`, `C ${fmtPrice(cd.c)} · H ${fmtPrice(cd.h)} · L ${fmtPrice(cd.l)}`, cp.barMs)
@@ -5699,6 +5699,15 @@ function closeAppendDraft() {
 // 진행 중인 디자인차트를 차트 위에 표시한다(총관리자 화면만). 이벤트 시작 시각(ms)과 설계한 봉들로 각 봉이 시작될 시각을 구해서,
 // 아직 시작 전인 봉은 희미하게 그리고, "다음봉 추가"로 그리는 새 봉은 마지막 봉 바로 다음 칸에 그린다. 지금 움직이는 봉과 지난 봉은 실제 차트 봉이 그대로 보인다.
 const runningDesignStartMs = ref(0)
+// 첫 봉이 시작될 때 정해진 실제 가격(전봉 종가). 시작 전(null)에는 지금의 실제 가격을 따라간다.
+const runningDesignAnchor = ref<number | null>(null)
+// 설계한 가격 → 차트에 보이는 가격으로 옮기는 폭. 시작 전에는 지금의 실제 가격이 첫 봉의 시가가 되도록 계속 따라가고, 시작한 뒤에는 정해진 가격에 고정된다.
+function overlayShift(cp: ProfitCandlePlan) {
+  const a = runningDesignAnchor.value ?? Number(lastPrice.value)
+  if (!(a > 0)) return 0
+  const tick = cp.tick > 0 ? cp.tick : 0.01
+  return Number((Math.round(a / tick) * tick - cp.open).toPrecision(12))
+}
 const designOverlayActive = computed(() => {
   const log = remoteLog.value
   return isSuperAdminUser.value && !!log && log.kind === 3 && !log.done && log.stopT == null && !!runningDesignPlan.value && runningDesignStartMs.value > 0
@@ -5733,11 +5742,13 @@ const runningOverlayView = computed<{ pending: OverlayBar[]; draft: OverlayBar |
     return { idx: k, x: Number(x), w, yO: Number(yO), yC: Number(yC), yH: Number(yH), yL: Number(yL), up: c >= o }
   }
   const nowMs = Date.now()
+  // 모든 봉은 "전봉 종가 = 다음봉 시가"가 되도록 같은 폭(sh)만큼 옮겨서 그린다(시작 전에는 실제 현재가를 따라 움직이고, 시작하면 고정).
+  const sh = overlayShift(cp)
   const pending: OverlayBar[] = []
   let o = cp.open
   cp.candles.forEach((cd, k) => {
     if (startMsOf(k) > nowMs) {
-      const v = make(k, o, cd.c, cd.h, cd.l)
+      const v = make(k, o + sh, cd.c + sh, cd.h + sh, cd.l + sh)
       if (v) pending.push(v)
     }
     o = cd.c
@@ -5745,7 +5756,7 @@ const runningOverlayView = computed<{ pending: OverlayBar[]; draft: OverlayBar |
   let draft: OverlayBar | null = null
   if (appendOpen.value) {
     const d = appendDraft.value
-    draft = make(cp.candles.length, o, d.c, Math.max(d.h, o, d.c), Math.min(d.l, o, d.c))
+    draft = make(cp.candles.length, o + sh, d.c + sh, Math.max(d.h, o, d.c) + sh, Math.min(d.l, o, d.c) + sh)
   }
   return { pending, draft }
 })
@@ -5756,7 +5767,8 @@ const appendDragLabel = computed(() => {
   const d = appendDrag.value
   if (!d) return ''
   const name = d.kind === 'c' ? t('[종가]', '[Close]') : d.kind === 'h' ? t('[고가]', '[High]') : t('[저가]', '[Low]')
-  return `${name} ${fmtPrice(d.price)}`
+  const cp = runningDesignPlan.value
+  return `${name} ${fmtPrice(d.price + (cp ? overlayShift(cp) : 0))}`
 })
 function appendOpenPrice() {
   const cp = runningDesignPlan.value
@@ -5789,7 +5801,8 @@ function onAppendPointerMove(e: PointerEvent) {
   const y = e.clientY - rect.top
   const raw = Number(candleSeries.coordinateToPrice(y))
   if (!Number.isFinite(raw) || raw <= 0) return
-  const price = snapAppend(raw, cp.tick)
+  // 차트에서 끈 가격(보이는 가격)을 설계 가격으로 되돌려 저장한다(보이는 가격 = 설계 가격 + 옮긴 폭).
+  const price = snapAppend(raw - overlayShift(cp), cp.tick)
   const o = appendOpenPrice()
   const d = appendDraft.value
   if (dr.kind === 'c') d.c = price
@@ -6230,6 +6243,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     profitExtendRunning = null
     runningDesignPlan.value = null
     runningDesignStartMs.value = 0
+    runningDesignAnchor.value = null
     closeAppendDraft()
     profitReturning.value = false
     adminProfitUiOverride.value = null
@@ -6290,7 +6304,20 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
       const nowT = Math.max(0, Date.now() - runStartWall)
       adminProfitFreezeUntil = runStartWall + profitEventTotalMs(evNow) + 300
       initFromChart()
-      prevApplied = cp.open // 첫 봉의 시가는 설계한 시가
+      // 첫 봉이 시작되는 순간의 실제 가격(=전봉 종가)이 첫 봉의 시가가 된다. 설계한 봉들은 그 가격에서 같은 폭만큼 움직인다.
+      // 서버에 이미 기록된 가격이 있으면(새로고침 등) 그걸 쓰고, 없고 지금이 막 시작하는 순간이면 지금의 실제 가격을 쓴다(총관리자 화면이 서버에도 기록한다).
+      if (ev.stopT == null && !(Number(evNow.cplan?.anchor) > 0) && nowT <= cp.delayMs + 2000) {
+        const real = Number(lastPrice.value)
+        if (real > 0) {
+          evNow = { ...evNow, cplan: { ...(evNow.cplan as ProfitCandlePlan), anchor: real } }
+          if (isSuperAdminUser.value) {
+            $fetch('/api/admin/design-chart-anchor', { method: 'POST', body: { eventId: ev.id, price: real } }).catch(() => {})
+          }
+        }
+      }
+      runningDesignAnchor.value = Number(evNow.cplan?.anchor) > 0 ? Number(evNow.cplan?.anchor) : null
+      updateRemoteLogSteps(evNow)
+      prevApplied = candlePlanShifted(evNow.cplan as ProfitCandlePlan).open // 첫 봉의 시가
       if (ev.stopT != null) {
         const tl = buildProfitTimeline(ev, Number(lastPrice.value || ev.basePrice))
         playPoints(tl.points, finish, nowT > (tl.points[0]?.t ?? 0) ? nowT : null)
@@ -6306,11 +6333,13 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
       if (ncp.candles.length <= cur.candles.length) return
       const nowT = Date.now() - runStartWall
       if (!designWaiting.value && nowT >= cur.delayMs + cur.candles.length * cur.barMs) return
-      evNow = nev
-      runningDesignPlan.value = ncp
-      updateRemoteLogSteps(nev)
+      // 이미 정한 시작 가격(anchor)은 그대로 유지한다(서버가 보낸 것에 없어도, 다르더라도 지금 재생 중인 경로와 같아야 끊김이 없다).
+      const keepAnchor = Number(cur.anchor) > 0 ? Number(cur.anchor) : Number(ncp.anchor) > 0 ? Number(ncp.anchor) : undefined
+      evNow = { ...nev, cplan: { ...ncp, anchor: keepAnchor } }
+      runningDesignPlan.value = evNow.cplan as ProfitCandlePlan
+      updateRemoteLogSteps(evNow)
       if (designWaiting.value) return // 첫 봉 시작 전이면 시작할 때 새 봉까지 포함해서 재생한다
-      adminProfitFreezeUntil = runStartWall + profitEventTotalMs(nev) + 300
+      adminProfitFreezeUntil = runStartWall + profitEventTotalMs(evNow) + 300
       if (adminProfitTimer) clearTimeout(adminProfitTimer)
       playCandles()
     }

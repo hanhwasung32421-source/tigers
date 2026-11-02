@@ -63,9 +63,10 @@ function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: numbe
     const delayMs = Number(j?.d)
     const cMs = Number(j?.r)
     const wander = Number(j?.w)
+    const anchor = Number(j?.a)
     if (!candles.length || ![open, tick, barMs, delayMs, cMs].every((x) => Number.isFinite(x)) || tick <= 0 || barMs <= 0) return null
     const st = Number(j?.st)
-    return { cplan: { open, tick, barMs, delayMs, cMs, wander: Number.isFinite(wander) && wander >= 0 ? wander : undefined, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null, targets: Array.isArray(j?.u) ? j.u.map(Number).filter((x: number) => Number.isFinite(x) && x > 0) : null }
+    return { cplan: { open, tick, barMs, delayMs, cMs, wander: Number.isFinite(wander) && wander >= 0 ? wander : undefined, anchor: Number.isFinite(anchor) && anchor > 0 ? anchor : undefined, candles }, stopT: j?.st != null && Number.isFinite(st) ? st : null, returnMs: Number(j?.rm) >= 1000 ? Number(j.rm) : null, targets: Array.isArray(j?.u) ? j.u.map(Number).filter((x: number) => Number.isFinite(x) && x > 0) : null }
   } catch {
     return null
   }
@@ -73,6 +74,7 @@ function parseCandleDirection(dir: any): { cplan: ProfitCandlePlan; stopT: numbe
 function buildCandleDirection(cp: ProfitCandlePlan, stopT?: number | null, returnMs?: number | null, targets?: number[] | null) {
   const body: any = { o: cp.open, t: cp.tick, b: cp.barMs, d: cp.delayMs, r: cp.cMs, c: cp.candles.map((x) => [x.c, x.h, x.l]) }
   if (cp.wander != null) body.w = cp.wander
+  if (cp.anchor != null && cp.anchor > 0) body.a = cp.anchor
   if (stopT != null) body.st = stopT
   if (returnMs) body.rm = Math.round(returnMs)
   if (targets && targets.length) body.u = targets
@@ -501,6 +503,38 @@ async function stopProfitEventInner(id: number, returnMs?: number | null): Promi
   parts[8] = returnMs ? String(Math.round(returnMs)) : ''
   db.prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(parts.join('|'), id)
   return { ok: true, stopT: Math.round(a.offset) }
+}
+
+// 첫 봉이 시작되는 순간의 실제 가격(전봉 종가)을 기록한다. 이후 모든 화면/서버 계산이 이 가격에서 시작해 설계한 폭만큼 움직이는 경로를 쓴다(이미 기록돼 있으면 그대로 둔다).
+export async function setCandleAnchor(id: number, price: number): Promise<ProfitEvent | null> {
+  invalidateLatestProfit()
+  try {
+    let row: any = null
+    if (supabaseAppDbEnabled()) {
+      const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { id }, limit: 1 })
+      row = rows[0]
+    } else {
+      row = getDb().prepare('SELECT * FROM profit_events WHERE id = ?').get(id)
+    }
+    if (!row) return null
+    const cd = parseCandleDirection(row.direction)
+    if (!cd || cd.stopT != null) return null
+    const basePrice = Number(row.base_price)
+    if (!(price > 0) || Math.abs(price - basePrice) / basePrice > 0.5) return null
+    const base = { id, symbol: String(row.symbol).toUpperCase(), percent: Number(row.percent), basePrice, createdAt: String(row.created_at) }
+    if (cd.cplan.anchor != null) return candleToEvent(base, cd.cplan, null, cd.returnMs, cd.targets)
+    const next: ProfitCandlePlan = { ...cd.cplan, anchor: price }
+    const direction = buildCandleDirection(next, undefined, cd.returnMs, cd.targets)
+    if (supabaseAppDbEnabled()) {
+      const { error } = await getSupabaseAdminClient().from(T_PROFIT_EVENTS).update({ direction }).eq('id', id)
+      if (error) throw error
+    } else {
+      getDb().prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(direction, id)
+    }
+    return candleToEvent(base, next, null, cd.returnMs, cd.targets)
+  } finally {
+    invalidateLatestProfit()
+  }
 }
 
 // 진행 중인 디자인차트에 다음 봉을 이어서 추가한다. 이미 만들어진 봉들의 경로는 그대로(난수가 봉 순서대로 쓰여서 뒤에 봉이 늘어도 앞 봉은 같다)이고,
