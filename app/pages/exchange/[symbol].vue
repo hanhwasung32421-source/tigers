@@ -3316,6 +3316,8 @@ let runningProfitEventId = 0
 let profitStopRunning: ((retMs?: number) => void) | null = null
 // 진행 중인 디자인차트에 다음 봉이 추가됐을 때(로그창에서 추가하거나 다른 화면이 추가한 것을 받았을 때) 재생을 이어서 늘리는 함수
 let profitExtendRunning: ((nev: ProfitEvent) => void) | null = null
+// 회원 화면이 첫 봉 시작 가격(총관리자 화면이 서버에 기록하는 전봉 종가)을 기다리는 동안, 그 가격이 도착하면 호출되는 함수
+let profitAnchorWaiter: ((anchor: number) => void) | null = null
 const profitReturning = ref(false)
 const profitStopBusy = ref(false)
 
@@ -6241,6 +6243,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     runningProfitEventId = 0
     profitStopRunning = null
     profitExtendRunning = null
+    profitAnchorWaiter = null
     runningDesignPlan.value = null
     runningDesignStartMs.value = 0
     runningDesignAnchor.value = null
@@ -6282,9 +6285,16 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     }
     const normalStop = profitStopRunning
     // 설계한 봉들을 (지금 시각부터) 재생하고, 다 끝나면 정상가로 복귀한다. 앞 봉들의 경로는 봉이 추가돼도 그대로라 이어서 만들어도 끊김이 없다.
-    const playCandles = () => {
+    const playCandles = (replaySkipped = false) => {
       const nowT = Math.max(0, Date.now() - runStartWall)
       const built = buildCandlePlanPoints(evNow)
+      // 시작 가격을 기다리느라 첫 봉 시작이 늦어졌으면(회원 화면), 그 사이 지나간 점들을 먼저 한꺼번에 반영해서 첫 봉의 고가/저가가 빠지지 않게 한다.
+      if (replaySkipped) {
+        for (const p of built.points) {
+          if (p.t >= nowT) break
+          applyPrice(p.price)
+        }
+      }
       playPoints(
         built.points,
         () => {
@@ -6296,7 +6306,48 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
         nowT > (built.points[0]?.t ?? 0) ? nowT : null
       )
     }
+    // 첫 봉이 시작되는 순간: 총관리자 화면은 지금의 실제 가격을 시작 가격으로 정해 서버에 기록하고, 회원 화면은 그 가격이 도착할 때까지(최대 3초) 기다렸다가 같은 가격으로 시작한다.
+    // 그래서 모든 화면의 전봉 종가와 첫 봉 시가가 총관리자 화면과 같은 가격으로 맞춰진다.
     const begin = () => {
+      const genuineStart = ev.stopT == null && !(Number(evNow.cplan?.anchor) > 0) && Date.now() - runStartWall <= cp.delayMs + 2000
+      if (genuineStart && !isSuperAdminUser.value) {
+        let settled = false
+        const go = () => {
+          if (settled) return
+          settled = true
+          profitAnchorWaiter = null
+          if (adminProfitTimer) clearTimeout(adminProfitTimer)
+          beginNow(true)
+        }
+        profitAnchorWaiter = (a) => {
+          evNow = { ...evNow, cplan: { ...(evNow.cplan as ProfitCandlePlan), anchor: a } }
+          go()
+        }
+        adminProfitTimer = setTimeout(go, 3000)
+        return
+      }
+      beginNow(false)
+    }
+    // 전봉(첫 봉 바로 앞 봉)의 종가를 시작 가격으로 맞춘다(차트에 이미 그려진 봉을 고친다).
+    const firstBarSec = Math.round((t0Ms + cp.delayMs) / cp.barMs) * (cp.barMs / 1000)
+    const forcePrevBarClose = (price: number) => {
+      if (Math.round(cp.barMs / 1000) !== barSeconds(timeframe.value)) return
+      const prevSec = firstBarSec - Math.round(cp.barMs / 1000)
+      const arr = candleData.value
+      for (let i = arr.length - 1; i >= 0 && i >= arr.length - 6; i--) {
+        const c: any = arr[i]
+        if (Number(c.time) !== prevSec) continue
+        const fixed: any = { ...c, close: price, high: Math.max(Number(c.high), price), low: Math.min(Number(c.low), price) }
+        arr[i] = fixed
+        try {
+          if (i === arr.length - 1) candleSeries?.update(fixed)
+          else candleSeries?.setData(arr as any)
+        } catch {}
+        updateVisibleHighLow()
+        return
+      }
+    }
+    const beginNow = (replaySkipped: boolean) => {
       designWaiting.value = false
       profitStopRunning = normalStop
       adminProfitBusy.value = true
@@ -6306,7 +6357,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
       initFromChart()
       // 첫 봉이 시작되는 순간의 실제 가격(=전봉 종가)이 첫 봉의 시가가 된다. 설계한 봉들은 그 가격에서 같은 폭만큼 움직인다.
       // 서버에 이미 기록된 가격이 있으면(새로고침 등) 그걸 쓰고, 없고 지금이 막 시작하는 순간이면 지금의 실제 가격을 쓴다(총관리자 화면이 서버에도 기록한다).
-      if (ev.stopT == null && !(Number(evNow.cplan?.anchor) > 0) && nowT <= cp.delayMs + 2000) {
+      if (ev.stopT == null && !(Number(evNow.cplan?.anchor) > 0) && (replaySkipped || nowT <= cp.delayMs + 2000)) {
         const real = Number(lastPrice.value)
         if (real > 0) {
           evNow = { ...evNow, cplan: { ...(evNow.cplan as ProfitCandlePlan), anchor: real } }
@@ -6317,18 +6368,31 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
       }
       runningDesignAnchor.value = Number(evNow.cplan?.anchor) > 0 ? Number(evNow.cplan?.anchor) : null
       updateRemoteLogSteps(evNow)
-      prevApplied = candlePlanShifted(evNow.cplan as ProfitCandlePlan).open // 첫 봉의 시가
+      const startOpen = candlePlanShifted(evNow.cplan as ProfitCandlePlan).open
+      prevApplied = startOpen // 첫 봉의 시가
       if (ev.stopT != null) {
         const tl = buildProfitTimeline(ev, Number(lastPrice.value || ev.basePrice))
         playPoints(tl.points, finish, nowT > (tl.points[0]?.t ?? 0) ? nowT : null)
         return
       }
-      playCandles()
+      if (Number(evNow.cplan?.anchor) > 0) {
+        // 전봉 종가 = 첫 봉 시가 = 시작 가격. 첫 봉이 이미 실제 시세로 만들어져 있었다면 그 봉의 시가/고가/저가도 시작 가격에서 다시 시작한다.
+        forcePrevBarClose(startOpen)
+        if (Number(time) === firstBarSec) {
+          openPrice = startOpen
+          runningHigh = startOpen
+          runningLow = startOpen
+        }
+      }
+      playCandles(replaySkipped)
     }
     // 다음 봉 추가: 아직 마지막 봉이 진행 중(또는 첫 봉 시작 전)일 때만 받아들인다. 이미 정상가로 복귀 중이면 무시한다.
     profitExtendRunning = (nev) => {
       const ncp = nev.cplan
-      if (!ncp || nev.id !== ev.id || nev.stopT != null || profitReturning.value) return
+      if (!ncp || nev.id !== ev.id) return
+      // 총관리자 화면이 기록한 시작 가격이 도착했으면, 기다리던 첫 봉을 그 가격으로 시작한다.
+      if (profitAnchorWaiter && Number(ncp.anchor) > 0) profitAnchorWaiter(Number(ncp.anchor))
+      if (nev.stopT != null || profitReturning.value) return
       const cur = evNow.cplan as ProfitCandlePlan
       if (ncp.candles.length <= cur.candles.length) return
       const nowT = Date.now() - runStartWall
@@ -6529,6 +6593,22 @@ function applyProfitPathCandles(candles: CandlestickData[], events: ProfitEvent[
         c.low = Math.min(open, close, seg ? seg.low : open)
       }
       prevClose = Number(c.close)
+    }
+
+    // 리모콘(디자인차트): 첫 봉 시가와 그 앞 봉(전봉)의 종가를 시작 가격으로 맞춘다(새로고침한 화면도 총관리자 화면과 같은 가격).
+    if (ev.cplan && Number(ev.cplan.anchor) > 0 && Math.round((t0 + ev.cplan.delayMs) / 1000) % intervalSeconds === 0) {
+      const startOpen = candlePlanShifted(ev.cplan).open
+      const firstKey = bucketOf(t0 + ev.cplan.delayMs)
+      const prevBar = byTime.get(firstKey - intervalSeconds)
+      const firstBar = byTime.get(firstKey)
+      if (prevBar && firstBar) {
+        prevBar.close = startOpen
+        prevBar.high = Math.max(Number(prevBar.high), startOpen)
+        prevBar.low = Math.min(Number(prevBar.low), startOpen)
+        firstBar.open = startOpen
+        firstBar.high = Math.max(Number(firstBar.high), startOpen)
+        firstBar.low = Math.min(Number(firstBar.low), startOpen)
+      }
     }
   }
 }
