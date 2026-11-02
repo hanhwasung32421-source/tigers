@@ -1,3 +1,4 @@
+import { createError } from 'h3'
 import { getDb } from './db'
 import { candlePlanTotalMs, planTotalMs, PROFIT_CANDLE_MAX, PROFIT_PLAN_MAX_STAGES, type ProfitCandlePlan, type ProfitPlan, type ProfitPlanStage } from '../../shared/utils/profit-path'
 import { clearTtlCache, ttlCached } from './ttl-cache'
@@ -500,6 +501,66 @@ async function stopProfitEventInner(id: number, returnMs?: number | null): Promi
   parts[8] = returnMs ? String(Math.round(returnMs)) : ''
   db.prepare('UPDATE profit_events SET direction = ? WHERE id = ?').run(parts.join('|'), id)
   return { ok: true, stopT: Math.round(a.offset) }
+}
+
+// 진행 중인 디자인차트에 다음 봉을 이어서 추가한다. 이미 만들어진 봉들의 경로는 그대로(난수가 봉 순서대로 쓰여서 뒤에 봉이 늘어도 앞 봉은 같다)이고,
+// 마지막 봉 뒤에 새 봉이 붙으면서 "정상가로 복귀" 구간만 뒤로 밀린다. 정지됐거나, 마지막 봉이 곧 끝나서(복귀가 시작될 때) 화면들이 새 봉을 받을 시간이 없으면 거절한다.
+export const CANDLE_APPEND_MARGIN_MS = 3000
+export async function appendCandlesToProfitEvent(id: number, input: Array<{ c: number; h: number; l: number }>): Promise<ProfitEvent> {
+  invalidateLatestProfit()
+  try {
+    let row: any = null
+    if (supabaseAppDbEnabled()) {
+      const rows = await supaSelectWhere<any>({ table: T_PROFIT_EVENTS, where: { id }, limit: 1 })
+      row = rows[0]
+    } else {
+      row = getDb().prepare('SELECT * FROM profit_events WHERE id = ?').get(id)
+    }
+    if (!row) throw createError({ statusCode: 404, statusMessage: '진행 중인 디자인차트를 찾을 수 없습니다.' })
+    const cd = parseCandleDirection(row.direction)
+    if (!cd) throw createError({ statusCode: 400, statusMessage: '디자인차트 이벤트가 아닙니다.' })
+    if (cd.stopT != null) throw createError({ statusCode: 409, statusMessage: '이미 정지된 디자인차트입니다.' })
+    const cp = cd.cplan
+    if (cp.candles.length + input.length > PROFIT_CANDLE_MAX) {
+      throw createError({ statusCode: 400, statusMessage: `다음봉은 최대 ${PROFIT_CANDLE_MAX}개까지 만들 수 있습니다.` })
+    }
+    const startMs = new Date(row.created_at).getTime()
+    const offset = Date.now() - startMs
+    const candlesEndT = cp.delayMs + cp.candles.length * cp.barMs
+    if (offset > candlesEndT - CANDLE_APPEND_MARGIN_MS) {
+      throw createError({ statusCode: 409, statusMessage: '마지막 봉이 곧 끝나거나 이미 끝나서 더 추가할 수 없습니다.' })
+    }
+    const basePrice = Number(row.base_price)
+    const snap = (p: number) => Number((Math.round(p / cp.tick) * cp.tick).toPrecision(12))
+    let o = cp.candles[cp.candles.length - 1].c
+    const added: ProfitCandlePlan['candles'] = []
+    for (let i = 0; i < input.length; i++) {
+      const g = input[i]
+      const c = snap(g.c)
+      const h = Math.max(snap(g.h), o, c)
+      const l = Math.min(snap(g.l), o, c)
+      for (const p of [c, h, l]) {
+        if (!(p > 0) || Math.abs(p - basePrice) / basePrice > 0.5) {
+          throw createError({ statusCode: 400, statusMessage: '현재가에서 50%를 넘게 벗어난 가격은 입력할 수 없습니다.' })
+        }
+      }
+      added.push({ c, h, l })
+      o = c
+    }
+    const next: ProfitCandlePlan = { ...cp, candles: cp.candles.concat(added) }
+    const direction = buildCandleDirection(next, undefined, cd.returnMs, cd.targets)
+    const last = next.candles[next.candles.length - 1]
+    const percent = Number(((Math.abs(last.c - next.open) / basePrice) * 100 * 100).toFixed(4))
+    if (supabaseAppDbEnabled()) {
+      const { error } = await getSupabaseAdminClient().from(T_PROFIT_EVENTS).update({ direction, shocked_price: last.c, percent }).eq('id', id)
+      if (error) throw error
+    } else {
+      getDb().prepare('UPDATE profit_events SET direction = ?, shocked_price = ?, percent = ? WHERE id = ?').run(direction, last.c, percent, id)
+    }
+    return candleToEvent({ id, symbol: String(row.symbol).toUpperCase(), percent, basePrice, createdAt: String(row.created_at) }, next, null, cd.returnMs, cd.targets)
+  } finally {
+    invalidateLatestProfit()
+  }
 }
 
 // 모든 접속자 화면이 1.5초마다 같은 종목의 최신 이벤트를 조회한다. 보고 있는 종목마다 DB를 따로 읽지 않고,

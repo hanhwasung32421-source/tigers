@@ -1870,6 +1870,35 @@
           </div>
         </li>
       </ol>
+
+      <!-- 진행 중인 디자인차트에 다음 봉을 이어서 추가 -->
+      <div v-if="!remoteLogCollapsed && canAppendDesign" class="mt-2">
+        <button v-if="!appendOpen" type="button" class="w-full rounded-md bg-sky-500/15 px-2 py-1.5 text-sky-200 ring-1 ring-sky-400/30 hover:bg-sky-500/25" @click="openAppendDesign">
+          ＋ {{ t('다음봉 추가', 'Add next bar') }}
+        </button>
+        <div v-else class="rounded-lg bg-white/5 p-2">
+          <div class="mb-1.5 text-slate-300">
+            {{ t('다음봉', 'Next bar') }} {{ (runningDesignPlan?.candles.length ?? 0) + 1 }}
+            <span class="text-slate-500">· {{ t('시가', 'Open') }} {{ runningDesignPlan ? fmtPrice(runningDesignPlan.candles[runningDesignPlan.candles.length - 1].c) : '' }}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5">
+            <label class="text-slate-400">{{ t('종가', 'Close') }}
+              <input v-model.number="appendDraft.c" type="number" step="any" class="mt-0.5 w-full rounded bg-white/5 px-1.5 py-1 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-sky-400" />
+            </label>
+            <label class="text-slate-400">{{ t('고가', 'High') }}
+              <input v-model.number="appendDraft.h" type="number" step="any" class="mt-0.5 w-full rounded bg-white/5 px-1.5 py-1 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-sky-400" />
+            </label>
+            <label class="text-slate-400">{{ t('저가', 'Low') }}
+              <input v-model.number="appendDraft.l" type="number" step="any" class="mt-0.5 w-full rounded bg-white/5 px-1.5 py-1 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-sky-400" />
+            </label>
+          </div>
+          <div v-if="appendError" class="mt-1.5 text-rose-300">{{ appendError }}</div>
+          <div class="mt-2 flex justify-end gap-1.5">
+            <button type="button" class="rounded px-2 py-1 text-slate-400 hover:bg-white/10 hover:text-white" :disabled="appendBusy" @click="appendOpen = false">{{ t('취소', 'Cancel') }}</button>
+            <button type="button" class="rounded bg-sky-500 px-3 py-1 font-semibold text-white hover:bg-sky-400 disabled:opacity-50" :disabled="appendBusy" @click="submitAppendDesign">{{ t('추가', 'Add') }}</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div
@@ -3271,6 +3300,8 @@ let adminProfitTimer: any = null
 // 리모콘 정지: 지금 재생 중인 이벤트와, 그 재생을 "실제 현재가로 복귀"로 바꾸는 함수
 let runningProfitEventId = 0
 let profitStopRunning: ((retMs?: number) => void) | null = null
+// 진행 중인 디자인차트에 다음 봉이 추가됐을 때(로그창에서 추가하거나 다른 화면이 추가한 것을 받았을 때) 재생을 이어서 늘리는 함수
+let profitExtendRunning: ((nev: ProfitEvent) => void) | null = null
 const profitReturning = ref(false)
 const profitStopBusy = ref(false)
 
@@ -5596,6 +5627,69 @@ function startRemoteLog(ev: ProfitEvent, elapsedMs: number) {
   }, 250)
 }
 
+// 진행 중에 다음 봉이 추가되면 로그창의 단계 목록을 새 봉까지 포함해서 다시 만든다(이미 지난 부분은 시각이 같아서 그대로 이어진다).
+function updateRemoteLogSteps(ev: ProfitEvent) {
+  const log = remoteLog.value
+  if (!log || log.eventId !== ev.id || log.stopT != null || log.done) return
+  remoteLog.value = { ...log, steps: buildRemoteLogSteps(ev) }
+}
+
+// ─── 진행 중인 디자인차트에 다음 봉 추가(로그창) ───
+const runningDesignPlan = ref<ProfitCandlePlan | null>(null)
+const appendOpen = ref(false)
+const appendDraft = ref({ c: 0, h: 0, l: 0 })
+const appendBusy = ref(false)
+const appendError = ref<string | null>(null)
+// 마지막 봉이 끝나기 3초 전까지만 추가할 수 있다(그 뒤에는 화면들이 정상가 복귀를 시작해서 새 봉을 받을 시간이 없다).
+const APPEND_MARGIN_MS = 3000
+const canAppendDesign = computed(() => {
+  const log = remoteLog.value
+  const cp = runningDesignPlan.value
+  if (!log || log.kind !== 3 || log.done || log.stopT != null || !cp) return false
+  if (cp.candles.length >= PROFIT_CANDLE_MAX) return false
+  const tNow = remoteLogNow.value - log.startedAt
+  return tNow < cp.delayMs + cp.candles.length * cp.barMs - APPEND_MARGIN_MS
+})
+function snapAppend(p: number, tick: number) {
+  return Number((Math.round(p / tick) * tick).toPrecision(12))
+}
+function openAppendDesign() {
+  const cp = runningDesignPlan.value
+  if (!cp || !cp.candles.length) return
+  const o = cp.candles[cp.candles.length - 1].c
+  const c = snapAppend(o + 5 * cp.tick, cp.tick)
+  appendDraft.value = { c, h: snapAppend(c + 5 * cp.tick, cp.tick), l: snapAppend(o - 5 * cp.tick, cp.tick) }
+  appendError.value = null
+  appendOpen.value = true
+}
+async function submitAppendDesign() {
+  const log = remoteLog.value
+  const cp = runningDesignPlan.value
+  if (!log || !cp || appendBusy.value) return
+  const d = appendDraft.value
+  const c = Number(d.c)
+  const h = Number(d.h)
+  const l = Number(d.l)
+  if (![c, h, l].every((v) => Number.isFinite(v) && v > 0)) {
+    appendError.value = t('종가/고가/저가를 올바르게 입력해주세요.', 'Enter valid close/high/low prices.')
+    return
+  }
+  appendBusy.value = true
+  appendError.value = null
+  try {
+    const res = await $fetch<{ ok: boolean; event: ProfitEvent }>('/api/admin/design-chart-append', {
+      method: 'POST',
+      body: { eventId: log.eventId, candles: [{ c, h, l }] }
+    })
+    if (res?.event) profitExtendRunning?.(res.event)
+    appendOpen.value = false
+  } catch (e: any) {
+    appendError.value = e?.data?.statusMessage || t('추가 실패', 'Failed to add')
+  } finally {
+    appendBusy.value = false
+  }
+}
+
 function noteRemoteLogStop(retMs: number) {
   const log = remoteLog.value
   if (!log || log.stopT != null) return
@@ -5991,6 +6085,9 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     finishRemoteLog()
     runningProfitEventId = 0
     profitStopRunning = null
+    profitExtendRunning = null
+    runningDesignPlan.value = null
+    appendOpen.value = false
     profitReturning.value = false
     adminProfitUiOverride.value = null
     adminProfitFreezeUntil = 0
@@ -6015,21 +6112,39 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
 
   if (ev.cplan && ev.cplan.candles?.length) {
     // 디자인차트: 다음 봉이 시작될 때까지 기다렸다가, 설계한 봉들을 차례로 0.01씩 랜덤하게 움직이며 만든다.
+    // 진행 중에 다음 봉이 추가될 수 있어서(evNow가 새 봉이 붙은 이벤트로 바뀐다) 경로는 항상 evNow로 만든다.
+    let evNow = ev
     const cp = ev.cplan
     const runStartWall = Date.now() - elapsedMs
+    runningDesignPlan.value = cp
     // 첫 봉이 시작되기 전에 이미 정지(취소)된 이벤트는 가격을 건드리지 않는다.
     if (ev.stopT != null && ev.stopT < cp.delayMs) {
       finish()
       return
     }
     const normalStop = profitStopRunning
+    // 설계한 봉들을 (지금 시각부터) 재생하고, 다 끝나면 정상가로 복귀한다. 앞 봉들의 경로는 봉이 추가돼도 그대로라 이어서 만들어도 끊김이 없다.
+    const playCandles = () => {
+      const nowT = Math.max(0, Date.now() - runStartWall)
+      const built = buildCandlePlanPoints(evNow)
+      playPoints(
+        built.points,
+        () => {
+          const realPrice = Number(lastPrice.value || ev.basePrice)
+          const ret = buildCandlePlanReturn(evNow, built.candlesEndT, built.lastPrice, realPrice)
+          const tNow = Date.now() - runStartWall
+          playPoints(ret, finish, tNow > (ret[0]?.t ?? 0) ? tNow : null, driftMap(ret, realPrice))
+        },
+        nowT > (built.points[0]?.t ?? 0) ? nowT : null
+      )
+    }
     const begin = () => {
       designWaiting.value = false
       profitStopRunning = normalStop
       adminProfitBusy.value = true
       profitReturning.value = ev.stopT != null
       const nowT = Math.max(0, Date.now() - runStartWall)
-      adminProfitFreezeUntil = runStartWall + profitEventTotalMs(ev) + 300
+      adminProfitFreezeUntil = runStartWall + profitEventTotalMs(evNow) + 300
       initFromChart()
       prevApplied = cp.open // 첫 봉의 시가는 설계한 시가
       if (ev.stopT != null) {
@@ -6037,17 +6152,23 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
         playPoints(tl.points, finish, nowT > (tl.points[0]?.t ?? 0) ? nowT : null)
         return
       }
-      const built = buildCandlePlanPoints(ev)
-      playPoints(
-        built.points,
-        () => {
-          const realPrice = Number(lastPrice.value || ev.basePrice)
-          const ret = buildCandlePlanReturn(ev, built.candlesEndT, built.lastPrice, realPrice)
-          const tNow = Date.now() - runStartWall
-          playPoints(ret, finish, tNow > (ret[0]?.t ?? 0) ? tNow : null, driftMap(ret, realPrice))
-        },
-        nowT > (built.points[0]?.t ?? 0) ? nowT : null
-      )
+      playCandles()
+    }
+    // 다음 봉 추가: 아직 마지막 봉이 진행 중(또는 첫 봉 시작 전)일 때만 받아들인다. 이미 정상가로 복귀 중이면 무시한다.
+    profitExtendRunning = (nev) => {
+      const ncp = nev.cplan
+      if (!ncp || nev.id !== ev.id || nev.stopT != null || profitReturning.value) return
+      const cur = evNow.cplan as ProfitCandlePlan
+      if (ncp.candles.length <= cur.candles.length) return
+      const nowT = Date.now() - runStartWall
+      if (!designWaiting.value && nowT >= cur.delayMs + cur.candles.length * cur.barMs) return
+      evNow = nev
+      runningDesignPlan.value = ncp
+      updateRemoteLogSteps(nev)
+      if (designWaiting.value) return // 첫 봉 시작 전이면 시작할 때 새 봉까지 포함해서 재생한다
+      adminProfitFreezeUntil = runStartWall + profitEventTotalMs(nev) + 300
+      if (adminProfitTimer) clearTimeout(adminProfitTimer)
+      playCandles()
     }
     const waitMs = cp.delayMs - elapsedMs
     if (waitMs > 30 && ev.stopT == null) {
@@ -6246,6 +6367,9 @@ async function handleProfitEvent(ev: ProfitEvent | null | undefined) {
     await runProfitAnimation(ev)
   } else if (ev && ev.id === runningProfitEventId && ev.stopT != null && profitStopRunning && !profitReturning.value) {
     profitStopRunning(ev.returnMs ?? undefined)
+  } else if (ev && ev.id === runningProfitEventId && ev.cplan && ev.stopT == null && profitExtendRunning) {
+    // 진행 중인 디자인차트에 다음 봉이 추가됐으면 재생을 이어서 늘린다.
+    profitExtendRunning(ev)
   }
 }
 
