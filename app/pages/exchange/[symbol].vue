@@ -647,6 +647,36 @@
                 <text :x="v.x" :y="v.yL + 18" fill="#94a3b8" font-size="11" text-anchor="middle" style="pointer-events: none">{{ t('다음봉', 'Next') }} {{ v.idx + 1 }}</text>
               </g>
             </svg>
+            <!-- 진행 중인 디자인차트(총관리자 화면만): 아직 시작 전인 다음 봉은 희미하게, "다음봉 추가"로 그리는 새 봉은 마지막 봉 옆에 핸들과 함께 -->
+            <svg v-if="designOverlayActive" class="pointer-events-none absolute inset-0 z-[25] h-full w-full">
+              <g v-for="v in runningOverlayView.pending" :key="'p' + v.idx" opacity="0.35">
+                <line :x1="v.x" :x2="v.x" :y1="v.yH" :y2="v.yL" :stroke="v.up ? '#10b981' : '#ef4444'" stroke-width="2" />
+                <rect :x="v.x - v.w / 2" :y="Math.min(v.yO, v.yC)" :width="v.w" :height="Math.max(2, Math.abs(v.yO - v.yC))" :fill="v.up ? '#10b981' : '#ef4444'" />
+                <text :x="v.x" :y="v.yL + 18" fill="#94a3b8" font-size="11" text-anchor="middle">{{ t('다음봉', 'Next') }} {{ v.idx + 1 }}</text>
+              </g>
+              <g v-if="runningOverlayView.draft">
+                <g opacity="0.6">
+                  <line :x1="runningOverlayView.draft.x" :x2="runningOverlayView.draft.x" :y1="runningOverlayView.draft.yH" :y2="runningOverlayView.draft.yL" :stroke="runningOverlayView.draft.up ? '#10b981' : '#ef4444'" stroke-width="2" />
+                  <rect :x="runningOverlayView.draft.x - runningOverlayView.draft.w / 2" :y="Math.min(runningOverlayView.draft.yO, runningOverlayView.draft.yC)" :width="runningOverlayView.draft.w" :height="Math.max(2, Math.abs(runningOverlayView.draft.yO - runningOverlayView.draft.yC))" :fill="runningOverlayView.draft.up ? '#10b981' : '#ef4444'" />
+                </g>
+                <rect
+                  :x="runningOverlayView.draft.x - Math.max(runningOverlayView.draft.w / 2, 8)"
+                  :y="runningOverlayView.draft.yH - 4"
+                  :width="Math.max(runningOverlayView.draft.w, 16)"
+                  :height="Math.max(8, runningOverlayView.draft.yL - runningOverlayView.draft.yH + 8)"
+                  fill="rgba(0,0,0,0.001)"
+                  style="pointer-events: all; cursor: ns-resize"
+                  @pointerdown="onAppendPointerDown($event)"
+                />
+                <circle :cx="runningOverlayView.draft.x" :cy="runningOverlayView.draft.yC" r="5" :fill="runningOverlayView.draft.up ? '#10b981' : '#ef4444'" stroke="#ffffff" stroke-width="1.5" style="pointer-events: all; cursor: ns-resize" @pointerdown="onAppendPointerDown($event, 'c')" />
+                <circle :cx="runningOverlayView.draft.x" :cy="runningOverlayView.draft.yH" r="4" fill="#ffffff" :stroke="runningOverlayView.draft.up ? '#10b981' : '#ef4444'" stroke-width="1.5" style="pointer-events: all; cursor: ns-resize" @pointerdown="onAppendPointerDown($event, 'h')" />
+                <circle :cx="runningOverlayView.draft.x" :cy="runningOverlayView.draft.yL" r="4" fill="#ffffff" :stroke="runningOverlayView.draft.up ? '#10b981' : '#ef4444'" stroke-width="1.5" style="pointer-events: all; cursor: ns-resize" @pointerdown="onAppendPointerDown($event, 'l')" />
+                <text :x="runningOverlayView.draft.x" :y="runningOverlayView.draft.yL + 18" fill="#94a3b8" font-size="11" text-anchor="middle" style="pointer-events: none">{{ t('다음봉', 'Next') }} {{ runningOverlayView.draft.idx + 1 }}</text>
+              </g>
+            </svg>
+            <div v-if="designOverlayActive && appendDrag" class="pointer-events-none absolute z-[40] whitespace-nowrap rounded bg-[#1e222d] px-2 py-1 text-[12px] font-semibold text-white ring-1 ring-white/25" :style="{ left: appendDrag.x + 14 + 'px', top: appendDrag.y - 30 + 'px' }">
+              {{ appendDragLabel }}
+            </div>
             <div v-if="designOpen && designDrag" class="pointer-events-none absolute z-[40] whitespace-nowrap rounded bg-[#1e222d] px-2 py-1 text-[12px] font-semibold text-white ring-1 ring-white/25" :style="{ left: designDrag.x + 14 + 'px', top: designDrag.y - 30 + 'px' }">
               {{ designDragLabel }}
             </div>
@@ -1877,24 +1907,14 @@
           ＋ {{ t('다음봉 추가', 'Add next bar') }}
         </button>
         <div v-else class="rounded-lg bg-white/5 p-2">
-          <div class="mb-1.5 text-slate-300">
+          <div class="text-slate-300">
             {{ t('다음봉', 'Next bar') }} {{ (runningDesignPlan?.candles.length ?? 0) + 1 }}
-            <span class="text-slate-500">· {{ t('시가', 'Open') }} {{ runningDesignPlan ? fmtPrice(runningDesignPlan.candles[runningDesignPlan.candles.length - 1].c) : '' }}</span>
+            <span class="text-slate-500">· {{ t('마지막 봉이 끝나기', 'Until the last bar ends') }} {{ appendRemainSec }}{{ t('초 전까지', 's left') }}</span>
           </div>
-          <div class="grid grid-cols-3 gap-1.5">
-            <label class="text-slate-400">{{ t('종가', 'Close') }}
-              <input v-model.number="appendDraft.c" type="number" step="any" class="mt-0.5 w-full rounded bg-white/5 px-1.5 py-1 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-sky-400" />
-            </label>
-            <label class="text-slate-400">{{ t('고가', 'High') }}
-              <input v-model.number="appendDraft.h" type="number" step="any" class="mt-0.5 w-full rounded bg-white/5 px-1.5 py-1 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-sky-400" />
-            </label>
-            <label class="text-slate-400">{{ t('저가', 'Low') }}
-              <input v-model.number="appendDraft.l" type="number" step="any" class="mt-0.5 w-full rounded bg-white/5 px-1.5 py-1 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-sky-400" />
-            </label>
-          </div>
+          <div class="mt-1 text-slate-500">{{ t('차트의 희미한 마지막 봉 옆에 새 봉이 나타납니다. 종가·고가·저가 점을 끌어서 모양을 잡고 "추가"를 누르세요.', 'A new bar appears next to the last faint bar on the chart. Drag its close/high/low dots, then press "Add".') }}</div>
           <div v-if="appendError" class="mt-1.5 text-rose-300">{{ appendError }}</div>
           <div class="mt-2 flex justify-end gap-1.5">
-            <button type="button" class="rounded px-2 py-1 text-slate-400 hover:bg-white/10 hover:text-white" :disabled="appendBusy" @click="appendOpen = false">{{ t('취소', 'Cancel') }}</button>
+            <button type="button" class="rounded px-2 py-1 text-slate-400 hover:bg-white/10 hover:text-white" :disabled="appendBusy" @click="closeAppendDraft">{{ t('취소', 'Cancel') }}</button>
             <button type="button" class="rounded bg-sky-500 px-3 py-1 font-semibold text-white hover:bg-sky-400 disabled:opacity-50" :disabled="appendBusy" @click="submitAppendDesign">{{ t('추가', 'Add') }}</button>
           </div>
         </div>
@@ -5394,7 +5414,7 @@ function closeDesignChart() {
   designTargetOpen.value = false
   designOpen.value = false
   designDrag.value = null
-  stopDesignLoop()
+  if (!designOverlayActive.value) stopDesignLoop()
   window.removeEventListener('pointermove', onDesignPointerMove)
   window.removeEventListener('pointerup', onDesignPointerUp)
 }
@@ -5653,6 +5673,19 @@ const canAppendDesign = computed(() => {
 function snapAppend(p: number, tick: number) {
   return Number((Math.round(p / tick) * tick).toPrecision(12))
 }
+// 마지막 봉 끝나기 전까지 남은 시간(초) — 이 안에 "추가"를 눌러야 한다.
+const appendRemainSec = computed(() => {
+  const log = remoteLog.value
+  const cp = runningDesignPlan.value
+  if (!log || !cp) return 0
+  const tNow = remoteLogNow.value - log.startedAt
+  return Math.max(0, Math.floor((cp.delayMs + cp.candles.length * cp.barMs - APPEND_MARGIN_MS - tNow) / 1000))
+})
+// 마지막 봉 끝나기 3초 전이 지나면(추가 불가) 그리던 새 봉도 닫는다.
+watch(canAppendDesign, (ok) => {
+  if (!ok) closeAppendDraft()
+})
+
 function openAppendDesign() {
   const cp = runningDesignPlan.value
   if (!cp || !cp.candles.length) return
@@ -5661,6 +5694,121 @@ function openAppendDesign() {
   appendDraft.value = { c, h: snapAppend(c + 5 * cp.tick, cp.tick), l: snapAppend(o - 5 * cp.tick, cp.tick) }
   appendError.value = null
   appendOpen.value = true
+}
+function closeAppendDraft() {
+  appendOpen.value = false
+  appendDrag.value = null
+  window.removeEventListener('pointermove', onAppendPointerMove)
+  window.removeEventListener('pointerup', onAppendPointerUp)
+}
+
+// 진행 중인 디자인차트를 차트 위에 표시한다(총관리자 화면만). 이벤트 시작 시각(ms)과 설계한 봉들로 각 봉이 시작될 시각을 구해서,
+// 아직 시작 전인 봉은 희미하게 그리고, "다음봉 추가"로 그리는 새 봉은 마지막 봉 바로 다음 칸에 그린다. 지금 움직이는 봉과 지난 봉은 실제 차트 봉이 그대로 보인다.
+const runningDesignStartMs = ref(0)
+const designOverlayActive = computed(() => {
+  const log = remoteLog.value
+  return isSuperAdminUser.value && !!log && log.kind === 3 && !log.done && log.stopT == null && !!runningDesignPlan.value && runningDesignStartMs.value > 0
+})
+// 오버레이가 켜져 있는 동안은 차트를 움직이거나 확대해도 봉이 따라가도록 매 프레임 다시 그린다(디자인 모드와 같은 방식).
+watch(designOverlayActive, (on) => {
+  if (on) {
+    if (!designRaf) designLoop()
+  } else if (!designOpen.value) {
+    stopDesignLoop()
+  }
+})
+type OverlayBar = { idx: number; x: number; w: number; yO: number; yC: number; yH: number; yL: number; up: boolean }
+const runningOverlayView = computed<{ pending: OverlayBar[]; draft: OverlayBar | null }>(() => {
+  void designRedraw.value
+  const empty = { pending: [] as OverlayBar[], draft: null }
+  const cp = runningDesignPlan.value
+  if (!designOverlayActive.value || !cp || !chart || !candleSeries) return empty
+  // 설계할 때의 봉 길이와 지금 차트의 봉 길이가 같을 때만 그린다(다른 봉으로 바꾸면 위치가 맞지 않는다).
+  if (Math.round(cp.barMs / 1000) !== barSeconds(timeframe.value)) return empty
+  const ppb = pixelsPerBar() || 8
+  const w = Math.max(3, Math.min(ppb * 0.7, 60))
+  const startMsOf = (k: number) => runningDesignStartMs.value + cp.delayMs + k * cp.barMs
+  const make = (k: number, o: number, c: number, h: number, l: number): OverlayBar | null => {
+    const sec = (Math.round(startMsOf(k) / cp.barMs) * cp.barMs) / 1000
+    const x = resolveXForTime(sec as any)
+    const yO = candleSeries!.priceToCoordinate(o)
+    const yC = candleSeries!.priceToCoordinate(c)
+    const yH = candleSeries!.priceToCoordinate(h)
+    const yL = candleSeries!.priceToCoordinate(l)
+    if (x === null || yO === null || yC === null || yH === null || yL === null) return null
+    return { idx: k, x: Number(x), w, yO: Number(yO), yC: Number(yC), yH: Number(yH), yL: Number(yL), up: c >= o }
+  }
+  const nowMs = Date.now()
+  const pending: OverlayBar[] = []
+  let o = cp.open
+  cp.candles.forEach((cd, k) => {
+    if (startMsOf(k) > nowMs) {
+      const v = make(k, o, cd.c, cd.h, cd.l)
+      if (v) pending.push(v)
+    }
+    o = cd.c
+  })
+  let draft: OverlayBar | null = null
+  if (appendOpen.value) {
+    const d = appendDraft.value
+    draft = make(cp.candles.length, o, d.c, Math.max(d.h, o, d.c), Math.min(d.l, o, d.c))
+  }
+  return { pending, draft }
+})
+
+// 새 봉 그리기: 종가/고가/저가 점(또는 봉 몸통/심지)을 위아래로 끌어서 모양을 잡는다(디자인 모드와 같은 조작).
+const appendDrag = ref<{ kind: 'c' | 'h' | 'l'; x: number; y: number; price: number } | null>(null)
+const appendDragLabel = computed(() => {
+  const d = appendDrag.value
+  if (!d) return ''
+  const name = d.kind === 'c' ? t('[종가]', '[Close]') : d.kind === 'h' ? t('[고가]', '[High]') : t('[저가]', '[Low]')
+  return `${name} ${fmtPrice(d.price)}`
+})
+function appendOpenPrice() {
+  const cp = runningDesignPlan.value
+  return cp && cp.candles.length ? cp.candles[cp.candles.length - 1].c : 0
+}
+function onAppendPointerDown(e: PointerEvent, kind?: 'c' | 'h' | 'l') {
+  e.preventDefault()
+  e.stopPropagation()
+  const rect = chartEl.value?.getBoundingClientRect()
+  const view = runningOverlayView.value.draft
+  if (!rect || !view) return
+  const y = e.clientY - rect.top
+  let k = kind
+  if (!k) {
+    const dc = Math.abs(y - view.yC)
+    const dh = Math.abs(y - view.yH)
+    const dl = Math.abs(y - view.yL)
+    k = dh <= dc && dh <= dl ? 'h' : dl <= dc ? 'l' : 'c'
+  }
+  const d = appendDraft.value
+  appendDrag.value = { kind: k, x: e.clientX - rect.left, y, price: k === 'c' ? d.c : k === 'h' ? d.h : d.l }
+  window.addEventListener('pointermove', onAppendPointerMove)
+  window.addEventListener('pointerup', onAppendPointerUp)
+}
+function onAppendPointerMove(e: PointerEvent) {
+  const dr = appendDrag.value
+  const cp = runningDesignPlan.value
+  const rect = chartEl.value?.getBoundingClientRect()
+  if (!dr || !cp || !rect || !candleSeries) return
+  const y = e.clientY - rect.top
+  const raw = Number(candleSeries.coordinateToPrice(y))
+  if (!Number.isFinite(raw) || raw <= 0) return
+  const price = snapAppend(raw, cp.tick)
+  const o = appendOpenPrice()
+  const d = appendDraft.value
+  if (dr.kind === 'c') d.c = price
+  else if (dr.kind === 'h') d.h = Math.max(price, o, d.c)
+  else d.l = Math.min(price, o, d.c)
+  d.h = Math.max(d.h, o, d.c)
+  d.l = Math.min(d.l, o, d.c)
+  appendDrag.value = { ...dr, x: e.clientX - rect.left, y, price: dr.kind === 'c' ? d.c : dr.kind === 'h' ? d.h : d.l }
+}
+function onAppendPointerUp() {
+  appendDrag.value = null
+  window.removeEventListener('pointermove', onAppendPointerMove)
+  window.removeEventListener('pointerup', onAppendPointerUp)
 }
 async function submitAppendDesign() {
   const log = remoteLog.value
@@ -5682,7 +5830,7 @@ async function submitAppendDesign() {
       body: { eventId: log.eventId, candles: [{ c, h, l }] }
     })
     if (res?.event) profitExtendRunning?.(res.event)
-    appendOpen.value = false
+    closeAppendDraft()
   } catch (e: any) {
     appendError.value = e?.data?.statusMessage || t('추가 실패', 'Failed to add')
   } finally {
@@ -6087,7 +6235,8 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     profitStopRunning = null
     profitExtendRunning = null
     runningDesignPlan.value = null
-    appendOpen.value = false
+    runningDesignStartMs.value = 0
+    closeAppendDraft()
     profitReturning.value = false
     adminProfitUiOverride.value = null
     adminProfitFreezeUntil = 0
@@ -6117,6 +6266,7 @@ async function runProfitAnimation(ev: ProfitEvent, resume = false) {
     const cp = ev.cplan
     const runStartWall = Date.now() - elapsedMs
     runningDesignPlan.value = cp
+    runningDesignStartMs.value = Number.isFinite(t0Ms) ? t0Ms : 0
     // 첫 봉이 시작되기 전에 이미 정지(취소)된 이벤트는 가격을 건드리지 않는다.
     if (ev.stopT != null && ev.stopT < cp.delayMs) {
       finish()
@@ -9749,6 +9899,8 @@ onMounted(() => restorePriceAlarms())
 
 onBeforeUnmount(() => {
   remoteLogDragStop?.()
+  window.removeEventListener('pointermove', onAppendPointerMove)
+  window.removeEventListener('pointerup', onAppendPointerUp)
   document.removeEventListener('click', onDropdownMenuDocClick, { capture: true } as any)
   if (overviewTimer) clearInterval(overviewTimer)
   if (lastTagTimer) clearInterval(lastTagTimer)
