@@ -127,10 +127,15 @@ export async function ensureAdminExists() {
   const existing = await supaSelectOne<any>('bitduck_users', { username: 'admin' }).catch(() => null)
   if (existing) return
 
+  // 예전에는 비밀번호 1234로 admin을 자동 생성했는데, 누구나 첫 로그인으로 총관리자를 만들 수 있어 위험하다.
+  // 환경변수 ADMIN_INITIAL_PASSWORD가 설정된 경우에만 그 비밀번호로 생성한다(설정이 없으면 만들지 않음).
+  const initialPassword = String(process.env.ADMIN_INITIAL_PASSWORD || '')
+  if (initialPassword.length < 8) return
+
   const supa = getSupabaseAdminClient()
   const now = new Date().toISOString()
   const adminId = 1053
-  const passwordHash = bcrypt.hashSync('1234', 10)
+  const passwordHash = bcrypt.hashSync(initialPassword, 10)
 
   const { error } = await supa.from('bitduck_users').insert({
     id: adminId,

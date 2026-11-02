@@ -2,10 +2,21 @@ import { requireAdmin } from '../../utils/auth'
 import { getDb } from '../../utils/db'
 import { supabaseAppDbEnabled } from '../../utils/supa-appdb'
 import { getSupabaseAdminClient } from '../../utils/supabase'
-import { settlementTypeOf } from '../../utils/menu-permissions'
+import { canViewMenu, settlementTypeOf } from '../../utils/menu-permissions'
+import { computeDownlineUsernames } from '../../utils/referral'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const me = await requireAdmin(event)
+  if (!canViewMenu(me, 'members')) {
+    throw createError({ statusCode: 403, statusMessage: '이 메뉴에 대한 접근 권한이 없습니다.' })
+  }
+  // 부관리자는 자기 추천 조직(하부)만 볼 수 있다(회원 목록과 같은 규칙). 총관리자는 전체.
+  const scopeToReferral = me.role !== 'super_admin' ? me.username : null
+  const scopeRows = <T extends { username: string; referralCode: string }>(rows: T[]): T[] => {
+    if (!scopeToReferral) return rows
+    const downline = computeDownlineUsernames(scopeToReferral, rows.map((r) => ({ username: r.username, referralCode: r.referralCode })))
+    return rows.filter((r) => downline.has(r.username))
+  }
 
   if (supabaseAppDbEnabled()) {
     const supa = getSupabaseAdminClient()
@@ -72,7 +83,7 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    return { users: rows }
+    return { users: scopeRows(rows) }
   }
 
   const db = getDb()
@@ -101,7 +112,7 @@ export default defineEventHandler(async (event) => {
   }>
 
   return {
-    users: rows.map((u) => {
+    users: scopeRows(rows.map((u) => ({ ...u, username: String(u.username || ''), referralCode: String(u.referral_code || '') }))).map((u) => {
       let permissions: any = {}
       try {
         permissions = JSON.parse(u.permissions || '{}')
