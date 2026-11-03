@@ -108,7 +108,8 @@ const percentText = computed(() => `${props.roe < 0 ? '-' : ''}${Math.abs(props.
 const wonText = computed(() => `${props.pnl < 0 ? '-' : ''}${props.wonNumber} ${props.labels.won}`)
 const levText = computed(() => `${props.labels.isolated} x${String(props.leverage).replace(/^x/i, '')}`)
 
-const bgUrl = computed(() => props.bgImage || (props.cb.useDefaultBg ? CB_DEFAULT_BG : ''))
+// "기본 코인 배경 사용"이 켜져 있으면 coinbreaker3의 전체 배경 그림, 꺼져 있으면 어드민이 넣은 내 그림(없으면 배경 그림 없음).
+const bgUrl = computed(() => (props.cb.useDefaultBg ? CB_DEFAULT_BG : props.bgImage || ''))
 const cardStyle = computed(() => ({
   width: props.cb.cardW + 'px',
   height: props.cb.cardH + 'px',
