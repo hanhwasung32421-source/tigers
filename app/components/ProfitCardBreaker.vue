@@ -151,7 +151,8 @@ function itemStyle(key: CbItemKey, extra: Record<string, any> = {}) {
   return st
 }
 
-const titleHeight = computed(() => Math.round((it('title').size || 18) * 1.25))
+// 로고 높이: 기본 글자 크기(18px)일 때 coinbreaker3의 제목 줄 높이(21px)와 같게 맞춘다.
+const titleHeight = computed(() => Math.round(((it('title').size || 18) * 7) / 6))
 
 const dividerStyle = computed(() => {
   const s = it('divider')
