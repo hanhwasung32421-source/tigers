@@ -213,6 +213,7 @@ function onCloseClick() {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  line-height: normal;
   font-family: 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
 }
 .cbk-card * {
@@ -296,6 +297,8 @@ function onCloseClick() {
   align-items: flex-start;
 }
 .cbk-label {
+  display: grid;
+  gap: 6px;
   font-size: 14px;
   font-weight: 500;
   color: #9ca3af;
