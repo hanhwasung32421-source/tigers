@@ -5,7 +5,7 @@
         <h1 class="text-xl font-semibold">{{ t('쪽지관리', 'Message Management') }}</h1>
         <p class="mt-1 text-sm text-slate-400">{{ t('전체회원 또는 선택 회원에게 쪽지를 보내고 답장을 확인합니다.', 'Send messages to all or selected members and view replies.') }}</p>
       </div>
-      <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="activeTab === 'members' ? loadAll() : loadGuestThreads()">{{ t('새로고침', 'Refresh') }}</button>
+      <button class="rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15" @click="activeTab === 'guests' ? loadGuestThreads() : loadAll()">{{ t('새로고침', 'Refresh') }}</button>
     </div>
 
     <div class="flex gap-1 border-b border-white/10">
@@ -26,10 +26,18 @@
         {{ t('비회원 상담', 'Guest Inquiries') }}
         <span v-if="guestUnreadTotal" class="ml-1.5 rounded-full bg-amber-400 px-2 py-0.5 text-[12px] font-bold text-slate-900">{{ guestUnreadTotal }}</span>
       </button>
+      <button
+        type="button"
+        class="border-b-2 px-4 py-2 text-sm font-medium transition"
+        :class="activeTab === 'compose' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'"
+        @click="activeTab = 'compose'"
+      >
+        {{ t('쪽지쓰기', 'Compose') }}
+      </button>
     </div>
 
-    <div v-show="activeTab === 'members'" class="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-      <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
+    <div v-show="activeTab === 'compose'">
+      <section class="max-w-4xl rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-base font-semibold">{{ t('쪽지쓰기', 'Compose Message') }}</h2>
           <label class="flex items-center gap-2 text-xs text-slate-300">
@@ -122,7 +130,9 @@
         <p v-if="sendError" class="mt-3 text-sm text-rose-300">{{ sendError }}</p>
         <p v-if="sendMessageText" class="mt-3 text-sm text-emerald-300">{{ sendMessageText }}</p>
       </section>
+    </div>
 
+    <div v-show="activeTab === 'members'">
       <section class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div class="flex items-center justify-between gap-3">
           <h2 class="text-base font-semibold">{{ t('대화 목록', 'Conversation List') }}</h2>
@@ -141,7 +151,7 @@
               :key="thread.threadKey"
               class="mb-2 w-full rounded-xl border px-3 py-3 text-left transition"
               :class="activeThread?.threadKey === thread.threadKey ? 'border-cyan-400/40 bg-cyan-400/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'"
-              @click="openThread(thread)"
+              @click="openThread(thread, true)"
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="font-medium text-slate-100">{{ thread.username }}</div>
@@ -155,7 +165,7 @@
             <div v-if="filteredThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">{{ t('대화가 없습니다.', 'No conversations.') }}</div>
           </div>
 
-          <div class="rounded-xl border border-white/10 bg-[#06101b] p-4">
+          <div ref="chatPaneEl" class="scroll-mt-20 rounded-xl border border-white/10 bg-[#06101b] p-4">
             <div v-if="!activeThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">{{ t('왼쪽에서 대화를 선택하세요.', 'Select a conversation on the left.') }}</div>
             <div v-else class="space-y-4">
               <div class="border-b border-white/10 pb-3">
@@ -317,7 +327,7 @@
         <div v-if="guestThreads.length === 0" class="px-3 py-8 text-center text-sm text-slate-500">{{ t('비회원 상담이 없습니다.', 'No guest inquiries.') }}</div>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div ref="guestPaneEl" class="scroll-mt-20 rounded-xl border border-white/10 bg-white/5 p-4">
         <div v-if="!activeGuestThread" class="flex min-h-[420px] items-center justify-center text-sm text-slate-500">{{ t('왼쪽에서 대화를 선택하세요.', 'Select a conversation on the left.') }}</div>
         <div v-else class="space-y-4">
           <div class="border-b border-white/10 pb-3">
@@ -325,7 +335,7 @@
             <div class="mt-1 text-xs text-slate-500">{{ t('접속 IP', 'Access IP') }}: {{ activeGuestThread.ip || t('미확인', 'Unknown') }}</div>
           </div>
 
-          <div class="max-h-[440px] space-y-3 overflow-auto pr-1">
+          <div ref="guestMessageListEl" class="max-h-[440px] space-y-3 overflow-auto pr-1">
             <div
               v-for="message in guestMessages"
               :key="message.id"
@@ -438,7 +448,7 @@ const canManageMessages = computed(() => {
 // 따라 "관리자에게 온 쪽지"(운영자가 아닌 나) / "내 아이디로 온 쪽지"(내가 곧 운영자)를 구분해서 보여준다.
 const isOperator = ref(false)
 
-const activeTab = ref<'members' | 'guests'>('members')
+const activeTab = ref<'members' | 'guests' | 'compose'>('members')
 const guestThreads = ref<GuestThreadSummary[]>([])
 const activeGuestThread = ref<GuestThreadSummary | null>(null)
 const guestMessages = ref<GuestMessageItem[]>([])
@@ -460,12 +470,14 @@ async function openGuestThread(thread: GuestThreadSummary) {
   activeGuestThread.value = thread
   guestReplyBody.value = ''
   guestReplyError.value = null
+  nextTick(() => scrollPageToPane(guestPaneEl.value))
   const res = await $fetch<{ items: GuestMessageItem[] }>('/api/admin/guest-chats/thread', {
     query: { guestId: thread.guestId },
     headers: requestHeaders,
     credentials: 'include'
   })
   guestMessages.value = res.items || []
+  nextTick(() => scrollPageToPane(guestPaneEl.value))
   await loadGuestThreads()
 }
 
@@ -601,17 +613,30 @@ const activeThread = ref<ThreadSummary | null>(null)
 const activeMessages = ref<MessageItem[]>([])
 // 대화창은 항상 가장 아래(가장 최근 쪽지)가 보이는 상태로 열린다.
 const messageListEl = ref<HTMLElement | null>(null)
-function scrollMessagesToBottom() {
-  const el = messageListEl.value
+const guestMessageListEl = ref<HTMLElement | null>(null)
+function scrollToBottom(el: HTMLElement | null) {
   if (el) el.scrollTop = el.scrollHeight
 }
+function scrollChatsToBottom() {
+  scrollToBottom(messageListEl.value)
+  scrollToBottom(guestMessageListEl.value)
+}
+// 폰처럼 화면이 한 줄로 쌓이는 크기(lg 미만)에서는 대화 목록에서 대화를 누르면 아래쪽 대화창으로 화면을 내려 준다.
+const chatPaneEl = ref<HTMLElement | null>(null)
+const guestPaneEl = ref<HTMLElement | null>(null)
+function scrollPageToPane(el: HTMLElement | null) {
+  if (!process.client || !el || window.innerWidth >= 1024) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 watch(
-  [activeMessages, () => activeThread.value?.threadKey],
+  [activeMessages, () => activeThread.value?.threadKey, guestMessages, () => activeGuestThread.value?.guestId, activeTab],
   () => {
     nextTick(() => {
-      scrollMessagesToBottom()
-      // 화면 그리기가 한 박자 늦는 경우를 대비해 한 번 더
-      requestAnimationFrame(scrollMessagesToBottom)
+      scrollChatsToBottom()
+      // 화면 그리기가 한 박자 늦는 경우(탭 전환 직후 등)를 대비해 여러 번 더
+      requestAnimationFrame(scrollChatsToBottom)
+      setTimeout(scrollChatsToBottom, 120)
+      setTimeout(scrollChatsToBottom, 400)
     })
   },
   { flush: 'post' }
@@ -710,10 +735,11 @@ async function loadThreads() {
   }
 }
 
-async function openThread(thread: ThreadSummary) {
+async function openThread(thread: ThreadSummary, scrollPage = false) {
   activeThread.value = thread
   replyBody.value = ''
   replyError.value = null
+  if (scrollPage) nextTick(() => scrollPageToPane(chatPaneEl.value))
   const res = await $fetch<{ items: MessageItem[]; pendingResetRequest: PendingResetRequest }>('/api/messages/thread', {
     query: { userId: thread.userId },
     headers: requestHeaders,
@@ -721,6 +747,7 @@ async function openThread(thread: ThreadSummary) {
   })
   activeMessages.value = res.items || []
   pendingResetRequest.value = res.pendingResetRequest || null
+  if (scrollPage) nextTick(() => scrollPageToPane(chatPaneEl.value))
   await $fetch('/api/messages/mark-read', { method: 'POST', body: { userId: thread.userId }, headers: requestHeaders, credentials: 'include' }).catch(() => {})
   await loadThreads()
   loadMemberDetail(thread.username).catch(() => {})
@@ -798,6 +825,35 @@ async function sendReply() {
     replySending.value = false
   }
 }
+
+// 대화창을 열어 둔 채 새 쪽지가 오면(상단 알림이 세는 안 읽은 쪽지 수가 늘면) 목록과 열린 대화를 새로 불러와 맨 아래에 보여준다.
+const { unread } = useMessages()
+let liveRefreshing = false
+watch(unread, async (next, prev) => {
+  if (!process.client || liveRefreshing || !(next > prev)) return
+  liveRefreshing = true
+  try {
+    await loadThreads()
+    const cur = activeThread.value
+    if (cur) {
+      const res = await $fetch<{ items: MessageItem[]; pendingResetRequest: PendingResetRequest }>('/api/messages/thread', {
+        query: { userId: cur.userId },
+        headers: requestHeaders,
+        credentials: 'include'
+      })
+      if (activeThread.value?.userId === cur.userId) {
+        activeMessages.value = res.items || []
+        pendingResetRequest.value = res.pendingResetRequest || null
+        await $fetch('/api/messages/mark-read', { method: 'POST', body: { userId: cur.userId }, headers: requestHeaders, credentials: 'include' }).catch(() => {})
+        await loadThreads()
+      }
+    }
+  } catch {
+    // 다음 알림 때 다시 시도
+  } finally {
+    liveRefreshing = false
+  }
+})
 
 async function loadAll() {
   await Promise.all([loadRecipients(), loadThreads()])
