@@ -62,8 +62,7 @@ const items = computed(() => [
   { key: 'futures', ko: '선물거래', en: 'Futures', icon: ICONS.futures, to: '/exchange/BTCUSDT', active: route.path.startsWith('/exchange') && !isKrExchange.value, disabled: false },
   { key: 'leverage', ko: '레버리지', en: 'Leverage', icon: ICONS.leverage, to: '/exchange/SAMSUNGUSDT', active: isKrExchange.value, disabled: false },
   { key: 'wallet', ko: '내 지갑', en: 'Wallet', icon: ICONS.wallet, to: '/wallet', active: route.path.startsWith('/wallet'), disabled: false },
-  // 투자내역 페이지가 만들어지면 연결한다(그 전에는 눌러도 반응하지 않는다).
-  { key: 'invest', ko: '투자내역', en: 'History', icon: ICONS.invest, to: '', active: route.path.startsWith('/invest'), disabled: true },
+  { key: 'invest', ko: '투자내역', en: 'History', icon: ICONS.invest, to: '/invest/trades', active: route.path.startsWith('/invest'), disabled: false },
   { key: 'support', ko: '고객센터', en: 'Support', icon: ICONS.support, to: '/support', active: route.path.startsWith('/support') || route.path === '/admin/messages', disabled: false }
 ])
 
