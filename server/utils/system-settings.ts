@@ -171,6 +171,9 @@ export type ProfitCardStyle = {
   // 그림 위에 씌우는 색 필터(색과 투명도 0~100%). 투명도 0이면 필터 없음.
   bgFilterColor: string
   bgFilterOpacity: number
+  // 카드 레이아웃: 'breaker' = 코인브레이커 카드(coinbreaker3 값), 'ktx' = 예전 KTX 카드. cb는 코인브레이커 레이아웃의 세부 설정(글자 위치/크기/배경 등, 일부만 있어도 됨).
+  layout: 'breaker' | 'ktx'
+  cb: Record<string, any>
   // 수익/손실 공통 강조색
   positiveColor: string
   negativeColor: string
@@ -246,6 +249,8 @@ export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   bgImageOpacity: 35,
   bgFilterColor: '#000000',
   bgFilterOpacity: 0,
+  layout: 'breaker',
+  cb: {},
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
   logoFontSize: 16,
@@ -271,7 +276,7 @@ export const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   offsets: {}
 }
 
-type ProfitCardFieldDef = { kind: 'color' } | { kind: 'number'; min: number; max: number } | { kind: 'font' } | { kind: 'image' } | { kind: 'offsets' }
+type ProfitCardFieldDef = { kind: 'color' } | { kind: 'number'; min: number; max: number } | { kind: 'font' } | { kind: 'image' } | { kind: 'layout' } | { kind: 'cb' } | { kind: 'offsets' }
 
 const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> = {
   fontFamily: { kind: 'font' },
@@ -288,6 +293,8 @@ const PROFIT_CARD_FIELD_DEFS: Record<keyof ProfitCardStyle, ProfitCardFieldDef> 
   bgImageOpacity: { kind: 'number', min: 0, max: 100 },
   bgFilterColor: { kind: 'color' },
   bgFilterOpacity: { kind: 'number', min: 0, max: 100 },
+  layout: { kind: 'layout' },
+  cb: { kind: 'cb' },
   positiveColor: { kind: 'color' },
   negativeColor: { kind: 'color' },
   logoFontSize: { kind: 'number', min: 10, max: 28 },
@@ -321,6 +328,59 @@ function isValidCssColor(v: any): v is string {
   return /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s) || /^rgba?\([\d\s.,%]+\)$/.test(s)
 }
 
+// 코인브레이커 레이아웃 세부 설정 검증: 알려진 항목/속성만 남기고 숫자는 범위로, 색상은 형식으로, 폰트는 허용 목록으로 걸러낸다.
+const CB_ITEM_KEYS = ['title', 'close', 'percent', 'percentSign', 'profit', 'divider', 'lblCoin', 'symbol', 'side', 'sideBox', 'lblLev', 'lev', 'lblEntry', 'entry', 'lblExit', 'exit']
+const CB_FONTS = ['inherit', "'Noto Sans KR', sans-serif", 'Inter, sans-serif', 'Roboto, sans-serif', 'Arial, sans-serif']
+function cbNum(v: any, min: number, max: number): number | undefined {
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : undefined
+}
+function sanitizeCb(raw: any): Record<string, any> {
+  const out: Record<string, any> = {}
+  if (!raw || typeof raw !== 'object') return out
+  const ranges: Array<[string, number, number]> = [
+    ['cardW', 260, 600],
+    ['cardH', 200, 700],
+    ['pad', 0, 80],
+    ['radius', 0, 60],
+    ['dim', 0, 100],
+    ['bgZoom', 0.5, 3],
+    ['bgShiftX', -1000, 1000],
+    ['bgShiftY', -1000, 1000]
+  ]
+  for (const [k, min, max] of ranges) {
+    const n = cbNum(raw[k], min, max)
+    if (n !== undefined) out[k] = n
+  }
+  if (isValidCssColor(raw.dimColor)) out.dimColor = raw.dimColor
+  if (typeof raw.useDefaultBg === 'boolean') out.useDefaultBg = raw.useDefaultBg
+  if (raw.items && typeof raw.items === 'object') {
+    out.items = {}
+    for (const key of CB_ITEM_KEYS) {
+      const s = raw.items[key]
+      if (!s || typeof s !== 'object') continue
+      const o: Record<string, any> = {}
+      const x = cbNum(s.x, -400, 400)
+      const y = cbNum(s.y, -400, 400)
+      if (x !== undefined) o.x = Math.round(x * 10) / 10
+      if (y !== undefined) o.y = Math.round(y * 10) / 10
+      for (const [p, min, max] of [['size', 0, 1000], ['height', 0, 400], ['weight', 0, 900], ['tracking', -10, 30], ['opacity', 0, 1]] as Array<[string, number, number]>) {
+        if (s[p] === null) o[p] = null
+        else {
+          const n = cbNum(s[p], min, max)
+          if (n !== undefined) o[p] = p === 'opacity' || p === 'tracking' ? Math.round(n * 100) / 100 : Math.round(n)
+        }
+      }
+      if (s.color === null) o.color = null
+      else if (isValidCssColor(s.color)) o.color = s.color
+      if (s.font === null) o.font = null
+      else if (typeof s.font === 'string' && CB_FONTS.includes(s.font)) o.font = s.font
+      out.items[key] = o
+    }
+  }
+  return out
+}
+
 function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_PROFIT_CARD_STYLE): ProfitCardStyle {
   const src = raw && typeof raw === 'object' ? raw : {}
   const next = { ...fallback }
@@ -340,6 +400,10 @@ function normalizeProfitCardStyle(raw: any, fallback: ProfitCardStyle = DEFAULT_
         if (v === '') (next as any)[key] = ''
         else if (v.length <= 400000 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) (next as any)[key] = v
       }
+    } else if (def.kind === 'layout') {
+      if (v === 'breaker' || v === 'ktx') (next as any)[key] = v
+    } else if (def.kind === 'cb') {
+      if (v && typeof v === 'object') (next as any)[key] = sanitizeCb(v)
     } else if (def.kind === 'offsets') {
       if (v && typeof v === 'object') {
         const out: Record<string, { x: number; y: number; s?: number }> = {}

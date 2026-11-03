@@ -2102,7 +2102,28 @@
         class="profit-card-layer fixed inset-0 z-[80] flex items-center justify-center bg-black/55 px-4"
         @click.self="closeSummary = null"
       >
+        <!-- 코인브레이커 레이아웃(기본): 어드민 "카드 디자인"의 미리보기와 같은 컴포넌트로 그린다 -->
+        <ProfitCardBreaker
+          v-if="profitCardStyle.layout !== 'ktx'"
+          :cb="breakerCb"
+          :roe="closeSummary.roe"
+          :pnl="closeSummary.pnl"
+          :won-number="String(closeSummary.wonText).replace(/^-/, '')"
+          :side="closeSummary.side"
+          :symbol="shortSymbol(closeSummary.symbol) + 'USDT'"
+          :leverage="closeSummary.leverage"
+          :entry-text="closeSummary.entryPrice.toFixed(2)"
+          :exit-text="closeSummary.exitPrice.toFixed(2)"
+          :positive-color="profitCardStyle.positiveColor"
+          :negative-color="profitCardStyle.negativeColor"
+          :bg-image="profitCardStyle.bgImage"
+          logo-src="/brand-logo.png"
+          :labels="{ coin: t('코인', 'Coin'), lev: t('레버리지', 'Leverage'), entry: t('진입가격', 'Entry Price'), exit: t('종료가격', 'Exit Price'), won: t('원', 'KRW'), isolated: t('격리', 'Isolated') }"
+          fit
+          @close="closeSummary = null"
+        />
         <div
+          v-else
           class="relative isolate shadow-[0_10px_32px_rgba(0,0,0,0.24)]"
           :style="{
             width: '100%',
@@ -2309,6 +2330,7 @@
 </template>
 
 <script setup lang="ts">
+import { resolveCb } from '~/utils/cardBreaker'
 import { buildCandlePlanPoints, buildCandlePlanReturn, candlePlanShifted, designTickSize, PROFIT_CANDLE_MAX, buildPlanStageAB, buildPlanStageC, buildProfitPhaseA, buildProfitPhaseB, buildProfitReturnPath, buildProfitTimeline, mulberry32, planFirstReturnStartT, planStageReturns, profitEventTotalMs, profitSeed, profitStopReturnMs } from '~~/shared/utils/profit-path'
 import type { ProfitCandlePlan, ProfitPlan } from '~~/shared/utils/profit-path'
 import type { ProfitPoint } from '~~/shared/utils/profit-path'
@@ -2619,6 +2641,8 @@ type ProfitCardStyle = {
   bgImageOpacity?: number
   bgFilterColor?: string
   bgFilterOpacity?: number
+  layout?: 'breaker' | 'ktx'
+  cb?: Record<string, any>
   positiveColor: string
   negativeColor: string
   logoFontSize: number
@@ -2658,6 +2682,8 @@ const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   bgImageOpacity: 35,
   bgFilterColor: '#000000',
   bgFilterOpacity: 0,
+  layout: 'breaker',
+  cb: {},
   positiveColor: '#22c55e',
   negativeColor: '#ef4444',
   logoFontSize: 16,
@@ -2683,6 +2709,8 @@ const DEFAULT_PROFIT_CARD_STYLE: ProfitCardStyle = {
   offsets: {}
 }
 const profitCardStyle = ref<ProfitCardStyle>({ ...DEFAULT_PROFIT_CARD_STYLE })
+// 코인브레이커 레이아웃 세부 설정(저장된 값 위에 coinbreaker3 기본값을 얹어 항상 완전한 값으로 쓴다)
+const breakerCb = computed(() => resolveCb(profitCardStyle.value.cb))
 
 // 관리자 "카드 디자인"에서 저장한 항목별 위치 이동값(px)을 style transform으로 바꿔준다.
 // 항목 크기 조정값(px): 글자는 글자 크기에, 그림/도형은 가로·세로 크기에 더한다.
