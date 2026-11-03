@@ -1889,3 +1889,13 @@ html.theme-native * {
 html.theme-native ::-webkit-scrollbar-thumb {
   background-color: #d4d6dc;
 }
+
+/* 모바일 가로 폭: 열 템플릿이 없는 grid는 안의 내용(마키 등)의 폭만큼 열이 화면보다 넓어져 글자/버튼이 잘려 보였다.
+   모바일에서는 기본을 "화면 폭에 맞는 1열"로 두고, grid-cols-* 같은 명시적인 열 설정이 있으면 그것이 우선한다. */
+@layer base {
+  @media (max-width: 767px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

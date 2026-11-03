@@ -1,5 +1,5 @@
 <template>
-  <div class="site-bg font-noto-kr min-h-dvh bg-[radial-gradient(circle_at_top,_rgba(6,182,212,0.08),transparent_20%),linear-gradient(180deg,#010811,#02121d_40%,#010811)] text-slate-100">
+  <div :class="bottomNavVisible ? 'max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]' : ''" class="site-bg font-noto-kr min-h-dvh bg-[radial-gradient(circle_at_top,_rgba(6,182,212,0.08),transparent_20%),linear-gradient(180deg,#010811,#02121d_40%,#010811)] text-slate-100">
     <Transition name="nav-loading-fade">
       <div v-if="navLoading" class="fixed inset-0 z-[120] flex items-center justify-center bg-[#020817]/55 backdrop-blur-[2px]">
         <div class="rounded-2xl border border-cyan-400/15 bg-[#07111b]/90 px-5 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
@@ -168,6 +168,8 @@
     </Teleport>
 
     <AdminErrorConsole />
+    <!-- 모바일 하단 메뉴(선물거래/레버리지/내 지갑/투자내역/고객센터) -->
+    <MobileBottomNav />
   </div>
 </template>
 
@@ -178,6 +180,7 @@ const config = useRuntimeConfig()
 const appName = config.public.appName
 const { data: versionData } = await useFetch<{ date: string; iso?: string; build: number }>('/api/version', { key: 'app-version' })
 const route = useRoute()
+const bottomNavVisible = useBottomNavVisible()
 const navLoading = useState<boolean>('global_nav_loading', () => false)
 const { t, locale, formatLongDate } = useLocale()
 

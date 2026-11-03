@@ -1,5 +1,5 @@
 <template>
-  <div class="site-bg min-h-dvh bg-[radial-gradient(circle_at_top,_rgba(8,145,178,0.08),transparent_32%),linear-gradient(180deg,#020817,#03111f_45%,#020817)] text-slate-100">
+  <div :class="bottomNavVisible ? 'max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]' : ''" class="site-bg min-h-dvh bg-[radial-gradient(circle_at_top,_rgba(8,145,178,0.08),transparent_32%),linear-gradient(180deg,#020817,#03111f_45%,#020817)] text-slate-100">
     <Transition name="nav-loading-fade">
       <div v-if="navLoading" class="fixed inset-0 z-[120] flex items-center justify-center bg-[#020817]/55 backdrop-blur-[2px]">
         <div class="rounded-2xl border border-cyan-400/15 bg-[#07111b]/90 px-5 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
@@ -220,6 +220,8 @@
     <AdminErrorConsole />
     <GuestChatWidget />
     <LaunchNotice />
+    <!-- 모바일 하단 메뉴(선물거래/레버리지/내 지갑/투자내역/고객센터) -->
+    <MobileBottomNav />
   </div>
 </template>
 
@@ -235,6 +237,7 @@ const { t, locale, formatLongDate } = useLocale()
 
 const { me, refresh } = useMe()
 await refresh()
+const bottomNavVisible = useBottomNavVisible()
 
 // 빌드 번호(- n)는 총관리자에게만 표시하고, 그 외에는 날짜만 표시한다.
 const appVersion = computed(() => {
