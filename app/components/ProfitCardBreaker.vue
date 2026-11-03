@@ -76,7 +76,7 @@
           </div>
         </div>
         <button type="button" class="cbk-close" :class="pickClass()" :style="closeStyle" @click.stop="onCloseClick">
-          <svg xmlns="http://www.w3.org/2000/svg" :width="closeSvg" :height="closeSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="cbk-close-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </button>
       </div>
     </div>
@@ -252,7 +252,6 @@ const sideBoxStyle = computed(() => {
 })
 
 const closePx = computed(() => Math.max(18, Math.min(80, Math.round(Number(it('close').size) || 24))))
-const closeSvg = computed(() => (it('close').size ? Math.max(10, Math.round(closePx.value * 0.55)) : 24))
 const closeStyle = computed(() => ({
   transform: `translate(${it('close').x || 0}px, ${it('close').y || 0}px)`,
   width: closePx.value + 'px',
@@ -426,6 +425,11 @@ function onCloseClick() {
   padding: 0;
   opacity: 0.7;
   z-index: 20;
+}
+/* coinbreaker3와 같게: 아이콘 칸은 항상 24px로 그리고, 버튼이 더 작으면 flex가 가로를 줄여 아이콘이 버튼 크기에 맞게 보인다 */
+.cbk-close-svg {
+  width: 24px;
+  height: 24px;
 }
 .cbk-close:hover {
   opacity: 1;
