@@ -149,8 +149,8 @@ export type ReorderableMenuKey = (typeof REORDERABLE_MENU_KEYS)[number]
 // 기본 순서: 자산구매 > 마켓 > 코인선물 > 파생상품 > KR주식 > 내 지갑 > (투자내역: 기본 숨김) > 고객센터
 export const MAIN_NAV_KEYS = ['buy', 'markets', 'coin', 'stock', 'kr', 'wallet', 'invest', 'support'] as const
 export type MainNavKey = (typeof MAIN_NAV_KEYS)[number]
-// 기본값: 요청에 따라 "투자내역"은 처음부터 숨김 처리.
-const DEFAULT_MAIN_NAV_HIDDEN: MainNavKey[] = ['invest']
+// 기본값: 모두 표시. "투자내역"은 항상 보이는 메뉴라서(아래 normalizeMainNavHidden) 예전에 숨김으로 저장된 값이 있어도 무시한다.
+const DEFAULT_MAIN_NAV_HIDDEN: MainNavKey[] = []
 
 // 거래내역 "카드" 버튼으로 뜨는 수익카드(청산카드)의 색상/글자크기/크기 커스터마이징. 관리자 대시보드에서 조정.
 export type ProfitCardStyle = {
@@ -492,7 +492,7 @@ function normalizeMainNavOrder(raw: any): string[] {
 function normalizeMainNavHidden(raw: any, fallback: string[]): string[] {
   const known = new Set<string>(MAIN_NAV_KEYS)
   if (!Array.isArray(raw)) return fallback
-  return raw.filter((k): k is string => typeof k === 'string' && known.has(k))
+  return raw.filter((k): k is string => typeof k === 'string' && known.has(k) && k !== 'invest')
 }
 
 function rowToExtra(row: any): SystemSettingsExtra {

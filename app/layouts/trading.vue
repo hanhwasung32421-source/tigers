@@ -228,7 +228,7 @@ const MAIN_NAV_ROUTES: Record<MainNavKey, string> = {
   stock: '/exchange/AAPLUSDT',
   kr: '/exchange/SAMSUNGUSDT',
   wallet: '/wallet',
-  invest: '/invest/balance',
+  invest: '/invest/trades',
   support: '/support'
 }
 const MAIN_NAV_LABELS: Record<MainNavKey, string> = {
@@ -252,7 +252,7 @@ const MAIN_NAV_LABELS_EN: Record<MainNavKey, string> = {
   support: 'Support'
 }
 const DEFAULT_MAIN_NAV_ORDER = Object.keys(MAIN_NAV_ROUTES) as MainNavKey[]
-const orderedMainNavKeys = ref<MainNavKey[]>(DEFAULT_MAIN_NAV_ORDER.filter((k) => k !== 'invest'))
+const orderedMainNavKeys = ref<MainNavKey[]>([...DEFAULT_MAIN_NAV_ORDER])
 async function loadMainNavConfig() {
   try {
     const data = await $fetch<{ order: string[]; hidden: string[] }>('/api/nav-menu')
@@ -275,7 +275,7 @@ async function loadMainNavConfig() {
     const hidden = new Set((data.hidden || []).filter((k) => known.has(k as MainNavKey)))
     orderedMainNavKeys.value = merged.filter((k) => !hidden.has(k))
   } catch {
-    // 기본 순서 유지(투자내역은 기본 숨김)
+    // 기본 순서 유지
   }
 }
 await loadMainNavConfig()
