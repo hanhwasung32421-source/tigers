@@ -75,48 +75,6 @@
       </div>
 
       <div>
-        <label class="text-sm text-slate-300">{{ t('은행계좌', 'Bank Account') }}<span class="text-rose-400">*</span></label>
-        <div class="mt-1 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
-          <input
-            id="reg-bankAccount"
-            :key="`bank-account-${locale}`"
-            v-model="bankAccount"
-            inputmode="numeric"
-            :placeholder="t('은행계좌', 'Bank Account')"
-            class="w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
-            :class="errors.bankAccount ? 'reg-field-error' : ''"
-            @input="onBankAccountInput"
-          />
-          <select
-            id="reg-bankName"
-            v-model="bankName"
-            class="w-full rounded-lg bg-black/70 px-3 py-2 text-white outline-none ring-1 ring-white/20 focus:ring-indigo-500"
-            :class="errors.bankName ? 'reg-field-error' : ''"
-          >
-            <option disabled value="">{{ t('선택(아래화살표)', 'Select (dropdown below)') }}</option>
-            <option v-for="bank in banks" :key="bank.ko" :value="bank.ko">{{ t(bank.ko, bank.en) }}</option>
-          </select>
-        </div>
-        <p v-if="errors.bankAccount" class="mt-1 text-xs font-medium text-rose-400">{{ errors.bankAccount }}</p>
-        <p v-if="errors.bankName" class="mt-1 text-xs font-medium text-rose-400">{{ errors.bankName }}</p>
-      </div>
-
-      <div>
-        <label class="text-sm text-slate-300">{{ t('예금주', 'Account Holder') }}<span class="text-rose-400">*</span></label>
-        <input
-          id="reg-accountHolder"
-          :key="`account-holder-${locale}`"
-          v-model.trim="accountHolder"
-          :placeholder="t('예금주를 입력해 주세요', 'Enter the account holder name')"
-          class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 placeholder:text-slate-500 focus:ring-indigo-500"
-          :class="errors.accountHolder ? 'reg-field-error' : ''"
-        />
-        <p v-if="accountHolder && !accountHolderValid && !errors.accountHolder" class="mt-1 text-xs text-rose-400">{{ t('한국어만 사용 가능합니다', 'Only Korean characters are allowed') }}</p>
-        <p v-if="errors.accountHolder" class="mt-1 text-xs font-medium text-rose-400">{{ errors.accountHolder }}</p>
-
-      </div>
-
-      <div>
         <label class="text-sm text-slate-300">{{ t('추천코드', 'Referral Code') }}</label>
         <input v-model.trim="referralCode" class="mt-1 w-full rounded-lg bg-white/5 px-3 py-2 outline-none ring-1 ring-white/10 focus:ring-indigo-500" />
       </div>
@@ -192,9 +150,6 @@ const name = ref('')
 const birthDate = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
-const bankAccount = ref('')
-const bankName = ref('')
-const accountHolder = ref('')
 // 추천가입링크(?ref=코드)로 들어오면 추천코드를 미리 채워둔다
 const referralCode = ref(String(route.query.ref || ''))
 const agreedToTerms = ref(false)
@@ -207,20 +162,13 @@ const loadingTitleEn = ref('Signing up...')
 const loadingDescEn = ref('Creating your account.')
 
 // 가입 버튼은 항상 눌러볼 수 있고, 누르면 비었거나 틀린 칸을 빨간색으로 표시하고 첫 번째 칸으로 이동한다.
-type FieldKey = 'username' | 'name' | 'birthDate' | 'password' | 'passwordConfirm' | 'bankAccount' | 'bankName' | 'accountHolder' | 'terms'
-const FIELD_ORDER: FieldKey[] = ['username', 'name', 'birthDate', 'password', 'passwordConfirm', 'bankAccount', 'bankName', 'accountHolder', 'terms']
+type FieldKey = 'username' | 'name' | 'birthDate' | 'password' | 'passwordConfirm' | 'terms'
+const FIELD_ORDER: FieldKey[] = ['username', 'name', 'birthDate', 'password', 'passwordConfirm', 'terms']
 const errors = reactive<Partial<Record<FieldKey, string>>>({})
 const submitted = ref(false)
 // 서버가 "이미 사용 중"이라고 알려준 아이디(같은 아이디로 다시 가입을 누르면 계속 빨간색으로 표시)
 const takenUsername = ref('')
 
-const banks = [
-  { ko: '국민은행', en: 'KB Kookmin Bank' }, { ko: '신한은행', en: 'Shinhan Bank' }, { ko: '우리은행', en: 'Woori Bank' }, { ko: '하나은행', en: 'Hana Bank' },
-  { ko: '농협은행', en: 'NH Nonghyup Bank' }, { ko: '기업은행', en: 'IBK Industrial Bank' }, { ko: '카카오뱅크', en: 'Kakao Bank' }, { ko: '토스뱅크', en: 'Toss Bank' },
-  { ko: '케이뱅크', en: 'K Bank' }, { ko: '새마을금고', en: 'MG Community Credit Coop' }, { ko: '수협은행', en: 'Suhyup Bank' }, { ko: 'SC제일은행', en: 'SC First Bank' },
-  { ko: '씨티은행', en: 'Citibank Korea' }, { ko: '부산은행', en: 'Busan Bank' }, { ko: '대구은행', en: 'Daegu Bank' }, { ko: '경남은행', en: 'Kyongnam Bank' },
-  { ko: '광주은행', en: 'Gwangju Bank' }, { ko: '전북은행', en: 'Jeonbuk Bank' }, { ko: '제주은행', en: 'Jeju Bank' }, { ko: '우체국', en: 'Korea Post Office' }
-]
 
 const termsLines = [
   '본 약관은 회원가입 시 제공된 아이디, 이름, 생년월일, 은행계좌, 예금주, 추천코드 등의 정보를 회사가 서비스 운영과 법령상 의무 이행, 고객 응대, 이상 거래 탐지, 분쟁 대응, 내부 감사, 민원 처리 목적 범위 안에서 수집·보관·이용하는 내용 등을 포함합니다.',
@@ -260,7 +208,6 @@ const passwordsMatch = computed(() => String(password.value || '') === String(pa
 
 const usernameValid = computed(() => /^[A-Za-z0-9]+$/.test(username.value.trim()))
 const nameValid = computed(() => /^[가-힣\s]+$/.test(name.value.trim()))
-const accountHolderValid = computed(() => /^[가-힣\s]+$/.test(accountHolder.value.trim()))
 
 const canSubmit = computed(() => {
   if (!username.value.trim()) return false
@@ -272,10 +219,6 @@ const canSubmit = computed(() => {
   if (password.value.length < 4) return false
   if (!passwordConfirm.value) return false
   if (!passwordsMatch.value) return false
-  if (!bankAccount.value.trim()) return false
-  if (!bankName.value) return false
-  if (!accountHolder.value.trim()) return false
-  if (!accountHolderValid.value) return false
   if (!agreedToTerms.value) return false
   return true
 })
@@ -295,10 +238,6 @@ function collectErrors(): Partial<Record<FieldKey, string>> {
   else if (password.value.length < 4) out.password = t('비밀번호는 4글자 이상만 가능합니다', 'Password must be at least 4 characters')
   if (!passwordConfirm.value) out.passwordConfirm = t('비밀번호 확인을 입력해 주세요.', 'Please confirm your password.')
   else if (!passwordsMatch.value) out.passwordConfirm = t('비밀번호가 일치하지 않습니다.', 'Passwords do not match.')
-  if (!bankAccount.value.trim()) out.bankAccount = t('은행계좌를 입력해 주세요.', 'Please enter your bank account number.')
-  if (!bankName.value) out.bankName = t('은행을 선택해 주세요.', 'Please select your bank.')
-  if (!accountHolder.value.trim()) out.accountHolder = t('예금주를 입력해 주세요.', 'Please enter the account holder name.')
-  else if (!accountHolderValid.value) out.accountHolder = t('한국어만 사용 가능합니다', 'Only Korean characters are allowed')
   if (!agreedToTerms.value) out.terms = t('약관에 동의해 주세요.', 'Please agree to the Terms of Service.')
   return out
 }
@@ -320,15 +259,9 @@ function focusField(key: FieldKey) {
 }
 
 // 한 번 가입을 눌러본 뒤에는, 고치는 즉시 해당 칸의 빨간색이 풀리고 아직 틀린 칸만 남는다.
-watch([username, name, birthDate, password, passwordConfirm, bankAccount, bankName, accountHolder, agreedToTerms], () => {
+watch([username, name, birthDate, password, passwordConfirm, agreedToTerms], () => {
   if (submitted.value) applyErrors()
 })
-
-function onBankAccountInput(e: Event) {
-  const raw = String((e.target as HTMLInputElement)?.value || '')
-  const digits = raw.replace(/\D/g, '')
-  bankAccount.value = digits
-}
 
 function onBirthInput(e: Event) {
   const raw = String((e.target as HTMLInputElement)?.value || '')
@@ -452,9 +385,6 @@ async function onSubmit() {
         name: name.value,
         birthDate: birthDate.value,
         password: password.value,
-        bankName: bankName.value,
-        bankAccount: bankAccount.value,
-        accountHolder: accountHolder.value,
         referralCode: referralCode.value,
         agreedToTerms: agreedToTerms.value
       }

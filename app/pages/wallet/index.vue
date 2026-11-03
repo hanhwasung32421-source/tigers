@@ -1,5 +1,7 @@
 <template>
   <div class="space-y-6">
+    <!-- 입출금 계좌가 아직 없는 회원에게만, 처음 내 지갑에 들어오면 맨 위에 뜬다. 저장하면 다음부터는 뜨지 않는다. -->
+    <BankAccountForm v-if="needsBank" />
     <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-6 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -137,6 +139,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth'] })
 const { t, locale } = useLocale()
+const { needsBank } = useNeedsBank()
 
 const TelegramIcon = {
   props: { class: { type: String, default: '' } },

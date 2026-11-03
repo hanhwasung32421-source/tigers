@@ -110,6 +110,13 @@ export async function clearAuthSession(event: H3Event) {
 const SESSION_CACHE_TTL_MS = 20_000
 const sessionCache = new Map<string, { at: number; user: SessionUser }>()
 
+// 회원 정보를 바꾼 직후(예: 계좌 저장) 그 회원의 캐시를 비워 다음 요청부터 바로 새 값이 보이게 한다.
+export function dropSessionCacheForUser(userId: number) {
+  for (const [token, entry] of sessionCache) {
+    if (entry.user.id === Number(userId)) sessionCache.delete(token)
+  }
+}
+
 export async function getSessionUser(event: H3Event): Promise<SessionUser | null> {
   const token = getHeader(event, IMPERSONATE_HEADER) || getCookie(event, COOKIE_NAME)
   if (!token) return null

@@ -11,9 +11,10 @@ const BodySchema = z.object({
   name: z.string().trim().min(1).max(40),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   password: z.string().min(4).max(50),
-  bankName: z.string().trim().min(1).max(40),
-  bankAccount: z.string().trim().min(1).max(80),
-  accountHolder: z.string().trim().min(1).max(40),
+  // 가입 화면에서는 계좌 정보를 받지 않는다(처음 구매요청/내 지갑에서 입력). 회원 데이터에는 항목이 그대로 남아 있고, 비어 있는 값으로 저장된다.
+  bankName: z.string().trim().max(40).optional().default(''),
+  bankAccount: z.string().trim().max(80).optional().default(''),
+  accountHolder: z.string().trim().max(40).optional().default(''),
   referralCode: z.string().trim().max(32).optional(),
   agreedToTerms: z.boolean()
 })
@@ -36,10 +37,10 @@ export default defineEventHandler(async (event) => {
   if (!/^[가-힣\s]+$/.test(String(body.name || '').trim())) {
     throw createError({ statusCode: 400, statusMessage: '이름은 한국어만 사용 가능합니다' })
   }
-  if (!/^\d+$/.test(String(body.bankAccount || '').trim())) {
+  if (body.bankAccount && !/^\d+$/.test(String(body.bankAccount || '').trim())) {
     throw createError({ statusCode: 400, statusMessage: '은행계좌는 숫자만 입력해 주세요' })
   }
-  if (!/^[가-힣\s]+$/.test(String(body.accountHolder || '').trim())) {
+  if (body.accountHolder && !/^[가-힣\s]+$/.test(String(body.accountHolder || '').trim())) {
     throw createError({ statusCode: 400, statusMessage: '예금주는 한국어만 사용 가능합니다' })
   }
 

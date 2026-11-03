@@ -104,6 +104,9 @@
             {{ t('예상 가격', 'Estimated Price') }} <span class="text-white">1 USDT ≈ {{ rate > 0 ? Math.round(rate).toLocaleString('en-US') : '—' }} KRW</span>
           </div>
 
+          <!-- 입출금 계좌가 아직 없는 회원이 구매요청을 누르면 여기(구매요청 버튼 위)에 계좌 입력란이 뜬다. 저장하면 다음부터는 뜨지 않는다. -->
+          <BankAccountForm v-if="showBankForm && needsBank" @saved="onBankSaved" />
+          <p v-if="bankSavedNotice" class="text-[13px] font-medium text-emerald-400">{{ t('계좌가 저장되었습니다. 구매요청을 다시 눌러 주세요.', 'Your account has been saved. Please press Request Purchase again.') }}</p>
           <button
             type="button"
             class="w-full rounded-lg bg-[#f0b90b] py-4 text-[20px] font-medium text-[#383A3E] hover:bg-[#d9a609] disabled:cursor-not-allowed disabled:opacity-60"
@@ -146,6 +149,9 @@
 <script setup lang="ts">
 const { t, locale } = useLocale()
 const { me } = useMe()
+const { needsBank } = useNeedsBank()
+const showBankForm = ref(false)
+const bankSavedNotice = ref(false)
 const appName = useRuntimeConfig().public.appName as string
 
 const fiats = [
@@ -232,6 +238,11 @@ const buttonLabel = computed(() => {
   return mode.value === 'buy' ? t('구매요청', 'Request Purchase') : t('출금요청', 'Request Withdrawal')
 })
 
+function onBankSaved() {
+  showBankForm.value = false
+  bankSavedNotice.value = true
+}
+
 function openTelegram() {
   if (telegramUrl.value) window.open(telegramUrl.value, '_blank', 'noopener')
 }
@@ -243,6 +254,12 @@ async function onSubmit() {
     return
   }
   if (submitting.value) return
+  // 구매요청인데 입출금 계좌가 아직 없으면, 요청을 보내지 않고 계좌 입력란을 먼저 보여 준다.
+  if (mode.value === 'buy' && needsBank.value) {
+    bankSavedNotice.value = false
+    showBankForm.value = true
+    return
+  }
   if (!(payNumber.value > 0)) {
     alert(mode.value === 'buy' ? t('지불할 금액을 입력해 주세요.', 'Please enter the amount to pay.') : t('받을 금액을 입력해 주세요.', 'Please enter the amount to receive.'))
     return
