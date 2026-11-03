@@ -2112,13 +2112,11 @@
           :side="closeSummary.side"
           :symbol="shortSymbol(closeSummary.symbol) + 'USDT'"
           :leverage="closeSummary.leverage"
-          :entry-text="closeSummary.entryPrice.toFixed(2)"
-          :exit-text="closeSummary.exitPrice.toFixed(2)"
+          :entry-text="closeSummary.entryPrice.toFixed(5)"
+          :exit-text="closeSummary.exitPrice.toFixed(5)"
           :positive-color="profitCardStyle.positiveColor"
           :negative-color="profitCardStyle.negativeColor"
           :bg-image="profitCardStyle.bgImage"
-          logo-src="/brand-logo.png"
-          :labels="{ coin: t('코인', 'Coin'), lev: t('레버리지', 'Leverage'), entry: t('진입가격', 'Entry Price'), exit: t('종료가격', 'Exit Price'), won: t('원', 'KRW'), isolated: t('격리', 'Isolated') }"
           fit
           @close="closeSummary = null"
         />

@@ -34,20 +34,39 @@ export type CbItem = {
   opacity?: number | null
 }
 
+// 카드에 글자로 써지는 내용. 거래소 언어와 상관없이 항상 이 글자가 나온다(코인브레이커처럼 한글).
+export type CbTexts = {
+  title: string
+  sign: string
+  coin: string
+  lev: string
+  entry: string
+  exit: string
+  long: string
+  short: string
+  isolated: string
+  won: string
+  usdt: string
+}
+export type CbTextKey = keyof CbTexts
+
 export type CbConfig = {
   cardW: number
   cardH: number
   pad: number
   radius: number
-  // 배경 위에 덮는 어두운 층(색, 불투명도 %)
+  // 배경 위에 덮는 어두운 층(색, 불투명도 %)과, 그 위에 한 번 더 덮는 색 층(코인브레이커 화면의 초록빛)
   dim: number
   dimColor: string
+  tint: number
+  tintColor: string
   // 배경 그림 확대(1=가로 꽉 채움)와 위치 이동(px)
   bgZoom: number
   bgShiftX: number
   bgShiftY: number
-  // 어드민이 따로 그림을 넣지 않았을 때 기본 코인 배경 그림을 쓸지
+  // 켜면 coinbreaker3의 전체 배경 그림을 쓰고, 끄면 어드민이 넣은 내 그림(없으면 그림 없음)을 쓴다
   useDefaultBg: boolean
+  texts: CbTexts
   items: Record<CbItemKey, CbItem>
 }
 
@@ -71,7 +90,7 @@ export const CB_ITEM_KEYS: CbItemKey[] = [
 ]
 
 export const CB_ITEM_LABELS: Record<CbItemKey, { ko: string; en: string }> = {
-  title: { ko: '로고', en: 'Logo' },
+  title: { ko: '제목 글자 (ktxexchange)', en: 'Title text' },
   close: { ko: '우측 상단 X', en: 'Top-right X' },
   percent: { ko: '수익률 숫자', en: 'Return %' },
   percentSign: { ko: '% 기호', en: '% sign' },
@@ -87,6 +106,49 @@ export const CB_ITEM_LABELS: Record<CbItemKey, { ko: string; en: string }> = {
   entry: { ko: '진입가격 값', en: 'Entry value' },
   lblExit: { ko: '종료가격 라벨', en: 'Exit label' },
   exit: { ko: '종료가격 값', en: 'Exit value' }
+}
+
+export const CB_TEXT_LABELS: Record<CbTextKey, { ko: string; en: string }> = {
+  title: { ko: '제목', en: 'Title' },
+  sign: { ko: '% 기호', en: '% sign' },
+  coin: { ko: '코인 라벨', en: 'Coin label' },
+  lev: { ko: '레버리지 라벨', en: 'Leverage label' },
+  entry: { ko: '진입가격 라벨', en: 'Entry label' },
+  exit: { ko: '종료가격 라벨', en: 'Exit label' },
+  long: { ko: '롱 글자', en: 'Long text' },
+  short: { ko: '숏 글자', en: 'Short text' },
+  isolated: { ko: '레버리지 앞 글자 (격리)', en: 'Leverage prefix' },
+  won: { ko: '수익금 단위 (원)', en: 'Profit unit' },
+  usdt: { ko: '가격 단위 (USDT)', en: 'Price unit' }
+}
+
+// 글자를 더블클릭해서 고칠 때, 어느 요소가 어느 글자 내용을 고치는지.
+export function cbTextKeyFor(key: CbItemKey, side: 'long' | 'short'): CbTextKey | null {
+  switch (key) {
+    case 'title':
+      return 'title'
+    case 'percentSign':
+      return 'sign'
+    case 'lblCoin':
+      return 'coin'
+    case 'lblLev':
+      return 'lev'
+    case 'lblEntry':
+      return 'entry'
+    case 'lblExit':
+      return 'exit'
+    case 'side':
+      return side === 'short' ? 'short' : 'long'
+    case 'lev':
+      return 'isolated'
+    case 'profit':
+      return 'won'
+    case 'entry':
+    case 'exit':
+      return 'usdt'
+    default:
+      return null
+  }
 }
 
 export const CB_FONT_OPTIONS: Array<{ value: string; ko: string; en: string }> = [
@@ -108,10 +170,25 @@ export const CB_DEFAULTS: CbConfig = {
   radius: 0,
   dim: 90,
   dimColor: '#030712',
+  tint: 10,
+  tintColor: '#22C55E',
   bgZoom: 1,
   bgShiftX: 0,
   bgShiftY: 0,
   useDefaultBg: true,
+  texts: {
+    title: 'ktxexchange',
+    sign: '%',
+    coin: '코인',
+    lev: '레버리지',
+    entry: '진입가격',
+    exit: '종료가격',
+    long: '롱',
+    short: '숏',
+    isolated: '격리',
+    won: '원',
+    usdt: 'USDT'
+  },
   items: {
     title: { x: 1, y: -7 },
     close: { x: 2, y: -7, size: 18 },
@@ -136,11 +213,17 @@ export const CB_DEFAULTS: CbConfig = {
 export function resolveCb(raw: any): CbConfig {
   const base = JSON.parse(JSON.stringify(CB_DEFAULTS)) as CbConfig
   if (!raw || typeof raw !== 'object') return base
-  for (const k of ['cardW', 'cardH', 'pad', 'radius', 'dim', 'bgZoom', 'bgShiftX', 'bgShiftY'] as const) {
+  for (const k of ['cardW', 'cardH', 'pad', 'radius', 'dim', 'tint', 'bgZoom', 'bgShiftX', 'bgShiftY'] as const) {
     if (typeof raw[k] === 'number' && Number.isFinite(raw[k])) base[k] = raw[k]
   }
   if (typeof raw.dimColor === 'string' && raw.dimColor) base.dimColor = raw.dimColor
+  if (typeof raw.tintColor === 'string' && raw.tintColor) base.tintColor = raw.tintColor
   if (typeof raw.useDefaultBg === 'boolean') base.useDefaultBg = raw.useDefaultBg
+  if (raw.texts && typeof raw.texts === 'object') {
+    for (const k of Object.keys(base.texts) as CbTextKey[]) {
+      if (typeof raw.texts[k] === 'string') base.texts[k] = raw.texts[k]
+    }
+  }
   const items = raw.items && typeof raw.items === 'object' ? raw.items : {}
   for (const key of CB_ITEM_KEYS) {
     const src = items[key]

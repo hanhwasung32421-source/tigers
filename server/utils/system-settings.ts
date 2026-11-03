@@ -330,6 +330,7 @@ function isValidCssColor(v: any): v is string {
 
 // 코인브레이커 레이아웃 세부 설정 검증: 알려진 항목/속성만 남기고 숫자는 범위로, 색상은 형식으로, 폰트는 허용 목록으로 걸러낸다.
 const CB_ITEM_KEYS = ['title', 'close', 'percent', 'percentSign', 'profit', 'divider', 'lblCoin', 'symbol', 'side', 'sideBox', 'lblLev', 'lev', 'lblEntry', 'entry', 'lblExit', 'exit']
+const CB_TEXT_KEYS = ['title', 'sign', 'coin', 'lev', 'entry', 'exit', 'long', 'short', 'isolated', 'won', 'usdt']
 const CB_FONTS = ['inherit', "'Noto Sans KR', sans-serif", 'Inter, sans-serif', 'Roboto, sans-serif', 'Arial, sans-serif']
 function cbNum(v: any, min: number, max: number): number | undefined {
   const n = Number(v)
@@ -344,6 +345,7 @@ function sanitizeCb(raw: any): Record<string, any> {
     ['pad', 0, 80],
     ['radius', 0, 60],
     ['dim', 0, 100],
+    ['tint', 0, 100],
     ['bgZoom', 0.5, 3],
     ['bgShiftX', -1000, 1000],
     ['bgShiftY', -1000, 1000]
@@ -353,6 +355,13 @@ function sanitizeCb(raw: any): Record<string, any> {
     if (n !== undefined) out[k] = n
   }
   if (isValidCssColor(raw.dimColor)) out.dimColor = raw.dimColor
+  if (isValidCssColor(raw.tintColor)) out.tintColor = raw.tintColor
+  if (raw.texts && typeof raw.texts === 'object') {
+    out.texts = {}
+    for (const k of CB_TEXT_KEYS) {
+      if (typeof raw.texts[k] === 'string') out.texts[k] = raw.texts[k].replace(/[\u0000-\u001f]/g, '').slice(0, 30)
+    }
+  }
   if (typeof raw.useDefaultBg === 'boolean') out.useDefaultBg = raw.useDefaultBg
   if (raw.items && typeof raw.items === 'object') {
     out.items = {}

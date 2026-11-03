@@ -3,47 +3,79 @@
     <div class="cbk-scale" :style="{ width: cb.cardW + 'px', height: cb.cardH + 'px', transform: 'scale(' + scale + ')' }">
       <div class="cbk-card" :class="{ 'cbk-editable': editable }" :style="cardStyle" @click="emit('select', 'card')">
         <div class="cbk-dim" :style="{ backgroundColor: cb.dimColor, opacity: cb.dim / 100 }" />
+        <div class="cbk-tint" :style="{ backgroundColor: cb.tintColor, opacity: cb.tint / 100 }" />
         <div class="cbk-content">
           <div class="cbk-header">
-            <div class="cbk-title" :class="pickClass('title')" :style="itemStyle('title', { outline: outlineFor('title'), outlineOffset: '3px' })" @click.stop="pick('title')">
-              <img :src="logoSrc || '/ktx-logo.png'" alt="" :style="{ height: titleHeight + 'px', width: 'auto', display: 'block' }" />
+            <div class="cbk-title" :class="pickClass()" :style="itemStyle('title', { outline: outlineFor('title'), outlineOffset: '3px' })" @click.stop="pick('title')" @dblclick.stop="startEdit('title')">
+              <input v-if="editing === 'title'" :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" />
+              <template v-else>{{ cb.texts.title }}</template>
             </div>
           </div>
           <div class="cbk-values">
             <div class="cbk-pct" :style="{ color: accent }">
-              <span :class="pickClass('percent')" :style="itemStyle('percent', { outline: outlineFor('percent'), outlineOffset: '3px' })" @click.stop="pick('percent')">{{ percentText }}</span>
-              <span :class="pickClass('percentSign')" :style="itemStyle('percentSign', { outline: outlineFor('percentSign'), outlineOffset: '3px' })" @click.stop="pick('percentSign')">%</span>
+              <span :class="pickClass()" :style="itemStyle('percent', { outline: outlineFor('percent'), outlineOffset: '3px' })" @click.stop="pick('percent')">{{ percentText }}</span>
+              <span :class="pickClass()" :style="itemStyle('percentSign', { outline: outlineFor('percentSign'), outlineOffset: '3px' })" @click.stop="pick('percentSign')" @dblclick.stop="startEdit('percentSign')">
+                <input v-if="editing === 'percentSign'" :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" />
+                <template v-else>{{ cb.texts.sign }}</template>
+              </span>
             </div>
-            <div class="cbk-amt" :class="pickClass('profit')" :style="itemStyle('profit', { outline: outlineFor('profit'), outlineOffset: '3px' })" @click.stop="pick('profit')">{{ wonText }}</div>
+            <div class="cbk-amt" :class="pickClass()" :style="itemStyle('profit', { outline: outlineFor('profit'), outlineOffset: '3px' })" @click.stop="pick('profit')" @dblclick.stop="startEdit('profit')">
+              <template v-if="editing === 'profit'">{{ wonNumberText }} <input :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" /></template>
+              <template v-else>{{ wonLine }}</template>
+            </div>
           </div>
-          <div class="cbk-divider" :class="pickClass('divider')" :style="dividerStyle" @click.stop="pick('divider')" />
+          <div class="cbk-divider" :class="pickClass()" :style="dividerStyle" @click.stop="pick('divider')" />
           <div class="cbk-sep" />
           <div class="cbk-grid">
             <div class="cbk-item">
-              <label class="cbk-label" :class="pickClass('lblCoin')" :style="itemStyle('lblCoin', { outline: outlineFor('lblCoin'), outlineOffset: '2px' })" @click.stop="pick('lblCoin')">{{ labels.coin }}</label>
+              <label class="cbk-label" :class="pickClass()" :style="itemStyle('lblCoin', { outline: outlineFor('lblCoin'), outlineOffset: '2px' })" @click.stop="pick('lblCoin')" @dblclick.stop="startEdit('lblCoin')">
+                <input v-if="editing === 'lblCoin'" :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" />
+                <template v-else>{{ cb.texts.coin }}</template>
+              </label>
               <div class="cbk-valwrap">
-                <span :class="pickClass('symbol')" :style="itemStyle('symbol', { outline: outlineFor('symbol'), outlineOffset: '2px' })" @click.stop="pick('symbol')">{{ symbol }}</span>
-                <span class="cbk-side" :class="[side === 'short' ? 'cbk-short' : 'cbk-long', pickClass('side')]" :style="itemStyle('side', { color: it('side').color || (side === 'short' ? '#EF4444' : '#22C55E'), opacity: undefined })" @click.stop="pick('side')">
-                  <span class="cbk-side-box" :class="pickClass('sideBox')" :style="sideBoxStyle" @click.stop="pick('sideBox')" />
-                  <span class="cbk-side-text">{{ side === 'short' ? 'SHORT' : 'LONG' }}</span>
+                <span :class="pickClass()" :style="itemStyle('symbol', { outline: outlineFor('symbol'), outlineOffset: '2px' })" @click.stop="pick('symbol')">{{ symbol }}</span>
+                <span class="cbk-side" :class="[side === 'short' ? 'cbk-short' : 'cbk-long', pickClass()]" :style="itemStyle('side', { color: it('side').color || (side === 'short' ? '#EF4444' : '#22C55E'), opacity: undefined })" @click.stop="pick('side')" @dblclick.stop="startEdit('side')">
+                  <span class="cbk-side-box" :class="pickClass()" :style="sideBoxStyle" @click.stop="pick('sideBox')" />
+                  <span class="cbk-side-text">
+                    <input v-if="editing === 'side'" :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" />
+                    <template v-else>{{ side === 'short' ? cb.texts.short : cb.texts.long }}</template>
+                  </span>
                 </span>
               </div>
             </div>
             <div class="cbk-item">
-              <label class="cbk-label" :class="pickClass('lblLev')" :style="itemStyle('lblLev', { outline: outlineFor('lblLev'), outlineOffset: '2px' })" @click.stop="pick('lblLev')">{{ labels.lev }}</label>
-              <span class="cbk-val" :class="pickClass('lev')" :style="itemStyle('lev', { outline: outlineFor('lev'), outlineOffset: '2px' })" @click.stop="pick('lev')">{{ levText }}</span>
+              <label class="cbk-label" :class="pickClass()" :style="itemStyle('lblLev', { outline: outlineFor('lblLev'), outlineOffset: '2px' })" @click.stop="pick('lblLev')" @dblclick.stop="startEdit('lblLev')">
+                <input v-if="editing === 'lblLev'" :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" />
+                <template v-else>{{ cb.texts.lev }}</template>
+              </label>
+              <span class="cbk-val" :class="pickClass()" :style="itemStyle('lev', { outline: outlineFor('lev'), outlineOffset: '2px' })" @click.stop="pick('lev')" @dblclick.stop="startEdit('lev')">
+                <template v-if="editing === 'lev'"><input :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" /> x{{ levNumber }}</template>
+                <template v-else>{{ levLine }}</template>
+              </span>
             </div>
             <div class="cbk-item">
-              <label class="cbk-label" :class="pickClass('lblEntry')" :style="itemStyle('lblEntry', { outline: outlineFor('lblEntry'), outlineOffset: '2px' })" @click.stop="pick('lblEntry')">{{ labels.entry }}</label>
-              <span class="cbk-val" :class="pickClass('entry')" :style="itemStyle('entry', { outline: outlineFor('entry'), outlineOffset: '2px' })" @click.stop="pick('entry')">{{ entryText }}</span>
+              <label class="cbk-label" :class="pickClass()" :style="itemStyle('lblEntry', { outline: outlineFor('lblEntry'), outlineOffset: '2px' })" @click.stop="pick('lblEntry')" @dblclick.stop="startEdit('lblEntry')">
+                <input v-if="editing === 'lblEntry'" :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" />
+                <template v-else>{{ cb.texts.entry }}</template>
+              </label>
+              <span class="cbk-val" :class="pickClass()" :style="itemStyle('entry', { outline: outlineFor('entry'), outlineOffset: '2px' })" @click.stop="pick('entry')" @dblclick.stop="startEdit('entry')">
+                <template v-if="editing === 'entry'">{{ entryText }} <input :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" /></template>
+                <template v-else>{{ entryLine }}</template>
+              </span>
             </div>
             <div class="cbk-item">
-              <label class="cbk-label" :class="pickClass('lblExit')" :style="itemStyle('lblExit', { outline: outlineFor('lblExit'), outlineOffset: '2px' })" @click.stop="pick('lblExit')">{{ labels.exit }}</label>
-              <span class="cbk-val" :class="pickClass('exit')" :style="itemStyle('exit', { outline: outlineFor('exit'), outlineOffset: '2px' })" @click.stop="pick('exit')">{{ exitText }}</span>
+              <label class="cbk-label" :class="pickClass()" :style="itemStyle('lblExit', { outline: outlineFor('lblExit'), outlineOffset: '2px' })" @click.stop="pick('lblExit')" @dblclick.stop="startEdit('lblExit')">
+                <input v-if="editing === 'lblExit'" :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" />
+                <template v-else>{{ cb.texts.exit }}</template>
+              </label>
+              <span class="cbk-val" :class="pickClass()" :style="itemStyle('exit', { outline: outlineFor('exit'), outlineOffset: '2px' })" @click.stop="pick('exit')" @dblclick.stop="startEdit('exit')">
+                <template v-if="editing === 'exit'">{{ exitText }} <input :ref="setEditRef" v-model="editValue" class="cbk-edit" :size="editSize" @click.stop @dblclick.stop @keydown.enter.prevent="commitEdit" @keydown.esc.prevent="cancelEdit" @blur="commitEdit" /></template>
+                <template v-else>{{ exitLine }}</template>
+              </span>
             </div>
           </div>
         </div>
-        <button type="button" class="cbk-close" :class="pickClass('close')" :style="closeStyle" @click.stop="onCloseClick">
+        <button type="button" class="cbk-close" :class="pickClass()" :style="closeStyle" @click.stop="onCloseClick">
           <svg xmlns="http://www.w3.org/2000/svg" :width="closeSvg" :height="closeSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
         </button>
       </div>
@@ -52,9 +84,10 @@
 </template>
 
 <script setup lang="ts">
-import { CB_DEFAULT_BG, hexToRgbTriplet, type CbConfig, type CbItemKey } from '~/utils/cardBreaker'
+import { CB_DEFAULT_BG, cbTextKeyFor, hexToRgbTriplet, type CbConfig, type CbItemKey, type CbTextKey } from '~/utils/cardBreaker'
 
 // 수익카드(청산카드) 코인브레이커 레이아웃. 거래소(KTX) 수익카드와 어드민 "카드 디자인" 미리보기가 이 컴포넌트 하나로 그려서 항상 같은 모양이 된다.
+// 카드 안의 글자(제목/라벨/롱·숏/단위)는 설정(cb.texts)의 글자가 거래소 언어와 상관없이 그대로 나온다.
 const props = withDefaults(
   defineProps<{
     cb: CbConfig
@@ -64,13 +97,12 @@ const props = withDefaults(
     side: 'long' | 'short'
     symbol: string
     leverage: number | string
+    // 진입/종료 가격 숫자 글자(소수점 5자리 등). 단위(USDT)는 cb.texts.usdt가 뒤에 붙는다.
     entryText: string
     exitText: string
     positiveColor?: string
     negativeColor?: string
     bgImage?: string
-    logoSrc?: string
-    labels?: { coin: string; lev: string; entry: string; exit: string; won: string; isolated: string }
     editable?: boolean
     selected?: string | null
     fit?: boolean
@@ -79,14 +111,16 @@ const props = withDefaults(
     positiveColor: '#22C55E',
     negativeColor: '#EF4444',
     bgImage: '',
-    logoSrc: '',
-    labels: () => ({ coin: '코인', lev: '레버리지', entry: '진입가격', exit: '종료가격', won: '원', isolated: '격리' }),
     editable: false,
     selected: null,
     fit: false
   }
 )
-const emit = defineEmits<{ (e: 'select', key: CbItemKey | 'card'): void; (e: 'close'): void }>()
+const emit = defineEmits<{
+  (e: 'select', key: CbItemKey | 'card'): void
+  (e: 'close'): void
+  (e: 'edit', key: CbTextKey, value: string): void
+}>()
 
 const scale = ref(1)
 function updateScale() {
@@ -105,10 +139,44 @@ watch(() => [props.fit, props.cb.cardW], updateScale)
 
 const accent = computed(() => (props.pnl >= 0 ? props.positiveColor : props.negativeColor))
 const percentText = computed(() => `${props.roe < 0 ? '-' : ''}${Math.abs(props.roe).toFixed(2)}`)
-const wonText = computed(() => `${props.pnl < 0 ? '-' : ''}${props.wonNumber} ${props.labels.won}`)
-const levText = computed(() => `${props.labels.isolated} x${String(props.leverage).replace(/^x/i, '')}`)
+const wonNumberText = computed(() => `${props.pnl < 0 ? '-' : ''}${props.wonNumber}`)
+const levNumber = computed(() => String(props.leverage).replace(/^x/i, ''))
+const wonLine = computed(() => wonNumberText.value + (props.cb.texts.won ? ' ' + props.cb.texts.won : ''))
+const levLine = computed(() => (props.cb.texts.isolated ? props.cb.texts.isolated + ' ' : '') + 'x' + levNumber.value)
+const entryLine = computed(() => props.entryText + (props.cb.texts.usdt ? ' ' + props.cb.texts.usdt : ''))
+const exitLine = computed(() => props.exitText + (props.cb.texts.usdt ? ' ' + props.cb.texts.usdt : ''))
 
-// "기본 코인 배경 사용"이 켜져 있으면 coinbreaker3의 전체 배경 그림, 꺼져 있으면 어드민이 넣은 내 그림(없으면 배경 그림 없음).
+// 더블클릭 글자 수정
+const editing = ref<CbItemKey | null>(null)
+const editValue = ref('')
+let editEl: HTMLInputElement | null = null
+const editSize = computed(() => Math.max(2, editValue.value.length + 1))
+function setEditRef(el: any) {
+  editEl = (el as HTMLInputElement | null) || null
+}
+function startEdit(key: CbItemKey) {
+  if (!props.editable) return
+  const tk = cbTextKeyFor(key, props.side)
+  if (!tk) return
+  emit('select', key)
+  editing.value = key
+  editValue.value = props.cb.texts[tk]
+  nextTick(() => {
+    editEl?.focus()
+    editEl?.select()
+  })
+}
+function commitEdit() {
+  const key = editing.value
+  if (!key) return
+  editing.value = null
+  const tk = cbTextKeyFor(key, props.side)
+  if (tk) emit('edit', tk, editValue.value)
+}
+function cancelEdit() {
+  editing.value = null
+}
+
 const bgUrl = computed(() => (props.cb.useDefaultBg ? CB_DEFAULT_BG : props.bgImage || ''))
 const cardStyle = computed(() => ({
   width: props.cb.cardW + 'px',
@@ -130,7 +198,7 @@ function it(key: CbItemKey) {
 function outlineFor(key: CbItemKey) {
   return props.editable && props.selected === key ? '2px solid #818cf8' : undefined
 }
-function pickClass(_key: CbItemKey) {
+function pickClass() {
   return props.editable ? 'cbk-pick' : ''
 }
 function pick(key: CbItemKey) {
@@ -139,7 +207,7 @@ function pick(key: CbItemKey) {
 function itemStyle(key: CbItemKey, extra: Record<string, any> = {}) {
   const s = it(key)
   const st: Record<string, any> = { transform: `translate(${s.x || 0}px, ${s.y || 0}px)` }
-  if (s.size && key !== 'title') st.fontSize = s.size + 'px'
+  if (s.size) st.fontSize = s.size + 'px'
   if (s.weight) st.fontWeight = s.weight
   if (s.color) st.color = s.color
   if (s.font && s.font !== 'inherit') st.fontFamily = s.font
@@ -151,9 +219,6 @@ function itemStyle(key: CbItemKey, extra: Record<string, any> = {}) {
   }
   return st
 }
-
-// 로고 높이: 기본 글자 크기(18px)일 때 coinbreaker3의 제목 줄 높이(21px)와 같게 맞춘다.
-const titleHeight = computed(() => Math.round(((it('title').size || 18) * 7) / 6))
 
 const dividerStyle = computed(() => {
   const s = it('divider')
@@ -227,6 +292,12 @@ function onCloseClick() {
   z-index: 1;
   pointer-events: none;
 }
+.cbk-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
 .cbk-content {
   position: relative;
   z-index: 10;
@@ -243,6 +314,9 @@ function onCloseClick() {
 }
 .cbk-title {
   margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
   letter-spacing: -0.025em;
 }
 .cbk-values {
@@ -365,5 +439,18 @@ function onCloseClick() {
 .cbk-pick:hover {
   outline: 1px dashed #818cf8;
   outline-offset: 2px;
+}
+.cbk-edit {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px dashed #818cf8;
+  border-radius: 3px;
+  padding: 0 2px;
+  margin: 0;
+  outline: none;
+  min-width: 2ch;
+  max-width: 100%;
 }
 </style>
