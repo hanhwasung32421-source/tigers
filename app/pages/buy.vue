@@ -104,9 +104,9 @@
             {{ t('예상 가격', 'Estimated Price') }} <span class="text-white">1 USDT ≈ {{ rate > 0 ? Math.round(rate).toLocaleString('en-US') : '—' }} KRW</span>
           </div>
 
-          <!-- 입출금 계좌가 아직 없는 회원이 구매요청을 누르면 여기(구매요청 버튼 위)에 계좌 입력란이 뜬다. 저장하면 다음부터는 뜨지 않는다. -->
+          <!-- 입출금 계좌가 아직 없는 회원이 구매요청/출금요청을 누르면 여기(요청 버튼 위)에 계좌 입력란이 뜬다. 저장하면 다음부터는 뜨지 않는다. -->
           <BankAccountForm v-if="showBankForm && needsBank" @saved="onBankSaved" />
-          <p v-if="bankSavedNotice" class="text-[13px] font-medium text-emerald-400">{{ t('계좌가 저장되었습니다. 구매요청을 다시 눌러 주세요.', 'Your account has been saved. Please press Request Purchase again.') }}</p>
+          <p v-if="bankSavedNotice" class="text-[13px] font-medium text-emerald-400">{{ mode === 'buy' ? t('계좌가 저장되었습니다. 구매요청을 다시 눌러 주세요.', 'Your account has been saved. Please press Request Purchase again.') : t('계좌가 저장되었습니다. 출금요청을 다시 눌러 주세요.', 'Your account has been saved. Please press Request Withdrawal again.') }}</p>
           <button
             type="button"
             class="w-full rounded-lg bg-[#f0b90b] py-4 text-[20px] font-medium text-[#383A3E] hover:bg-[#d9a609] disabled:cursor-not-allowed disabled:opacity-60"
@@ -254,8 +254,8 @@ async function onSubmit() {
     return
   }
   if (submitting.value) return
-  // 구매요청인데 입출금 계좌가 아직 없으면, 요청을 보내지 않고 계좌 입력란을 먼저 보여 준다.
-  if (mode.value === 'buy' && needsBank.value) {
+  // 구매요청/출금요청인데 입출금 계좌가 아직 없으면, 요청을 보내지 않고 계좌 입력란을 먼저 보여 준다.
+  if (needsBank.value) {
     bankSavedNotice.value = false
     showBankForm.value = true
     return

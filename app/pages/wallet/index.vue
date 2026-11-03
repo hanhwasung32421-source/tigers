@@ -1,7 +1,10 @@
 <template>
   <div class="space-y-6">
     <!-- 입출금 계좌가 아직 없는 회원에게만, 처음 내 지갑에 들어오면 맨 위에 뜬다. 저장하면 다음부터는 뜨지 않는다. -->
-    <BankAccountForm v-if="needsBank" />
+    <div v-if="needsBank" ref="bankFormEl">
+      <BankAccountForm />
+      <p v-if="bankNotice" class="mt-2 text-sm font-medium text-amber-300">{{ t('출금요청 전에 입출금 계좌를 먼저 저장해 주세요.', 'Please save your account before requesting a withdrawal.') }}</p>
+    </div>
     <div class="rounded-2xl border border-cyan-500/10 bg-[#05111d]/90 p-6 shadow-[0_8px_28px_rgba(0,0,0,0.25)]">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -140,6 +143,8 @@
 definePageMeta({ middleware: ['auth'] })
 const { t, locale } = useLocale()
 const { needsBank } = useNeedsBank()
+const bankFormEl = ref<HTMLElement | null>(null)
+const bankNotice = ref(false)
 
 const TelegramIcon = {
   props: { class: { type: String, default: '' } },
@@ -288,6 +293,12 @@ async function submitDepositRequest() {
 async function submitWithdrawRequest() {
   const krwAmount = parseKrw(krwWithdrawInput.value)
   if (!(krwAmount > 0) || submittingWithdraw.value) return
+  // 입출금 계좌가 아직 없으면 요청을 보내지 않고, 맨 위의 계좌 입력란으로 안내한다.
+  if (needsBank.value) {
+    bankNotice.value = true
+    bankFormEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
   submittingWithdraw.value = true
   try {
     await $fetch('/api/wallet/withdraw-request', {
